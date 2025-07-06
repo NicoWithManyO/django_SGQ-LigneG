@@ -133,6 +133,43 @@ body {
     margin-bottom: 1rem;
 }
 
+/* Affichage du statut de conformité */
+.roll-status-display {
+    margin-bottom: 1rem;
+}
+
+.roll-status-display .badge {
+    font-size: 1.2rem;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    min-width: 200px;
+    display: inline-block;
+}
+
+.roll-status-display .bg-success {
+    background-color: #28a745 !important;
+    border: 3px solid #1e7e34;
+}
+
+.roll-status-display .bg-danger {
+    background-color: #dc3545 !important;
+    border: 3px solid #c82333;
+}
+
+.roll-status-display .bg-warning {
+    background-color: #ffc107 !important;
+    color: #856404 !important;
+    border: 3px solid #e0a800;
+}
+
+.roll-status-display .bg-secondary {
+    background-color: #6c757d !important;
+    border: 3px solid #545b62;
+}
+
 /* Container principal du rouleau */
 .roll-container {
     width: 100%;
@@ -509,6 +546,28 @@ body {
     background: #c82333;
 }
 
+/* Styles pour la validation des défauts */
+.defect-input-side.valid,
+.defect-input-center.valid {
+    background-color: #d4edda !important;
+    color: #155724 !important;
+    border: 1px solid #c3e6cb !important;
+}
+
+.defect-input-side.blocking,
+.defect-input-center.blocking {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+    border: 1px solid #f5c6cb !important;
+}
+
+.defect-input-side.warning,
+.defect-input-center.warning {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+    border: 1px solid #ffeaa7 !important;
+}
+
 /* Zone de mesure (tous les 5m) */
 .roll-row.measurement-zone {
     /* Pas de background spécial pour les zones de mesure */
@@ -765,10 +824,60 @@ input.fibrage-value-readonly {
     margin-left: 0.3rem;
 }
 
-.fibrage-save-btn {
+.fibrage-action-btn {
     margin-left: 1rem;
     align-self: flex-end;
     margin-bottom: 0.1rem;
+    min-width: 140px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.fibrage-action-btn.conforme {
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+    color: white !important;
+}
+
+.fibrage-action-btn.non-conforme {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: white !important;
+}
+
+/* Statut de conformité dans la sticky bar */
+.fibrage-conformity-status {
+    font-size: 1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    text-align: center;
+    min-width: 140px;
+    margin-right: 0.5rem;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.fibrage-conformity-status.conforme {
+    background-color: #28a745 !important;
+    color: white !important;
+    border-color: #1e7e34 !important;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+}
+
+.fibrage-conformity-status.non-conforme {
+    background-color: #dc3545 !important;
+    color: white !important;
+    border-color: #c82333 !important;
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+}
+
+.fibrage-conformity-status.default {
+    background-color: #6c757d !important;
+    color: white !important;
+    border-color: #545b62 !important;
 }
 
 /* Section droite */

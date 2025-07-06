@@ -85,7 +85,6 @@
                     <input type="number" id="roll-length" value="">
                     <input type="number" id="tube-mass" value="">
                     <input type="number" id="total-mass" value="">
-                    <div id="conformity-status">--</div>
                 </div>
                 
             </div>
@@ -147,8 +146,10 @@
         <!-- Visualisation Rouleau -->
         <div class="roll-visualization">
             <div class="text-center mb-3">
-                <h2>Visualisation Rouleau</h2>
-                <p class="subtitle">Longueur cible : <span id="roll-target-length-display">--</span> m</p>
+                <h2>Statut du Rouleau</h2>
+                <div class="roll-status-display">
+                    <div id="conformity-status" class="badge bg-secondary">--</div>
+                </div>
             </div>
             
             <div class="roll-container" id="roll-container">
@@ -214,8 +215,8 @@
                     <div class="fibrage-value-center" id="sticky-total-mass" onclick="makeEditable('sticky-total-mass')">--</div>
                 </div>
                 
-                <button type="button" class="btn btn-success btn-sm fibrage-save-btn" onclick="saveFibrageData()">
-                    <i class="bi bi-save"></i> Save
+                <button type="button" id="sticky-action-btn" class="btn btn-secondary btn-sm fibrage-action-btn" onclick="handleActionButton()">
+                    <i class="bi bi-save"></i> --
                 </button>
             </div>
             
@@ -336,7 +337,8 @@ const defectTypes = [
     {
         id: {{ defect.id }},
         name: "{{ defect.name|escapejs }}",
-        severity: "{{ defect.severity|escapejs }}"
+        severity: "{{ defect.severity|escapejs }}",
+        threshold_value: {{ defect.threshold_value|default:"null" }}
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
 ];
@@ -362,11 +364,24 @@ function clearDefectInput(button) {
     const input = button.previousElementSibling;
     if (input && input.tagName === 'INPUT') {
         input.value = '';
-        input.focus();
         
-        // Déclencher l'auto-save
+        // Remettre le style normal manuellement
+        input.style.backgroundColor = '';
+        input.style.color = '';
+        input.style.border = '';
+        
+        // Mettre à jour le statut de conformité IMMÉDIATEMENT
+        updateRollConformity();
+        
+        // Déclencher l'auto-save ET la sauvegarde des défauts pour supprimer le défaut effacé
         clearTimeout(window.autoSaveTimeout);
         window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+        
+        // Déclencher aussi la sauvegarde des défauts pour supprimer de la DB
+        clearTimeout(window.defectSaveTimeout);
+        window.defectSaveTimeout = setTimeout(saveRollDefects, 500);
+        
+        input.focus();
     }
 }
 
@@ -1201,6 +1216,7 @@ function updateRollId() {
         
         // Vérifier si l'ID existe déjà
         checkRollExists(rollId);
+        
     } else {
         rollIdDisplay.textContent = '--';
         rollStatus.textContent = '';
@@ -1337,7 +1353,8 @@ function generateRollVisualization() {
                     <div class="defect-input-group">
                         <input type="text" class="defect-input-side" 
                                placeholder="" data-side="left" data-meter="${meter}"
-                               list="defect-list-left-${meter}">
+                               list="defect-list-left-${meter}"
+                               onchange="validateDefect(this)" oninput="validateDefect(this)">
                         <button type="button" class="defect-clear-btn" 
                                 onclick="clearDefectInput(this)" title="Effacer">×</button>
                     </div>
@@ -1357,7 +1374,8 @@ function generateRollVisualization() {
                     <div class="defect-input-group">
                         <input type="text" class="defect-input-center" 
                                placeholder="" data-side="center" data-meter="${meter}"
-                               list="defect-list-center-${meter}">
+                               list="defect-list-center-${meter}"
+                               onchange="validateDefect(this)" oninput="validateDefect(this)">
                         <button type="button" class="defect-clear-btn" 
                                 onclick="clearDefectInput(this)" title="Effacer">×</button>
                     </div>
@@ -1377,7 +1395,8 @@ function generateRollVisualization() {
                     <div class="defect-input-group">
                         <input type="text" class="defect-input-side" 
                                placeholder="" data-side="right" data-meter="${meter}"
-                               list="defect-list-right-${meter}">
+                               list="defect-list-right-${meter}"
+                               onchange="validateDefect(this)" oninput="validateDefect(this)">
                         <button type="button" class="defect-clear-btn" 
                                 onclick="clearDefectInput(this)" title="Effacer">×</button>
                     </div>
@@ -1408,26 +1427,26 @@ function generateLeftThicknessInputs(meter) {
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
                    placeholder="" data-point="G1" data-meter="${meter}" 
-                   onchange="validateThickness(this)">
+                   onchange="validateThickness(this)" onclick="this.select()">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
                    placeholder="" data-point="G1" data-meter="${meter}" data-catchup="true"
-                   onchange="validateThickness(this)" style="display: none;">
+                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;">
         </div>
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
                    placeholder="" data-point="G2" data-meter="${meter}"
-                   onchange="validateThickness(this)">
+                   onchange="validateThickness(this)" onclick="this.select()">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
                    placeholder="" data-point="G2" data-meter="${meter}" data-catchup="true"
-                   onchange="validateThickness(this)" style="display: none;">
+                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;">
         </div>
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
                    placeholder="" data-point="G3" data-meter="${meter}"
-                   onchange="validateThickness(this)">
+                   onchange="validateThickness(this)" onclick="this.select()">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
                    placeholder="" data-point="G3" data-meter="${meter}" data-catchup="true"
-                   onchange="validateThickness(this)" style="display: none;">
+                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;">
         </div>
     `;
 }
@@ -1438,26 +1457,26 @@ function generateRightThicknessInputs(meter) {
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
                    placeholder="" data-point="D1" data-meter="${meter}"
-                   onchange="validateThickness(this)">
+                   onchange="validateThickness(this)" onclick="this.select()">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
                    placeholder="" data-point="D1" data-meter="${meter}" data-catchup="true"
-                   onchange="validateThickness(this)" style="display: none;">
+                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;">
         </div>
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
                    placeholder="" data-point="D2" data-meter="${meter}"
-                   onchange="validateThickness(this)">
+                   onchange="validateThickness(this)" onclick="this.select()">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
                    placeholder="" data-point="D2" data-meter="${meter}" data-catchup="true"
-                   onchange="validateThickness(this)" style="display: none;">
+                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;">
         </div>
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
                    placeholder="" data-point="D3" data-meter="${meter}"
-                   onchange="validateThickness(this)">
+                   onchange="validateThickness(this)" onclick="this.select()">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
                    placeholder="" data-point="D3" data-meter="${meter}" data-catchup="true"
-                   onchange="validateThickness(this)" style="display: none;">
+                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;">
         </div>
     `;
 }
@@ -1573,13 +1592,38 @@ function hideCatchupField(mainInput) {
 
 // Fonction pour mettre à jour l'état de conformité du rouleau
 function updateRollConformity() {
-    if (!window.thicknessSpecs) return;
+    console.log('updateRollConformity appelée');
     
-    const conformityDisplay = document.getElementById('conformity-status');
-    if (!conformityDisplay) return;
+    if (!window.thicknessSpecs) {
+        console.log('Specs non chargées');
+        return;
+    }
+    
+    let conformityDisplay = document.getElementById('conformity-status');
+    if (!conformityDisplay) {
+        console.log('Element conformity-status non trouvé, création...');
+        // Créer l'élément s'il n'existe pas
+        const rollStatusDiv = document.querySelector('.roll-status-display');
+        if (rollStatusDiv) {
+            conformityDisplay = document.createElement('div');
+            conformityDisplay.id = 'conformity-status';
+            conformityDisplay.className = 'badge bg-secondary';
+            conformityDisplay.textContent = '--';
+            rollStatusDiv.appendChild(conformityDisplay);
+            console.log('Element conformity-status créé');
+        } else {
+            console.log('Conteneur .roll-status-display non trouvé');
+            return;
+        }
+    }
+    
+    console.log('Element conformity-status trouvé:', conformityDisplay);
+    console.log('Classes actuelles:', conformityDisplay.className);
+    console.log('Styles actuels:', conformityDisplay.style.cssText);
     
     const allThicknessInputs = document.querySelectorAll('.thickness-input[data-point]:not([data-catchup])');
-    let nokCount = 0;
+    let totalNokCount = 0; // Compte TOUTES les NOK (même rattrapées)
+    let unresolvedNokCount = 0; // Compte seulement les NOK non résolues
     
     allThicknessInputs.forEach(input => {
         const value = parseFloat(input.value);
@@ -1590,41 +1634,163 @@ function updateRollConformity() {
             
             // Vérifier si la mesure principale est NOK
             if (value < window.thicknessSpecs.ep_mini) {
-                // Vérifier s'il y a un rattrapage valide
-                if (catchupInput && catchupInput.value) {
+                totalNokCount++; // Compter TOUTES les NOK
+                
+                // Vérifier le statut du rattrapage
+                let isResolved = false;
+                if (catchupInput && catchupInput.value.trim()) {
                     const catchupValue = parseFloat(catchupInput.value);
-                    if (isNaN(catchupValue) || catchupValue < window.thicknessSpecs.ep_mini) {
-                        // Rattrapage aussi NOK ou inexistant
-                        nokCount++;
+                    if (!isNaN(catchupValue)) {
+                        if (catchupValue >= window.thicknessSpecs.ep_mini) {
+                            // Rattrapage OK - la NOK est résolue
+                            isResolved = true;
+                        }
                     }
-                    // Si le rattrapage est OK, on ne compte pas comme NOK
-                } else {
-                    // Pas de rattrapage, c'est NOK
-                    nokCount++;
+                }
+                
+                // Si pas de rattrapage valide, c'est une NOK non résolue
+                if (!isResolved) {
+                    unresolvedNokCount++;
                 }
             }
         }
     });
     
+    // Vérifier les défauts bloquants
+    let blockingDefectsCount = 0;
+    let defectCounts = {}; // Compter chaque type de défaut
+    
+    // Compter tous les défauts par type
+    document.querySelectorAll('.defect-input-side, .defect-input-center').forEach(input => {
+        const defectName = input.value.trim();
+        if (defectName) {
+            defectCounts[defectName] = (defectCounts[defectName] || 0) + 1;
+        }
+    });
+    
+    // Vérifier chaque type de défaut
+    Object.keys(defectCounts).forEach(defectName => {
+        const count = defectCounts[defectName];
+        const defectType = defectTypes.find(defect => defect.name === defectName);
+        
+        if (defectType) {
+            console.log(`Défaut ${defectName}: ${count} occurrence(s) - severity: ${defectType.severity}`);
+            
+            if (defectType.severity === 'blocking') {
+                // Défaut directement bloquant
+                blockingDefectsCount += count;
+            } else if (defectType.severity === 'threshold') {
+                // Défaut bloquant selon seuil
+                if (count >= defectType.threshold_value) {
+                    console.log(`Seuil dépassé pour ${defectName}: ${count} >= ${defectType.threshold_value}`);
+                    blockingDefectsCount += count;
+                }
+            }
+            // non_blocking = ne compte pas
+        } else {
+            console.log(`Défaut inconnu: ${defectName}`);
+        }
+    });
+    
+    
     // Déterminer l'état de conformité
     let conformityText = '';
     let conformityClass = '';
     
-    if (nokCount === 0) {
-        conformityText = '✓ Conforme';
-        conformityClass = 'badge bg-success';
-    } else if (nokCount < window.thicknessSpecs.max_nok) {
-        conformityText = `⚠️ ${nokCount} NOK/${window.thicknessSpecs.max_nok}`;
-        conformityClass = 'badge bg-warning';
-    } else {
-        conformityText = '❌ Non conforme';
+    // NON CONFORME si : trop de NOK au total OU une seule NOK non résolue OU défauts bloquants
+    if (totalNokCount >= window.thicknessSpecs.max_nok || 
+        unresolvedNokCount > 0 || 
+        blockingDefectsCount > 0) {
+        conformityText = 'NON CONFORME';
         conformityClass = 'badge bg-danger';
+    } else {
+        conformityText = 'CONFORME';
+        conformityClass = 'badge bg-success';
     }
     
     conformityDisplay.textContent = conformityText;
     conformityDisplay.className = conformityClass;
     
-    console.log(`État rouleau: ${nokCount} NOK sur ${window.thicknessSpecs.max_nok} max - ${conformityText}`);
+    // Mettre à jour aussi le statut dans la sticky bar
+    updateStickyConformityStatus(conformityText);
+    
+    // Forcer les styles selon le statut avec !important
+    if (conformityText === 'CONFORME') {
+        conformityDisplay.style.setProperty('background-color', '#28a745', 'important');
+        conformityDisplay.style.setProperty('color', 'white', 'important');
+        conformityDisplay.style.setProperty('border', '3px solid #1e7e34', 'important');
+        conformityDisplay.style.setProperty('font-size', '1.2rem', 'important');
+        conformityDisplay.style.setProperty('padding', '0.75rem 2rem', 'important');
+        conformityDisplay.style.setProperty('border-radius', '8px', 'important');
+        conformityDisplay.style.setProperty('font-weight', 'bold', 'important');
+    } else {
+        conformityDisplay.style.setProperty('background-color', '#dc3545', 'important');
+        conformityDisplay.style.setProperty('color', 'white', 'important');
+        conformityDisplay.style.setProperty('border', '3px solid #c82333', 'important');
+        conformityDisplay.style.setProperty('font-size', '1.2rem', 'important');
+        conformityDisplay.style.setProperty('padding', '0.75rem 2rem', 'important');
+        conformityDisplay.style.setProperty('border-radius', '8px', 'important');
+        conformityDisplay.style.setProperty('font-weight', 'bold', 'important');
+    }
+    
+    console.log(`État rouleau: ${totalNokCount} NOK total, ${unresolvedNokCount} NOK non résolues, ${blockingDefectsCount} défauts bloquants - ${conformityText}`);
+    console.log('Affichage mis à jour:', conformityDisplay.textContent, conformityDisplay.className);
+}
+
+// Fonction pour mettre à jour le statut de conformité dans la sticky bar
+function updateStickyConformityStatus(conformityText) {
+    const actionBtn = document.getElementById('sticky-action-btn');
+    
+    if (!actionBtn) return;
+    
+    // Retirer toutes les classes de statut
+    actionBtn.classList.remove('conforme', 'non-conforme', 'btn-secondary');
+    
+    // Récupérer l'ID du rouleau pour le bouton
+    const rollId = document.getElementById('roll-id')?.textContent || '--';
+    
+    if (conformityText === 'CONFORME') {
+        actionBtn.classList.add('conforme');
+        actionBtn.innerHTML = `<i class="bi bi-check-circle"></i> Sauver Rouleau ${rollId}`;
+    } else if (conformityText === 'NON CONFORME') {
+        actionBtn.classList.add('non-conforme');
+        actionBtn.innerHTML = `<i class="bi bi-arrow-right-circle"></i> Vers Découpe`;
+    } else {
+        actionBtn.classList.add('btn-secondary');
+        actionBtn.innerHTML = `<i class="bi bi-save"></i> --`;
+    }
+}
+
+// Fonction pour gérer le clic sur le bouton d'action
+function handleActionButton() {
+    const conformityStatus = document.getElementById('conformity-status');
+    const rollId = document.getElementById('roll-id')?.textContent || '--';
+    
+    if (!conformityStatus) return;
+    
+    const statusText = conformityStatus.textContent;
+    
+    if (statusText === 'CONFORME') {
+        // Sauvegarder le rouleau conforme
+        if (rollId !== '--') {
+            console.log(`Sauvegarde du rouleau conforme: ${rollId}`);
+            // Ici tu peux ajouter la logique de sauvegarde
+            saveFibrageData(); // Utiliser la fonction existante
+            alert(`Rouleau ${rollId} sauvegardé avec succès !`);
+        } else {
+            alert('Aucun ID de rouleau à sauvegarder');
+        }
+    } else if (statusText === 'NON CONFORME') {
+        // Envoyer vers découpe
+        console.log(`Envoi vers découpe du rouleau NON CONFORME: ${rollId}`);
+        // Ici tu peux ajouter la logique d'envoi vers découpe
+        if (confirm(`Envoyer le rouleau ${rollId} vers la découpe ?`)) {
+            alert(`Rouleau ${rollId} envoyé vers la découpe`);
+            // Logique d'envoi vers découpe à implémenter
+        }
+    } else {
+        alert('Statut de conformité non déterminé');
+    }
 }
 
 // Ajouter les event listeners pour le rouleau
@@ -1658,7 +1824,7 @@ function getRollData() {
     
     // Collecter les mesures d'épaisseur principales
     document.querySelectorAll('.thickness-input:not([data-catchup])').forEach(input => {
-        if (input.value) {
+        if (input.value && input.value.trim()) {
             const meter = input.getAttribute('data-meter');
             const point = input.getAttribute('data-point');
             if (!rollData.thicknessMeasurements[meter]) {
@@ -1670,7 +1836,7 @@ function getRollData() {
     
     // Collecter les mesures de rattrapage (nouveaux champs avec data-catchup="true")
     document.querySelectorAll('[data-catchup="true"]').forEach(input => {
-        if (input.value) {
+        if (input.value && input.value.trim()) {
             const meter = input.getAttribute('data-meter'); // Mètre d'origine
             const point = input.getAttribute('data-point');
             if (!rollData.thicknessCatchups[meter]) {
@@ -1680,15 +1846,15 @@ function getRollData() {
         }
     });
     
-    // Collecter les défauts
+    // Collecter les défauts - SEULEMENT ceux qui ont une valeur non vide
     document.querySelectorAll('.defect-input-side, .defect-input-center').forEach(input => {
-        if (input.value) {
+        if (input.value && input.value.trim()) {
             const meter = input.getAttribute('data-meter');
             const side = input.getAttribute('data-side');
             if (!rollData.defects[meter]) {
                 rollData.defects[meter] = {};
             }
-            rollData.defects[meter][side] = input.value;
+            rollData.defects[meter][side] = input.value.trim();
         }
     });
     
@@ -1698,6 +1864,12 @@ function getRollData() {
 // Fonction pour restaurer les données du rouleau
 function restoreRollData(rollData) {
     if (!rollData) return;
+    
+    // D'abord vider TOUS les champs de défauts pour éviter les anciens défauts qui traînent
+    document.querySelectorAll('.defect-input-side, .defect-input-center').forEach(input => {
+        input.value = '';
+        validateDefect(input); // Remettre le style normal
+    });
     
     // Restaurer les mesures d'épaisseur principales
     if (rollData.thicknessMeasurements) {
@@ -1733,10 +1905,14 @@ function restoreRollData(rollData) {
                 const input = document.querySelector(`[data-meter="${meter}"][data-side="${side}"]`);
                 if (input) {
                     input.value = rollData.defects[meter][side];
+                    validateDefect(input); // Appliquer la validation après restauration
                 }
             });
         });
     }
+    
+    // Mettre à jour le statut de conformité après restauration
+    setTimeout(updateRollConformity, 200);
 }
 
 // Fonction pour synchroniser les valeurs avec la sticky bar
@@ -1789,6 +1965,12 @@ function syncStickyBarValues() {
     const stickyTotalMass = document.getElementById('sticky-total-mass');
     if (stickyTotalMass) {
         stickyTotalMass.textContent = totalMass;
+    }
+    
+    // Synchroniser le statut de conformité
+    const conformityStatus = document.getElementById('conformity-status');
+    if (conformityStatus && conformityStatus.textContent !== '--') {
+        updateStickyConformityStatus(conformityStatus.textContent);
     }
 }
 
@@ -1957,6 +2139,99 @@ const observer = new MutationObserver(function(mutations) {
     });
 });
 
+// Fonction pour valider et sauvegarder les défauts
+function validateDefect(input) {
+    const defectName = input.value.trim();
+    
+    if (!defectName) {
+        // Défaut effacé, remettre le style normal
+        input.style.backgroundColor = '';
+        input.style.color = '';
+        input.style.border = '';
+        return;
+    }
+    
+    // Vérifier si le défaut existe dans la liste des types
+    const defectExists = defectTypes.some(defect => defect.name === defectName);
+    
+    if (defectExists) {
+        // Trouver le type de défaut pour déterminer s'il est bloquant
+        const defectType = defectTypes.find(defect => defect.name === defectName);
+        if (defectType && defectType.severity === 'blocking') {
+            // Défaut bloquant - style rouge
+            input.style.backgroundColor = '#f8d7da';
+            input.style.color = '#721c24';
+            input.style.border = '1px solid #f5c6cb';
+        } else {
+            // Défaut non bloquant - style orange
+            input.style.backgroundColor = '#fff3cd';
+            input.style.color = '#856404';
+            input.style.border = '1px solid #ffc107';
+        }
+    } else {
+        // Défaut inconnu - style orange d'avertissement
+        input.style.backgroundColor = '#fff3cd';
+        input.style.color = '#856404';
+        input.style.border = '1px solid #ffeaa7';
+    }
+    
+    // Déclencher la sauvegarde des défauts
+    clearTimeout(window.defectSaveTimeout);
+    window.defectSaveTimeout = setTimeout(saveRollDefects, 1000);
+    
+    // Mettre à jour le statut de conformité
+    setTimeout(updateRollConformity, 200);
+}
+
+// Fonction pour sauvegarder les défauts du rouleau
+function saveRollDefects() {
+    const rollId = document.getElementById('roll-id')?.textContent;
+    if (!rollId || rollId === '--') {
+        console.log('Pas d\'ID rouleau pour sauvegarder les défauts');
+        return;
+    }
+    
+    const defectsData = getRollData().defects;
+    
+    // Ne sauvegarder que s'il y a des défauts
+    if (Object.keys(defectsData).length === 0) {
+        console.log('Aucun défaut à sauvegarder');
+        return;
+    }
+    
+    fetch('/quality/save-roll-defects/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            roll_id: rollId,
+            defects: defectsData
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Défauts sauvegardés:', data.saved_defects);
+            
+            // Mettre à jour les données de défauts pour la conformité
+            window.rollDefectData = {
+                blocking_defects_count: data.blocking_defects_count
+            };
+            
+            // Mettre à jour le statut de conformité
+            setTimeout(updateRollConformity, 100);
+        } else {
+            console.error('Erreur sauvegarde défauts:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur réseau sauvegarde défauts:', error);
+    });
+}
+
+
 // Fonction de test pour le système de rattrapage
 window.testCatchupSystem = function() {
     console.log('=== Test du système de rattrapage ===');
@@ -1977,6 +2252,61 @@ window.testCatchupSystem = function() {
     }
 };
 
+// Fonction pour remplir toutes les épaisseurs avec des valeurs aléatoires
+function fillRandomThickness() {
+    // Trouver tous les champs d'épaisseur (sauf rattrapage)
+    const thicknessInputs = document.querySelectorAll('.thickness-input[data-point]:not([data-catchup])');
+    
+    if (thicknessInputs.length === 0) {
+        return;
+    }
+    
+    thicknessInputs.forEach(input => {
+        // Générer une valeur aléatoire entre 3.8 et 11
+        const randomValue = (Math.random() * (11 - 3.8) + 3.8).toFixed(2);
+        input.value = randomValue;
+        
+        // Appliquer la validation pour la couleur
+        validateThickness(input);
+    });
+    
+    // Déclencher l'auto-save
+    clearTimeout(window.autoSaveTimeout);
+    window.autoSaveTimeout = setTimeout(autoSaveFormData, 1000);
+    
+    // Mettre à jour le statut de conformité
+    setTimeout(updateRollConformity, 500);
+}
+
+// Fonction pour effacer toutes les épaisseurs
+function clearAllThickness() {
+    // Trouver tous les champs d'épaisseur (principaux ET rattrapages)
+    const allThicknessInputs = document.querySelectorAll('.thickness-input, .thickness-catchup-input');
+    
+    if (allThicknessInputs.length === 0) {
+        return;
+    }
+    
+    allThicknessInputs.forEach(input => {
+        input.value = '';
+        
+        // Appliquer la validation pour remettre le style de base correct
+        validateThickness(input);
+        
+        // Cacher les champs de rattrapage
+        if (input.hasAttribute('data-catchup')) {
+            input.style.display = 'none';
+        }
+    });
+    
+    // Déclencher l'auto-save
+    clearTimeout(window.autoSaveTimeout);
+    window.autoSaveTimeout = setTimeout(autoSaveFormData, 1000);
+    
+    // Mettre à jour le statut de conformité
+    setTimeout(updateRollConformity, 500);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     populateTimeOptions();
     loadFabricationOrders();
@@ -1987,6 +2317,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialiser la synchronisation de la sticky bar
     setTimeout(syncStickyBarValues, 3500);
+    
+    // Initialiser le statut de conformité
+    setTimeout(updateRollConformity, 5000);
+    
     
     // Démarrer l'observation des changements
     const rollIdElement = document.getElementById('roll-id');
