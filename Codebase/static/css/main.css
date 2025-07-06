@@ -29,6 +29,7 @@
 /* Fond gris pour le body */
 body {
     background-color: var(--body-bg);
+    padding-bottom: 70px; /* Espace pour la sticky bar */
 }
 
 /* Bloc standard modulaire - VERSION COMPACTE */
@@ -106,10 +107,10 @@ body {
 }
 
 .top-blocks {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 0.5rem;
-    align-items: start;
+    align-items: stretch;
 }
 
 .roll-visualization {
@@ -344,6 +345,100 @@ body {
     -moz-appearance: textfield;
 }
 
+
+/* Classes pour la coloration des épaisseurs selon spécifications */
+.thickness-input.thickness-ok {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.thickness-input.thickness-warning {
+    background: #ffc107;
+    color: #212529;
+    border-color: #ffc107;
+}
+
+.thickness-input.thickness-critical {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+/* Styles pour les champs de rattrapage */
+.thickness-catchup-input {
+    width: 50px;
+    height: 18px;
+    padding: 0;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-align: center;
+    background: var(--primary-light);
+    color: #333;
+    margin: 0;
+    line-height: 1;
+    margin-top: 1px;
+}
+
+/* Style pour les champs de rattrapage affichés au mètre suivant */
+.thickness-catchup-style {
+    background: #fff3cd !important;
+    border: 2px solid #ffc107 !important;
+    color: #856404 !important;
+    font-weight: bold !important;
+}
+
+.thickness-catchup-input.thickness-ok {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.thickness-catchup-input.thickness-warning {
+    background: #ffc107;
+    color: #212529;
+    border-color: #ffc107;
+}
+
+.thickness-catchup-input.thickness-critical {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+/* Validation pour les champs de rattrapage avec style spécial */
+.thickness-catchup-style.thickness-ok {
+    background: #d4edda !important;
+    border-color: #28a745 !important;
+    color: #155724 !important;
+}
+
+.thickness-catchup-style.thickness-warning {
+    background: #fff3cd !important;
+    border-color: #ffc107 !important;
+    color: #856404 !important;
+}
+
+.thickness-catchup-style.thickness-critical {
+    background: #f8d7da !important;
+    border-color: #dc3545 !important;
+    color: #721c24 !important;
+}
+
+/* Suppression des flèches pour les champs de rattrapage */
+.thickness-catchup-input::-webkit-outer-spin-button,
+.thickness-catchup-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.thickness-catchup-input {
+    -moz-appearance: textfield;
+}
+
+/* Ancien style pour compatibilité */
 .thickness-input.valid {
     background: #28a745;
     color: white;
@@ -351,6 +446,11 @@ body {
 }
 
 .thickness-input:focus {
+    outline: 2px solid #ffc107;
+    outline-offset: 2px;
+}
+
+.thickness-catchup-input:focus {
     outline: 2px solid #ffc107;
     outline-offset: 2px;
 }
@@ -418,6 +518,14 @@ body {
     background: #e9ecef;
     color: #666;
     font-weight: 600;
+}
+
+/* Groupes d'épaisseur avec rattrapage */
+.thickness-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    align-items: center;
 }
 
 /* Responsive mobile */
@@ -507,4 +615,226 @@ body {
 
 .htmx-request.htmx-indicator {
     opacity: 1;
+}
+
+/* Sticky Bar Fibrage en cours */
+.fibrage-sticky-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: var(--primary-text);
+    border-top: 2px solid var(--primary-text);
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+}
+
+.fibrage-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0.5rem 1rem;
+}
+
+.fibrage-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+/* Section gauche */
+.fibrage-left {
+    flex-shrink: 0;
+}
+
+.fibrage-left h6 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fibrage-left i {
+    font-size: 1rem;
+}
+
+/* Section centre */
+.fibrage-center {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.fibrage-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 80px;
+}
+
+.fibrage-field.special-height {
+    justify-content: flex-end;
+}
+
+.fibrage-value-with-edit {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.fibrage-edit-btn {
+    background: none;
+    border: none;
+    color: #ffc107;
+    font-size: 0.7rem;
+    cursor: pointer;
+    padding: 0.1rem;
+    margin: 0;
+    line-height: 1;
+}
+
+.fibrage-edit-btn:hover {
+    color: white;
+}
+
+.fibrage-id-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+    min-height: 1.5rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    border: 1px solid transparent;
+}
+
+.fibrage-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+}
+
+.fibrage-value-center {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary-text);
+    background: var(--primary-light);
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+    min-width: 80px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.fibrage-value-center:hover {
+    background: #c5d9f0;
+}
+
+.fibrage-value-readonly {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary-text);
+    background: var(--primary-light);
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+    min-width: 80px;
+    text-align: center;
+    cursor: default;
+}
+
+/* Style pour les inputs en mode édition avec classe readonly */
+input.fibrage-value-readonly {
+    cursor: text;
+}
+
+.fibrage-status-text {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #ffc107;
+    white-space: nowrap;
+    margin-left: 0.3rem;
+}
+
+.fibrage-save-btn {
+    margin-left: 1rem;
+    align-self: flex-end;
+    margin-bottom: 0.1rem;
+}
+
+/* Section droite */
+.fibrage-right {
+    flex-shrink: 0;
+}
+
+.fibrage-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 80px;
+}
+
+.fibrage-label {
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: white;
+    margin: 0;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.fibrage-value {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary-text);
+    background: var(--primary-light);
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    text-align: center;
+    min-height: 1.5rem;
+    min-width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.fibrage-value:hover {
+    background: #c5d9f0;
+}
+
+
+/* Responsive pour la sticky bar */
+@media (max-width: 768px) {
+    .fibrage-fields {
+        gap: 1rem;
+    }
+    
+    .fibrage-field {
+        min-width: 70px;
+    }
+    
+    .fibrage-label {
+        font-size: 0.6rem;
+    }
+    
+    .fibrage-value {
+        font-size: 0.7rem;
+        padding: 0.15rem 0.3rem;
+    }
+    
+    body {
+        padding-bottom: 80px;
+    }
 }

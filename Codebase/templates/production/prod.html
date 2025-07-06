@@ -28,6 +28,68 @@
             </div>
         </div>
 
+        <!-- Bloc Ordre de Fabrication -->
+        <div class="block-card">
+            <div class="block-header" style="cursor: pointer;" onclick="toggleOFBlock()">
+                <h5 class="block-title"><i class="bi bi-list-task"></i> Ordre de Fabrication</h5>
+                <div class="block-actions">
+                    <i class="bi bi-chevron-up" id="of-chevron"></i>
+                </div>
+            </div>
+            <div class="block-content" id="of-content">
+                <div class="row mb-2" id="of-fields-row">
+                    <div class="col-6 mb-2">
+                        <label class="form-label">OF en cours</label>
+                        <div class="input-group">
+                            <input type="text" id="current-order" class="form-control fw-bold" 
+                                   list="current-order-list" placeholder="--" disabled>
+                            <datalist id="current-order-list">
+                                <!-- Options chargées dynamiquement -->
+                            </datalist>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                    onclick="editCurrentOrder()" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-6 mb-2">
+                        <label class="form-label">Lg cible (m)</label>
+                        <div class="input-group">
+                            <input type="number" id="target-length" class="form-control fw-bold" step="0.01" min="0" placeholder="--" disabled>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                    onclick="editTargetLength()" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">OF découpe</label>
+                        <div class="input-group">
+                            <select id="cutting-order" class="form-select fw-bold" disabled>
+                                <option value="">--</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                    onclick="editCuttingOrder()" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Champs cachés pour maintenir la fonctionnalité auto-save -->
+                <div style="display: none;">
+                    <input type="text" id="roll-number" value="">
+                    <div id="roll-id">--</div>
+                    <span id="roll-status" class="badge"></span>
+                    <input type="number" id="next-tube-mass" value="">
+                    <input type="number" id="roll-length" value="">
+                    <input type="number" id="tube-mass" value="">
+                    <input type="number" id="total-mass" value="">
+                    <div id="conformity-status">--</div>
+                </div>
+                
+            </div>
+        </div>
 
     </aside>
 
@@ -36,108 +98,6 @@
         
         <!-- Blocs du haut -->
         <div class="top-blocks">
-            <!-- Bloc Ordre de Fabrication & Fibrage en Cours -->
-            <div class="block-card">
-                <div class="block-header" style="cursor: pointer;" onclick="toggleOFBlock()">
-                    <h5 class="block-title"><i class="bi bi-list-task"></i> Ordre de Fabrication & Fibrage en Cours</h5>
-                    <div class="block-actions">
-                        <i class="bi bi-chevron-up" id="of-chevron"></i>
-                    </div>
-                </div>
-                <div class="block-content" id="of-content">
-                    <div class="row mb-2" id="of-fields-row">
-                        <div class="col-3">
-                            <label class="form-label">OF en cours</label>
-                            <div class="input-group">
-                                <input type="text" id="current-order" class="form-control fw-bold" 
-                                       list="current-order-list" placeholder="--" disabled>
-                                <datalist id="current-order-list">
-                                    <!-- Options chargées dynamiquement -->
-                                </datalist>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" 
-                                        onclick="editCurrentOrder()" title="Modifier">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-3">
-                            <label class="form-label">Lg cible (m)</label>
-                            <div class="input-group">
-                                <input type="number" id="target-length" class="form-control fw-bold" step="0.01" min="0" placeholder="--" disabled>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" 
-                                        onclick="editTargetLength()" title="Modifier">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-3 ms-auto">
-                            <label class="form-label">OF découpe</label>
-                            <div class="input-group">
-                                <select id="cutting-order" class="form-select fw-bold" disabled>
-                                    <option value="">--</option>
-                                </select>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" 
-                                        onclick="editCuttingOrder()" title="Modifier">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Séparation -->
-                    <hr class="my-3" id="of-separator">
-                    
-                    <!-- Informations rouleau -->
-                    <div class="row mb-2">
-                        <div class="col-3">
-                            <label class="form-label">Numéro de rouleau</label>
-                            <div class="input-group">
-                                <input type="text" id="roll-number" class="form-control fw-bold" placeholder="--" disabled>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" 
-                                        onclick="editRollNumber()" title="Modifier">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-3">
-                            <label class="form-label text-muted small">ID Rouleau</label>
-                            <div class="d-flex align-items-center">
-                                <div class="form-control-plaintext text-muted me-2" id="roll-id">--</div>
-                                <span id="roll-status" class="badge"></span>
-                            </div>
-                        </div>
-                        <div class="col-4 offset-2">
-                            <label class="form-label">Masse du prochain tube (g)</label>
-                            <input type="number" id="next-tube-mass" class="form-control fw-bold" step="1" min="0" placeholder="--">
-                        </div>
-                    </div>
-                    
-                    <div class="row mb-2">
-                        <div class="col-4">
-                            <label class="form-label">Lg (m)</label>
-                            <input type="number" id="roll-length" class="form-control fw-bold" step="0.01" min="0" placeholder="--">
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label">Masse tube (g)</label>
-                            <input type="number" id="tube-mass" class="form-control fw-bold" step="1" min="0" placeholder="--">
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label">Masse totale (g)</label>
-                            <input type="number" id="total-mass" class="form-control fw-bold" step="1" min="0" placeholder="--">
-                        </div>
-                    </div>
-                    
-                    <div class="row mb-2">
-                        <div class="col-6 offset-3">
-                            <label class="form-label text-center d-block">Statut conformité</label>
-                            <div class="border border-2 p-2 text-center fw-bold fs-5" id="conformity-status">
-                                <span>--</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                </div>
-            </div>
             
             <!-- Bloc Déclaration de Temps -->
             <div class="block-card">
@@ -207,6 +167,68 @@
         
     </main>
 
+</div>
+
+<!-- Sticky Bar Fibrage en cours -->
+<div class="fibrage-sticky-bar">
+    <div class="fibrage-container">
+        <div class="fibrage-content">
+            
+            <!-- Gauche : Titre -->
+            <div class="fibrage-left">
+                <h6><i class="bi bi-box-seam"></i> Fibrage en cours</h6>
+            </div>
+            
+            <!-- Centre : Numéro rouleau, ID, Lg, Masse tube, Masse totale, Bouton save -->
+            <div class="fibrage-center">
+                <div class="fibrage-field">
+                    <label class="fibrage-label">Numéro de Rouleau</label>
+                    <div class="fibrage-value-with-edit">
+                        <div class="fibrage-value-readonly" id="sticky-roll-number">1</div>
+                        <button type="button" class="fibrage-edit-btn" onclick="makeEditable('sticky-roll-number')" title="Modifier">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="fibrage-field">
+                    <label class="fibrage-label">ID Rouleau</label>
+                    <div class="fibrage-id-group">
+                        <span class="fibrage-text" id="sticky-roll-id">3254_1</span>
+                        <span class="fibrage-status-text" id="sticky-roll-status">⚠️ Existe</span>
+                    </div>
+                </div>
+                
+                <div class="fibrage-field">
+                    <label class="fibrage-label">Lg (m)</label>
+                    <div class="fibrage-value-center" id="sticky-roll-length" onclick="makeEditable('sticky-roll-length')">--</div>
+                </div>
+                
+                <div class="fibrage-field">
+                    <label class="fibrage-label">Masse tube (g)</label>
+                    <div class="fibrage-value-center" id="sticky-tube-mass" onclick="makeEditable('sticky-tube-mass')">--</div>
+                </div>
+                
+                <div class="fibrage-field">
+                    <label class="fibrage-label">Masse totale (g)</label>
+                    <div class="fibrage-value-center" id="sticky-total-mass" onclick="makeEditable('sticky-total-mass')">--</div>
+                </div>
+                
+                <button type="button" class="btn btn-success btn-sm fibrage-save-btn" onclick="saveFibrageData()">
+                    <i class="bi bi-save"></i> Save
+                </button>
+            </div>
+            
+            <!-- Droite : Masse prochain tube -->
+            <div class="fibrage-right">
+                <div class="fibrage-field">
+                    <label class="fibrage-label">Masse prochain tube (g)</label>
+                    <div class="fibrage-value-center" id="sticky-next-tube-mass" onclick="makeEditable('sticky-next-tube-mass')">--</div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
 </div>
 
 <!-- Historique des postes récents -->
@@ -304,6 +326,9 @@ window.isRestoring = false;
 if (typeof window.lostTimeEntries === 'undefined') {
     window.lostTimeEntries = [];
 }
+
+// Variables pour les spécifications d'épaisseur
+window.thicknessSpecs = null;
 
 // Types de défauts disponibles
 const defectTypes = [
@@ -749,6 +774,8 @@ function restoreSavedData() {
                     if (data.rollData) {
                         setTimeout(() => restoreRollData(data.rollData), 100);
                     }
+                    // Synchroniser la sticky bar après restauration
+                    setTimeout(syncStickyBarValues, 200);
                 }, 500);
                 
                 // Déclencher la visibilité des champs conditionnels après restauration
@@ -1179,6 +1206,9 @@ function updateRollId() {
         rollStatus.textContent = '';
         rollStatus.className = 'badge';
     }
+    
+    // Synchroniser la sticky bar
+    setTimeout(syncStickyBarValues, 100);
 }
 
 function checkRollExists(rollId) {
@@ -1187,6 +1217,9 @@ function checkRollExists(rollId) {
     // Afficher un indicateur de chargement
     rollStatus.textContent = '⏳';
     rollStatus.className = 'badge bg-secondary';
+    
+    // Synchroniser immédiatement
+    setTimeout(syncStickyBarValues, 50);
     
     fetch(`{% url "production:check_roll_id" %}?roll_id=${encodeURIComponent(rollId)}`)
     .then(response => response.json())
@@ -1198,63 +1231,44 @@ function checkRollExists(rollId) {
             rollStatus.textContent = '';
             rollStatus.className = 'badge';
         }
+        
+        // Synchroniser après mise à jour
+        setTimeout(syncStickyBarValues, 50);
     })
     .catch(error => {
         console.error('Erreur vérification rouleau:', error);
         rollStatus.textContent = '❌ Erreur';
         rollStatus.className = 'badge bg-danger';
+        
+        // Synchroniser après erreur
+        setTimeout(syncStickyBarValues, 50);
     });
 }
 
 // Initialiser au chargement de la page
-// Fonction pour toggle le bloc OF avec 3 états et effet fondu
+// Fonction pour toggle le bloc OF avec effet fondu
 function toggleOFBlock() {
-    const fieldsRow = document.getElementById('of-fields-row');
-    const separator = document.getElementById('of-separator');
     const content = document.getElementById('of-content');
     const chevron = document.getElementById('of-chevron');
     
-    // État 1: tout visible (défaut)
-    if (fieldsRow.style.display !== 'none' && content.style.display !== 'none') {
-        // Passer à l'état 2: masquer ligne 1 et séparation avec fondu
-        fieldsRow.style.transition = 'opacity 0.3s ease';
-        separator.style.transition = 'opacity 0.3s ease';
-        fieldsRow.style.opacity = '0';
-        separator.style.opacity = '0';
-        
+    if (!content || !chevron) return;
+    
+    if (content.style.display === 'none') {
+        // Afficher le contenu
+        content.style.display = 'block';
         setTimeout(() => {
-            fieldsRow.style.display = 'none';
-            separator.style.display = 'none';
-            chevron.className = 'bi bi-chevron-down';
-        }, 300);
-    }
-    // État 2: ligne 1 et séparation cachées
-    else if (fieldsRow.style.display === 'none' && content.style.display !== 'none') {
-        // Passer à l'état 3: tout cacher avec fondu
+            content.style.transition = 'opacity 0.3s ease';
+            content.style.opacity = '1';
+            chevron.className = 'bi bi-chevron-up';
+        }, 50);
+    } else {
+        // Cacher le contenu
         content.style.transition = 'opacity 0.3s ease';
         content.style.opacity = '0';
-        
         setTimeout(() => {
             content.style.display = 'none';
             chevron.className = 'bi bi-chevron-down';
         }, 300);
-    }
-    // État 3: tout caché
-    else {
-        // Retour à l'état 1: tout visible avec fondu
-        fieldsRow.style.display = 'flex';
-        separator.style.display = 'block';
-        content.style.display = 'block';
-        
-        setTimeout(() => {
-            fieldsRow.style.transition = 'opacity 0.3s ease';
-            separator.style.transition = 'opacity 0.3s ease';
-            content.style.transition = 'opacity 0.3s ease';
-            fieldsRow.style.opacity = '1';
-            separator.style.opacity = '1';
-            content.style.opacity = '1';
-            chevron.className = 'bi bi-chevron-up';
-        }, 50);
     }
 }
 
@@ -1289,6 +1303,9 @@ function generateRollVisualization() {
     if (!targetLengthInput || !rollContent) return;
     
     const targetLength = parseFloat(targetLengthInput.value);
+    
+    // Sauvegarder les données existantes avant régénération
+    const existingRollData = getRollData();
     
     // Mettre à jour l'affichage de la longueur cible
     if (rollTargetDisplay) {
@@ -1374,48 +1391,240 @@ function generateRollVisualization() {
     
     // Ajouter les event listeners pour auto-save
     addRollEventListeners();
+    
+    // Restaurer les données sauvegardées
+    if (existingRollData && (Object.keys(existingRollData.thicknessMeasurements).length > 0 || 
+                           Object.keys(existingRollData.thicknessCatchups).length > 0 || 
+                           Object.keys(existingRollData.defects).length > 0)) {
+        setTimeout(() => {
+            restoreRollData(existingRollData);
+        }, 100);
+    }
 }
 
 // Fonction pour générer les mesures gauche (G1, G2, G3)
 function generateLeftThicknessInputs(meter) {
     return `
-        <input type="number" class="thickness-input" step="0.01" min="0" 
-               placeholder="" data-point="G1" data-meter="${meter}" 
-               onchange="validateThickness(this)">
-        <input type="number" class="thickness-input" step="0.01" min="0" 
-               placeholder="" data-point="G2" data-meter="${meter}"
-               onchange="validateThickness(this)">
-        <input type="number" class="thickness-input" step="0.01" min="0" 
-               placeholder="" data-point="G3" data-meter="${meter}"
-               onchange="validateThickness(this)">
+        <div class="thickness-group">
+            <input type="number" class="thickness-input" step="0.01" min="0" 
+                   placeholder="" data-point="G1" data-meter="${meter}" 
+                   onchange="validateThickness(this)">
+            <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
+                   placeholder="" data-point="G1" data-meter="${meter}" data-catchup="true"
+                   onchange="validateThickness(this)" style="display: none;">
+        </div>
+        <div class="thickness-group">
+            <input type="number" class="thickness-input" step="0.01" min="0" 
+                   placeholder="" data-point="G2" data-meter="${meter}"
+                   onchange="validateThickness(this)">
+            <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
+                   placeholder="" data-point="G2" data-meter="${meter}" data-catchup="true"
+                   onchange="validateThickness(this)" style="display: none;">
+        </div>
+        <div class="thickness-group">
+            <input type="number" class="thickness-input" step="0.01" min="0" 
+                   placeholder="" data-point="G3" data-meter="${meter}"
+                   onchange="validateThickness(this)">
+            <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
+                   placeholder="" data-point="G3" data-meter="${meter}" data-catchup="true"
+                   onchange="validateThickness(this)" style="display: none;">
+        </div>
     `;
 }
 
 // Fonction pour générer les mesures droite (D1, D2, D3)
 function generateRightThicknessInputs(meter) {
     return `
-        <input type="number" class="thickness-input" step="0.01" min="0" 
-               placeholder="" data-point="D1" data-meter="${meter}"
-               onchange="validateThickness(this)">
-        <input type="number" class="thickness-input" step="0.01" min="0" 
-               placeholder="" data-point="D2" data-meter="${meter}"
-               onchange="validateThickness(this)">
-        <input type="number" class="thickness-input" step="0.01" min="0" 
-               placeholder="" data-point="D3" data-meter="${meter}"
-               onchange="validateThickness(this)">
+        <div class="thickness-group">
+            <input type="number" class="thickness-input" step="0.01" min="0" 
+                   placeholder="" data-point="D1" data-meter="${meter}"
+                   onchange="validateThickness(this)">
+            <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
+                   placeholder="" data-point="D1" data-meter="${meter}" data-catchup="true"
+                   onchange="validateThickness(this)" style="display: none;">
+        </div>
+        <div class="thickness-group">
+            <input type="number" class="thickness-input" step="0.01" min="0" 
+                   placeholder="" data-point="D2" data-meter="${meter}"
+                   onchange="validateThickness(this)">
+            <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
+                   placeholder="" data-point="D2" data-meter="${meter}" data-catchup="true"
+                   onchange="validateThickness(this)" style="display: none;">
+        </div>
+        <div class="thickness-group">
+            <input type="number" class="thickness-input" step="0.01" min="0" 
+                   placeholder="" data-point="D3" data-meter="${meter}"
+                   onchange="validateThickness(this)">
+            <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
+                   placeholder="" data-point="D3" data-meter="${meter}" data-catchup="true"
+                   onchange="validateThickness(this)" style="display: none;">
+        </div>
     `;
 }
 
-// Fonction pour valider les valeurs d'épaisseur et appliquer le style vert
+// Fonction pour charger les spécifications d'épaisseur
+function loadThicknessSpecifications() {
+    fetch('/quality/get-thickness-specs/')
+    .then(response => response.json())
+    .then(data => {
+        window.thicknessSpecs = data;
+        console.log('Spécifications d\'épaisseur chargées:', data);
+    })
+    .catch(error => {
+        console.error('Erreur chargement spécifications:', error);
+        // Valeurs par défaut en cas d'erreur
+        window.thicknessSpecs = {
+            ep_mini: 3.0,
+            ep_mini_alerte: 3.5,
+            ep_nominale: 4.0,
+            ep_max_alerte: 4.5
+        };
+    });
+}
+
+// Fonction pour valider les valeurs d'épaisseur selon les spécifications
 function validateThickness(input) {
     const value = parseFloat(input.value);
+    const isCatchup = input.getAttribute('data-catchup') === 'true';
     
-    // Critères de validation (exemple : entre 4.0 et 8.0)
-    if (!isNaN(value) && value >= 4.0 && value <= 8.0) {
-        input.classList.add('valid');
-    } else {
-        input.classList.remove('valid');
+    console.log('validateThickness:', {
+        value: value,
+        isCatchup: isCatchup,
+        meter: input.getAttribute('data-meter'),
+        point: input.getAttribute('data-point'),
+        specs: window.thicknessSpecs
+    });
+    
+    // Retirer toutes les classes de coloration
+    input.classList.remove('thickness-ok', 'thickness-warning', 'thickness-critical', 'valid');
+    
+    if (isNaN(value) || !window.thicknessSpecs) {
+        // Si c'est un champ principal vide, cacher le rattrapage
+        if (!isCatchup) {
+            hideCatchupField(input);
+        }
+        updateRollConformity();
+        return;
     }
+    
+    const specs = window.thicknessSpecs;
+    let status = 'ok';
+    
+    if (value < specs.ep_mini) {
+        // Rouge : en dessous du minimum critique (NOK)
+        input.classList.add('thickness-critical');
+        status = 'nok';
+        console.log('NOK détecté:', value, '<', specs.ep_mini);
+    } else if (value < specs.ep_mini_alerte || value > specs.ep_max_alerte) {
+        // Orange : en zone d'alerte
+        input.classList.add('thickness-warning');
+        status = 'warning';
+    } else if (value >= specs.ep_mini_alerte && value <= specs.ep_max_alerte) {
+        // Vert : dans la zone optimale
+        input.classList.add('thickness-ok');
+        status = 'ok';
+    }
+    
+    // Gérer l'affichage du champ de rattrapage
+    if (!isCatchup) {
+        console.log('Champ principal, status:', status);
+        if (status === 'nok') {
+            console.log('Affichage du rattrapage...');
+            showCatchupField(input);
+        } else {
+            console.log('Masquage du rattrapage...');
+            hideCatchupField(input);
+        }
+    } else {
+        // Si c'est un rattrapage NOK, marquer comme critique
+        if (status === 'nok') {
+            // Le rattrapage échoue, c'est définitivement NOK
+            console.log('Rattrapage échoué pour', input.getAttribute('data-point'), 'au mètre', input.getAttribute('data-meter'));
+        }
+    }
+    
+    // Mettre à jour l'état de conformité du rouleau
+    updateRollConformity();
+}
+
+// Fonction pour afficher le champ de rattrapage
+function showCatchupField(mainInput) {
+    const meter = mainInput.getAttribute('data-meter');
+    const point = mainInput.getAttribute('data-point');
+    const catchupInput = document.querySelector(`[data-meter="${meter}"][data-point="${point}"][data-catchup="true"]`);
+    
+    if (catchupInput) {
+        catchupInput.style.display = 'block';
+    }
+}
+
+// Fonction pour cacher le champ de rattrapage
+function hideCatchupField(mainInput) {
+    const meter = mainInput.getAttribute('data-meter');
+    const point = mainInput.getAttribute('data-point');
+    const catchupInput = document.querySelector(`[data-meter="${meter}"][data-point="${point}"][data-catchup="true"]`);
+    
+    if (catchupInput) {
+        catchupInput.style.display = 'none';
+        catchupInput.value = '';
+        catchupInput.classList.remove('thickness-ok', 'thickness-warning', 'thickness-critical');
+    }
+}
+
+// Fonction pour mettre à jour l'état de conformité du rouleau
+function updateRollConformity() {
+    if (!window.thicknessSpecs) return;
+    
+    const conformityDisplay = document.getElementById('conformity-status');
+    if (!conformityDisplay) return;
+    
+    const allThicknessInputs = document.querySelectorAll('.thickness-input[data-point]:not([data-catchup])');
+    let nokCount = 0;
+    
+    allThicknessInputs.forEach(input => {
+        const value = parseFloat(input.value);
+        if (!isNaN(value)) {
+            const meter = input.getAttribute('data-meter');
+            const point = input.getAttribute('data-point');
+            const catchupInput = document.querySelector(`[data-meter="${meter}"][data-point="${point}"][data-catchup="true"]`);
+            
+            // Vérifier si la mesure principale est NOK
+            if (value < window.thicknessSpecs.ep_mini) {
+                // Vérifier s'il y a un rattrapage valide
+                if (catchupInput && catchupInput.value) {
+                    const catchupValue = parseFloat(catchupInput.value);
+                    if (isNaN(catchupValue) || catchupValue < window.thicknessSpecs.ep_mini) {
+                        // Rattrapage aussi NOK ou inexistant
+                        nokCount++;
+                    }
+                    // Si le rattrapage est OK, on ne compte pas comme NOK
+                } else {
+                    // Pas de rattrapage, c'est NOK
+                    nokCount++;
+                }
+            }
+        }
+    });
+    
+    // Déterminer l'état de conformité
+    let conformityText = '';
+    let conformityClass = '';
+    
+    if (nokCount === 0) {
+        conformityText = '✓ Conforme';
+        conformityClass = 'badge bg-success';
+    } else if (nokCount < window.thicknessSpecs.max_nok) {
+        conformityText = `⚠️ ${nokCount} NOK/${window.thicknessSpecs.max_nok}`;
+        conformityClass = 'badge bg-warning';
+    } else {
+        conformityText = '❌ Non conforme';
+        conformityClass = 'badge bg-danger';
+    }
+    
+    conformityDisplay.textContent = conformityText;
+    conformityDisplay.className = conformityClass;
+    
+    console.log(`État rouleau: ${nokCount} NOK sur ${window.thicknessSpecs.max_nok} max - ${conformityText}`);
 }
 
 // Ajouter les event listeners pour le rouleau
@@ -1425,14 +1634,14 @@ function addRollEventListeners() {
     
     // Event listeners pour auto-save sur les champs du rouleau
     rollContainer.addEventListener('input', function(e) {
-        if (e.target.matches('.thickness-input, .defect-input-side, .defect-input-center')) {
+        if (e.target.matches('.thickness-input, [data-catchup="true"], .defect-input-side, .defect-input-center')) {
             clearTimeout(window.autoSaveTimeout);
             window.autoSaveTimeout = setTimeout(autoSaveFormData, 1000);
         }
     });
     
     rollContainer.addEventListener('change', function(e) {
-        if (e.target.matches('.thickness-input, .defect-input-side, .defect-input-center')) {
+        if (e.target.matches('.thickness-input, [data-catchup="true"], .defect-input-side, .defect-input-center')) {
             clearTimeout(window.autoSaveTimeout);
             window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
         }
@@ -1443,11 +1652,12 @@ function addRollEventListeners() {
 function getRollData() {
     const rollData = {
         thicknessMeasurements: {},
+        thicknessCatchups: {},
         defects: {}
     };
     
-    // Collecter les mesures d'épaisseur
-    document.querySelectorAll('.thickness-input').forEach(input => {
+    // Collecter les mesures d'épaisseur principales
+    document.querySelectorAll('.thickness-input:not([data-catchup])').forEach(input => {
         if (input.value) {
             const meter = input.getAttribute('data-meter');
             const point = input.getAttribute('data-point');
@@ -1455,6 +1665,18 @@ function getRollData() {
                 rollData.thicknessMeasurements[meter] = {};
             }
             rollData.thicknessMeasurements[meter][point] = input.value;
+        }
+    });
+    
+    // Collecter les mesures de rattrapage (nouveaux champs avec data-catchup="true")
+    document.querySelectorAll('[data-catchup="true"]').forEach(input => {
+        if (input.value) {
+            const meter = input.getAttribute('data-meter'); // Mètre d'origine
+            const point = input.getAttribute('data-point');
+            if (!rollData.thicknessCatchups[meter]) {
+                rollData.thicknessCatchups[meter] = {};
+            }
+            rollData.thicknessCatchups[meter][point] = input.value;
         }
     });
     
@@ -1477,14 +1699,28 @@ function getRollData() {
 function restoreRollData(rollData) {
     if (!rollData) return;
     
-    // Restaurer les mesures d'épaisseur
+    // Restaurer les mesures d'épaisseur principales
     if (rollData.thicknessMeasurements) {
         Object.keys(rollData.thicknessMeasurements).forEach(meter => {
             Object.keys(rollData.thicknessMeasurements[meter]).forEach(point => {
-                const input = document.querySelector(`[data-meter="${meter}"][data-point="${point}"]`);
+                const input = document.querySelector(`[data-meter="${meter}"][data-point="${point}"]:not([data-catchup])`);
                 if (input) {
                     input.value = rollData.thicknessMeasurements[meter][point];
                     validateThickness(input); // Appliquer la validation après restauration
+                }
+            });
+        });
+    }
+    
+    // Restaurer les mesures de rattrapage
+    if (rollData.thicknessCatchups) {
+        Object.keys(rollData.thicknessCatchups).forEach(meter => {
+            Object.keys(rollData.thicknessCatchups[meter]).forEach(point => {
+                const catchupInput = document.querySelector(`[data-meter="${meter}"][data-point="${point}"][data-catchup="true"]`);
+                if (catchupInput) {
+                    catchupInput.value = rollData.thicknessCatchups[meter][point];
+                    catchupInput.style.display = 'block'; // Afficher le champ de rattrapage
+                    validateThickness(catchupInput); // Appliquer la validation après restauration
                 }
             });
         });
@@ -1503,12 +1739,269 @@ function restoreRollData(rollData) {
     }
 }
 
+// Fonction pour synchroniser les valeurs avec la sticky bar
+function syncStickyBarValues() {
+    // Synchroniser le numéro de rouleau
+    const rollNumber = document.getElementById('roll-number')?.value || '--';
+    const stickyRollNumber = document.getElementById('sticky-roll-number');
+    if (stickyRollNumber) {
+        stickyRollNumber.textContent = rollNumber;
+    }
+    
+    // Synchroniser l'ID rouleau
+    const rollId = document.getElementById('roll-id')?.textContent || '--';
+    const stickyRollId = document.getElementById('sticky-roll-id');
+    if (stickyRollId) {
+        stickyRollId.textContent = rollId;
+    }
+    
+    // Synchroniser le statut
+    const rollStatus = document.getElementById('roll-status')?.textContent || '';
+    const stickyRollStatus = document.getElementById('sticky-roll-status');
+    if (stickyRollStatus) {
+        stickyRollStatus.textContent = rollStatus;
+        stickyRollStatus.className = 'fibrage-status-text';
+    }
+    
+    // Synchroniser la masse du prochain tube
+    const nextTubeMass = document.getElementById('next-tube-mass')?.value || '--';
+    const stickyNextTubeMass = document.getElementById('sticky-next-tube-mass');
+    if (stickyNextTubeMass) {
+        stickyNextTubeMass.textContent = nextTubeMass;
+    }
+    
+    // Synchroniser la longueur
+    const rollLength = document.getElementById('roll-length')?.value || '--';
+    const stickyRollLength = document.getElementById('sticky-roll-length');
+    if (stickyRollLength) {
+        stickyRollLength.textContent = rollLength;
+    }
+    
+    // Synchroniser la masse tube
+    const tubeMass = document.getElementById('tube-mass')?.value || '--';
+    const stickyTubeMass = document.getElementById('sticky-tube-mass');
+    if (stickyTubeMass) {
+        stickyTubeMass.textContent = tubeMass;
+    }
+    
+    // Synchroniser la masse totale
+    const totalMass = document.getElementById('total-mass')?.value || '--';
+    const stickyTotalMass = document.getElementById('sticky-total-mass');
+    if (stickyTotalMass) {
+        stickyTotalMass.textContent = totalMass;
+    }
+}
+
+// Fonction pour rendre les valeurs de la sticky bar éditables
+function makeEditable(elementId) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    // Éviter la double édition
+    if (element.tagName === 'INPUT') return;
+    
+    const currentValue = element.textContent;
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentValue === '--' ? '' : currentValue;
+    
+    // Utiliser la même classe que l'élément original pour maintenir le style
+    input.className = element.className;
+    
+    // Maintenir la taille fixe
+    const elementRect = element.getBoundingClientRect();
+    input.style.width = elementRect.width + 'px';
+    input.style.minWidth = '50px';
+    input.style.maxWidth = elementRect.width + 'px';
+    input.style.border = '1px solid var(--border-color)';
+    input.style.boxSizing = 'border-box';
+    input.style.outline = '2px solid #ffc107';
+    input.style.outlineOffset = '0px';
+    
+    // Remplacer l'élément par l'input
+    element.parentNode.replaceChild(input, element);
+    input.focus();
+    input.select();
+    
+    // Gérer la validation
+    function finishEdit() {
+        const newValue = input.value.trim() || '--';
+        
+        // Vérifier s'il y a eu changement pour le numéro de rouleau
+        if (elementId === 'sticky-roll-number' && newValue !== currentValue) {
+            // Confirmation après modification
+            if (!confirm(`Confirmer le changement du numéro de rouleau de "${currentValue}" vers "${newValue}" ?`)) {
+                // Annuler : remettre l'ancienne valeur
+                input.value = currentValue;
+                // Relancer finishEdit avec l'ancienne valeur
+                setTimeout(() => {
+                    input.value = currentValue;
+                    finishEditWithValue(currentValue);
+                }, 10);
+                return;
+            }
+        }
+        
+        finishEditWithValue(newValue);
+    }
+    
+    function finishEditWithValue(finalValue) {
+        const span = document.createElement('div');
+        
+        // Déterminer la classe selon l'élément
+        if (elementId === 'sticky-roll-number') {
+            span.className = 'fibrage-value-readonly';
+        } else {
+            span.className = 'fibrage-value-center';
+            span.onclick = () => makeEditable(elementId);
+        }
+        
+        span.id = elementId;
+        span.textContent = finalValue;
+        
+        input.parentNode.replaceChild(span, input);
+        
+        // Synchroniser avec le champ caché seulement si valeur confirmée
+        syncToHiddenField(elementId, finalValue);
+        
+        // Déclencher auto-save
+        clearTimeout(window.autoSaveTimeout);
+        window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+    }
+    
+    input.onblur = finishEdit;
+    input.onkeydown = function(e) {
+        if (e.key === 'Enter') {
+            finishEdit();
+        } else if (e.key === 'Escape') {
+            input.value = currentValue;
+            finishEdit();
+        }
+    };
+}
+
+// Fonction pour synchroniser vers les champs cachés
+function syncToHiddenField(stickyId, value) {
+    let hiddenId;
+    switch(stickyId) {
+        case 'sticky-roll-number':
+            hiddenId = 'roll-number';
+            break;
+        case 'sticky-roll-length':
+            hiddenId = 'roll-length';
+            break;
+        case 'sticky-tube-mass':
+            hiddenId = 'tube-mass';
+            break;
+        case 'sticky-total-mass':
+            hiddenId = 'total-mass';
+            break;
+        case 'sticky-next-tube-mass':
+            hiddenId = 'next-tube-mass';
+            break;
+    }
+    
+    if (hiddenId) {
+        const hiddenField = document.getElementById(hiddenId);
+        if (hiddenField) {
+            hiddenField.value = value === '--' ? '' : value;
+        }
+        
+        // Mettre à jour l'ID du rouleau si c'est le numéro
+        if (stickyId === 'sticky-roll-number') {
+            updateRollId();
+        }
+    }
+}
+
+// Fonction de sauvegarde
+function saveFibrageData() {
+    // Déclencher l'auto-save immédiatement
+    autoSaveFormData();
+    
+    // Afficher confirmation
+    const saveBtn = document.querySelector('.fibrage-save-btn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="bi bi-check"></i> Sauvé';
+    saveBtn.disabled = true;
+    
+    setTimeout(() => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    }, 2000);
+}
+
+// Ajouter des event listeners pour synchroniser automatiquement
+document.body.addEventListener('input', function(e) {
+    if (e.target.matches('#roll-number, #next-tube-mass, #roll-length, #tube-mass, #total-mass')) {
+        setTimeout(syncStickyBarValues, 50);
+    }
+});
+
+document.body.addEventListener('change', function(e) {
+    if (e.target.matches('#roll-number, #next-tube-mass, #roll-length, #tube-mass, #total-mass')) {
+        setTimeout(syncStickyBarValues, 50);
+    }
+});
+
+// Observer pour détecter les changements dans les éléments en lecture seule
+const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList' || mutation.type === 'characterData') {
+            const target = mutation.target;
+            if (target.id === 'roll-id' || target.id === 'roll-status' || target.id === 'conformity-status') {
+                setTimeout(syncStickyBarValues, 50);
+            }
+        }
+    });
+});
+
+// Fonction de test pour le système de rattrapage
+window.testCatchupSystem = function() {
+    console.log('=== Test du système de rattrapage ===');
+    console.log('Spécifications chargées:', window.thicknessSpecs);
+    
+    // Trouver le premier champ d'épaisseur
+    const firstThicknessInput = document.querySelector('.thickness-input[data-point]');
+    if (firstThicknessInput) {
+        console.log('Premier champ trouvé:', firstThicknessInput);
+        console.log('Mètre:', firstThicknessInput.getAttribute('data-meter'));
+        console.log('Point:', firstThicknessInput.getAttribute('data-point'));
+        
+        // Simuler une valeur NOK
+        firstThicknessInput.value = '1.0';
+        validateThickness(firstThicknessInput);
+    } else {
+        console.log('Aucun champ d\'épaisseur trouvé');
+    }
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     populateTimeOptions();
     loadFabricationOrders();
+    loadThicknessSpecifications(); // Charger les spécifications d'épaisseur
     setTimeout(restoreSavedData, 2000);
     setTimeout(updateRollId, 2500); // Générer l'ID après restauration
     setTimeout(generateRollVisualization, 3000); // Générer le rouleau après restauration
+    
+    // Initialiser la synchronisation de la sticky bar
+    setTimeout(syncStickyBarValues, 3500);
+    
+    // Démarrer l'observation des changements
+    const rollIdElement = document.getElementById('roll-id');
+    const rollStatusElement = document.getElementById('roll-status');
+    const conformityStatusElement = document.getElementById('conformity-status');
+    
+    if (rollIdElement) {
+        observer.observe(rollIdElement, { childList: true, characterData: true, subtree: true });
+    }
+    if (rollStatusElement) {
+        observer.observe(rollStatusElement, { childList: true, characterData: true, subtree: true });
+    }
+    if (conformityStatusElement) {
+        observer.observe(conformityStatusElement, { childList: true, characterData: true, subtree: true });
+    }
 });
 </script>
 {% endblock %}

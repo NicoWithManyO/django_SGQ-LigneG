@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import DefectType, RollDefect, ThicknessMeasurement
+from .models import DefectType, RollDefect, ThicknessMeasurement, ThicknessSpecification
 
 # Configuration admin pour l'application quality
 # Contrôles qualité, mesures et défauts
@@ -75,6 +75,28 @@ class ThicknessMeasurementAdmin(admin.ModelAdmin):
         }),
         ('Métadonnées', {
             'fields': ('measured_at',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(ThicknessSpecification)
+class ThicknessSpecificationAdmin(admin.ModelAdmin):
+    list_display = ['ep_nominale', 'ep_mini', 'ep_mini_alerte', 'ep_max_alerte', 'is_active', 'updated_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['comments']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Spécifications d\'Épaisseur', {
+            'fields': ('ep_mini', 'ep_mini_alerte', 'ep_nominale', 'ep_max_alerte', 'is_active'),
+            'description': 'Ordre: mini ≤ mini_alerte ≤ nominale ≤ max_alerte'
+        }),
+        ('Informations', {
+            'fields': ('comments',)
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )

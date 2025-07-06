@@ -173,3 +173,60 @@ class ThicknessMeasurement(models.Model):
     
     def __str__(self):
         return f"{self.roll_id} - {self.measurement_point} à {self.meter_position}m: {self.thickness_value}mm"
+
+
+class ThicknessSpecification(models.Model):
+    """Spécifications générales d'épaisseur."""
+    
+    # Valeurs d'épaisseur générales
+    ep_mini = models.DecimalField(max_digits=5, decimal_places=2,
+                                verbose_name="Épaisseur mini (mm)",
+                                help_text="Seuil minimum critique")
+    ep_mini_alerte = models.DecimalField(max_digits=5, decimal_places=2,
+                                       verbose_name="Épaisseur mini alerte (mm)",
+                                       help_text="Seuil d'alerte minimum")
+    ep_nominale = models.DecimalField(max_digits=5, decimal_places=2,
+                                    verbose_name="Épaisseur nominale (mm)",
+                                    help_text="Valeur cible standard")
+    ep_max_alerte = models.DecimalField(max_digits=5, decimal_places=2,
+                                      verbose_name="Épaisseur max alerte (mm)",
+                                      help_text="Seuil d'alerte maximum")
+    
+    # Nombre maximum d'épaisseurs NOK autorisées sur un rouleau
+    max_nok = models.PositiveIntegerField(default=4, verbose_name="Max NOK",
+                                         help_text="Nombre maximum d'épaisseurs NOK sur un rouleau")
+    
+    # Métadonnées
+    is_active = models.BooleanField(default=True, verbose_name="Actif")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    comments = models.TextField(blank=True, verbose_name="Commentaires")
+    
+    class Meta:
+        verbose_name = "Spécification d'épaisseur"
+        verbose_name_plural = "Spécifications d'épaisseur"
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['is_active']),
+        ]
+    
+    def clean(self):
+        """Validation des valeurs."""
+        if not (self.ep_mini <= self.ep_mini_alerte <= self.ep_nominale <= self.ep_max_alerte):
+            raise ValidationError(
+                'Les valeurs doivent respecter: mini ≤ mini_alerte ≤ nominale ≤ max_alerte'
+            )
+    
+    def get_status(self, measured_value):
+        """Retourne le statut d'une mesure."""
+        if measured_value < self.ep_mini:
+            return 'critical_low'
+        elif measured_value < self.ep_mini_alerte:
+            return 'warning_low'
+        elif measured_value > self.ep_max_alerte:
+            return 'warning_high'
+        else:
+            return 'ok'
+    
+    def __str__(self):
+        return f"Spéc épaisseur: {self.ep_nominale}mm ({self.ep_mini}-{self.ep_max_alerte})"
