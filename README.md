@@ -37,7 +37,7 @@ Système de gestion de production de feutre pour **Saint-Gobain Quartz SAS - Nem
 ```
 ├── core/           # Modèles partagés (Operator, FabricationOrder)
 ├── production/     # Gestion des postes et production
-├── quality/        # Contrôles qualité (à venir)
+├── quality/        # Contrôles qualité (DefectType, RollDefect, ThicknessMeasurement)
 └── reports/        # Génération documents Excel (à venir)
 ```
 
@@ -162,12 +162,17 @@ python manage.py runserver
 - [x] Auto-save et restauration données
 - [x] Gestion OF avec statuts
 - [x] Interface responsive et intuitive
+- [x] Module Qualité : modèles DefectType, RollDefect, ThicknessMeasurement
+- [x] Interface admin pour gestion des types de défauts
+- [x] Visualisation rouleau avec champs défauts intégrés
+- [x] Sélection défauts depuis datalists
+- [x] Boutons d'effacement rapide des défauts
 
 ### Phase 2 (À venir)
-- [ ] Module Qualité : mesures d'épaisseur, défauts
-- [ ] Visualisation graphique des rouleaux
+- [ ] Intégration complète mesures d'épaisseur
 - [ ] Contrôles qualité par poste
 - [ ] Alertes dépassement seuils
+- [ ] Validation automatique des tolérances
 
 ### Phase 3 (Future)
 - [ ] Génération documents Excel

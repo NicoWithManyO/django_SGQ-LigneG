@@ -49,10 +49,11 @@
                         <div class="col-3">
                             <label class="form-label">OF en cours</label>
                             <div class="input-group">
-                                <select id="current-order" class="form-select fw-bold" disabled>
-                                    <option value="">--</option>
+                                <input type="text" id="current-order" class="form-control fw-bold" 
+                                       list="current-order-list" placeholder="--" disabled>
+                                <datalist id="current-order-list">
                                     <!-- Options chargées dynamiquement -->
-                                </select>
+                                </datalist>
                                 <button type="button" class="btn btn-outline-secondary btn-sm" 
                                         onclick="editCurrentOrder()" title="Modifier">
                                     <i class="bi bi-pencil"></i>
@@ -185,17 +186,21 @@
         
         <!-- Visualisation Rouleau -->
         <div class="roll-visualization">
-            <div class="text-center">
+            <div class="text-center mb-3">
                 <h2>Visualisation Rouleau</h2>
-                <p class="subtitle">Zone de visualisation du rouleau avec grille métrique</p>
-                <div class="roll-info">
-                    <i class="bi bi-info-circle"></i>
-                    Cette zone contiendra la représentation graphique du rouleau avec :
-                    <ul>
-                        <li>Grille métrique (une ligne par mètre)</li>
-                        <li>Zones de saisie des mesures d'épaisseur (6 points tous les 5m)</li>
-                        <li>Déclaration des défauts positionnés</li>
-                    </ul>
+                <p class="subtitle">Longueur cible : <span id="roll-target-length-display">--</span> m</p>
+            </div>
+            
+            <div class="roll-container" id="roll-container">
+                <div class="roll-grid">
+                    
+                    <!-- Le contenu sera généré dynamiquement -->
+                    <div id="roll-content">
+                        <div class="roll-empty-state">
+                            <i class="bi bi-arrow-up"></i>
+                            <p>Renseignez une longueur cible pour visualiser le rouleau</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -298,6 +303,46 @@ window.isRestoring = false;
 // Array pour stocker les entrées de temps perdu
 if (typeof window.lostTimeEntries === 'undefined') {
     window.lostTimeEntries = [];
+}
+
+// Types de défauts disponibles
+const defectTypes = [
+    {% for defect in defect_types %}
+    {
+        id: {{ defect.id }},
+        name: "{{ defect.name|escapejs }}",
+        severity: "{{ defect.severity|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+// Fonction pour générer les datalists des défauts
+function generateDefectDatalist(side, meter) {
+    const datalistId = `defect-list-${side}-${meter}`;
+    let options = '';
+    
+    defectTypes.forEach(defect => {
+        options += `<option value="${defect.name}"></option>`;
+    });
+    
+    return `
+        <datalist id="${datalistId}">
+            ${options}
+        </datalist>
+    `;
+}
+
+// Fonction pour effacer un champ de défaut
+function clearDefectInput(button) {
+    const input = button.previousElementSibling;
+    if (input && input.tagName === 'INPUT') {
+        input.value = '';
+        input.focus();
+        
+        // Déclencher l'auto-save
+        clearTimeout(window.autoSaveTimeout);
+        window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+    }
 }
 
 // Ajouter du temps perdu
@@ -547,14 +592,16 @@ function autoSaveFormData() {
         // Données de production (à conserver)
         totalLostTimeMinutes: window.totalLostTimeMinutes || 0,
         lostTimeEntries: window.lostTimeEntries || [],
-        currentOrderId: document.querySelector('#current-order')?.value || '',
+        currentOrderNumber: document.querySelector('#current-order')?.value || '',
         cuttingOrderId: document.querySelector('#cutting-order')?.value || '',
         targetLength: document.querySelector('#target-length')?.value || '',
         rollNumber: document.querySelector('#roll-number')?.value || '',
         tubeMass: document.querySelector('#tube-mass')?.value || '',
         totalMass: document.querySelector('#total-mass')?.value || '',
         rollLength: document.querySelector('#roll-length')?.value || '',
-        nextTubeMass: document.querySelector('#next-tube-mass')?.value || ''
+        nextTubeMass: document.querySelector('#next-tube-mass')?.value || '',
+        // Données du rouleau (mesures et défauts)
+        rollData: getRollData()
     };
     
     console.log('Sauvegarde des données:', formData);
@@ -679,10 +726,10 @@ function restoreSavedData() {
                 }
                 
                 // Restaurer les OF sélectionnés
-                const currentOrderSelect = document.querySelector('#current-order');
-                if (currentOrderSelect && data.currentOrderId) {
-                    currentOrderSelect.value = data.currentOrderId;
-                    console.log('OF en cours restauré:', data.currentOrderId);
+                const currentOrderInput = document.querySelector('#current-order');
+                if (currentOrderInput && data.currentOrderNumber) {
+                    currentOrderInput.value = data.currentOrderNumber;
+                    console.log('OF en cours restauré:', data.currentOrderNumber);
                 }
                 
                 const cuttingOrderSelect = document.querySelector('#cutting-order');
@@ -696,6 +743,12 @@ function restoreSavedData() {
                     updateAvailabilityTime();
                     renderLostTimeList();
                     updateRollId(); // Générer l'ID du rouleau
+                    // Générer le rouleau si longueur cible disponible
+                    generateRollVisualization();
+                    // Restaurer les données du rouleau
+                    if (data.rollData) {
+                        setTimeout(() => restoreRollData(data.rollData), 100);
+                    }
                 }, 500);
                 
                 // Déclencher la visibilité des champs conditionnels après restauration
@@ -778,14 +831,14 @@ function loadFabricationOrders() {
     fetch('/core/get-fabrication-orders/')
     .then(response => response.json())
     .then(data => {
-        // Remplir le select des OF normaux
-        const currentOrderSelect = document.getElementById('current-order');
-        currentOrderSelect.innerHTML = '<option value="">Choisir OF...</option>';
+        // Remplir la datalist des OF normaux
+        const currentOrderDatalist = document.getElementById('current-order-list');
+        currentOrderDatalist.innerHTML = '';
         data.normal_orders.forEach(order => {
             const option = document.createElement('option');
-            option.value = order.id;
-            option.textContent = order.order_number;
-            currentOrderSelect.appendChild(option);
+            option.value = order.order_number;
+            option.setAttribute('data-id', order.id);
+            currentOrderDatalist.appendChild(option);
         });
         
         // Remplir le select des OF découpe
@@ -814,10 +867,10 @@ function restoreOrderSelections() {
         try {
             const data = JSON.parse(saved);
             
-            const currentOrderSelect = document.querySelector('#current-order');
-            if (currentOrderSelect && data.currentOrderId) {
-                currentOrderSelect.value = data.currentOrderId;
-                console.log('OF en cours restauré via localStorage:', data.currentOrderId);
+            const currentOrderInput = document.querySelector('#current-order');
+            if (currentOrderInput && data.currentOrderNumber) {
+                currentOrderInput.value = data.currentOrderNumber;
+                console.log('OF en cours restauré via localStorage:', data.currentOrderNumber);
             }
             
             const cuttingOrderSelect = document.querySelector('#cutting-order');
@@ -839,23 +892,18 @@ function loadOFList() {
     })
     .then(response => response.json())
     .then(data => {
-        const currentOrderSelect = document.getElementById('current-order');
+        const currentOrderDatalist = document.getElementById('current-order-list');
         const cuttingSelect = document.getElementById('cutting-order');
         
-        if (currentOrderSelect && data.normal_orders) {
-            // Vider et repeupler le select des OF normaux
-            const currentValue = currentOrderSelect.value;
-            currentOrderSelect.innerHTML = '<option value="">--</option>';
+        if (currentOrderDatalist && data.normal_orders) {
+            // Vider et repeupler la datalist des OF normaux
+            currentOrderDatalist.innerHTML = '';
             data.normal_orders.forEach(order => {
                 const option = document.createElement('option');
-                option.value = order.id;
-                option.textContent = order.order_number;
-                currentOrderSelect.appendChild(option);
+                option.value = order.order_number;
+                option.setAttribute('data-id', order.id);
+                currentOrderDatalist.appendChild(option);
             });
-            // Restaurer la valeur sélectionnée si elle existe encore
-            if (currentValue) {
-                currentOrderSelect.value = currentValue;
-            }
         }
         
         if (cuttingSelect && data.cutting_orders) {
@@ -880,51 +928,136 @@ function loadOFList() {
 }
 
 function editCurrentOrder() {
-    const currentOrderSelect = document.getElementById('current-order');
-    const originalValue = currentOrderSelect.value; // Sauvegarder la valeur originale
-    currentOrderSelect.disabled = false;
-    currentOrderSelect.focus();
+    const currentOrderInput = document.getElementById('current-order');
+    const originalValue = currentOrderInput.value; // Sauvegarder la valeur originale
+    currentOrderInput.disabled = false;
+    currentOrderInput.focus();
     
-    // Gérer la sélection
-    currentOrderSelect.onchange = function() {
-        const newValue = this.value;
+    // Gérer la validation sur perte de focus ou entrée
+    function handleOrderValidation() {
+        const newValue = currentOrderInput.value.trim();
         
         if (!newValue) {
-            this.disabled = true;
+            currentOrderInput.disabled = true;
             return;
         }
         
         // Vérifier si c'est différent de la valeur originale
         if (newValue === originalValue) {
-            this.disabled = true;
+            currentOrderInput.disabled = true;
             return;
         }
         
-        // Demander confirmation avec le texte de l'option sélectionnée
-        const selectedOption = this.options[this.selectedIndex];
-        const orderText = selectedOption ? selectedOption.text : newValue;
-        const confirmMessage = `Êtes-vous sûr de vouloir modifier l'OF en cours vers "${orderText}" ?`;
-        
-        if (confirm(confirmMessage)) {
-            // Confirmer le changement
-            this.disabled = true;
-            updateRollId(); // Mettre à jour l'ID du rouleau
-            // Déclencher auto-save
-            clearTimeout(window.autoSaveTimeout);
-            window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
-        } else {
-            // Annuler : remettre la valeur originale
+        // Vérifier si l'OF existe déjà
+        fetch(`/core/check-of-exists/?order_number=${encodeURIComponent(newValue)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.exists) {
+                // L'OF existe déjà, demander confirmation
+                const confirmMessage = `Êtes-vous sûr de vouloir modifier l'OF en cours vers "${newValue}" ?`;
+                
+                if (confirm(confirmMessage)) {
+                    // Confirmer le changement
+                    currentOrderInput.disabled = true;
+                    updateRollId(); // Mettre à jour l'ID du rouleau
+                    // Déclencher auto-save
+                    clearTimeout(window.autoSaveTimeout);
+                    window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+                } else {
+                    // Annuler : remettre la valeur originale
+                    currentOrderInput.value = originalValue;
+                    currentOrderInput.disabled = true;
+                }
+            } else {
+                // L'OF n'existe pas, proposer de le créer
+                const createMessage = `L'OF "${newValue}" n'existe pas. Voulez-vous le créer automatiquement ?`;
+                
+                if (confirm(createMessage)) {
+                    // Créer l'OF automatiquement
+                    createNewOF(newValue).then(success => {
+                        if (success) {
+                            currentOrderInput.disabled = true;
+                            updateRollId(); // Mettre à jour l'ID du rouleau
+                            // Recharger la liste des OF pour inclure le nouveau
+                            loadOFList();
+                            // Déclencher auto-save
+                            clearTimeout(window.autoSaveTimeout);
+                            window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+                            alert(`OF "${newValue}" créé avec succès !`);
+                        } else {
+                            // Erreur de création, remettre la valeur originale
+                            currentOrderInput.value = originalValue;
+                            currentOrderInput.disabled = true;
+                        }
+                    });
+                } else {
+                    // Annuler : remettre la valeur originale
+                    currentOrderInput.value = originalValue;
+                    currentOrderInput.disabled = true;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erreur vérification OF:', error);
+            alert('Erreur lors de la vérification de l\'OF');
+            currentOrderInput.value = originalValue;
+            currentOrderInput.disabled = true;
+        });
+    }
+    
+    // Gérer l'entrée (Enter)
+    currentOrderInput.onkeydown = function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleOrderValidation();
+        } else if (e.key === 'Escape') {
+            // Annuler sur Échap
             this.value = originalValue;
             this.disabled = true;
+            this.blur();
         }
     };
     
-    // Gérer l'annulation (clic ailleurs)
-    currentOrderSelect.onblur = function() {
+    // Gérer la perte de focus
+    currentOrderInput.onblur = function() {
         setTimeout(() => {
-            this.disabled = true;
+            handleOrderValidation();
         }, 200);
     };
+}
+
+// Fonction pour créer un nouvel OF
+async function createNewOF(orderNumber) {
+    try {
+        const response = await fetch('/core/create-of/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                order_number: orderNumber,
+                required_length: 0,  // Longueur illimitée par défaut
+                target_roll_length: 0,  // Longueur par rouleau illimitée par défaut
+                for_cutting: false  // OF normal par défaut
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('OF créé avec succès:', data);
+            return true;
+        } else {
+            console.error('Erreur création OF:', data.error);
+            alert(`Erreur lors de la création de l'OF: ${data.error}`);
+            return false;
+        }
+    } catch (error) {
+        console.error('Erreur réseau lors de la création OF:', error);
+        alert('Erreur de connexion lors de la création de l\'OF');
+        return false;
+    }
 }
 
 function editCuttingOrder() {
@@ -963,11 +1096,15 @@ function editTargetLength() {
     targetLengthInput.onchange = function() {
         if (this.value) {
             this.disabled = true;
+            // Générer la visualisation du rouleau
+            generateRollVisualization();
             // Déclencher auto-save
             clearTimeout(window.autoSaveTimeout);
             window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
         } else {
             this.disabled = true;
+            // Réinitialiser la visualisation
+            generateRollVisualization();
         }
     };
     
@@ -1023,12 +1160,12 @@ function editRollNumber() {
 }
 
 function updateRollId() {
-    const currentOrderSelect = document.getElementById('current-order');
+    const currentOrderInput = document.getElementById('current-order');
     const rollNumberInput = document.getElementById('roll-number');
     const rollIdDisplay = document.getElementById('roll-id');
     const rollStatus = document.getElementById('roll-status');
     
-    const orderNumber = currentOrderSelect.options[currentOrderSelect.selectedIndex]?.text || '';
+    const orderNumber = currentOrderInput.value.trim();
     const rollNumber = rollNumberInput.value.trim();
     
     if (orderNumber && rollNumber) {
@@ -1143,11 +1280,235 @@ function toggleTempsBlock() {
     }
 }
 
+// Fonction pour générer la visualisation du rouleau
+function generateRollVisualization() {
+    const targetLengthInput = document.getElementById('target-length');
+    const rollContent = document.getElementById('roll-content');
+    const rollTargetDisplay = document.getElementById('roll-target-length-display');
+    
+    if (!targetLengthInput || !rollContent) return;
+    
+    const targetLength = parseFloat(targetLengthInput.value);
+    
+    // Mettre à jour l'affichage de la longueur cible
+    if (rollTargetDisplay) {
+        rollTargetDisplay.textContent = targetLength > 0 ? targetLength : '--';
+    }
+    
+    // Si pas de longueur cible, afficher l'état vide
+    if (!targetLength || targetLength <= 0) {
+        rollContent.innerHTML = `
+            <div class="roll-empty-state">
+                <i class="bi bi-arrow-up"></i>
+                <p>Renseignez une longueur cible pour visualiser le rouleau</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Générer les lignes du rouleau
+    let rollHTML = '';
+    
+    for (let meter = 1; meter <= Math.ceil(targetLength); meter++) {
+        const isMeasurementZone = meter >= 3 && (meter - 3) % 5 === 0;
+        const rowClass = isMeasurementZone ? 'roll-row measurement-zone' : 'roll-row';
+        
+        rollHTML += `
+            <div class="${rowClass}" data-meter="${meter}">
+                <!-- Défauts gauche -->
+                <div class="roll-defects-side">
+                    <div class="defect-input-group">
+                        <input type="text" class="defect-input-side" 
+                               placeholder="" data-side="left" data-meter="${meter}"
+                               list="defect-list-left-${meter}">
+                        <button type="button" class="defect-clear-btn" 
+                                onclick="clearDefectInput(this)" title="Effacer">×</button>
+                    </div>
+                    ${generateDefectDatalist('left', meter)}
+                </div>
+                
+                <!-- Métrage gauche -->
+                <div class="roll-meter left">${meter}</div>
+                
+                <!-- Mesures gauche (G1, G2, G3) -->
+                <div class="roll-measurements-left">
+                    ${isMeasurementZone ? generateLeftThicknessInputs(meter) : ''}
+                </div>
+                
+                <!-- Défauts centre -->
+                <div class="roll-defects-center">
+                    <div class="defect-input-group">
+                        <input type="text" class="defect-input-center" 
+                               placeholder="" data-side="center" data-meter="${meter}"
+                               list="defect-list-center-${meter}">
+                        <button type="button" class="defect-clear-btn" 
+                                onclick="clearDefectInput(this)" title="Effacer">×</button>
+                    </div>
+                    ${generateDefectDatalist('center', meter)}
+                </div>
+                
+                <!-- Mesures droite (D1, D2, D3) -->
+                <div class="roll-measurements-right">
+                    ${isMeasurementZone ? generateRightThicknessInputs(meter) : ''}
+                </div>
+                
+                <!-- Métrage droite -->
+                <div class="roll-meter right">${meter}</div>
+                
+                <!-- Défauts droite -->
+                <div class="roll-defects-side">
+                    <div class="defect-input-group">
+                        <input type="text" class="defect-input-side" 
+                               placeholder="" data-side="right" data-meter="${meter}"
+                               list="defect-list-right-${meter}">
+                        <button type="button" class="defect-clear-btn" 
+                                onclick="clearDefectInput(this)" title="Effacer">×</button>
+                    </div>
+                    ${generateDefectDatalist('right', meter)}
+                </div>
+            </div>
+        `;
+    }
+    
+    rollContent.innerHTML = rollHTML;
+    
+    // Ajouter les event listeners pour auto-save
+    addRollEventListeners();
+}
+
+// Fonction pour générer les mesures gauche (G1, G2, G3)
+function generateLeftThicknessInputs(meter) {
+    return `
+        <input type="number" class="thickness-input" step="0.01" min="0" 
+               placeholder="" data-point="G1" data-meter="${meter}" 
+               onchange="validateThickness(this)">
+        <input type="number" class="thickness-input" step="0.01" min="0" 
+               placeholder="" data-point="G2" data-meter="${meter}"
+               onchange="validateThickness(this)">
+        <input type="number" class="thickness-input" step="0.01" min="0" 
+               placeholder="" data-point="G3" data-meter="${meter}"
+               onchange="validateThickness(this)">
+    `;
+}
+
+// Fonction pour générer les mesures droite (D1, D2, D3)
+function generateRightThicknessInputs(meter) {
+    return `
+        <input type="number" class="thickness-input" step="0.01" min="0" 
+               placeholder="" data-point="D1" data-meter="${meter}"
+               onchange="validateThickness(this)">
+        <input type="number" class="thickness-input" step="0.01" min="0" 
+               placeholder="" data-point="D2" data-meter="${meter}"
+               onchange="validateThickness(this)">
+        <input type="number" class="thickness-input" step="0.01" min="0" 
+               placeholder="" data-point="D3" data-meter="${meter}"
+               onchange="validateThickness(this)">
+    `;
+}
+
+// Fonction pour valider les valeurs d'épaisseur et appliquer le style vert
+function validateThickness(input) {
+    const value = parseFloat(input.value);
+    
+    // Critères de validation (exemple : entre 4.0 et 8.0)
+    if (!isNaN(value) && value >= 4.0 && value <= 8.0) {
+        input.classList.add('valid');
+    } else {
+        input.classList.remove('valid');
+    }
+}
+
+// Ajouter les event listeners pour le rouleau
+function addRollEventListeners() {
+    const rollContainer = document.getElementById('roll-container');
+    if (!rollContainer) return;
+    
+    // Event listeners pour auto-save sur les champs du rouleau
+    rollContainer.addEventListener('input', function(e) {
+        if (e.target.matches('.thickness-input, .defect-input-side, .defect-input-center')) {
+            clearTimeout(window.autoSaveTimeout);
+            window.autoSaveTimeout = setTimeout(autoSaveFormData, 1000);
+        }
+    });
+    
+    rollContainer.addEventListener('change', function(e) {
+        if (e.target.matches('.thickness-input, .defect-input-side, .defect-input-center')) {
+            clearTimeout(window.autoSaveTimeout);
+            window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+        }
+    });
+}
+
+// Fonction pour collecter les données du rouleau pour auto-save
+function getRollData() {
+    const rollData = {
+        thicknessMeasurements: {},
+        defects: {}
+    };
+    
+    // Collecter les mesures d'épaisseur
+    document.querySelectorAll('.thickness-input').forEach(input => {
+        if (input.value) {
+            const meter = input.getAttribute('data-meter');
+            const point = input.getAttribute('data-point');
+            if (!rollData.thicknessMeasurements[meter]) {
+                rollData.thicknessMeasurements[meter] = {};
+            }
+            rollData.thicknessMeasurements[meter][point] = input.value;
+        }
+    });
+    
+    // Collecter les défauts
+    document.querySelectorAll('.defect-input-side, .defect-input-center').forEach(input => {
+        if (input.value) {
+            const meter = input.getAttribute('data-meter');
+            const side = input.getAttribute('data-side');
+            if (!rollData.defects[meter]) {
+                rollData.defects[meter] = {};
+            }
+            rollData.defects[meter][side] = input.value;
+        }
+    });
+    
+    return rollData;
+}
+
+// Fonction pour restaurer les données du rouleau
+function restoreRollData(rollData) {
+    if (!rollData) return;
+    
+    // Restaurer les mesures d'épaisseur
+    if (rollData.thicknessMeasurements) {
+        Object.keys(rollData.thicknessMeasurements).forEach(meter => {
+            Object.keys(rollData.thicknessMeasurements[meter]).forEach(point => {
+                const input = document.querySelector(`[data-meter="${meter}"][data-point="${point}"]`);
+                if (input) {
+                    input.value = rollData.thicknessMeasurements[meter][point];
+                    validateThickness(input); // Appliquer la validation après restauration
+                }
+            });
+        });
+    }
+    
+    // Restaurer les défauts
+    if (rollData.defects) {
+        Object.keys(rollData.defects).forEach(meter => {
+            Object.keys(rollData.defects[meter]).forEach(side => {
+                const input = document.querySelector(`[data-meter="${meter}"][data-side="${side}"]`);
+                if (input) {
+                    input.value = rollData.defects[meter][side];
+                }
+            });
+        });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     populateTimeOptions();
     loadFabricationOrders();
     setTimeout(restoreSavedData, 2000);
     setTimeout(updateRollId, 2500); // Générer l'ID après restauration
+    setTimeout(generateRollVisualization, 3000); // Générer le rouleau après restauration
 });
 </script>
 {% endblock %}

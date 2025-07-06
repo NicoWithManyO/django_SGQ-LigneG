@@ -8,14 +8,17 @@ from datetime import datetime
 from .models import Shift, CurrentProd
 from .forms import ShiftForm
 from core.models import Operator
+from quality.models import DefectType
 
 
 def prod(request):
     """Vue principale de production."""
     shifts = Shift.objects.select_related('operator').order_by('-date', '-created_at')[:10]
+    defect_types = DefectType.objects.filter(is_active=True).order_by('name')
     
     context = {
         'shifts': shifts,
+        'defect_types': defect_types,
     }
     return render(request, 'production/prod.html', context)
 

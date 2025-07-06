@@ -26,9 +26,9 @@
 
 ### Applications Django
 - `production` : gestion des postes et rouleaux
-- `quality` : contrôles qualité, mesures et gestion des défauts (par rouleau ET par poste)
+- `quality` : contrôles qualité avec modèles DefectType, RollDefect, ThicknessMeasurement
 - `reports` : génération de documents Excel
-- `core` : modèles partagés et utilitaires
+- `core` : modèles partagés et utilitaires (Operator, FabricationOrder)
 
 ## Conventions de Code
 

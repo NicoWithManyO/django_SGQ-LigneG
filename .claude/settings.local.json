@@ -10,7 +10,9 @@
       "Bash(pkill:*)",
       "Bash(true)",
       "Bash(python3 manage.py shell:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(source:*)",
+      "Bash(timeout:*)"
     ],
     "deny": []
   }

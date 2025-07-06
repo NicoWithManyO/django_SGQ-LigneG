@@ -52,18 +52,37 @@ Système de gestion de production de rouleaux de feutre permettant de tracer et 
 - 6 points de mesure (3 à droite, 3 à gauche)
 - Valeurs d'épaisseur
 
-### Défaut
-- Type de défaut
-- Criticité (bloquant/non-bloquant/bloquant selon seuil)
-- Seuil de tolérance
+### DefectType (Type de Défaut)
+- ID unique
+- Nom du défaut (unique)
 - Description
+- Criticité (non_blocking/blocking/threshold)
+- Seuil de tolérance (pour les défauts à seuil)
+- Statut actif/inactif
+- Timestamps de création/modification
 
-### Défaut Constaté
-- Rouleau concerné
-- Type de défaut
-- Position sur le rouleau
-- Gravité
-- Statut (résolu/non résolu)
+### RollDefect (Défaut Constaté)
+- ID unique
+- Rouleau concerné (roll_id)
+- Type de défaut (FK vers DefectType)
+- Description détaillée
+- Position sur le rouleau (mètre)
+- Côté (gauche/centre/droite)
+- Statut (pending/resolved/blocking)
+- Gravité calculée automatiquement
+- Timestamps détection/résolution
+- Commentaires opérateur
+
+### ThicknessMeasurement (Mesure d'Épaisseur)
+- ID unique
+- Rouleau concerné (roll_id)
+- Position (mètre)
+- Point de mesure (G1/G2/G3/D1/D2/D3)
+- Valeur d'épaisseur (mm)
+- Validation tolérances automatique
+- Tolérances min/max configurables
+- Timestamp de mesure
+- Commentaires opérateur
 
 ### Contrôle Global (Quality)
 - Poste concerné
@@ -105,8 +124,13 @@ Système de gestion de production de rouleaux de feutre permettant de tracer et 
 - **Grille métrique** : une ligne par mètre selon la longueur du rouleau
 - **Zones de saisie** : 
   - Mesures d'épaisseur tous les 5m (6 points : 3 gauche, 3 droite)
-  - Déclaration de défauts positionnés sur le rouleau
+  - Déclaration de défauts positionnés sur le rouleau avec sélection depuis liste prédéfinie
+  - Boutons d'effacement rapide pour les défauts (apparition au survol)
   - Visualisation des zones de contrôle
+- **Interface défauts** :
+  - Champs sans bordures pour aspect épuré
+  - Datalists avec types de défauts créés dans l'admin
+  - Bouton "×" rouge pour effacement instantané
 
 #### Module Ordre de Fabrication
 - **OF en cours** : numéro OF, statut
