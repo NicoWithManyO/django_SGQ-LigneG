@@ -1,0 +1,1153 @@
+{% extends 'base.html' %}
+
+{% block title %}PROD - SGQ Ligne G{% endblock %}
+
+{% block content %}
+<div class="production-dashboard">
+    
+    <!-- Sidebar gauche - Tous les blocs -->
+    <aside class="sidebar-left">
+        
+        <!-- Bloc Fiche de Poste -->
+        <div hx-get="{% url 'production:shift_create' %}" 
+             hx-trigger="load" 
+             hx-target="this" 
+             hx-swap="innerHTML">
+            <!-- Le bloc sera chargé ici via HTMX -->
+            <div class="block-card">
+                <div class="block-header">
+                    <h5 class="block-title">Fiche de Poste</h5>
+                </div>
+                <div class="block-content">
+                    <div class="d-flex justify-content-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </aside>
+
+    <!-- Zone droite -->
+    <main class="right-content">
+        
+        <!-- Blocs du haut -->
+        <div class="top-blocks">
+            <!-- Bloc Ordre de Fabrication & Fibrage en Cours -->
+            <div class="block-card">
+                <div class="block-header" style="cursor: pointer;" onclick="toggleOFBlock()">
+                    <h5 class="block-title"><i class="bi bi-list-task"></i> Ordre de Fabrication & Fibrage en Cours</h5>
+                    <div class="block-actions">
+                        <i class="bi bi-chevron-up" id="of-chevron"></i>
+                    </div>
+                </div>
+                <div class="block-content" id="of-content">
+                    <div class="row mb-2" id="of-fields-row">
+                        <div class="col-3">
+                            <label class="form-label">OF en cours</label>
+                            <div class="input-group">
+                                <select id="current-order" class="form-select fw-bold" disabled>
+                                    <option value="">--</option>
+                                    <!-- Options chargées dynamiquement -->
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                        onclick="editCurrentOrder()" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <label class="form-label">Lg cible (m)</label>
+                            <div class="input-group">
+                                <input type="number" id="target-length" class="form-control fw-bold" step="0.01" min="0" placeholder="--" disabled>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                        onclick="editTargetLength()" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-3 ms-auto">
+                            <label class="form-label">OF découpe</label>
+                            <div class="input-group">
+                                <select id="cutting-order" class="form-select fw-bold" disabled>
+                                    <option value="">--</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                        onclick="editCuttingOrder()" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Séparation -->
+                    <hr class="my-3" id="of-separator">
+                    
+                    <!-- Informations rouleau -->
+                    <div class="row mb-2">
+                        <div class="col-3">
+                            <label class="form-label">Numéro de rouleau</label>
+                            <div class="input-group">
+                                <input type="text" id="roll-number" class="form-control fw-bold" placeholder="--" disabled>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                        onclick="editRollNumber()" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <label class="form-label text-muted small">ID Rouleau</label>
+                            <div class="d-flex align-items-center">
+                                <div class="form-control-plaintext text-muted me-2" id="roll-id">--</div>
+                                <span id="roll-status" class="badge"></span>
+                            </div>
+                        </div>
+                        <div class="col-4 offset-2">
+                            <label class="form-label">Masse du prochain tube (g)</label>
+                            <input type="number" id="next-tube-mass" class="form-control fw-bold" step="1" min="0" placeholder="--">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-2">
+                        <div class="col-4">
+                            <label class="form-label">Lg (m)</label>
+                            <input type="number" id="roll-length" class="form-control fw-bold" step="0.01" min="0" placeholder="--">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Masse tube (g)</label>
+                            <input type="number" id="tube-mass" class="form-control fw-bold" step="1" min="0" placeholder="--">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">Masse totale (g)</label>
+                            <input type="number" id="total-mass" class="form-control fw-bold" step="1" min="0" placeholder="--">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-2">
+                        <div class="col-6 offset-3">
+                            <label class="form-label text-center d-block">Statut conformité</label>
+                            <div class="border border-2 p-2 text-center fw-bold fs-5" id="conformity-status">
+                                <span>--</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <!-- Bloc Déclaration de Temps -->
+            <div class="block-card">
+                <div class="block-header" style="cursor: pointer;" onclick="toggleTempsBlock()">
+                    <h5 class="block-title"><i class="bi bi-clock"></i> Déclaration de Temps</h5>
+                    <div class="block-actions">
+                        <i class="bi bi-chevron-up" id="temps-chevron"></i>
+                    </div>
+                </div>
+                <div class="block-content" id="temps-content">
+                    <form class="time-declaration-form">
+                        <div class="row align-items-end mb-2">
+                            <div class="col-3">
+                                <label class="form-label">Motif</label>
+                                <select class="form-select fw-bold">
+                                    <option value="">Motif</option>
+                                    <option value="demarrage">Démarrage</option>
+                                    <option value="panne_maintenance">Panne/Maintenance</option>
+                                    <option value="menage">Ménage sans fibrage</option>
+                                    <option value="autre">Autre</option>
+                                </select>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label">Commentaire</label>
+                                <input type="text" class="form-control" placeholder="Détails...">
+                            </div>
+                            <div class="col-3">
+                                <label class="form-label">Temps</label>
+                                <select class="form-select fw-bold" id="time-duration-select">
+                                    <option value="">Durée</option>
+                                </select>
+                            </div>
+                            <div class="col-2">
+                                <button type="button" class="btn btn-primary btn-sm w-100" onclick="addLostTime()">Ajouter</button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- Liste des temps perdus ajoutés -->
+                    <div id="lost-time-list" class="mt-3">
+                        <!-- Les entrées seront ajoutées ici dynamiquement -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Visualisation Rouleau -->
+        <div class="roll-visualization">
+            <div class="text-center">
+                <h2>Visualisation Rouleau</h2>
+                <p class="subtitle">Zone de visualisation du rouleau avec grille métrique</p>
+                <div class="roll-info">
+                    <i class="bi bi-info-circle"></i>
+                    Cette zone contiendra la représentation graphique du rouleau avec :
+                    <ul>
+                        <li>Grille métrique (une ligne par mètre)</li>
+                        <li>Zones de saisie des mesures d'épaisseur (6 points tous les 5m)</li>
+                        <li>Déclaration des défauts positionnés</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+    </main>
+
+</div>
+
+<!-- Historique des postes récents -->
+<div class="mt-4">
+    <h5>Postes récents</h5>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID Poste</th>
+                    <th>Opérateur</th>
+                    <th>Date</th>
+                    <th>Vacation</th>
+                    <th>Longueur totale</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for shift in shifts %}
+                <tr>
+                    <td>{{ shift.shift_id }}</td>
+                    <td>{{ shift.operator.full_name }}</td>
+                    <td>{{ shift.date|date:"d/m/Y" }}</td>
+                    <td>{{ shift.get_vacation_display }}</td>
+                    <td>{{ shift.total_length }} m</td>
+                    <td>
+                        <a href="{% url 'production:shift_edit' shift.id %}" 
+                           class="btn btn-sm btn-outline-primary">
+                            Modifier
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted">
+                        Aucun poste enregistré
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleBlock(blockName) {
+    const content = document.getElementById(blockName + '-content');
+    const chevron = document.getElementById(blockName + '-chevron');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        chevron.className = 'bi bi-chevron-up';
+    } else {
+        content.style.display = 'none';
+        chevron.className = 'bi bi-chevron-down';
+    }
+}
+
+// Générer les options de durée par tranches de 5 minutes
+function populateTimeOptions() {
+    const timeSelect = document.getElementById('time-duration-select');
+    if (!timeSelect) return;
+    
+    // Générer de 0:05 à 8:00 par tranches de 5 minutes
+    for (let totalMinutes = 5; totalMinutes <= 480; totalMinutes += 5) {
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        
+        const timeStr = `${hours}:${minutes.toString().padStart(2, '0')}`;
+        const displayStr = `${timeStr} (${totalMinutes} min)`;
+        
+        const option = document.createElement('option');
+        option.value = timeStr;
+        option.textContent = displayStr;
+        timeSelect.appendChild(option);
+    }
+}
+
+// Variable pour stocker le temps perdu total (en minutes)
+if (typeof window.totalLostTimeMinutes === 'undefined') {
+    window.totalLostTimeMinutes = 0;
+}
+
+// Variable pour éviter la restauration multiple
+window.isRestoring = false;
+
+// Array pour stocker les entrées de temps perdu
+if (typeof window.lostTimeEntries === 'undefined') {
+    window.lostTimeEntries = [];
+}
+
+// Ajouter du temps perdu
+function addLostTime() {
+    const motifSelect = document.querySelector('.time-declaration-form select');
+    const commentInput = document.querySelector('.time-declaration-form input');
+    const timeSelect = document.getElementById('time-duration-select');
+    
+    // Vérifier que les champs requis sont remplis
+    if (!motifSelect.value || !timeSelect.value) {
+        alert('Veuillez remplir le motif et le temps');
+        return;
+    }
+    
+    // Extraire les minutes de la durée sélectionnée
+    const [hours, minutes] = timeSelect.value.split(':').map(Number);
+    const addedMinutes = hours * 60 + minutes;
+    
+    // Créer une entrée unique
+    const entryId = Date.now();
+    const entry = {
+        id: entryId,
+        motif: motifSelect.options[motifSelect.selectedIndex].text,
+        comment: commentInput.value || '',
+        timeStr: timeSelect.value,
+        minutes: addedMinutes,
+        timestamp: new Date().toLocaleTimeString()
+    };
+    
+    // Ajouter à la liste
+    window.lostTimeEntries.push(entry);
+    
+    // Ajouter au total
+    window.totalLostTimeMinutes += addedMinutes;
+    
+    // Mettre à jour l'affichage
+    updateLostTimeDisplay();
+    updateAvailabilityTime();
+    renderLostTimeList();
+    
+    // Déclencher l'auto-save
+    clearTimeout(window.autoSaveTimeout);
+    window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+    
+    // Réinitialiser le formulaire
+    motifSelect.value = '';
+    commentInput.value = '';
+    timeSelect.value = '';
+    
+    console.log(`Temps perdu ajouté: ${addedMinutes} min. Total: ${window.totalLostTimeMinutes} min`);
+}
+
+// Afficher la liste des temps perdus
+function renderLostTimeList() {
+    const listContainer = document.getElementById('lost-time-list');
+    if (!listContainer) return;
+    
+    if (window.lostTimeEntries.length === 0) {
+        listContainer.innerHTML = '';
+        return;
+    }
+    
+    let html = '<div class="border-top pt-2">';
+    
+    window.lostTimeEntries.forEach(entry => {
+        html += `
+            <div class="d-flex align-items-center py-1 border-bottom" style="font-size: 0.8rem;">
+                <div class="me-2">
+                    <span class="fw-bold text-primary">${entry.motif}</span>
+                </div>
+                <div class="me-2 flex-grow-1">
+                    ${entry.comment ? `<span class="text-muted">${entry.comment}</span>` : ''}
+                </div>
+                <div class="me-2">
+                    <span class="badge bg-secondary">${entry.timeStr}</span>
+                </div>
+                <div class="me-2">
+                    <small class="text-muted">${entry.timestamp}</small>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-outline-danger btn-sm" 
+                            onclick="removeLostTimeEntry(${entry.id})" 
+                            title="Supprimer">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    listContainer.innerHTML = html;
+}
+
+// Supprimer une entrée de temps perdu
+function removeLostTimeEntry(entryId) {
+    const entryIndex = window.lostTimeEntries.findIndex(entry => entry.id === entryId);
+    if (entryIndex === -1) return;
+    
+    const entry = window.lostTimeEntries[entryIndex];
+    
+    // Soustraire du total
+    window.totalLostTimeMinutes -= entry.minutes;
+    
+    // Supprimer de la liste
+    window.lostTimeEntries.splice(entryIndex, 1);
+    
+    // Mettre à jour l'affichage
+    updateLostTimeDisplay();
+    updateAvailabilityTime();
+    renderLostTimeList();
+    
+    // Déclencher l'auto-save
+    clearTimeout(window.autoSaveTimeout);
+    window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+    
+    console.log(`Temps perdu supprimé: ${entry.minutes} min. Total: ${window.totalLostTimeMinutes} min`);
+}
+
+// Effacer toutes les données sauvegardées
+function clearAllSavedData() {
+    if (confirm('Êtes-vous sûr de vouloir effacer toutes les données saisies ?')) {
+        // Effacer côté serveur
+        fetch('{% url "production:clear_saved_form_data" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Données serveur supprimées');
+                
+                // Réinitialiser les variables locales
+                window.totalLostTimeMinutes = 0;
+                window.lostTimeEntries = [];
+                
+                // Recharger la page
+                window.location.reload();
+            } else {
+                console.error('Erreur suppression serveur:', data.error);
+                alert('Erreur lors de la suppression des données');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur réseau:', error);
+            // Même en cas d'erreur, on recharge pour vider le formulaire
+            window.location.reload();
+        });
+    }
+}
+
+// Mettre à jour l'affichage du temps perdu
+function updateLostTimeDisplay() {
+    const lostTimeElements = document.querySelectorAll('.form-control-plaintext');
+    
+    // Chercher l'élément qui contient "Temps perdu"
+    lostTimeElements.forEach(element => {
+        if (element.previousElementSibling && element.previousElementSibling.textContent === 'Temps perdu') {
+            const hours = Math.floor(window.totalLostTimeMinutes / 60);
+            const minutes = window.totalLostTimeMinutes % 60;
+            const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            
+            const boldSpan = element.querySelector('.fw-bold');
+            const minutesSpan = element.querySelector('.text-muted');
+            
+            if (boldSpan && minutesSpan) {
+                boldSpan.textContent = timeStr;
+                minutesSpan.textContent = `(${window.totalLostTimeMinutes} min)`;
+                console.log('Affichage temps perdu mis à jour:', timeStr);
+            }
+        }
+    });
+}
+
+// Mettre à jour l'availability time en tenant compte du temps perdu
+function updateAvailabilityTime() {
+    const openingTimeSelect = document.querySelector('select[name="opening_time"]');
+    const availabilityDisplay = document.getElementById('availability-time-display');
+    
+    if (openingTimeSelect && availabilityDisplay) {
+        const openingTimeValue = openingTimeSelect.value;
+        
+        if (openingTimeValue) {
+            // Convertir opening time en minutes
+            const [openingHours, openingMinutes] = openingTimeValue.split(':').map(Number);
+            const openingTotalMinutes = openingHours * 60 + openingMinutes;
+            
+            // Calculer availability time = opening time - lost time
+            const availabilityMinutes = Math.max(0, openingTotalMinutes - (window.totalLostTimeMinutes || 0));
+            
+            // Convertir en heures:minutes
+            const availabilityHours = Math.floor(availabilityMinutes / 60);
+            const remainingMinutes = availabilityMinutes % 60;
+            
+            const availabilityTimeStr = `${availabilityHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}`;
+            
+            // Mettre à jour l'affichage
+            const boldSpan = availabilityDisplay.querySelector('.fw-bold');
+            const minutesSpan = availabilityDisplay.querySelector('.text-muted');
+            
+            if (boldSpan && minutesSpan) {
+                boldSpan.textContent = availabilityTimeStr;
+                minutesSpan.textContent = `(${availabilityMinutes} min)`;
+                console.log('Availability time mis à jour:', availabilityTimeStr);
+            }
+        }
+    }
+}
+
+// Gérer l'affichage conditionnel des champs meter reading
+function toggleMeterReadingFields() {
+    const startedAtBeginning = document.querySelector('input[name="started_at_beginning"]');
+    const startedAtEnd = document.querySelector('input[name="started_at_end"]');
+    const meterStartField = document.getElementById('meter-reading-start-field');
+    const meterEndField = document.getElementById('meter-reading-end-field');
+    
+    if (startedAtBeginning && meterStartField) {
+        meterStartField.style.visibility = startedAtBeginning.checked ? 'visible' : 'hidden';
+        console.log('Champ début métrage:', startedAtBeginning.checked ? 'visible' : 'hidden');
+    }
+    
+    if (startedAtEnd && meterEndField) {
+        meterEndField.style.visibility = startedAtEnd.checked ? 'visible' : 'hidden';
+        console.log('Champ fin métrage:', startedAtEnd.checked ? 'visible' : 'hidden');
+    }
+}
+
+// Auto-sauvegarde côté serveur
+function autoSaveFormData() {
+    const startedBeginningField = document.querySelector('input[name="started_at_beginning"]');
+    const startedEndField = document.querySelector('input[name="started_at_end"]');
+    
+    const formData = {
+        // Données de fiche de poste
+        date: document.querySelector('input[name="date"]')?.value || '',
+        operator: document.querySelector('select[name="operator"]')?.value || '',
+        vacation: document.querySelector('select[name="vacation"]')?.value || '',
+        opening_time: document.querySelector('select[name="opening_time"]')?.value || '',
+        started_at_beginning: startedBeginningField ? startedBeginningField.checked : false,
+        meter_reading_start: document.querySelector('input[name="meter_reading_start"]')?.value || '',
+        started_at_end: startedEndField ? startedEndField.checked : false,
+        meter_reading_end: document.querySelector('input[name="meter_reading_end"]')?.value || '',
+        operator_comments: document.querySelector('textarea[name="operator_comments"]')?.value || '',
+        // Données de production (à conserver)
+        totalLostTimeMinutes: window.totalLostTimeMinutes || 0,
+        lostTimeEntries: window.lostTimeEntries || [],
+        currentOrderId: document.querySelector('#current-order')?.value || '',
+        cuttingOrderId: document.querySelector('#cutting-order')?.value || '',
+        targetLength: document.querySelector('#target-length')?.value || '',
+        rollNumber: document.querySelector('#roll-number')?.value || '',
+        tubeMass: document.querySelector('#tube-mass')?.value || '',
+        totalMass: document.querySelector('#total-mass')?.value || '',
+        rollLength: document.querySelector('#roll-length')?.value || '',
+        nextTubeMass: document.querySelector('#next-tube-mass')?.value || ''
+    };
+    
+    console.log('Sauvegarde des données:', formData);
+    
+    fetch('{% url "production:auto_save_form" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Auto-save réussi:', data.timestamp);
+        } else {
+            console.error('Erreur auto-save:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur réseau auto-save:', error);
+    });
+}
+
+// Restaurer les données sauvegardées
+function restoreSavedData() {
+    if (window.isRestoring) {
+        console.log('Restauration déjà en cours, ignoré');
+        return;
+    }
+    
+    window.isRestoring = true;
+    
+    fetch('{% url "production:get_saved_form_data" %}')
+    .then(response => response.json())
+    .then(result => {
+        if (result.data && Object.keys(result.data).length > 0) {
+            const data = result.data;
+            console.log('Restauration des données:', data);
+            
+            setTimeout(function() {
+                // Restaurer seulement si ce n'est pas juste après un swap HTMX de save de poste
+                if (window.skipNextRestore) {
+                    console.log('Restauration ignorée (juste après save de poste)');
+                    window.skipNextRestore = false;
+                    return;
+                }
+                
+                // Restaurer les champs normalement
+                const dateField = document.querySelector('input[name="date"]');
+                if (dateField && data.date) dateField.value = data.date;
+                
+                const operatorField = document.querySelector('select[name="operator"]');
+                if (operatorField && data.operator) operatorField.value = data.operator;
+                
+                const vacationField = document.querySelector('select[name="vacation"]');
+                if (vacationField && data.vacation) vacationField.value = data.vacation;
+                
+                const openingTimeField = document.querySelector('select[name="opening_time"]');
+                if (openingTimeField && data.opening_time) openingTimeField.value = data.opening_time;
+                
+                const startedBeginningField = document.querySelector('input[name="started_at_beginning"]');
+                if (startedBeginningField) {
+                    startedBeginningField.checked = Boolean(data.started_at_beginning);
+                    console.log('Checkbox début restaurée:', data.started_at_beginning);
+                }
+                
+                const startedEndField = document.querySelector('input[name="started_at_end"]');
+                if (startedEndField) {
+                    startedEndField.checked = Boolean(data.started_at_end);
+                    console.log('Checkbox fin restaurée:', data.started_at_end);
+                }
+                
+                const meterStartField = document.querySelector('input[name="meter_reading_start"]');
+                if (meterStartField && data.meter_reading_start) meterStartField.value = data.meter_reading_start;
+                
+                const meterEndField = document.querySelector('input[name="meter_reading_end"]');
+                if (meterEndField && data.meter_reading_end) meterEndField.value = data.meter_reading_end;
+                
+                const commentsField = document.querySelector('textarea[name="operator_comments"]');
+                if (commentsField && data.operator_comments) commentsField.value = data.operator_comments;
+                
+                // Restaurer la longueur cible
+                const targetLengthField = document.querySelector('#target-length');
+                if (targetLengthField && data.targetLength) {
+                    targetLengthField.disabled = false;
+                    targetLengthField.value = data.targetLength;
+                    targetLengthField.disabled = true;
+                    console.log('Longueur cible restaurée:', data.targetLength);
+                }
+                
+                // Restaurer les champs rouleau
+                const rollNumberField = document.querySelector('#roll-number');
+                if (rollNumberField && data.rollNumber) {
+                    rollNumberField.disabled = false;
+                    rollNumberField.value = data.rollNumber;
+                    rollNumberField.disabled = true;
+                }
+                
+                const tubeMassField = document.querySelector('#tube-mass');
+                if (tubeMassField && data.tubeMass) tubeMassField.value = data.tubeMass;
+                
+                const totalMassField = document.querySelector('#total-mass');
+                if (totalMassField && data.totalMass) totalMassField.value = data.totalMass;
+                
+                const rollLengthField = document.querySelector('#roll-length');
+                if (rollLengthField && data.rollLength) rollLengthField.value = data.rollLength;
+                
+                const nextTubeMassField = document.querySelector('#next-tube-mass');
+                if (nextTubeMassField && data.nextTubeMass) nextTubeMassField.value = data.nextTubeMass;
+                
+                // Restaurer le temps perdu et les entrées
+                if (data.totalLostTimeMinutes !== undefined) {
+                    window.totalLostTimeMinutes = data.totalLostTimeMinutes;
+                    console.log('Temps perdu restauré:', data.totalLostTimeMinutes);
+                }
+                
+                if (data.lostTimeEntries && Array.isArray(data.lostTimeEntries)) {
+                    window.lostTimeEntries = data.lostTimeEntries;
+                    console.log('Entrées temps perdu restaurées:', data.lostTimeEntries.length);
+                }
+                
+                // Restaurer les OF sélectionnés
+                const currentOrderSelect = document.querySelector('#current-order');
+                if (currentOrderSelect && data.currentOrderId) {
+                    currentOrderSelect.value = data.currentOrderId;
+                    console.log('OF en cours restauré:', data.currentOrderId);
+                }
+                
+                const cuttingOrderSelect = document.querySelector('#cutting-order');
+                if (cuttingOrderSelect && data.cuttingOrderId) {
+                    cuttingOrderSelect.value = data.cuttingOrderId;
+                    console.log('OF découpe restauré:', data.cuttingOrderId);
+                }
+                
+                setTimeout(function() {
+                    updateLostTimeDisplay();
+                    updateAvailabilityTime();
+                    renderLostTimeList();
+                    updateRollId(); // Générer l'ID du rouleau
+                }, 500);
+                
+                // Déclencher la visibilité des champs conditionnels après restauration
+                setTimeout(function() {
+                    toggleMeterReadingFields();
+                    console.log('toggleMeterReadingFields appelé après restauration');
+                    
+                    // Vérifier les valeurs après toggle
+                    const startedBeginning = document.querySelector('input[name="started_at_beginning"]');
+                    const startedEnd = document.querySelector('input[name="started_at_end"]');
+                    console.log('Après toggle - début:', startedBeginning?.checked, 'fin:', startedEnd?.checked);
+                }, 300);
+                
+                console.log('Restauration terminée');
+                window.isRestoring = false;
+            }, 200);
+        } else {
+            window.isRestoring = false;
+        }
+    })
+    .catch(error => {
+        console.error('Erreur restauration:', error);
+        window.isRestoring = false;
+    });
+}
+
+// Event listeners pour auto-save
+document.body.addEventListener('input', function(e) {
+    if ((e.target.closest('#shift-form') || e.target.closest('.block-content')) && !window.isRestoring) {
+        clearTimeout(window.autoSaveTimeout);
+        window.autoSaveTimeout = setTimeout(autoSaveFormData, 1000);
+    }
+});
+
+document.body.addEventListener('change', function(e) {
+    if ((e.target.closest('#shift-form') || e.target.closest('.block-content')) && !window.isRestoring) {
+        // Si c'est une checkbox de machine, mettre à jour la visibilité
+        if (e.target.name === 'started_at_beginning' || e.target.name === 'started_at_end') {
+            toggleMeterReadingFields();
+        }
+        
+        clearTimeout(window.autoSaveTimeout);
+        window.autoSaveTimeout = setTimeout(autoSaveFormData, 1000);
+    }
+});
+
+// Restaurer après chargement HTMX
+document.body.addEventListener('htmx:afterSwap', function() {
+    setTimeout(restoreSavedData, 300);
+});
+
+// Écouter l'événement de restauration forcée après save de poste
+document.addEventListener('forceRestore', function(e) {
+    console.log('Événement forceRestore reçu:', e.detail);
+    
+    // Éviter les doublons d'alerte
+    if (window.saveAlertShown) {
+        console.log('Alerte déjà affichée, ignoré');
+        return;
+    }
+    
+    // Afficher l'alerte de sauvegarde
+    alert('Sauvegarde OK');
+    window.saveAlertShown = true;
+    
+    // Réinitialiser le flag après un délai
+    setTimeout(function() {
+        window.saveAlertShown = false;
+    }, 3000);
+    
+    // Réinitialiser le flag et forcer la restauration
+    window.isRestoring = false;
+    setTimeout(function() {
+        restoreFormData();
+    }, 200);
+});
+
+// Gestion des ordres de fabrication
+function loadFabricationOrders() {
+    fetch('/core/get-fabrication-orders/')
+    .then(response => response.json())
+    .then(data => {
+        // Remplir le select des OF normaux
+        const currentOrderSelect = document.getElementById('current-order');
+        currentOrderSelect.innerHTML = '<option value="">Choisir OF...</option>';
+        data.normal_orders.forEach(order => {
+            const option = document.createElement('option');
+            option.value = order.id;
+            option.textContent = order.order_number;
+            currentOrderSelect.appendChild(option);
+        });
+        
+        // Remplir le select des OF découpe
+        const cuttingOrderSelect = document.getElementById('cutting-order');
+        cuttingOrderSelect.innerHTML = '<option value="">Choisir OF découpe...</option>';
+        data.cutting_orders.forEach(order => {
+            const option = document.createElement('option');
+            option.value = order.id;
+            option.textContent = order.order_number;
+            cuttingOrderSelect.appendChild(option);
+        });
+        
+        console.log('OF chargés:', data);
+        
+        // Restaurer les sélections d'OF après chargement
+        setTimeout(restoreOrderSelections, 100);
+    })
+    .catch(error => {
+        console.error('Erreur chargement OF:', error);
+    });
+}
+
+function restoreOrderSelections() {
+    const saved = localStorage.getItem('shift-form-data');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            
+            const currentOrderSelect = document.querySelector('#current-order');
+            if (currentOrderSelect && data.currentOrderId) {
+                currentOrderSelect.value = data.currentOrderId;
+                console.log('OF en cours restauré via localStorage:', data.currentOrderId);
+            }
+            
+            const cuttingOrderSelect = document.querySelector('#cutting-order');
+            if (cuttingOrderSelect && data.cuttingOrderId) {
+                cuttingOrderSelect.value = data.cuttingOrderId;
+                console.log('OF découpe restauré via localStorage:', data.cuttingOrderId);
+            }
+        } catch (error) {
+            console.error('Erreur restauration OF:', error);
+        }
+    }
+}
+
+
+function loadOFList() {
+    // Recharger la liste des OF dans le datalist
+    fetch('/core/get-fabrication-orders/', {
+        method: 'GET'
+    })
+    .then(response => response.json())
+    .then(data => {
+        const currentOrderSelect = document.getElementById('current-order');
+        const cuttingSelect = document.getElementById('cutting-order');
+        
+        if (currentOrderSelect && data.normal_orders) {
+            // Vider et repeupler le select des OF normaux
+            const currentValue = currentOrderSelect.value;
+            currentOrderSelect.innerHTML = '<option value="">--</option>';
+            data.normal_orders.forEach(order => {
+                const option = document.createElement('option');
+                option.value = order.id;
+                option.textContent = order.order_number;
+                currentOrderSelect.appendChild(option);
+            });
+            // Restaurer la valeur sélectionnée si elle existe encore
+            if (currentValue) {
+                currentOrderSelect.value = currentValue;
+            }
+        }
+        
+        if (cuttingSelect && data.cutting_orders) {
+            // Vider et repeupler la select des OF découpe
+            const currentValue = cuttingSelect.value;
+            cuttingSelect.innerHTML = '<option value="">--</option>';
+            data.cutting_orders.forEach(order => {
+                const option = document.createElement('option');
+                option.value = order.id;
+                option.textContent = order.order_number;
+                cuttingSelect.appendChild(option);
+            });
+            // Restaurer la valeur sélectionnée si elle existe encore
+            if (currentValue) {
+                cuttingSelect.value = currentValue;
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Erreur lors du rechargement des OF:', error);
+    });
+}
+
+function editCurrentOrder() {
+    const currentOrderSelect = document.getElementById('current-order');
+    const originalValue = currentOrderSelect.value; // Sauvegarder la valeur originale
+    currentOrderSelect.disabled = false;
+    currentOrderSelect.focus();
+    
+    // Gérer la sélection
+    currentOrderSelect.onchange = function() {
+        const newValue = this.value;
+        
+        if (!newValue) {
+            this.disabled = true;
+            return;
+        }
+        
+        // Vérifier si c'est différent de la valeur originale
+        if (newValue === originalValue) {
+            this.disabled = true;
+            return;
+        }
+        
+        // Demander confirmation avec le texte de l'option sélectionnée
+        const selectedOption = this.options[this.selectedIndex];
+        const orderText = selectedOption ? selectedOption.text : newValue;
+        const confirmMessage = `Êtes-vous sûr de vouloir modifier l'OF en cours vers "${orderText}" ?`;
+        
+        if (confirm(confirmMessage)) {
+            // Confirmer le changement
+            this.disabled = true;
+            updateRollId(); // Mettre à jour l'ID du rouleau
+            // Déclencher auto-save
+            clearTimeout(window.autoSaveTimeout);
+            window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+        } else {
+            // Annuler : remettre la valeur originale
+            this.value = originalValue;
+            this.disabled = true;
+        }
+    };
+    
+    // Gérer l'annulation (clic ailleurs)
+    currentOrderSelect.onblur = function() {
+        setTimeout(() => {
+            this.disabled = true;
+        }, 200);
+    };
+}
+
+function editCuttingOrder() {
+    const cuttingOrderSelect = document.getElementById('cutting-order');
+    const originalValue = cuttingOrderSelect.value; // Sauvegarder la valeur originale
+    cuttingOrderSelect.disabled = false;
+    cuttingOrderSelect.focus();
+    
+    // Gérer la sélection
+    cuttingOrderSelect.onchange = function() {
+        if (this.value) {
+            this.disabled = true;
+            // Déclencher auto-save
+            clearTimeout(window.autoSaveTimeout);
+            window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+        } else {
+            this.disabled = true;
+        }
+    };
+    
+    // Gérer l'annulation (clic ailleurs)
+    cuttingOrderSelect.onblur = function() {
+        setTimeout(() => {
+            this.disabled = true;
+        }, 200);
+    };
+}
+
+function editTargetLength() {
+    const targetLengthInput = document.getElementById('target-length');
+    const originalValue = targetLengthInput.value; // Sauvegarder la valeur originale
+    targetLengthInput.disabled = false;
+    targetLengthInput.focus();
+    
+    // Gérer la validation sans confirmation
+    targetLengthInput.onchange = function() {
+        if (this.value) {
+            this.disabled = true;
+            // Déclencher auto-save
+            clearTimeout(window.autoSaveTimeout);
+            window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+        } else {
+            this.disabled = true;
+        }
+    };
+    
+    // Gérer l'annulation (clic ailleurs ou échap)
+    targetLengthInput.onblur = function() {
+        setTimeout(() => {
+            this.disabled = true;
+        }, 200);
+    };
+    
+    targetLengthInput.onkeydown = function(e) {
+        if (e.key === 'Escape') {
+            this.value = originalValue; // Restaurer sur Échap
+            this.disabled = true;
+            this.blur();
+        }
+    };
+}
+
+function editRollNumber() {
+    const rollNumberInput = document.getElementById('roll-number');
+    const originalValue = rollNumberInput.value; // Sauvegarder la valeur originale
+    rollNumberInput.disabled = false;
+    rollNumberInput.focus();
+    
+    // Gérer la validation sans confirmation
+    rollNumberInput.onchange = function() {
+        if (this.value.trim()) {
+            this.disabled = true;
+            updateRollId(); // Mettre à jour l'ID
+            // Déclencher auto-save
+            clearTimeout(window.autoSaveTimeout);
+            window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+        } else {
+            this.disabled = true;
+        }
+    };
+    
+    // Gérer l'annulation (clic ailleurs ou échap)
+    rollNumberInput.onblur = function() {
+        setTimeout(() => {
+            this.disabled = true;
+        }, 200);
+    };
+    
+    rollNumberInput.onkeydown = function(e) {
+        if (e.key === 'Escape') {
+            this.value = originalValue; // Restaurer sur Échap
+            this.disabled = true;
+            this.blur();
+        }
+    };
+}
+
+function updateRollId() {
+    const currentOrderSelect = document.getElementById('current-order');
+    const rollNumberInput = document.getElementById('roll-number');
+    const rollIdDisplay = document.getElementById('roll-id');
+    const rollStatus = document.getElementById('roll-status');
+    
+    const orderNumber = currentOrderSelect.options[currentOrderSelect.selectedIndex]?.text || '';
+    const rollNumber = rollNumberInput.value.trim();
+    
+    if (orderNumber && rollNumber) {
+        const rollId = `${orderNumber}_${rollNumber}`;
+        rollIdDisplay.textContent = rollId;
+        
+        // Vérifier si l'ID existe déjà
+        checkRollExists(rollId);
+    } else {
+        rollIdDisplay.textContent = '--';
+        rollStatus.textContent = '';
+        rollStatus.className = 'badge';
+    }
+}
+
+function checkRollExists(rollId) {
+    const rollStatus = document.getElementById('roll-status');
+    
+    // Afficher un indicateur de chargement
+    rollStatus.textContent = '⏳';
+    rollStatus.className = 'badge bg-secondary';
+    
+    fetch(`{% url "production:check_roll_id" %}?roll_id=${encodeURIComponent(rollId)}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.exists) {
+            rollStatus.textContent = '⚠️ Existe';
+            rollStatus.className = 'badge bg-danger';
+        } else {
+            rollStatus.textContent = '';
+            rollStatus.className = 'badge';
+        }
+    })
+    .catch(error => {
+        console.error('Erreur vérification rouleau:', error);
+        rollStatus.textContent = '❌ Erreur';
+        rollStatus.className = 'badge bg-danger';
+    });
+}
+
+// Initialiser au chargement de la page
+// Fonction pour toggle le bloc OF avec 3 états et effet fondu
+function toggleOFBlock() {
+    const fieldsRow = document.getElementById('of-fields-row');
+    const separator = document.getElementById('of-separator');
+    const content = document.getElementById('of-content');
+    const chevron = document.getElementById('of-chevron');
+    
+    // État 1: tout visible (défaut)
+    if (fieldsRow.style.display !== 'none' && content.style.display !== 'none') {
+        // Passer à l'état 2: masquer ligne 1 et séparation avec fondu
+        fieldsRow.style.transition = 'opacity 0.3s ease';
+        separator.style.transition = 'opacity 0.3s ease';
+        fieldsRow.style.opacity = '0';
+        separator.style.opacity = '0';
+        
+        setTimeout(() => {
+            fieldsRow.style.display = 'none';
+            separator.style.display = 'none';
+            chevron.className = 'bi bi-chevron-down';
+        }, 300);
+    }
+    // État 2: ligne 1 et séparation cachées
+    else if (fieldsRow.style.display === 'none' && content.style.display !== 'none') {
+        // Passer à l'état 3: tout cacher avec fondu
+        content.style.transition = 'opacity 0.3s ease';
+        content.style.opacity = '0';
+        
+        setTimeout(() => {
+            content.style.display = 'none';
+            chevron.className = 'bi bi-chevron-down';
+        }, 300);
+    }
+    // État 3: tout caché
+    else {
+        // Retour à l'état 1: tout visible avec fondu
+        fieldsRow.style.display = 'flex';
+        separator.style.display = 'block';
+        content.style.display = 'block';
+        
+        setTimeout(() => {
+            fieldsRow.style.transition = 'opacity 0.3s ease';
+            separator.style.transition = 'opacity 0.3s ease';
+            content.style.transition = 'opacity 0.3s ease';
+            fieldsRow.style.opacity = '1';
+            separator.style.opacity = '1';
+            content.style.opacity = '1';
+            chevron.className = 'bi bi-chevron-up';
+        }, 50);
+    }
+}
+
+// Fonction pour toggle le bloc Déclaration de Temps avec effet fondu
+function toggleTempsBlock() {
+    const content = document.getElementById('temps-content');
+    const chevron = document.getElementById('temps-chevron');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        setTimeout(() => {
+            content.style.transition = 'opacity 0.3s ease';
+            content.style.opacity = '1';
+            chevron.className = 'bi bi-chevron-up';
+        }, 50);
+    } else {
+        content.style.transition = 'opacity 0.3s ease';
+        content.style.opacity = '0';
+        setTimeout(() => {
+            content.style.display = 'none';
+            chevron.className = 'bi bi-chevron-down';
+        }, 300);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    populateTimeOptions();
+    loadFabricationOrders();
+    setTimeout(restoreSavedData, 2000);
+    setTimeout(updateRollId, 2500); // Générer l'ID après restauration
+});
+</script>
+{% endblock %}

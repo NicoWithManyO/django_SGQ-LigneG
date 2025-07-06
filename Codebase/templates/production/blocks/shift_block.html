@@ -1,0 +1,565 @@
+<!-- Bloc Standard Poste -->
+<div class="block-card" id="shift-block">
+    <div class="block-header" style="cursor: pointer;" onclick="toggleShiftBlock()">
+        <h5 class="block-title" id="shift-title">
+            <i class="bi bi-clipboard-data"></i> Fiche de Poste
+        </h5>
+        <div class="block-actions">
+            <span class="htmx-indicator me-2">
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+            </span>
+            <i class="bi bi-chevron-up" id="shift-chevron"></i>
+        </div>
+    </div>
+
+    <div class="block-content" id="shift-content">
+        <form 
+            id="shift-form"
+            hx-post="{% if shift %}{% url 'production:shift_edit' shift.id %}{% else %}{% url 'production:shift_create' %}{% endif %}"
+            hx-target="#shift-block"
+            hx-swap="outerHTML settle:100ms"
+            hx-indicator=".htmx-indicator"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-on::after-request="if(event.detail.xhr.status === 200) { setTimeout(function() { calculateAvailabilityTime(); toggleMeterReadingFields(); }, 100); }"
+        >
+            {% csrf_token %}
+            
+            <div class="form-section">
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <label class="form-label">{{ form.date.label }}</label>
+                        <div class="input-group">
+                            {{ form.date }}
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setTodayDate()" title="Aujourd'hui">
+                                <i class="bi bi-calendar-day"></i>
+                            </button>
+                        </div>
+                        {% if form.date.errors %}
+                            <div class="text-danger small">{{ form.date.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.operator.label }}</label>
+                        {{ form.operator }}
+                        {% if form.operator.errors %}
+                            <div class="text-danger small">{{ form.operator.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <label class="form-label">{{ form.vacation.label }}</label>
+                        {{ form.vacation }}
+                        {% if form.vacation.errors %}
+                            <div class="text-danger small">{{ form.vacation.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.opening_time.label }}</label>
+                        {{ form.opening_time }}
+                        {% if form.opening_time.errors %}
+                            <div class="text-danger small">{{ form.opening_time.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Temps -->
+            <div class="form-section">
+                <h6 class="form-section-title">Temps de production</h6>
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <label class="form-label">Temps disponible</label>
+                        <div class="form-control-plaintext" id="availability-time-display">
+                            <span class="fw-bold">--:--</span> <span class="text-muted small"></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Temps perdu</label>
+                        <div class="form-control-plaintext">
+                            <span class="fw-bold">00:00</span> <span class="text-muted small">(0 min)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Section Paramètres Machine -->
+            <div class="form-section">
+                <h6 class="form-section-title">Paramètres machine</h6>
+                
+                <!-- Début de poste -->
+                <div class="row mb-2">
+                    <div class="col-12">
+                        <div>
+                            <h6 class="mb-2 small">
+                                <i class="bi bi-play-circle"></i> Prise de Poste
+                            </h6>
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        {{ form.started_at_beginning }}
+                                        <label class="form-check-label fw-bold small" for="{{ form.started_at_beginning.id_for_label }}">
+                                            {{ form.started_at_beginning.label }}
+                                        </label>
+                                    </div>
+                                    {% if form.started_at_beginning.errors %}
+                                        <div class="text-danger small">{{ form.started_at_beginning.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6" id="meter-reading-start-field" style="visibility: hidden;">
+                                    <label class="form-label small">{{ form.meter_reading_start.label }}</label>
+                                    {{ form.meter_reading_start }}
+                                    {% if form.meter_reading_start.errors %}
+                                        <div class="text-danger small">{{ form.meter_reading_start.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Fin de poste -->
+                <div class="row">
+                    <div class="col-12">
+                        <div>
+                            <h6 class="mb-2 small">
+                                <i class="bi bi-stop-circle"></i> Fin de Poste
+                            </h6>
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        {{ form.started_at_end }}
+                                        <label class="form-check-label fw-bold small" for="{{ form.started_at_end.id_for_label }}">
+                                            {{ form.started_at_end.label }}
+                                        </label>
+                                    </div>
+                                    {% if form.started_at_end.errors %}
+                                        <div class="text-danger small">{{ form.started_at_end.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6" id="meter-reading-end-field" style="visibility: hidden;">
+                                    <label class="form-label small">{{ form.meter_reading_end.label }}</label>
+                                    {{ form.meter_reading_end }}
+                                    {% if form.meter_reading_end.errors %}
+                                        <div class="text-danger small">{{ form.meter_reading_end.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="row">
+                    <div class="col-12">
+                        <label class="form-label">{{ form.operator_comments.label }}</label>
+                        {{ form.operator_comments }}
+                        {% if form.operator_comments.errors %}
+                            <div class="text-danger small">{{ form.operator_comments.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages d'erreur généraux -->
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+        </form>
+        <div class="d-flex justify-content-center mt-3">
+            <button 
+                type="button" 
+                class="btn btn-danger btn-cancel me-2"
+                onclick="clearShiftData()"
+            >
+                Clear
+            </button>
+            <button 
+                type="button" 
+                onclick="confirmSaveShift()"
+                class="btn btn-success btn-save"
+            >
+                Sauvegarder
+            </button>
+        </div>
+    </div>
+
+</div>
+
+
+<script>
+function setTodayDate() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    
+    const dateField = document.querySelector('input[name="date"]');
+    if (dateField) {
+        dateField.value = dateString;
+    }
+}
+
+function toggleShiftBlock() {
+    const content = document.getElementById('shift-content');
+    const chevron = document.getElementById('shift-chevron');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        setTimeout(() => {
+            content.style.transition = 'opacity 0.3s ease';
+            content.style.opacity = '1';
+            chevron.className = 'bi bi-chevron-up';
+        }, 50);
+    } else {
+        content.style.transition = 'opacity 0.3s ease';
+        content.style.opacity = '0';
+        setTimeout(() => {
+            content.style.display = 'none';
+            chevron.className = 'bi bi-chevron-down';
+        }, 300);
+    }
+}
+
+function calculateAvailabilityTime() {
+    console.log('Calculating availability time...');
+    const openingTimeSelect = document.querySelector('select[name="opening_time"]');
+    const availabilityDisplay = document.getElementById('availability-time-display');
+    
+    console.log('Opening time select:', openingTimeSelect);
+    console.log('Availability display:', availabilityDisplay);
+    
+    if (openingTimeSelect && availabilityDisplay) {
+        const openingTimeValue = openingTimeSelect.value;
+        console.log('Opening time value:', openingTimeValue);
+        
+        if (openingTimeValue) {
+            // Lost time = 0 pour l'instant
+            const lostTotalMinutes = 0;
+            
+            // Convertir opening time en minutes
+            const [openingHours, openingMinutes] = openingTimeValue.split(':').map(Number);
+            const openingTotalMinutes = openingHours * 60 + openingMinutes;
+            
+            // Calculer availability time = opening time - lost time (0)
+            const availabilityMinutes = openingTotalMinutes - lostTotalMinutes;
+            
+            // Convertir en heures:minutes
+            const availabilityHours = Math.floor(availabilityMinutes / 60);
+            const remainingMinutes = availabilityMinutes % 60;
+            
+            const availabilityTimeStr = `${availabilityHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}`;
+            console.log('Setting availability time to:', availabilityTimeStr);
+            
+            // Mettre à jour l'affichage avec temps en gras et minutes en normal
+            const boldSpan = availabilityDisplay.querySelector('.fw-bold');
+            const minutesSpan = availabilityDisplay.querySelector('.text-muted');
+            
+            if (boldSpan && minutesSpan) {
+                boldSpan.textContent = availabilityTimeStr;
+                minutesSpan.textContent = `(${availabilityMinutes} min)`;
+            }
+        } else {
+            const boldSpan = availabilityDisplay.querySelector('.fw-bold');
+            const minutesSpan = availabilityDisplay.querySelector('.text-muted');
+            
+            if (boldSpan && minutesSpan) {
+                boldSpan.textContent = '--:--';
+                minutesSpan.textContent = '';
+            }
+        }
+    }
+}
+
+// Event listener qui fonctionne avec HTMX
+document.body.addEventListener('change', function(e) {
+    if (e.target && e.target.name === 'opening_time') {
+        console.log('Opening time changed!');
+        calculateAvailabilityTime();
+    }
+});
+
+// Aussi essayer quand le formulaire est chargé
+document.body.addEventListener('htmx:afterSwap', function() {
+    console.log('HTMX content swapped');
+    setTimeout(function() {
+        calculateAvailabilityTime();
+    }, 200);
+});
+
+// Gérer l'affichage conditionnel des champs meter reading
+function toggleMeterReadingFields() {
+    const startedAtBeginning = document.querySelector('input[name="started_at_beginning"]');
+    const startedAtEnd = document.querySelector('input[name="started_at_end"]');
+    const meterStartField = document.getElementById('meter-reading-start-field');
+    const meterEndField = document.getElementById('meter-reading-end-field');
+    
+    console.log('toggleMeterReadingFields - début checked:', startedAtBeginning?.checked);
+    console.log('toggleMeterReadingFields - fin checked:', startedAtEnd?.checked);
+    
+    if (startedAtBeginning && meterStartField) {
+        meterStartField.style.visibility = startedAtBeginning.checked ? 'visible' : 'hidden';
+        console.log('Champ métrage début:', startedAtBeginning.checked ? 'visible' : 'hidden');
+    }
+    
+    if (startedAtEnd && meterEndField) {
+        meterEndField.style.visibility = startedAtEnd.checked ? 'visible' : 'hidden';
+        console.log('Champ métrage fin:', startedAtEnd.checked ? 'visible' : 'hidden');
+    }
+}
+
+// Event listeners pour les checkboxes
+document.body.addEventListener('change', function(e) {
+    if (e.target && (e.target.name === 'started_at_beginning' || e.target.name === 'started_at_end')) {
+        toggleMeterReadingFields();
+    }
+});
+
+// Au chargement initial de la page
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM chargé, attente des éléments HTMX...');
+    setTimeout(function() {
+        console.log('Tentative de restauration des données...');
+        // Ne pas restaurer si c'est un nouveau formulaire après save
+        const dateField = document.querySelector('input[name="date"]');
+        const operatorField = document.querySelector('select[name="operator"]');
+        if (dateField?.value && !operatorField?.value) {
+            // Formulaire fraîchement cleared, ne pas restaurer
+            console.log('Formulaire cleared détecté, pas de restauration');
+        } else {
+            // Pas de restauration automatique pour éviter d'écraser les états machines
+            console.log('Restauration désactivée pour préserver les états');
+        }
+        calculateAvailabilityTime();
+        toggleMeterReadingFields();
+    }, 1000);
+});
+
+// Event listener global pour HTMX swap (clear automatique)
+document.body.addEventListener('htmx:afterSwap', function(e) {
+    if (e.target && e.target.id === 'shift-block') {
+        console.log('Shift block swapped, reinitializing...');
+        
+        // Attendre un peu que le DOM soit stabilisé
+        setTimeout(function() {
+            // Vider les temps déclarés
+            clearDeclaredTimes();
+            
+            calculateAvailabilityTime();
+            
+            // FORCER la restauration immédiatement après swap
+            console.log('Forçage restauration après swap...');
+            
+            // Déclencher un événement personnalisé pour forcer la restauration
+            const forceRestoreEvent = new CustomEvent('forceRestore', {
+                detail: { source: 'afterShiftSave' }
+            });
+            document.dispatchEvent(forceRestoreEvent);
+            
+            // Puis mettre à jour les champs conditionnels
+            setTimeout(function() {
+                toggleMeterReadingFields();
+                console.log('Champs métrages mis à jour après restauration forcée');
+            }, 500);
+            
+            console.log('Fiche de poste cleared and reinitialized');
+        }, 100);
+    }
+});
+
+// Fonction pour vider les temps déclarés
+function clearDeclaredTimes() {
+    // Vider la variable globale des temps perdus
+    if (typeof window.lostTimeEntries !== 'undefined') {
+        window.lostTimeEntries = [];
+    }
+    if (typeof window.totalLostTimeMinutes !== 'undefined') {
+        window.totalLostTimeMinutes = 0;
+    }
+    
+    // Vider l'affichage DOM
+    const lostTimeList = document.getElementById('lost-time-list');
+    if (lostTimeList) {
+        lostTimeList.innerHTML = '';
+    }
+    
+    // Mettre à jour l'affichage du temps perdu dans la fiche de poste
+    if (typeof updateLostTimeDisplay === 'function') {
+        updateLostTimeDisplay();
+    }
+    
+    console.log('Temps déclarés vidés');
+}
+
+
+// Vider seulement les données de la fiche de poste
+function clearShiftData() {
+    if (confirm('Êtes-vous sûr de vouloir effacer les données de la fiche de poste ?')) {
+        // Vider les champs de la fiche de poste uniquement
+        const dateField = document.querySelector('input[name="date"]');
+        if (dateField) {
+            // Remettre la date d'aujourd'hui
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateField.value = `${year}-${month}-${day}`;
+        }
+        
+        const operatorField = document.querySelector('select[name="operator"]');
+        if (operatorField) operatorField.value = '';
+        
+        const vacationField = document.querySelector('select[name="vacation"]');
+        if (vacationField) vacationField.value = '';
+        
+        const openingTimeField = document.querySelector('select[name="opening_time"]');
+        if (openingTimeField) openingTimeField.value = '';
+        
+        const startedBeginningField = document.querySelector('input[name="started_at_beginning"]');
+        if (startedBeginningField) startedBeginningField.checked = false;
+        
+        const startedEndField = document.querySelector('input[name="started_at_end"]');
+        if (startedEndField) startedEndField.checked = false;
+        
+        const meterStartField = document.querySelector('input[name="meter_reading_start"]');
+        if (meterStartField) meterStartField.value = '';
+        
+        const meterEndField = document.querySelector('input[name="meter_reading_end"]');
+        if (meterEndField) meterEndField.value = '';
+        
+        const commentsField = document.querySelector('textarea[name="operator_comments"]');
+        if (commentsField) commentsField.value = '';
+        
+        // Masquer les champs conditionnels
+        toggleMeterReadingFields();
+        
+        // Recalculer l'availability time
+        calculateAvailabilityTime();
+        
+        // Sauvegarder les données après le clear
+        setTimeout(function() {
+            if (typeof autoSaveFormData === 'function') {
+                autoSaveFormData();
+            }
+        }, 500);
+    }
+}
+
+// Confirmer avant de sauvegarder le poste
+function confirmSaveShift() {
+    const operatorField = document.querySelector('select[name="operator"]');
+    const dateField = document.querySelector('input[name="date"]');
+    const vacationField = document.querySelector('select[name="vacation"]');
+    const openingTimeField = document.querySelector('select[name="opening_time"]');
+    
+    if (!operatorField?.value || !dateField?.value || !vacationField?.value || !openingTimeField?.value) {
+        alert('Veuillez remplir tous les champs obligatoires (Opérateur, Date, Vacation, Temps d\'ouverture)');
+        return;
+    }
+    
+    // Vérifier si machine démarrée en fin de poste et métrage renseigné
+    const startedAtEnd = document.querySelector('input[name="started_at_end"]');
+    const meterReadingEnd = document.querySelector('input[name="meter_reading_end"]');
+    
+    if (startedAtEnd && startedAtEnd.checked) {
+        if (!meterReadingEnd?.value || meterReadingEnd.value.trim() === '') {
+            alert('Si la machine est démarrée en fin de poste, vous devez renseigner le métrage enroulé de fin');
+            return;
+        }
+    }
+    
+    // Vérifier si machine démarrée en prise de poste
+    const startedAtBeginning = document.querySelector('input[name="started_at_beginning"]');
+    if (startedAtBeginning && !startedAtBeginning.checked) {
+        // Machine pas démarrée, vérifier qu'il y a du temps de démarrage déclaré
+        let hasStartupTime = false;
+        
+        // Vérifier dans la variable globale lostTimeEntries
+        if (window.lostTimeEntries && window.lostTimeEntries.length > 0) {
+            window.lostTimeEntries.forEach(entry => {
+                const motifLower = entry.motif.toLowerCase();
+                if (motifLower.includes('démarrage') || motifLower.includes('demarrage')) {
+                    hasStartupTime = true;
+                }
+            });
+        }
+        
+        // Si pas trouvé dans la variable globale, vérifier dans le DOM
+        if (!hasStartupTime) {
+            const lostTimeElements = document.querySelectorAll('#lost-time-list .fw-bold.text-primary');
+            lostTimeElements.forEach(element => {
+                const motifText = element.textContent.toLowerCase();
+                if (motifText.includes('démarrage') || motifText.includes('demarrage')) {
+                    hasStartupTime = true;
+                }
+            });
+        }
+        
+        if (!hasStartupTime) {
+            alert('Si la machine n\'est pas démarrée en prise de poste, vous devez déclarer du temps de démarrage dans "Déclaration de Temps"');
+            return;
+        }
+    }
+    
+    // Vérifier d'abord si le poste existe déjà
+    const checkData = {
+        date: dateField.value,
+        operator: operatorField.value,
+        vacation: vacationField.value
+    };
+    
+    fetch('/check-shift-exists/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(checkData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.exists) {
+            alert(`Ce poste existe déjà : ${data.shift_id}`);
+            return;
+        }
+        
+        // Si le poste n'existe pas, procéder à la confirmation
+        const operatorText = operatorField.options[operatorField.selectedIndex]?.text || '';
+        const dateValue = dateField.value;
+        const vacationText = vacationField.options[vacationField.selectedIndex]?.text || '';
+        const openingTimeText = openingTimeField.options[openingTimeField.selectedIndex]?.text || '';
+        
+        // Formater la date
+        const date = new Date(dateValue);
+        const formattedDate = date.toLocaleDateString('fr-FR');
+        
+        const confirmMessage = `Êtes-vous sûr de vouloir sauvegarder le poste de ${operatorText} du ${formattedDate} (${vacationText}) de ${openingTimeText} ?`;
+        
+        if (confirm(confirmMessage)) {
+            // Soumettre le formulaire via HTMX
+            const form = document.getElementById('shift-form');
+            if (form) {
+                // Créer et déclencher un événement submit
+                const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                form.dispatchEvent(submitEvent);
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Erreur lors de la vérification:', error);
+        alert('Erreur lors de la vérification du poste');
+    });
+}
+
+
+// Système localStorage supprimé - sera remplacé par auto-save serveur
+
+</script>

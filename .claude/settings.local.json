@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(mkdir:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(python manage.py:*)",
+      "Bash(python3 manage.py makemigrations:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(python3 manage.py shell:*)",
+      "Bash(rg:*)"
+    ],
+    "deny": []
+  }
+}

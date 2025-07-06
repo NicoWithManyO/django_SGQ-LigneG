@@ -1,0 +1,237 @@
+/* CSS principal pour SGQ Ligne G */
+
+/* Surcharge de la navbar Bootstrap */
+.navbar.bg-primary {
+    background-color: var(--primary-text) !important;
+}
+
+.navbar-brand, .nav-link {
+    color: white !important;
+}
+
+.nav-link:hover {
+    color: #f8f9fa !important;
+}
+
+:root {
+    --primary-color: #4D93D9;
+    --primary-text: #215C98;
+    --primary-light: #DAE9F8;
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-bg: #f8f9fa;
+    --border-color: #215C98;
+    --body-bg: #d6d8db;
+}
+
+/* Fond gris pour le body */
+body {
+    background-color: var(--body-bg);
+}
+
+/* Bloc standard modulaire - VERSION COMPACTE */
+.block-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    font-size: 0.85rem;
+}
+
+.block-header {
+    background: var(--primary-text);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.4rem 0.6rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.block-title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+}
+
+.block-actions {
+    display: flex;
+    gap: 0.25rem;
+    min-height: 1.2rem;
+    align-items: center;
+}
+
+.block-actions i {
+    color: white;
+}
+
+.block-content {
+    padding: 0.6rem;
+}
+
+.block-footer {
+    background: var(--light-bg);
+    border-top: 1px solid var(--border-color);
+    padding: 0.4rem 0.6rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.3rem;
+}
+
+/* Layout responsive - VERSION COMPACTE */
+.production-dashboard {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    grid-template-rows: 1fr;
+    gap: 0.5rem;
+    min-height: calc(100vh - 80px);
+}
+
+.sidebar-left,
+.sidebar-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.right-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.top-blocks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    align-items: start;
+}
+
+.roll-visualization {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.8rem;
+}
+
+.roll-visualization h2 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.roll-visualization .subtitle {
+    font-size: 0.85rem;
+    color: var(--secondary-color);
+    margin-bottom: 0.8rem;
+}
+
+.roll-info {
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    border-radius: 4px;
+    padding: 0.6rem;
+    font-size: 0.8rem;
+}
+
+.roll-info ul {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+
+.roll-info li {
+    margin-bottom: 0.2rem;
+}
+
+/* Responsive mobile */
+@media (max-width: 768px) {
+    .production-dashboard {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        height: auto;
+    }
+}
+
+/* Formulaires - VERSION COMPACTE */
+.form-section {
+    margin-bottom: 0.8rem;
+}
+
+.form-section-title {
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    color: var(--primary-text);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.15rem;
+    font-size: 0.8rem;
+}
+
+/* Contrôles de formulaire plus compacts */
+.form-control, .form-select {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.4rem;
+    min-width: 120px;
+    background-color: var(--primary-light);
+    border: 1px solid var(--border-color);
+    color: var(--primary-text);
+}
+
+/* Cacher les flèches des champs numériques */
+.form-control[type="number"]::-webkit-outer-spin-button,
+.form-control[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.form-control[type="number"] {
+    -moz-appearance: textfield;
+}
+
+.form-control.fw-bold, .form-select.fw-bold {
+    font-weight: bold !important;
+}
+
+.form-label {
+    font-size: 0.75rem;
+    margin-bottom: 0.1rem;
+    font-weight: 500;
+    color: var(--primary-text);
+}
+
+.btn {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+}
+
+.row {
+    margin-bottom: 0.5rem;
+}
+
+/* Boutons */
+.btn-save {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.btn-cancel {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+}
+
+/* HTMX loading states */
+.htmx-indicator {
+    opacity: 0;
+    transition: opacity 0.3s ease-in;
+}
+
+.htmx-request .htmx-indicator {
+    opacity: 1;
+}
+
+.htmx-request.htmx-indicator {
+    opacity: 1;
+}
