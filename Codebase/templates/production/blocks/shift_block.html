@@ -91,10 +91,10 @@
                 <h6 class="form-section-title">État machine</h6>
                 
                 <!-- Début de poste -->
-                <div class="row mb-2">
+                <div class="row mb-1">
                     <div class="col-12">
                         <div>
-                            <h6 class="mb-2 small">
+                            <h6 class="mb-1 small">
                                 <i class="bi bi-play-circle"></i> Prise de Poste
                             </h6>
                             <div class="row align-items-center">
@@ -109,12 +109,21 @@
                                         <div class="text-danger small">{{ form.started_at_beginning.errors.0 }}</div>
                                     {% endif %}
                                 </div>
-                                <div class="col-md-6" id="meter-reading-start-field" style="visibility: hidden;">
-                                    <label class="form-label small">{{ form.meter_reading_start.label }}</label>
-                                    {{ form.meter_reading_start }}
-                                    {% if form.meter_reading_start.errors %}
-                                        <div class="text-danger small">{{ form.meter_reading_start.errors.0 }}</div>
-                                    {% endif %}
+                                <div class="col-md-6">
+                                    <div id="meter-reading-start-field" style="visibility: hidden;">
+                                        <label class="form-label small">{{ form.meter_reading_start.label }}</label>
+                                        {{ form.meter_reading_start }}
+                                        {% if form.meter_reading_start.errors %}
+                                            <div class="text-danger small">{{ form.meter_reading_start.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div id="startup-message-start" style="visibility: hidden;">
+                                        <small class="text-muted text-center d-block startup-message-text">Pensez à déclarer du temps de démarrage</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -125,7 +134,7 @@
                 <div class="row">
                     <div class="col-12">
                         <div>
-                            <h6 class="mb-2 small">
+                            <h6 class="mb-1 small">
                                 <i class="bi bi-stop-circle"></i> Fin de Poste
                             </h6>
                             <div class="row align-items-center">
@@ -305,19 +314,58 @@ document.body.addEventListener('htmx:afterSwap', function() {
     }, 200);
 });
 
+// Fonction pour vérifier s'il y a des temps de démarrage déclarés
+function hasStartupTimeEntry() {
+    // Vérifier dans la variable globale lostTimeEntries
+    if (window.lostTimeEntries && window.lostTimeEntries.length > 0) {
+        const hasInGlobal = window.lostTimeEntries.some(entry => {
+            const motifLower = entry.motif.toLowerCase();
+            return motifLower.includes('démarrage') || motifLower.includes('demarrage');
+        });
+        if (hasInGlobal) return true;
+    }
+    
+    // Vérifier dans les éléments DOM
+    const lostTimeElements = document.querySelectorAll('#lost-time-list .fw-bold.text-primary');
+    return Array.from(lostTimeElements).some(element => {
+        const motifText = element.textContent.toLowerCase();
+        return motifText.includes('démarrage') || motifText.includes('demarrage');
+    });
+}
+
 // Gérer l'affichage conditionnel des champs meter reading
 function toggleMeterReadingFields() {
     const startedAtBeginning = document.querySelector('input[name="started_at_beginning"]');
     const startedAtEnd = document.querySelector('input[name="started_at_end"]');
     const meterStartField = document.getElementById('meter-reading-start-field');
     const meterEndField = document.getElementById('meter-reading-end-field');
+    const startupMessageStart = document.getElementById('startup-message-start');
     
     console.log('toggleMeterReadingFields - début checked:', startedAtBeginning?.checked);
     console.log('toggleMeterReadingFields - fin checked:', startedAtEnd?.checked);
     
-    if (startedAtBeginning && meterStartField) {
-        meterStartField.style.visibility = startedAtBeginning.checked ? 'visible' : 'hidden';
-        console.log('Champ métrage début:', startedAtBeginning.checked ? 'visible' : 'hidden');
+    if (startedAtBeginning && meterStartField && startupMessageStart) {
+        if (startedAtBeginning.checked) {
+            // Machine démarrée -> afficher le champ métrage
+            meterStartField.style.visibility = 'visible';
+            startupMessageStart.style.visibility = 'hidden';
+            console.log('Champ métrage début: visible, message démarrage: hidden');
+        } else {
+            // Machine pas démarrée -> vérifier s'il y a des temps de démarrage
+            const hasStartupTime = hasStartupTimeEntry();
+            
+            if (hasStartupTime) {
+                // Il y a des temps de démarrage -> ne rien afficher
+                meterStartField.style.visibility = 'hidden';
+                startupMessageStart.style.visibility = 'hidden';
+                console.log('Champ métrage début: hidden, message démarrage: hidden (temps déclaré)');
+            } else {
+                // Pas de temps de démarrage -> afficher le message
+                meterStartField.style.visibility = 'hidden';
+                startupMessageStart.style.visibility = 'visible';
+                console.log('Champ métrage début: hidden, message démarrage: visible');
+            }
+        }
     }
     
     if (startedAtEnd && meterEndField) {

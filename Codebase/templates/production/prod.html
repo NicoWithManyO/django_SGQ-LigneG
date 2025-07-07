@@ -168,9 +168,8 @@
                     </div>
                     <div id="conformity-status" class="badge bg-secondary">--</div>
                     <div class="info-right">
-                        <div class="of-info">
-                            <small id="of-required-length" class="text-muted">--</small>
-                            <small class="text-muted">TEMPORAIRE</small>
+                        <div class="validation-info-panel" id="validation-info-panel">
+                            <small id="validation-message" class="text-muted">Renseignez les données du rouleau</small>
                         </div>
                     </div>
                 </div>
@@ -465,6 +464,9 @@ function addLostTime() {
     updateAvailabilityTime();
     renderLostTimeList();
     
+    // Mettre à jour les champs de métrage (pour le message de démarrage)
+    toggleMeterReadingFields();
+    
     // Déclencher l'auto-save
     clearTimeout(window.autoSaveTimeout);
     window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
@@ -536,6 +538,9 @@ function removeLostTimeEntry(entryId) {
     updateLostTimeDisplay();
     updateAvailabilityTime();
     renderLostTimeList();
+    
+    // Mettre à jour les champs de métrage (pour le message de démarrage)
+    toggleMeterReadingFields();
     
     // Déclencher l'auto-save
     clearTimeout(window.autoSaveTimeout);
@@ -1621,6 +1626,9 @@ function generateRollVisualization() {
     setTimeout(() => {
         updateDefectsSummary();
     }, 150);
+    
+    // Mettre à jour le panneau de validation après génération du rouleau
+    updateValidationInfoPanel();
 }
 
 // Fonction pour générer les mesures gauche (G1, G2, G3)
@@ -2125,6 +2133,9 @@ function updateRollConformity() {
     console.log(`Mesures d'épaisseur complètes: ${allThicknessMeasurementsFilled ? 'OUI' : 'NON'}`);
     console.log(`Présence de mesures d'épaisseur: ${hasAnyThicknessMeasurements ? 'OUI' : 'NON'}`);
     console.log('Affichage mis à jour:', conformityDisplay.textContent, conformityDisplay.className);
+    
+    // Mettre à jour le panneau de validation quand le statut de conformité change
+    updateValidationInfoPanel();
 }
 
 // Fonction pour mettre à jour le statut de conformité dans la sticky bar
@@ -2464,6 +2475,9 @@ function calculateMassNetAndGrammage() {
     if (grammageElement) {
         grammageElement.textContent = grammage === '--' ? '--' : `${grammage} g/m²`;
     }
+    
+    // Mettre à jour le panneau de validation après calcul des masses
+    updateValidationInfoPanel();
 }
 
 // Fonction pour rendre les valeurs de la sticky bar éditables
@@ -2590,6 +2604,7 @@ function syncToHiddenField(stickyId, value) {
         // Recalculer masse nette et grammage si les valeurs liées changent
         if (stickyId === 'sticky-total-mass' || stickyId === 'sticky-tube-mass' || stickyId === 'sticky-roll-length') {
             calculateMassNetAndGrammage();
+            updateValidationInfoPanel();
         }
     }
 }
@@ -2613,14 +2628,20 @@ function saveFibrageData() {
 
 // Ajouter des event listeners pour synchroniser automatiquement
 document.body.addEventListener('input', function(e) {
-    if (e.target.matches('#roll-number, #next-tube-mass, #roll-length, #tube-mass, #total-mass')) {
-        setTimeout(syncStickyBarValues, 50);
+    if (e.target.matches('#roll-number, #next-tube-mass, #roll-length, #tube-mass, #total-mass, #target-length')) {
+        setTimeout(() => {
+            syncStickyBarValues();
+            updateValidationInfoPanel();
+        }, 50);
     }
 });
 
 document.body.addEventListener('change', function(e) {
-    if (e.target.matches('#roll-number, #next-tube-mass, #roll-length, #tube-mass, #total-mass')) {
-        setTimeout(syncStickyBarValues, 50);
+    if (e.target.matches('#roll-number, #next-tube-mass, #roll-length, #tube-mass, #total-mass, #target-length')) {
+        setTimeout(() => {
+            syncStickyBarValues();
+            updateValidationInfoPanel();
+        }, 50);
     }
 });
 
@@ -2630,11 +2651,77 @@ const observer = new MutationObserver(function(mutations) {
         if (mutation.type === 'childList' || mutation.type === 'characterData') {
             const target = mutation.target;
             if (target.id === 'roll-id' || target.id === 'roll-status' || target.id === 'conformity-status') {
-                setTimeout(syncStickyBarValues, 50);
+                setTimeout(() => {
+                    syncStickyBarValues();
+                    updateValidationInfoPanel();
+                }, 50);
             }
         }
     });
 });
+
+// Fonction pour mettre à jour le panneau d'info de validation
+function updateValidationInfoPanel() {
+    const validationMessageElement = document.getElementById('validation-message');
+    if (!validationMessageElement) return;
+    
+    // Vérifier les conditions principales
+    const rollId = document.getElementById('roll-id')?.textContent || '--';
+    const targetLength = parseFloat(document.getElementById('target-length')?.value) || 0;
+    const rollLength = parseFloat(document.getElementById('roll-length')?.value) || 0;
+    const tubeMass = parseFloat(document.getElementById('tube-mass')?.value) || 0;
+    const totalMass = parseFloat(document.getElementById('total-mass')?.value) || 0;
+    const conformityStatus = document.getElementById('conformity-status')?.textContent || '--';
+    
+    // Construire le message de validation
+    let message = '';
+    const missingItems = [];
+    
+    if (rollId === '--' || !rollId) {
+        missingItems.push('ID rouleau');
+    }
+    
+    if (targetLength <= 0) {
+        missingItems.push('longueur cible');
+    }
+    
+    if (rollLength <= 0) {
+        missingItems.push('longueur rouleau');
+    }
+    
+    if (tubeMass <= 0) {
+        missingItems.push('masse tube');
+    }
+    
+    if (totalMass <= 0) {
+        missingItems.push('masse totale');
+    }
+    
+    // Vérifier si toutes les épaisseurs sont renseignées (seulement si conforme)
+    const allThicknessFilled = areAllThicknessMeasurementsFilled();
+    if (!allThicknessFilled && targetLength > 0 && conformityStatus === 'CONFORME') {
+        missingItems.push('épaisseurs manquantes');
+    }
+    
+    // Générer le message approprié
+    if (missingItems.length === 0) {
+        if (conformityStatus === 'CONFORME') {
+            message = 'Rouleau prêt à sauvegarder';
+        } else if (conformityStatus === 'NON CONFORME') {
+            message = 'Rouleau prêt pour découpe';
+        } else {
+            message = 'Vérification conformité...';
+        }
+    } else if (missingItems.length === 1) {
+        message = `Renseignez : ${missingItems[0]}`;
+    } else if (missingItems.length === 2) {
+        message = `Renseignez : ${missingItems.join(' et ')}`;
+    } else {
+        message = `Renseignez : ${missingItems.slice(0, -1).join(', ')} et ${missingItems[missingItems.length - 1]}`;
+    }
+    
+    validationMessageElement.textContent = message;
+}
 
 // Fonction pour mettre à jour le résumé des défauts
 function updateDefectsSummary() {
@@ -3042,6 +3129,9 @@ function clearAllFields() {
     clearTimeout(window.autoSaveTimeout);
     window.autoSaveTimeout = setTimeout(autoSaveFormData, 600);
     
+    // 14. Mettre à jour le panneau de validation après effacement
+    setTimeout(updateValidationInfoPanel, 700);
+    
     console.log('Tous les champs ont été effacés et réinitialisés.');
 }
 
@@ -3052,6 +3142,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(restoreSavedData, 2000);
     setTimeout(updateRollId, 2500); // Générer l'ID après restauration
     setTimeout(generateRollVisualization, 3000); // Générer le rouleau après restauration
+    setTimeout(updateValidationInfoPanel, 3500); // Mettre à jour le panneau de validation après restauration
     
     // Debug check after everything has loaded
     setTimeout(() => {

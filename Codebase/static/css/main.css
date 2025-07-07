@@ -139,18 +139,18 @@ body {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
+    justify-content: space-around;
     width: 100%;
+    gap: 1rem;
 }
 
 .info-left {
     justify-self: end;
-    margin-right: 1rem;
     text-align: right;
 }
 
 .info-right {
     justify-self: start;
-    margin-left: 1rem;
 }
 
 .info-left {
@@ -185,11 +185,25 @@ body {
     font-weight: 500;
 }
 
-.of-info {
+.validation-info-panel {
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    gap: 0.25rem;
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.4rem 0.6rem;
+    border-radius: 3px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    box-shadow: 0 2px 4px rgba(255, 193, 7, 0.2);
+    min-width: 180px;
+    max-width: 220px;
+}
+
+.startup-message-text {
+    font-style: italic;
+    padding: 0.3rem 0;
 }
 
 .mass-calc-field {
