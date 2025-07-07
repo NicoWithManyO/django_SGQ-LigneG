@@ -146,9 +146,19 @@
         <!-- Visualisation Rouleau -->
         <div class="roll-visualization">
             <div class="text-center mb-3">
-                <h2>Statut du Rouleau</h2>
                 <div class="roll-status-display">
+                    <div class="info-left">
+                        <div class="top-line">
+                            <small class="text-muted"><span id="thickness-progress">Epaisseurs : 0/0</span> | <span id="nok-count">0 NOK</span></small>
+                        </div>
+                        <div class="bottom-line">
+                            <small id="defects-summary" class="text-muted">Défauts : 0 | </small>
+                        </div>
+                    </div>
                     <div id="conformity-status" class="badge bg-secondary">--</div>
+                    <div class="info-right">
+                        <small class="text-muted">TEMPORAIRE</small>
+                    </div>
                 </div>
             </div>
             
@@ -213,6 +223,13 @@
                 <div class="fibrage-field">
                     <label class="fibrage-label">Masse totale (g)</label>
                     <div class="fibrage-value-center" id="sticky-total-mass" onclick="makeEditable('sticky-total-mass')">--</div>
+                </div>
+                
+                <div class="fibrage-field mass-calc-field">
+                    <div class="mass-calc-info">
+                        <small class="fibrage-text" id="mass-net">Masse nette : --</small>
+                        <small class="fibrage-text" id="grammage">Grammage : --</small>
+                    </div>
                 </div>
                 
                 <button type="button" id="sticky-action-btn" class="btn btn-secondary btn-sm fibrage-action-btn" onclick="handleActionButton()">
@@ -370,8 +387,20 @@ function clearDefectInput(button) {
         input.style.color = '';
         input.style.border = '';
         
+        // Mettre à jour la classe has-value
+        updateDefectHasValueClass(input);
+        
+        // Mettre à jour le résumé des défauts
+        updateDefectsSummary();
+        
         // Mettre à jour le statut de conformité IMMÉDIATEMENT
         updateRollConformity();
+        
+        // Mettre à jour le compteur d'épaisseur
+        updateThicknessCounter();
+        
+        // Mettre à jour le compteur NOK
+        updateNokCounter();
         
         // Déclencher l'auto-save ET la sauvegarde des défauts pour supprimer le défaut effacé
         clearTimeout(window.autoSaveTimeout);
@@ -1336,6 +1365,11 @@ function generateRollVisualization() {
                 <p>Renseignez une longueur cible pour visualiser le rouleau</p>
             </div>
         `;
+        // Mettre à jour le compteur d'épaisseur (affichera 0/0)
+        updateThicknessCounter();
+        
+        // Mettre à jour le compteur NOK (affichera 0)
+        updateNokCounter();
         return;
     }
     
@@ -1354,7 +1388,7 @@ function generateRollVisualization() {
                         <input type="text" class="defect-input-side" 
                                placeholder="" data-side="left" data-meter="${meter}"
                                list="defect-list-left-${meter}"
-                               onchange="validateDefect(this)" oninput="validateDefect(this)">
+                               onchange="validateDefect(this)" oninput="validateDefect(this); updateDefectHasValueClass(this)">
                         <button type="button" class="defect-clear-btn" 
                                 onclick="clearDefectInput(this)" title="Effacer">×</button>
                     </div>
@@ -1375,7 +1409,7 @@ function generateRollVisualization() {
                         <input type="text" class="defect-input-center" 
                                placeholder="" data-side="center" data-meter="${meter}"
                                list="defect-list-center-${meter}"
-                               onchange="validateDefect(this)" oninput="validateDefect(this)">
+                               onchange="validateDefect(this)" oninput="validateDefect(this); updateDefectHasValueClass(this)">
                         <button type="button" class="defect-clear-btn" 
                                 onclick="clearDefectInput(this)" title="Effacer">×</button>
                     </div>
@@ -1396,7 +1430,7 @@ function generateRollVisualization() {
                         <input type="text" class="defect-input-side" 
                                placeholder="" data-side="right" data-meter="${meter}"
                                list="defect-list-right-${meter}"
-                               onchange="validateDefect(this)" oninput="validateDefect(this)">
+                               onchange="validateDefect(this)" oninput="validateDefect(this); updateDefectHasValueClass(this)">
                         <button type="button" class="defect-clear-btn" 
                                 onclick="clearDefectInput(this)" title="Effacer">×</button>
                     </div>
@@ -1408,8 +1442,17 @@ function generateRollVisualization() {
     
     rollContent.innerHTML = rollHTML;
     
+    // Mettre à jour le compteur d'épaisseur
+    updateThicknessCounter();
+    
+    // Mettre à jour le compteur NOK
+    updateNokCounter();
+    
     // Ajouter les event listeners pour auto-save
     addRollEventListeners();
+    
+    // Initialiser les classes has-value pour tous les défauts
+    initializeDefectHasValueClasses();
     
     // Restaurer les données sauvegardées
     if (existingRollData && (Object.keys(existingRollData.thicknessMeasurements).length > 0 || 
@@ -1419,6 +1462,11 @@ function generateRollVisualization() {
             restoreRollData(existingRollData);
         }, 100);
     }
+    
+    // Mettre à jour le résumé des défauts après génération
+    setTimeout(() => {
+        updateDefectsSummary();
+    }, 150);
 }
 
 // Fonction pour générer les mesures gauche (G1, G2, G3)
@@ -1501,6 +1549,98 @@ function loadThicknessSpecifications() {
     });
 }
 
+// Fonction pour mettre à jour le compteur d'épaisseur
+function updateThicknessCounter() {
+    const targetLengthInput = document.getElementById('target-length');
+    const thicknessProgressElement = document.getElementById('thickness-progress');
+    
+    if (!targetLengthInput || !thicknessProgressElement) {
+        return;
+    }
+    
+    const targetLength = parseFloat(targetLengthInput.value);
+    
+    // Si pas de longueur cible, afficher 0/0
+    if (!targetLength || targetLength <= 0) {
+        thicknessProgressElement.textContent = 'Epaisseurs : 0/0';
+        return;
+    }
+    
+    // Calculer le nombre de mesures requises (tous les 5 mètres à partir du mètre 3)
+    let requiredMeasurements = 0;
+    for (let meter = 3; meter <= Math.ceil(targetLength); meter += 5) {
+        if (meter <= targetLength) {
+            requiredMeasurements += 6; // 3 mesures gauche (G1, G2, G3) + 3 mesures droite (D1, D2, D3)
+        }
+    }
+    
+    // Compter les mesures remplies (principales + rattrapage)
+    let filledMeasurements = 0;
+    
+    // Compter les mesures principales remplies
+    const mainThicknessInputs = document.querySelectorAll('.thickness-input[data-point]:not([data-catchup])');
+    mainThicknessInputs.forEach(input => {
+        const value = parseFloat(input.value);
+        if (!isNaN(value)) {
+            filledMeasurements++;
+        }
+    });
+    
+    // Compter les mesures de rattrapage remplies
+    const catchupThicknessInputs = document.querySelectorAll('.thickness-input[data-catchup="true"]');
+    catchupThicknessInputs.forEach(input => {
+        const value = parseFloat(input.value);
+        if (!isNaN(value)) {
+            filledMeasurements++;
+        }
+    });
+    
+    // Mettre à jour l'affichage
+    thicknessProgressElement.textContent = `Epaisseurs : ${filledMeasurements}/${requiredMeasurements}`;
+    
+    console.log('Compteur d\'épaisseur mis à jour:', {
+        targetLength: targetLength,
+        requiredMeasurements: requiredMeasurements,
+        filledMeasurements: filledMeasurements
+    });
+}
+
+// Fonction pour mettre à jour le compteur NOK
+function updateNokCounter() {
+    const nokCountElement = document.getElementById('nok-count');
+    
+    if (!nokCountElement) {
+        return;
+    }
+    
+    // Si pas de spécifications chargées, afficher 0
+    if (!window.thicknessSpecs) {
+        nokCountElement.textContent = '0 NOK';
+        return;
+    }
+    
+    let totalNokCount = 0;
+    
+    // Compter toutes les mesures NOK (principales ET rattrapages)
+    const allThicknessInputs = document.querySelectorAll('.thickness-input[data-point], .thickness-catchup-input[data-point]');
+    allThicknessInputs.forEach(input => {
+        const value = parseFloat(input.value);
+        if (!isNaN(value)) {
+            // Vérifier si la mesure est NOK (en dessous du minimum critique)
+            if (value < window.thicknessSpecs.ep_mini) {
+                totalNokCount++;
+            }
+        }
+    });
+    
+    // Mettre à jour l'affichage
+    nokCountElement.textContent = `${totalNokCount} NOK`;
+    
+    console.log('Compteur NOK mis à jour:', {
+        totalNokCount: totalNokCount
+    });
+}
+
 // Fonction pour valider les valeurs d'épaisseur selon les spécifications
 function validateThickness(input) {
     const value = parseFloat(input.value);
@@ -1523,6 +1663,8 @@ function validateThickness(input) {
             hideCatchupField(input);
         }
         updateRollConformity();
+        updateThicknessCounter();
+        updateNokCounter();
         return;
     }
     
@@ -1564,6 +1706,12 @@ function validateThickness(input) {
     
     // Mettre à jour l'état de conformité du rouleau
     updateRollConformity();
+    
+    // Mettre à jour le compteur d'épaisseur
+    updateThicknessCounter();
+    
+    // Mettre à jour le compteur NOK
+    updateNokCounter();
 }
 
 // Fonction pour afficher le champ de rattrapage
@@ -1591,6 +1739,59 @@ function hideCatchupField(mainInput) {
 }
 
 // Fonction pour mettre à jour l'état de conformité du rouleau
+// Fonction pour vérifier si toutes les mesures d'épaisseur sont remplies
+function areAllThicknessMeasurementsFilled() {
+    const targetLengthInput = document.getElementById('target-length');
+    
+    if (!targetLengthInput) {
+        return false;
+    }
+    
+    const targetLength = parseFloat(targetLengthInput.value);
+    
+    // Si pas de longueur cible, on considère que c'est incomplet
+    if (!targetLength || targetLength <= 0) {
+        return false;
+    }
+    
+    // Calculer le nombre de mesures requises (tous les 5 mètres à partir du mètre 3)
+    let requiredMeasurements = 0;
+    for (let meter = 3; meter <= Math.ceil(targetLength); meter += 5) {
+        if (meter <= targetLength) {
+            requiredMeasurements += 6; // 3 mesures gauche (G1, G2, G3) + 3 mesures droite (D1, D2, D3)
+        }
+    }
+    
+    // Compter les mesures remplies (principales + rattrapage)
+    let filledMeasurements = 0;
+    
+    // Compter les mesures principales remplies
+    const mainThicknessInputs = document.querySelectorAll('.thickness-input[data-point]:not([data-catchup])');
+    mainThicknessInputs.forEach(input => {
+        const value = parseFloat(input.value);
+        if (!isNaN(value)) {
+            filledMeasurements++;
+        }
+    });
+    
+    // Compter les mesures de rattrapage remplies
+    const catchupThicknessInputs = document.querySelectorAll('.thickness-input[data-catchup="true"]');
+    catchupThicknessInputs.forEach(input => {
+        const value = parseFloat(input.value);
+        if (!isNaN(value)) {
+            filledMeasurements++;
+        }
+    });
+    
+    console.log('Vérification complétude épaisseur:', {
+        requiredMeasurements: requiredMeasurements,
+        filledMeasurements: filledMeasurements,
+        isComplete: filledMeasurements >= requiredMeasurements
+    });
+    
+    return filledMeasurements >= requiredMeasurements;
+}
+
 function updateRollConformity() {
     console.log('updateRollConformity appelée');
     
@@ -1693,9 +1894,17 @@ function updateRollConformity() {
     });
     
     
+    // Vérifier si toutes les mesures d'épaisseur sont remplies
+    const allThicknessMeasurementsFilled = areAllThicknessMeasurementsFilled();
+    
+    // Vérifier si il y a des mesures d'épaisseur du tout
+    const hasAnyThicknessMeasurements = allThicknessInputs.length > 0 && 
+        Array.from(allThicknessInputs).some(input => !isNaN(parseFloat(input.value)));
+    
     // Déterminer l'état de conformité
     let conformityText = '';
     let conformityClass = '';
+    let isCompliant = false;
     
     // NON CONFORME si : trop de NOK au total OU une seule NOK non résolue OU défauts bloquants
     if (totalNokCount >= window.thicknessSpecs.max_nok || 
@@ -1703,9 +1912,11 @@ function updateRollConformity() {
         blockingDefectsCount > 0) {
         conformityText = 'NON CONFORME';
         conformityClass = 'badge bg-danger';
+        isCompliant = false;
     } else {
         conformityText = 'CONFORME';
         conformityClass = 'badge bg-success';
+        isCompliant = true;
     }
     
     conformityDisplay.textContent = conformityText;
@@ -1715,15 +1926,46 @@ function updateRollConformity() {
     updateStickyConformityStatus(conformityText);
     
     // Forcer les styles selon le statut avec !important
-    if (conformityText === 'CONFORME') {
-        conformityDisplay.style.setProperty('background-color', '#28a745', 'important');
-        conformityDisplay.style.setProperty('color', 'white', 'important');
-        conformityDisplay.style.setProperty('border', '3px solid #1e7e34', 'important');
+    // NOUVEAU COMPORTEMENT : Fond transparent si pas de mesures d'épaisseur
+    if (!hasAnyThicknessMeasurements) {
+        // Pas de mesures d'épaisseur -> fond transparent
+        conformityDisplay.style.setProperty('background-color', 'transparent', 'important');
+        conformityDisplay.style.setProperty('color', '#6c757d', 'important');
+        conformityDisplay.style.setProperty('border', '2px solid #6c757d', 'important');
+        conformityDisplay.style.setProperty('font-size', '1.2rem', 'important');
+        conformityDisplay.style.setProperty('padding', '0.75rem 2rem', 'important');
+        conformityDisplay.style.setProperty('border-radius', '8px', 'important');
+        conformityDisplay.style.setProperty('font-weight', 'bold', 'important');
+        
+        // Ajouter la classe conforme-text si c'est CONFORME avec fond transparent
+        if (conformityText === 'CONFORME') {
+            conformityDisplay.classList.add('conforme-text');
+        } else {
+            conformityDisplay.classList.remove('conforme-text');
+        }
+    } else if (conformityText === 'CONFORME') {
+        if (allThicknessMeasurementsFilled) {
+            // Toutes les mesures remplies ET conforme -> fond vert
+            conformityDisplay.classList.remove('conforme-text');
+            conformityDisplay.style.setProperty('background-color', '#28a745', 'important');
+            conformityDisplay.style.setProperty('color', 'white', 'important');
+            conformityDisplay.style.setProperty('border', '3px solid #1e7e34', 'important');
+        } else {
+            // Conforme mais mesures incomplètes -> fond transparent, texte vert
+            conformityDisplay.classList.add('conforme-text');
+            conformityDisplay.style.setProperty('background-color', 'transparent', 'important');
+            conformityDisplay.style.setProperty('color', '#28a745', 'important');
+            conformityDisplay.style.setProperty('border', '2px solid #28a745', 'important');
+        }
         conformityDisplay.style.setProperty('font-size', '1.2rem', 'important');
         conformityDisplay.style.setProperty('padding', '0.75rem 2rem', 'important');
         conformityDisplay.style.setProperty('border-radius', '8px', 'important');
         conformityDisplay.style.setProperty('font-weight', 'bold', 'important');
     } else {
+        // NON CONFORME -> fond rouge pour le top status badge
+        // Supprimer la classe conforme-text car on a un fond coloré
+        conformityDisplay.classList.remove('conforme-text');
+        
         conformityDisplay.style.setProperty('background-color', '#dc3545', 'important');
         conformityDisplay.style.setProperty('color', 'white', 'important');
         conformityDisplay.style.setProperty('border', '3px solid #c82333', 'important');
@@ -1734,6 +1976,8 @@ function updateRollConformity() {
     }
     
     console.log(`État rouleau: ${totalNokCount} NOK total, ${unresolvedNokCount} NOK non résolues, ${blockingDefectsCount} défauts bloquants - ${conformityText}`);
+    console.log(`Mesures d'épaisseur complètes: ${allThicknessMeasurementsFilled ? 'OUI' : 'NON'}`);
+    console.log(`Présence de mesures d'épaisseur: ${hasAnyThicknessMeasurements ? 'OUI' : 'NON'}`);
     console.log('Affichage mis à jour:', conformityDisplay.textContent, conformityDisplay.className);
 }
 
@@ -1793,6 +2037,31 @@ function handleActionButton() {
     }
 }
 
+// Fonction pour mettre à jour la classe has-value sur les boutons clear de défauts
+function updateDefectHasValueClass(input) {
+    if (!input.matches('.defect-input-side, .defect-input-center')) {
+        return;
+    }
+    
+    const inputGroup = input.closest('.defect-input-group');
+    const clearButton = inputGroup?.querySelector('.defect-clear-btn');
+    
+    if (clearButton) {
+        if (input.value.trim()) {
+            clearButton.classList.add('has-value');
+        } else {
+            clearButton.classList.remove('has-value');
+        }
+    }
+}
+
+// Fonction pour initialiser les classes has-value pour tous les défauts existants
+function initializeDefectHasValueClasses() {
+    document.querySelectorAll('.defect-input-side, .defect-input-center').forEach(input => {
+        updateDefectHasValueClass(input);
+    });
+}
+
 // Ajouter les event listeners pour le rouleau
 function addRollEventListeners() {
     const rollContainer = document.getElementById('roll-container');
@@ -1804,12 +2073,22 @@ function addRollEventListeners() {
             clearTimeout(window.autoSaveTimeout);
             window.autoSaveTimeout = setTimeout(autoSaveFormData, 1000);
         }
+        
+        // Mettre à jour la classe has-value pour les défauts
+        if (e.target.matches('.defect-input-side, .defect-input-center')) {
+            updateDefectHasValueClass(e.target);
+        }
     });
     
     rollContainer.addEventListener('change', function(e) {
         if (e.target.matches('.thickness-input, [data-catchup="true"], .defect-input-side, .defect-input-center')) {
             clearTimeout(window.autoSaveTimeout);
             window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+        }
+        
+        // Mettre à jour la classe has-value pour les défauts
+        if (e.target.matches('.defect-input-side, .defect-input-center')) {
+            updateDefectHasValueClass(e.target);
         }
     });
 }
@@ -1913,6 +2192,15 @@ function restoreRollData(rollData) {
     
     // Mettre à jour le statut de conformité après restauration
     setTimeout(updateRollConformity, 200);
+    
+    // Mettre à jour le compteur d'épaisseur après restauration
+    setTimeout(updateThicknessCounter, 250);
+    
+    // Mettre à jour le compteur NOK après restauration
+    setTimeout(updateNokCounter, 300);
+    
+    // Mettre à jour le résumé des défauts après restauration
+    setTimeout(updateDefectsSummary, 350);
 }
 
 // Fonction pour synchroniser les valeurs avec la sticky bar
@@ -1967,10 +2255,46 @@ function syncStickyBarValues() {
         stickyTotalMass.textContent = totalMass;
     }
     
+    // Calculer et afficher la masse nette et le grammage
+    calculateMassNetAndGrammage();
+    
     // Synchroniser le statut de conformité
     const conformityStatus = document.getElementById('conformity-status');
     if (conformityStatus && conformityStatus.textContent !== '--') {
         updateStickyConformityStatus(conformityStatus.textContent);
+    }
+}
+
+// Fonction pour calculer et afficher la masse nette et le grammage
+function calculateMassNetAndGrammage() {
+    // Récupérer les valeurs des champs
+    const totalMassValue = parseFloat(document.getElementById('total-mass')?.value) || 0;
+    const tubeMassValue = parseFloat(document.getElementById('tube-mass')?.value) || 0;
+    const rollLengthValue = parseFloat(document.getElementById('roll-length')?.value) || 0;
+    
+    // Récupérer les éléments d'affichage
+    const massNetElement = document.getElementById('mass-net');
+    const grammageElement = document.getElementById('grammage');
+    
+    // Calculer la masse nette (g) = masse totale - masse tube
+    let massNet = '--';
+    if (totalMassValue > 0 && tubeMassValue > 0) {
+        massNet = (totalMassValue - tubeMassValue).toFixed(1);
+    }
+    
+    // Calculer le grammage (g/m²) = masse nette / longueur
+    let grammage = '--';
+    if (totalMassValue > 0 && tubeMassValue > 0 && rollLengthValue > 0) {
+        const massNetValue = totalMassValue - tubeMassValue;
+        grammage = (massNetValue / rollLengthValue).toFixed(2);
+    }
+    
+    // Mettre à jour les éléments d'affichage
+    if (massNetElement) {
+        massNetElement.textContent = massNet === '--' ? 'Masse nette : --' : `Masse nette : ${massNet} g`;
+    }
+    if (grammageElement) {
+        grammageElement.textContent = grammage === '--' ? 'Grammage : --' : `Grammage : ${grammage} g/m²`;
     }
 }
 
@@ -2094,6 +2418,11 @@ function syncToHiddenField(stickyId, value) {
         if (stickyId === 'sticky-roll-number') {
             updateRollId();
         }
+        
+        // Recalculer masse nette et grammage si les valeurs liées changent
+        if (stickyId === 'sticky-total-mass' || stickyId === 'sticky-tube-mass' || stickyId === 'sticky-roll-length') {
+            calculateMassNetAndGrammage();
+        }
     }
 }
 
@@ -2139,9 +2468,42 @@ const observer = new MutationObserver(function(mutations) {
     });
 });
 
+// Fonction pour mettre à jour le résumé des défauts
+function updateDefectsSummary() {
+    const defectsSummaryElement = document.getElementById('defects-summary');
+    if (!defectsSummaryElement) return;
+    
+    // Compter tous les défauts sur le rouleau
+    const allDefectInputs = document.querySelectorAll('.defect-input-side, .defect-input-center');
+    const defectNames = [];
+    let totalDefectsCount = 0;
+    
+    allDefectInputs.forEach(input => {
+        const defectName = input.value.trim();
+        if (defectName) {
+            defectNames.push(defectName);
+            totalDefectsCount++;
+        }
+    });
+    
+    // Créer la liste des défauts uniques
+    const uniqueDefects = [...new Set(defectNames)];
+    
+    // Mettre à jour l'affichage
+    defectsSummaryElement.style.display = 'inline';
+    if (totalDefectsCount === 0) {
+        defectsSummaryElement.textContent = 'Défauts : 0';
+    } else {
+        defectsSummaryElement.textContent = `Défauts : ${totalDefectsCount} | ${uniqueDefects.join(', ')}`;
+    }
+}
+
 // Fonction pour valider et sauvegarder les défauts
 function validateDefect(input) {
     const defectName = input.value.trim();
+    
+    // Mettre à jour la classe has-value
+    updateDefectHasValueClass(input);
     
     if (!defectName) {
         // Défaut effacé, remettre le style normal
@@ -2178,6 +2540,9 @@ function validateDefect(input) {
     // Déclencher la sauvegarde des défauts
     clearTimeout(window.defectSaveTimeout);
     window.defectSaveTimeout = setTimeout(saveRollDefects, 1000);
+    
+    // Mettre à jour le résumé des défauts
+    updateDefectsSummary();
     
     // Mettre à jour le statut de conformité
     setTimeout(updateRollConformity, 200);
@@ -2276,6 +2641,12 @@ function fillRandomThickness() {
     
     // Mettre à jour le statut de conformité
     setTimeout(updateRollConformity, 500);
+    
+    // Mettre à jour le compteur d'épaisseur
+    setTimeout(updateThicknessCounter, 600);
+    
+    // Mettre à jour le compteur NOK
+    setTimeout(updateNokCounter, 650);
 }
 
 // Fonction pour effacer toutes les épaisseurs
@@ -2305,6 +2676,12 @@ function clearAllThickness() {
     
     // Mettre à jour le statut de conformité
     setTimeout(updateRollConformity, 500);
+    
+    // Mettre à jour le compteur d'épaisseur
+    setTimeout(updateThicknessCounter, 600);
+    
+    // Mettre à jour le compteur NOK
+    setTimeout(updateNokCounter, 650);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -2320,6 +2697,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialiser le statut de conformité
     setTimeout(updateRollConformity, 5000);
+    
+    // Initialiser le compteur d'épaisseur
+    setTimeout(updateThicknessCounter, 5500);
+    
+    // Initialiser le compteur NOK
+    setTimeout(updateNokCounter, 5600);
+    
+    // Initialiser le résumé des défauts
+    setTimeout(updateDefectsSummary, 6000);
     
     
     // Démarrer l'observation des changements
