@@ -78,7 +78,6 @@ def shift_block(request, shift_id=None):
                             next_vacation = 'Matin'
                         
                         preserved_data['vacation'] = next_vacation
-                        preserved_data['opening_time'] = '08:00'
                         # Machine toujours démarrée en fin par défaut
                         preserved_data['started_at_end'] = True
                         

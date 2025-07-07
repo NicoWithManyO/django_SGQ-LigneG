@@ -22,14 +22,26 @@ class ShiftForm(forms.ModelForm):
             display_str = f"{time_str} ({total_minutes} min)"
             OPENING_TIME_CHOICES.append((time_str, display_str))
     
-    # Mettre 08:00 en premier
-    OPENING_TIME_CHOICES.sort(key=lambda x: (x[0] != '08:00', x[0]))
+    # Ajouter le placeholder et mettre 08:00 en premier
+    OPENING_TIME_CHOICES.insert(0, ('', '--'))
+    OPENING_TIME_CHOICES.sort(key=lambda x: (x[0] != '', x[0] != '08:00', x[0]))
+    
     
     opening_time = forms.ChoiceField(
         choices=OPENING_TIME_CHOICES,
         widget=forms.Select(attrs={'class': 'form-select fw-bold'}),
         label="Temps d'ouverture",
-        help_text="Temps d'ouverture du poste (par tranches de 10 minutes)"
+        help_text="Temps d'ouverture du poste (par tranches de 10 minutes)",
+        required=False
+    )
+    
+    # Redéfinir le champ vacation avec placeholder
+    vacation = forms.ChoiceField(
+        choices=[('', '--')] + list(Shift.VACATION_CHOICES),
+        widget=forms.Select(attrs={'class': 'form-select fw-bold'}),
+        label="Vacation",
+        help_text="Vacation du poste",
+        required=False
     )
     
     def __init__(self, *args, **kwargs):
@@ -55,9 +67,6 @@ class ShiftForm(forms.ModelForm):
                 'class': 'form-control fw-bold'
             }),
             'operator': forms.Select(attrs={
-                'class': 'form-select fw-bold'
-            }),
-            'vacation': forms.Select(attrs={
                 'class': 'form-select fw-bold'
             }),
             'started_at_beginning': forms.CheckboxInput(attrs={
@@ -104,11 +113,14 @@ class ShiftForm(forms.ModelForm):
         }
     
     def finish_init(self):
-        # Filtrer les opérateurs actifs avec formation terminée
+        # Filtrer les opérateurs actifs avec formation terminée et les trier alphabétiquement
         self.fields['operator'].queryset = Operator.objects.filter(
             is_active=True,
             training_completed=True
-        )
+        ).order_by('first_name')
+        
+        # Supprimer l'option vide (placeholder) pour le champ operator
+        self.fields['operator'].empty_label = '--'
         
         # Rendre certains champs optionnels pour la saisie progressive
         self.fields['meter_reading_start'].required = False
@@ -122,7 +134,6 @@ class ShiftForm(forms.ModelForm):
         if not self.instance.pk:  # Nouveau formulaire
             from datetime import date
             self.fields['date'].initial = date.today()
-            self.fields['opening_time'].initial = '08:00'
             # Machine toujours démarrée en fin de poste par défaut
             self.fields['started_at_end'].initial = True
             
@@ -135,7 +146,7 @@ class ShiftForm(forms.ModelForm):
     def clean_opening_time(self):
         """Validation du temps d'ouverture."""
         opening_time_str = self.cleaned_data.get('opening_time')
-        if opening_time_str:
+        if opening_time_str and opening_time_str != '':
             # Convertir la string en objet time pour validation
             from datetime import time
             try:

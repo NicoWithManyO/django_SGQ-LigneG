@@ -88,7 +88,7 @@
 
             <!-- Section Paramètres Machine -->
             <div class="form-section">
-                <h6 class="form-section-title">Paramètres machine</h6>
+                <h6 class="form-section-title">État machine</h6>
                 
                 <!-- Début de poste -->
                 <div class="row mb-2">
@@ -176,8 +176,9 @@
         <div class="d-flex justify-content-center mt-3">
             <button 
                 type="button" 
+                id="save-shift-btn"
                 onclick="confirmSaveShift()"
-                class="btn btn-secondary btn-sm fibrage-action-btn conforme"
+                class="btn btn-secondary btn-sm fibrage-action-btn"
             >
                 <i class="bi bi-save"></i> Enregistrer le Poste
             </button>
@@ -198,6 +199,8 @@ function setTodayDate() {
     const dateField = document.querySelector('input[name="date"]');
     if (dateField) {
         dateField.value = dateString;
+        // Mettre à jour l'état du bouton après avoir défini la date
+        updateShiftButtonState();
     }
 }
 
@@ -278,6 +281,13 @@ document.body.addEventListener('change', function(e) {
         console.log('Opening time changed!');
         calculateAvailabilityTime();
     }
+    
+    // Vérifier si c'est un champ requis pour le bouton
+    if (e.target && (e.target.name === 'operator' || e.target.name === 'date' || 
+                    e.target.name === 'vacation' || e.target.name === 'opening_time')) {
+        console.log('Required field changed:', e.target.name, 'value:', e.target.value);
+        updateShiftButtonState();
+    }
 });
 
 // Aussi essayer quand le formulaire est chargé
@@ -285,6 +295,13 @@ document.body.addEventListener('htmx:afterSwap', function() {
     console.log('HTMX content swapped');
     setTimeout(function() {
         calculateAvailabilityTime();
+        updateShiftButtonState();
+        
+        // Additional check with longer delay
+        setTimeout(function() {
+            console.log('Additional button state check after HTMX swap...');
+            updateShiftButtonState();
+        }, 300);
     }, 200);
 });
 
@@ -319,6 +336,8 @@ document.body.addEventListener('change', function(e) {
 // Au chargement initial de la page
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM chargé, attente des éléments HTMX...');
+    
+    // Attendre que les éléments soient disponibles et initialisés
     setTimeout(function() {
         console.log('Tentative de restauration des données...');
         // Ne pas restaurer si c'est un nouveau formulaire après save
@@ -333,8 +352,117 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         calculateAvailabilityTime();
         toggleMeterReadingFields();
+        
+        // Retry mechanism for button state update after page load
+        updateShiftButtonState();
+        
+        // Additional delayed check to ensure button state is correct
+        setTimeout(function() {
+            console.log('Additional button state check after page load...');
+            updateShiftButtonState();
+        }, 500);
     }, 1000);
+    
+    // Extra safety check with longer delay for page refresh scenarios
+    setTimeout(function() {
+        console.log('Final button state check after page load...');
+        updateShiftButtonState();
+    }, 2000);
 });
+
+// Additional safety net for window.onload
+window.addEventListener('load', function() {
+    console.log('Window fully loaded, checking button state...');
+    setTimeout(function() {
+        updateShiftButtonState();
+    }, 500);
+});
+
+// Mutation observer to detect changes in the shift form
+function setupShiftFormObserver() {
+    const shiftForm = document.getElementById('shift-form');
+    if (!shiftForm) {
+        console.log('Shift form not found, retrying observer setup...');
+        setTimeout(setupShiftFormObserver, 500);
+        return;
+    }
+    
+    const observer = new MutationObserver(function(mutations) {
+        let shouldUpdate = false;
+        
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                // Check if any of the required fields were added or modified
+                const requiredFields = ['operator', 'date', 'vacation', 'opening_time'];
+                
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        requiredFields.forEach(function(fieldName) {
+                            if (node.querySelector && node.querySelector(`[name="${fieldName}"]`)) {
+                                shouldUpdate = true;
+                            }
+                        });
+                    }
+                });
+            }
+        });
+        
+        if (shouldUpdate) {
+            console.log('Form mutation detected, updating button state...');
+            setTimeout(function() {
+                updateShiftButtonState();
+            }, 100);
+        }
+    });
+    
+    observer.observe(shiftForm, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['value']
+    });
+    
+    console.log('Shift form observer set up');
+}
+
+// Initialize observer after DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(setupShiftFormObserver, 1500);
+});
+
+// Periodic check for button state (helpful for debugging and ensuring consistency)
+function startPeriodicButtonCheck() {
+    const checkInterval = setInterval(function() {
+        const saveBtn = document.getElementById('save-shift-btn');
+        if (saveBtn) {
+            // Only log if there's an inconsistency
+            const shouldBeEnabled = checkShiftRequiredFields();
+            const currentlyEnabled = !saveBtn.disabled;
+            
+            if (shouldBeEnabled !== currentlyEnabled) {
+                console.log('Button state inconsistency detected - correcting...');
+                updateShiftButtonState();
+            }
+        }
+    }, 3000); // Check every 3 seconds
+    
+    // Stop checking after 30 seconds to avoid unnecessary overhead
+    setTimeout(function() {
+        clearInterval(checkInterval);
+        console.log('Periodic button check stopped');
+    }, 30000);
+}
+
+// Start periodic check after page load
+window.addEventListener('load', function() {
+    setTimeout(startPeriodicButtonCheck, 2000);
+});
+
+// Global function for manual button state update (useful for debugging)
+window.forceUpdateShiftButtonState = function() {
+    console.log('Manual button state update triggered');
+    updateShiftButtonState();
+};
 
 // Event listener global pour HTMX swap (clear automatique)
 document.body.addEventListener('htmx:afterSwap', function(e) {
@@ -360,6 +488,14 @@ document.body.addEventListener('htmx:afterSwap', function(e) {
             // Puis mettre à jour les champs conditionnels
             setTimeout(function() {
                 toggleMeterReadingFields();
+                updateShiftButtonState();
+                
+                // Additional check with longer delay for shift block updates
+                setTimeout(function() {
+                    console.log('Final button state check after shift block swap...');
+                    updateShiftButtonState();
+                }, 400);
+                
                 console.log('Champs métrages mis à jour après restauration forcée');
             }, 500);
             
@@ -437,6 +573,9 @@ function clearShiftData() {
         // Recalculer l'availability time
         calculateAvailabilityTime();
         
+        // Mettre à jour l'état du bouton
+        updateShiftButtonState();
+        
         // Sauvegarder les données après le clear
         setTimeout(function() {
             if (typeof autoSaveFormData === 'function') {
@@ -446,8 +585,62 @@ function clearShiftData() {
     }
 }
 
+
+// Fonction pour mettre à jour l'état du bouton "Enregistrer le Poste" avec retry
+function updateShiftButtonState(retryCount = 0) {
+    const saveBtn = document.getElementById('save-shift-btn');
+    if (!saveBtn) {
+        console.log('Button save-shift-btn not found, retrying...');
+        if (retryCount < 5) {
+            setTimeout(() => updateShiftButtonState(retryCount + 1), 200);
+        }
+        return;
+    }
+    
+    const allRequiredFieldsFilled = checkShiftRequiredFields();
+    
+    // Nettoyer les classes existantes
+    saveBtn.classList.remove('btn-secondary', 'conforme', 'btn-success');
+    
+    if (allRequiredFieldsFilled) {
+        // Champs requis remplis -> bouton vert (clickable)
+        saveBtn.classList.add('btn-success', 'conforme');
+        saveBtn.disabled = false;
+        console.log('Button state updated: enabled (green)');
+    } else {
+        // Champs requis manquants -> bouton gris (disabled)
+        saveBtn.classList.add('btn-secondary');
+        saveBtn.disabled = true;
+        console.log('Button state updated: disabled (grey)');
+    }
+}
+
+// Fonction pour vérifier si les champs requis sont remplis
+function checkShiftRequiredFields() {
+    const operatorField = document.querySelector('select[name="operator"]');
+    const dateField = document.querySelector('input[name="date"]');
+    const vacationField = document.querySelector('select[name="vacation"]');
+    const openingTimeField = document.querySelector('select[name="opening_time"]');
+    
+    // Si les champs ne sont pas encore dans le DOM, retourner false
+    if (!operatorField || !dateField || !vacationField || !openingTimeField) {
+        console.log('Required fields not found in DOM');
+        return false;
+    }
+    
+    return operatorField?.value && dateField?.value && vacationField?.value && openingTimeField?.value;
+}
+
 // Confirmer avant de sauvegarder le poste
 function confirmSaveShift() {
+    const saveBtn = document.getElementById('save-shift-btn');
+    
+    // Vérifier si le bouton est désactivé
+    if (saveBtn && saveBtn.disabled) {
+        console.log('Bouton désactivé - action bloquée');
+        return;
+    }
+    
     const operatorField = document.querySelector('select[name="operator"]');
     const dateField = document.querySelector('input[name="date"]');
     const vacationField = document.querySelector('select[name="vacation"]');

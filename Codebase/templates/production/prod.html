@@ -37,41 +37,52 @@
                 </div>
             </div>
             <div class="block-content" id="of-content">
-                <div class="row mb-2" id="of-fields-row">
-                    <div class="col-6 mb-2">
-                        <label class="form-label">OF en cours</label>
-                        <div class="input-group">
-                            <input type="text" id="current-order" class="form-control fw-bold" 
-                                   list="current-order-list" placeholder="--" disabled>
-                            <datalist id="current-order-list">
-                                <!-- Options chargées dynamiquement -->
-                            </datalist>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" 
-                                    onclick="editCurrentOrder()" title="Modifier">
-                                <i class="bi bi-pencil"></i>
-                            </button>
+                <div id="of-fields-row" class="of-container">
+                    <div class="of-left-col">
+                        <div class="of-field-row">
+                            <label class="form-label">OF en cours</label>
+                            <div class="input-group">
+                                <select id="current-order" class="form-select fw-bold of-input" disabled>
+                                    <option value="">--</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                        onclick="editCurrentOrder()" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="of-field-row">
+                            <label class="form-label">Lg cible (m)</label>
+                            <div class="input-group">
+                                <input type="number" id="target-length" class="form-control fw-bold of-input" step="0.01" min="0" placeholder="--" disabled>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                        onclick="editTargetLength()" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="of-field-row">
+                            <label class="form-label">OF découpe</label>
+                            <div class="input-group">
+                                <select id="cutting-order" class="form-select fw-bold of-input" disabled>
+                                    <option value="">--</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                        onclick="editCuttingOrder()" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-6 mb-2">
-                        <label class="form-label">Lg cible (m)</label>
-                        <div class="input-group">
-                            <input type="number" id="target-length" class="form-control fw-bold" step="0.01" min="0" placeholder="--" disabled>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" 
-                                    onclick="editTargetLength()" title="Modifier">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">OF découpe</label>
-                        <div class="input-group">
-                            <select id="cutting-order" class="form-select fw-bold" disabled>
-                                <option value="">--</option>
-                            </select>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" 
-                                    onclick="editCuttingOrder()" title="Modifier">
-                                <i class="bi bi-pencil"></i>
-                            </button>
+                    <div class="of-right-col">
+                        <div class="of-info-display">
+                            <small id="of-required-length-local" class="text-muted">--</small>
+                            <small id="of-roll-count-local" class="text-muted">--</small>
+                            <small id="of-due-date-local" class="text-muted">--</small>
+                            <small>&nbsp;</small>
+                            <small id="of-produced-local" class="text-muted">--</small>
+                            <small id="of-remaining-local" class="text-muted">--</small>
+                            <small id="of-days-remaining-local" class="text-muted">--</small>
                         </div>
                     </div>
                 </div>
@@ -112,7 +123,7 @@
                             <div class="col-3">
                                 <label class="form-label">Motif</label>
                                 <select class="form-select fw-bold">
-                                    <option value="">Motif</option>
+                                    <option value="">--</option>
                                     <option value="demarrage">Démarrage</option>
                                     <option value="panne_maintenance">Panne/Maintenance</option>
                                     <option value="menage">Ménage sans fibrage</option>
@@ -126,7 +137,7 @@
                             <div class="col-3">
                                 <label class="form-label">Temps</label>
                                 <select class="form-select fw-bold" id="time-duration-select">
-                                    <option value="">Durée</option>
+                                    <option value="">--</option>
                                 </select>
                             </div>
                             <div class="col-2">
@@ -157,7 +168,10 @@
                     </div>
                     <div id="conformity-status" class="badge bg-secondary">--</div>
                     <div class="info-right">
-                        <small class="text-muted">TEMPORAIRE</small>
+                        <div class="of-info">
+                            <small id="of-required-length" class="text-muted">--</small>
+                            <small class="text-muted">TEMPORAIRE</small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -168,7 +182,6 @@
                     <!-- Le contenu sera généré dynamiquement -->
                     <div id="roll-content">
                         <div class="roll-empty-state">
-                            <i class="bi bi-arrow-up"></i>
                             <p>Renseignez une longueur cible pour visualiser le rouleau</p>
                         </div>
                     </div>
@@ -206,7 +219,7 @@
                     <label class="fibrage-label">ID Rouleau</label>
                     <div class="fibrage-id-group">
                         <span class="fibrage-text" id="sticky-roll-id">3254_1</span>
-                        <span class="fibrage-status-text" id="sticky-roll-status">⚠️ Existe</span>
+                        <!-- <span class="fibrage-status-text" id="sticky-roll-status">⚠️ Existe</span> -->
                     </div>
                 </div>
                 
@@ -661,7 +674,7 @@ function autoSaveFormData() {
         // Données de production (à conserver)
         totalLostTimeMinutes: window.totalLostTimeMinutes || 0,
         lostTimeEntries: window.lostTimeEntries || [],
-        currentOrderNumber: document.querySelector('#current-order')?.value || '',
+        currentOrderId: document.querySelector('#current-order')?.value || '',
         cuttingOrderId: document.querySelector('#cutting-order')?.value || '',
         targetLength: document.querySelector('#target-length')?.value || '',
         rollNumber: document.querySelector('#roll-number')?.value || '',
@@ -796,9 +809,9 @@ function restoreSavedData() {
                 
                 // Restaurer les OF sélectionnés
                 const currentOrderInput = document.querySelector('#current-order');
-                if (currentOrderInput && data.currentOrderNumber) {
-                    currentOrderInput.value = data.currentOrderNumber;
-                    console.log('OF en cours restauré:', data.currentOrderNumber);
+                if (currentOrderInput && data.currentOrderId) {
+                    currentOrderInput.value = data.currentOrderId;
+                    console.log('OF en cours restauré:', data.currentOrderId);
                 }
                 
                 const cuttingOrderSelect = document.querySelector('#cutting-order');
@@ -806,6 +819,12 @@ function restoreSavedData() {
                     cuttingOrderSelect.value = data.cuttingOrderId;
                     console.log('OF découpe restauré:', data.cuttingOrderId);
                 }
+                
+                // Mettre à jour l'affichage de la quantité demandée après restauration des OF
+                setTimeout(function() {
+                    console.log('Calling updateRequiredLength() after OF restoration in restoreSavedData');
+                    updateRequiredLength();
+                }, 100);
                 
                 setTimeout(function() {
                     updateLostTimeDisplay();
@@ -831,6 +850,10 @@ function restoreSavedData() {
                     const startedBeginning = document.querySelector('input[name="started_at_beginning"]');
                     const startedEnd = document.querySelector('input[name="started_at_end"]');
                     console.log('Après toggle - début:', startedBeginning?.checked, 'fin:', startedEnd?.checked);
+                    
+                    // Mettre à jour l'état du bouton après restauration des valeurs
+                    updateShiftButtonState();
+                    console.log('updateShiftButtonState appelé après restauration');
                 }, 300);
                 
                 console.log('Restauration terminée');
@@ -893,29 +916,50 @@ document.addEventListener('forceRestore', function(e) {
     // Réinitialiser le flag et forcer la restauration
     window.isRestoring = false;
     setTimeout(function() {
-        restoreFormData();
+        restoreSavedData();
     }, 200);
 });
 
 // Gestion des ordres de fabrication
 function loadFabricationOrders() {
+    console.log('=== loadFabricationOrders() called ===');
     fetch('/core/get-fabrication-orders/')
     .then(response => response.json())
     .then(data => {
-        // Remplir la datalist des OF normaux
-        const currentOrderDatalist = document.getElementById('current-order-list');
-        currentOrderDatalist.innerHTML = '';
+        console.log('=== Fabrication orders data received ===');
+        console.log('Raw data:', data);
+        
+        // Vérifier la structure des données
+        console.log('Normal orders count:', data.normal_orders?.length || 0);
+        console.log('Cutting orders count:', data.cutting_orders?.length || 0);
+        
+        // Vérifier le champ required_length pour quelques exemples
+        if (data.normal_orders && data.normal_orders.length > 0) {
+            console.log('Sample normal order:', data.normal_orders[0]);
+        }
+        if (data.cutting_orders && data.cutting_orders.length > 0) {
+            console.log('Sample cutting order:', data.cutting_orders[0]);
+        }
+        
+        // Stocker les données globalement pour l'accès aux required_length
+        window.fabricationOrdersData = data;
+        
+        // Remplir le select des OF normaux
+        const currentOrderSelect = document.getElementById('current-order');
+        currentOrderSelect.innerHTML = '<option value="">--</option>';
         data.normal_orders.forEach(order => {
+            console.log('Adding normal order:', order.order_number, 'with required_length:', order.required_length);
             const option = document.createElement('option');
-            option.value = order.order_number;
-            option.setAttribute('data-id', order.id);
-            currentOrderDatalist.appendChild(option);
+            option.value = order.id;
+            option.textContent = order.order_number;
+            currentOrderSelect.appendChild(option);
         });
         
         // Remplir le select des OF découpe
         const cuttingOrderSelect = document.getElementById('cutting-order');
-        cuttingOrderSelect.innerHTML = '<option value="">Choisir OF découpe...</option>';
+        cuttingOrderSelect.innerHTML = '<option value="">--</option>';
         data.cutting_orders.forEach(order => {
+            console.log('Adding cutting order:', order.order_number, 'with required_length:', order.required_length);
             const option = document.createElement('option');
             option.value = order.id;
             option.textContent = order.order_number;
@@ -923,9 +967,31 @@ function loadFabricationOrders() {
         });
         
         console.log('OF chargés:', data);
+        console.log('=== Fabrication orders loading complete ===');
         
         // Restaurer les sélections d'OF après chargement
         setTimeout(restoreOrderSelections, 100);
+        
+        // Ajouter les event listeners permanents pour les OF
+        setTimeout(() => {
+            console.log('Adding permanent event listeners for OF selects');
+            const currentOrderSelect = document.getElementById('current-order');
+            const cuttingOrderSelect = document.getElementById('cutting-order');
+            
+            if (currentOrderSelect) {
+                currentOrderSelect.addEventListener('change', function() {
+                    console.log('Permanent current order change handler triggered');
+                    updateRequiredLength();
+                });
+            }
+            
+            if (cuttingOrderSelect) {
+                cuttingOrderSelect.addEventListener('change', function() {
+                    console.log('Permanent cutting order change handler triggered');
+                    updateRequiredLength();
+                });
+            }
+        }, 200);
     })
     .catch(error => {
         console.error('Erreur chargement OF:', error);
@@ -938,16 +1004,20 @@ function restoreOrderSelections() {
         try {
             const data = JSON.parse(saved);
             
-            const currentOrderInput = document.querySelector('#current-order');
-            if (currentOrderInput && data.currentOrderNumber) {
-                currentOrderInput.value = data.currentOrderNumber;
-                console.log('OF en cours restauré via localStorage:', data.currentOrderNumber);
+            const currentOrderSelect = document.querySelector('#current-order');
+            if (currentOrderSelect && data.currentOrderId) {
+                currentOrderSelect.value = data.currentOrderId;
+                console.log('OF en cours restauré via localStorage:', data.currentOrderId);
+                console.log('Calling updateRequiredLength() after current order restoration');
+                updateRequiredLength(); // Mettre à jour la longueur requise
             }
             
             const cuttingOrderSelect = document.querySelector('#cutting-order');
             if (cuttingOrderSelect && data.cuttingOrderId) {
                 cuttingOrderSelect.value = data.cuttingOrderId;
                 console.log('OF découpe restauré via localStorage:', data.cuttingOrderId);
+                console.log('Calling updateRequiredLength() after cutting order restoration');
+                updateRequiredLength(); // Mettre à jour la longueur requise
             }
         } catch (error) {
             console.error('Erreur restauration OF:', error);
@@ -955,144 +1025,218 @@ function restoreOrderSelections() {
     }
 }
 
-
-function loadOFList() {
-    // Recharger la liste des OF dans le datalist
-    fetch('/core/get-fabrication-orders/', {
-        method: 'GET'
-    })
-    .then(response => response.json())
-    .then(data => {
-        const currentOrderDatalist = document.getElementById('current-order-list');
-        const cuttingSelect = document.getElementById('cutting-order');
-        
-        if (currentOrderDatalist && data.normal_orders) {
-            // Vider et repeupler la datalist des OF normaux
-            currentOrderDatalist.innerHTML = '';
-            data.normal_orders.forEach(order => {
-                const option = document.createElement('option');
-                option.value = order.order_number;
-                option.setAttribute('data-id', order.id);
-                currentOrderDatalist.appendChild(option);
-            });
-        }
-        
-        if (cuttingSelect && data.cutting_orders) {
-            // Vider et repeupler la select des OF découpe
-            const currentValue = cuttingSelect.value;
-            cuttingSelect.innerHTML = '<option value="">--</option>';
-            data.cutting_orders.forEach(order => {
-                const option = document.createElement('option');
-                option.value = order.id;
-                option.textContent = order.order_number;
-                cuttingSelect.appendChild(option);
-            });
-            // Restaurer la valeur sélectionnée si elle existe encore
-            if (currentValue) {
-                cuttingSelect.value = currentValue;
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Erreur lors du rechargement des OF:', error);
-    });
-}
-
-function editCurrentOrder() {
-    const currentOrderInput = document.getElementById('current-order');
-    const originalValue = currentOrderInput.value; // Sauvegarder la valeur originale
-    currentOrderInput.disabled = false;
-    currentOrderInput.focus();
+// Fonction pour mettre à jour l'affichage de la longueur requise
+function updateRequiredLength() {
+    console.log('=== updateRequiredLength() called ===');
     
-    // Gérer la validation sur perte de focus ou entrée
-    function handleOrderValidation() {
-        const newValue = currentOrderInput.value.trim();
-        
-        if (!newValue) {
-            currentOrderInput.disabled = true;
-            return;
-        }
-        
-        // Vérifier si c'est différent de la valeur originale
-        if (newValue === originalValue) {
-            currentOrderInput.disabled = true;
-            return;
-        }
-        
-        // Vérifier si l'OF existe déjà
-        fetch(`/core/check-of-exists/?order_number=${encodeURIComponent(newValue)}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.exists) {
-                // L'OF existe déjà, demander confirmation
-                const confirmMessage = `Êtes-vous sûr de vouloir modifier l'OF en cours vers "${newValue}" ?`;
-                
-                if (confirm(confirmMessage)) {
-                    // Confirmer le changement
-                    currentOrderInput.disabled = true;
-                    updateRollId(); // Mettre à jour l'ID du rouleau
-                    // Déclencher auto-save
-                    clearTimeout(window.autoSaveTimeout);
-                    window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
-                } else {
-                    // Annuler : remettre la valeur originale
-                    currentOrderInput.value = originalValue;
-                    currentOrderInput.disabled = true;
-                }
-            } else {
-                // L'OF n'existe pas, proposer de le créer
-                const createMessage = `L'OF "${newValue}" n'existe pas. Voulez-vous le créer automatiquement ?`;
-                
-                if (confirm(createMessage)) {
-                    // Créer l'OF automatiquement
-                    createNewOF(newValue).then(success => {
-                        if (success) {
-                            currentOrderInput.disabled = true;
-                            updateRollId(); // Mettre à jour l'ID du rouleau
-                            // Recharger la liste des OF pour inclure le nouveau
-                            loadOFList();
-                            // Déclencher auto-save
-                            clearTimeout(window.autoSaveTimeout);
-                            window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
-                            alert(`OF "${newValue}" créé avec succès !`);
-                        } else {
-                            // Erreur de création, remettre la valeur originale
-                            currentOrderInput.value = originalValue;
-                            currentOrderInput.disabled = true;
-                        }
-                    });
-                } else {
-                    // Annuler : remettre la valeur originale
-                    currentOrderInput.value = originalValue;
-                    currentOrderInput.disabled = true;
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Erreur vérification OF:', error);
-            alert('Erreur lors de la vérification de l\'OF');
-            currentOrderInput.value = originalValue;
-            currentOrderInput.disabled = true;
-        });
+    const currentOrderSelect = document.getElementById('current-order');
+    const cuttingOrderSelect = document.getElementById('cutting-order');
+    const requiredLengthElement = document.getElementById('of-required-length-local');
+    const rollCountElement = document.getElementById('of-roll-count-local');
+    const dueDateElement = document.getElementById('of-due-date-local');
+    const producedElement = document.getElementById('of-produced-local');
+    const remainingElement = document.getElementById('of-remaining-local');
+    const daysRemainingElement = document.getElementById('of-days-remaining-local');
+    
+    console.log('Elements found:', {
+        currentOrderSelect: !!currentOrderSelect,
+        cuttingOrderSelect: !!cuttingOrderSelect,
+        requiredLengthElement: !!requiredLengthElement,
+        rollCountElement: !!rollCountElement,
+        dueDateElement: !!dueDateElement,
+        producedElement: !!producedElement,
+        remainingElement: !!remainingElement,
+        daysRemainingElement: !!daysRemainingElement
+    });
+    
+    if (!requiredLengthElement || !rollCountElement || !dueDateElement || !producedElement || !remainingElement || !daysRemainingElement) {
+        console.error('ERROR: required elements not found!');
+        return;
     }
     
-    // Gérer l'entrée (Enter)
-    currentOrderInput.onkeydown = function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            handleOrderValidation();
-        } else if (e.key === 'Escape') {
-            // Annuler sur Échap
-            this.value = originalValue;
+    // Déterminer quel OF est sélectionné
+    let selectedOrderId = null;
+    let selectedOrderType = null;
+    
+    console.log('Current OF values:', {
+        currentOrderValue: currentOrderSelect?.value,
+        cuttingOrderValue: cuttingOrderSelect?.value
+    });
+    
+    // Prioriser l'OF en cours s'il est sélectionné
+    if (currentOrderSelect && currentOrderSelect.value && currentOrderSelect.value !== '') {
+        selectedOrderId = currentOrderSelect.value;
+        selectedOrderType = 'current';
+    } else if (cuttingOrderSelect && cuttingOrderSelect.value && cuttingOrderSelect.value !== '') {
+        selectedOrderId = cuttingOrderSelect.value;
+        selectedOrderType = 'cutting';
+    }
+    
+    console.log('Selected order:', {
+        selectedOrderId,
+        selectedOrderType
+    });
+    
+    if (!selectedOrderId) {
+        console.log('No order selected, setting to --');
+        requiredLengthElement.textContent = '--';
+        rollCountElement.textContent = '--';
+        dueDateElement.textContent = '--';
+        producedElement.textContent = '--';
+        remainingElement.textContent = '--';
+        daysRemainingElement.textContent = '--';
+        return;
+    }
+    
+    // Vérifier les données de fabrication
+    console.log('Fabrication orders data:', window.fabricationOrdersData);
+    
+    // Récupérer les données de l'OF depuis les options chargées
+    let orderData = null;
+    
+    if (selectedOrderType === 'current') {
+        const option = currentOrderSelect.querySelector(`option[value="${selectedOrderId}"]`);
+        console.log('Current order option found:', !!option);
+        if (option) {
+            orderData = window.fabricationOrdersData?.normal_orders?.find(order => order.id == selectedOrderId);
+            console.log('Normal order data found:', orderData);
+        }
+    } else if (selectedOrderType === 'cutting') {
+        const option = cuttingOrderSelect.querySelector(`option[value="${selectedOrderId}"]`);
+        console.log('Cutting order option found:', !!option);
+        if (option) {
+            orderData = window.fabricationOrdersData?.cutting_orders?.find(order => order.id == selectedOrderId);
+            console.log('Cutting order data found:', orderData);
+        }
+    }
+    
+    console.log('Final order data:', orderData);
+    
+    if (orderData && orderData.required_length !== undefined) {
+        const requiredLength = parseFloat(orderData.required_length);
+        console.log('Required length value:', requiredLength, 'Type:', typeof requiredLength);
+        
+        if (requiredLength === 0 || !requiredLength) {
+            requiredLengthElement.textContent = '--';
+            rollCountElement.textContent = '--';
+            producedElement.textContent = '--';
+            remainingElement.textContent = '--';
+            console.log('Set to -- (not specified)');
+        } else {
+            requiredLengthElement.textContent = `Quantité demandée: ${requiredLength} m²`;
+            
+            // Calculer le nombre de rouleaux avec la longueur cible
+            const targetLengthInput = document.getElementById('target-length');
+            const targetLength = targetLengthInput ? parseFloat(targetLengthInput.value) : 0;
+            let rollCount = 0;
+            
+            if (targetLength && targetLength > 0) {
+                rollCount = Math.ceil(requiredLength / targetLength);
+                rollCountElement.textContent = `soit ${rollCount} rouleau${rollCount > 1 ? 'x' : ''} de ${targetLength} m`;
+            } else {
+                rollCountElement.textContent = '--';
+            }
+            
+            // Calculer déjà produit et restant (simulé pour l'instant)
+            const producedCount = orderData.produced_count || 0;
+            const producedLength = orderData.produced_length || 0;
+            if (rollCount > 0) {
+                producedElement.textContent = `Déjà produit : ${producedLength} m² (${producedCount}/${rollCount})`;
+                const remainingRolls = rollCount - producedCount;
+                const remainingLength = requiredLength - producedLength;
+                remainingElement.textContent = `restant : ${remainingLength} m² (${remainingRolls})`;
+            } else {
+                producedElement.textContent = '--';
+                remainingElement.textContent = '--';
+            }
+            
+            console.log('Set to specific length:', requiredLength);
+        }
+        
+        // Afficher la date d'échéance
+        if (orderData.due_date) {
+            dueDateElement.textContent = `pour le : ${orderData.due_date}`;
+            
+            // Calculer les jours ouvrés restants
+            const today = new Date();
+            const dueDate = new Date(orderData.due_date.split('/').reverse().join('-')); // Convertir DD/MM/YYYY en YYYY-MM-DD
+            
+            function calculateWorkingDays(startDate, endDate) {
+                let count = 0;
+                let currentDate = new Date(startDate);
+                
+                while (currentDate <= endDate) {
+                    const dayOfWeek = currentDate.getDay();
+                    // 0 = Dimanche, 6 = Samedi
+                    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                        count++;
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                return count;
+            }
+            
+            if (dueDate >= today) {
+                const workingDays = calculateWorkingDays(today, dueDate);
+                if (workingDays === 0) {
+                    daysRemainingElement.textContent = `aujourd'hui`;
+                } else {
+                    daysRemainingElement.textContent = `${workingDays} jour${workingDays > 1 ? 's' : ''} ouvré${workingDays > 1 ? 's' : ''} restant${workingDays > 1 ? 's' : ''}`;
+                }
+            } else {
+                const workingDays = calculateWorkingDays(dueDate, today);
+                daysRemainingElement.textContent = `${workingDays} jour${workingDays > 1 ? 's' : ''} ouvré${workingDays > 1 ? 's' : ''} de retard`;
+            }
+        } else {
+            dueDateElement.textContent = '--';
+            daysRemainingElement.textContent = '--';
+        }
+    } else {
+        requiredLengthElement.textContent = '--';
+        rollCountElement.textContent = '--';
+        dueDateElement.textContent = '--';
+        producedElement.textContent = '--';
+        remainingElement.textContent = '--';
+        daysRemainingElement.textContent = '--';
+        console.log('No order data or required_length field, set to --');
+    }
+    
+    console.log('Final element content:', requiredLengthElement.textContent);
+    console.log('=== updateRequiredLength() end ===');
+}
+
+
+
+function editCurrentOrder() {
+    const currentOrderSelect = document.getElementById('current-order');
+    const originalValue = currentOrderSelect.value; // Sauvegarder la valeur originale
+    currentOrderSelect.disabled = false;
+    currentOrderSelect.focus();
+    
+    // Gérer la sélection
+    currentOrderSelect.onchange = function() {
+        console.log('=== Current order changed ===');
+        console.log('New value:', this.value);
+        if (this.value) {
             this.disabled = true;
-            this.blur();
+            updateRollId(); // Mettre à jour l'ID du rouleau
+            console.log('Calling updateRequiredLength() after current order selection');
+            updateRequiredLength(); // Mettre à jour la longueur requise
+            // Déclencher auto-save
+            clearTimeout(window.autoSaveTimeout);
+            window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+        } else {
+            this.disabled = true;
+            console.log('Calling updateRequiredLength() after current order cleared');
+            updateRequiredLength(); // Réinitialiser la longueur requise
         }
     };
     
-    // Gérer la perte de focus
-    currentOrderInput.onblur = function() {
+    // Gérer l'annulation (clic ailleurs)
+    currentOrderSelect.onblur = function() {
         setTimeout(() => {
-            handleOrderValidation();
+            this.disabled = true;
         }, 200);
     };
 }
@@ -1139,13 +1283,19 @@ function editCuttingOrder() {
     
     // Gérer la sélection
     cuttingOrderSelect.onchange = function() {
+        console.log('=== Cutting order changed ===');
+        console.log('New value:', this.value);
         if (this.value) {
             this.disabled = true;
+            console.log('Calling updateRequiredLength() after cutting order selection');
+            updateRequiredLength(); // Mettre à jour la longueur requise
             // Déclencher auto-save
             clearTimeout(window.autoSaveTimeout);
             window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
         } else {
             this.disabled = true;
+            console.log('Calling updateRequiredLength() after cutting order cleared');
+            updateRequiredLength(); // Réinitialiser la longueur requise
         }
     };
     
@@ -1169,6 +1319,8 @@ function editTargetLength() {
             this.disabled = true;
             // Générer la visualisation du rouleau
             generateRollVisualization();
+            // Mettre à jour l'affichage OF
+            updateRequiredLength();
             // Déclencher auto-save
             clearTimeout(window.autoSaveTimeout);
             window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
@@ -1176,6 +1328,8 @@ function editTargetLength() {
             this.disabled = true;
             // Réinitialiser la visualisation
             generateRollVisualization();
+            // Mettre à jour l'affichage OF
+            updateRequiredLength();
         }
     };
     
@@ -1231,12 +1385,13 @@ function editRollNumber() {
 }
 
 function updateRollId() {
-    const currentOrderInput = document.getElementById('current-order');
+    const currentOrderSelect = document.getElementById('current-order');
     const rollNumberInput = document.getElementById('roll-number');
     const rollIdDisplay = document.getElementById('roll-id');
     const rollStatus = document.getElementById('roll-status');
     
-    const orderNumber = currentOrderInput.value.trim();
+    const selectedOption = currentOrderSelect.options[currentOrderSelect.selectedIndex];
+    const orderNumber = selectedOption && selectedOption.value ? selectedOption.textContent : '';
     const rollNumber = rollNumberInput.value.trim();
     
     if (orderNumber && rollNumber) {
@@ -1270,8 +1425,8 @@ function checkRollExists(rollId) {
     .then(response => response.json())
     .then(data => {
         if (data.exists) {
-            rollStatus.textContent = '⚠️ Existe';
-            rollStatus.className = 'badge bg-danger';
+            // rollStatus.textContent = '⚠️ Existe';
+            // rollStatus.className = 'badge bg-danger';
         } else {
             rollStatus.textContent = '';
             rollStatus.className = 'badge';
@@ -1361,7 +1516,6 @@ function generateRollVisualization() {
     if (!targetLength || targetLength <= 0) {
         rollContent.innerHTML = `
             <div class="roll-empty-state">
-                <i class="bi bi-arrow-up"></i>
                 <p>Renseignez une longueur cible pour visualiser le rouleau</p>
             </div>
         `;
@@ -1926,9 +2080,20 @@ function updateRollConformity() {
     updateStickyConformityStatus(conformityText);
     
     // Forcer les styles selon le statut avec !important
-    // NOUVEAU COMPORTEMENT : Fond transparent si pas de mesures d'épaisseur
-    if (!hasAnyThicknessMeasurements) {
-        // Pas de mesures d'épaisseur -> fond transparent
+    // NOUVEAU COMPORTEMENT : Priorité au statut NON CONFORME, puis vérifier les mesures d'épaisseur
+    if (conformityText === 'NON CONFORME') {
+        // NON CONFORME -> fond rouge toujours (même sans mesures d'épaisseur)
+        conformityDisplay.classList.remove('conforme-text');
+        conformityDisplay.style.setProperty('background-color', '#dc3545', 'important');
+        conformityDisplay.style.setProperty('color', 'white', 'important');
+        conformityDisplay.style.setProperty('border', '3px solid #c82333', 'important');
+        conformityDisplay.style.setProperty('font-size', '1.2rem', 'important');
+        conformityDisplay.style.setProperty('padding', '0.75rem 2rem', 'important');
+        conformityDisplay.style.setProperty('border-radius', '8px', 'important');
+        conformityDisplay.style.setProperty('font-weight', 'bold', 'important');
+    } else if (conformityText === 'CONFORME' && !hasAnyThicknessMeasurements) {
+        // CONFORME mais pas de mesures d'épaisseur -> fond transparent
+        conformityDisplay.classList.add('conforme-text');
         conformityDisplay.style.setProperty('background-color', 'transparent', 'important');
         conformityDisplay.style.setProperty('color', '#6c757d', 'important');
         conformityDisplay.style.setProperty('border', '2px solid #6c757d', 'important');
@@ -1936,13 +2101,6 @@ function updateRollConformity() {
         conformityDisplay.style.setProperty('padding', '0.75rem 2rem', 'important');
         conformityDisplay.style.setProperty('border-radius', '8px', 'important');
         conformityDisplay.style.setProperty('font-weight', 'bold', 'important');
-        
-        // Ajouter la classe conforme-text si c'est CONFORME avec fond transparent
-        if (conformityText === 'CONFORME') {
-            conformityDisplay.classList.add('conforme-text');
-        } else {
-            conformityDisplay.classList.remove('conforme-text');
-        }
     } else if (conformityText === 'CONFORME') {
         if (allThicknessMeasurementsFilled) {
             // Toutes les mesures remplies ET conforme -> fond vert
@@ -1957,18 +2115,6 @@ function updateRollConformity() {
             conformityDisplay.style.setProperty('color', '#28a745', 'important');
             conformityDisplay.style.setProperty('border', '2px solid #28a745', 'important');
         }
-        conformityDisplay.style.setProperty('font-size', '1.2rem', 'important');
-        conformityDisplay.style.setProperty('padding', '0.75rem 2rem', 'important');
-        conformityDisplay.style.setProperty('border-radius', '8px', 'important');
-        conformityDisplay.style.setProperty('font-weight', 'bold', 'important');
-    } else {
-        // NON CONFORME -> fond rouge pour le top status badge
-        // Supprimer la classe conforme-text car on a un fond coloré
-        conformityDisplay.classList.remove('conforme-text');
-        
-        conformityDisplay.style.setProperty('background-color', '#dc3545', 'important');
-        conformityDisplay.style.setProperty('color', 'white', 'important');
-        conformityDisplay.style.setProperty('border', '3px solid #c82333', 'important');
         conformityDisplay.style.setProperty('font-size', '1.2rem', 'important');
         conformityDisplay.style.setProperty('padding', '0.75rem 2rem', 'important');
         conformityDisplay.style.setProperty('border-radius', '8px', 'important');
@@ -1994,21 +2140,43 @@ function updateStickyConformityStatus(conformityText) {
     const rollId = document.getElementById('roll-id')?.textContent || '--';
     
     if (conformityText === 'CONFORME') {
-        actionBtn.classList.add('conforme');
+        // Vérifier si toutes les mesures d'épaisseur sont complètes
+        const allThicknessMeasurementsFilled = areAllThicknessMeasurementsFilled();
+        
+        if (allThicknessMeasurementsFilled) {
+            // Toutes les mesures complètes ET conforme -> bouton vert (clickable)
+            actionBtn.classList.add('conforme');
+            actionBtn.disabled = false;
+        } else {
+            // Conforme mais mesures incomplètes -> bouton secondaire (disabled)
+            actionBtn.classList.add('btn-secondary');
+            actionBtn.disabled = true;
+        }
         actionBtn.innerHTML = `<i class="bi bi-check-circle"></i> Sauver Rouleau ${rollId}`;
     } else if (conformityText === 'NON CONFORME') {
+        // NON CONFORME -> bouton orange (clickable)
         actionBtn.classList.add('non-conforme');
+        actionBtn.disabled = false;
         actionBtn.innerHTML = `<i class="bi bi-arrow-right-circle"></i> Vers Découpe`;
     } else {
+        // Statut indéterminé -> bouton gris (disabled)
         actionBtn.classList.add('btn-secondary');
+        actionBtn.disabled = true;
         actionBtn.innerHTML = `<i class="bi bi-save"></i> --`;
     }
 }
 
 // Fonction pour gérer le clic sur le bouton d'action
 function handleActionButton() {
+    const actionBtn = document.getElementById('sticky-action-btn');
     const conformityStatus = document.getElementById('conformity-status');
     const rollId = document.getElementById('roll-id')?.textContent || '--';
+    
+    // Vérifier si le bouton est désactivé
+    if (actionBtn && actionBtn.disabled) {
+        console.log('Bouton désactivé - action bloquée');
+        return;
+    }
     
     if (!conformityStatus) return;
     
@@ -2220,12 +2388,12 @@ function syncStickyBarValues() {
     }
     
     // Synchroniser le statut
-    const rollStatus = document.getElementById('roll-status')?.textContent || '';
-    const stickyRollStatus = document.getElementById('sticky-roll-status');
-    if (stickyRollStatus) {
-        stickyRollStatus.textContent = rollStatus;
-        stickyRollStatus.className = 'fibrage-status-text';
-    }
+    // const rollStatus = document.getElementById('roll-status')?.textContent || '';
+    // const stickyRollStatus = document.getElementById('sticky-roll-status');
+    // if (stickyRollStatus) {
+    //     stickyRollStatus.textContent = rollStatus;
+    //     stickyRollStatus.className = 'fibrage-status-text';
+    // }
     
     // Synchroniser la masse du prochain tube
     const nextTubeMass = document.getElementById('next-tube-mass')?.value || '--';
@@ -2291,10 +2459,10 @@ function calculateMassNetAndGrammage() {
     
     // Mettre à jour les éléments d'affichage
     if (massNetElement) {
-        massNetElement.textContent = massNet === '--' ? 'Masse nette : --' : `Masse nette : ${massNet} g`;
+        massNetElement.textContent = massNet === '--' ? '--' : `${massNet} g`;
     }
     if (grammageElement) {
-        grammageElement.textContent = grammage === '--' ? 'Grammage : --' : `Grammage : ${grammage} g/m²`;
+        grammageElement.textContent = grammage === '--' ? '--' : `${grammage} g/m²`;
     }
 }
 
@@ -2684,6 +2852,199 @@ function clearAllThickness() {
     setTimeout(updateNokCounter, 650);
 }
 
+// Fonction pour effacer tous les champs de la page
+function clearAllFields() {
+    // 1. Effacer tous les champs d'épaisseur (principaux ET rattrapages)
+    const allThicknessInputs = document.querySelectorAll('.thickness-input, .thickness-catchup-input');
+    allThicknessInputs.forEach(input => {
+        input.value = '';
+        // Appliquer la validation pour remettre le style de base correct
+        validateThickness(input);
+        // Cacher les champs de rattrapage
+        if (input.hasAttribute('data-catchup')) {
+            input.style.display = 'none';
+        }
+    });
+    
+    // 2. Effacer tous les champs de défauts
+    const allDefectInputs = document.querySelectorAll('.defect-input-side, .defect-input-center');
+    allDefectInputs.forEach(input => {
+        input.value = '';
+        // Retirer la classe has-value pour remettre le style de base
+        input.classList.remove('has-value');
+    });
+    
+    // 3. Effacer les données du rouleau
+    const rollFields = [
+        '#roll-number',
+        '#roll-length', 
+        '#tube-mass',
+        '#total-mass',
+        '#next-tube-mass'
+    ];
+    rollFields.forEach(selector => {
+        const field = document.querySelector(selector);
+        if (field) {
+            field.value = '';
+        }
+    });
+    
+    // 4. Effacer les champs de commande de fabrication
+    const orderFields = [
+        '#current-order',
+        '#cutting-order',
+        '#target-length'
+    ];
+    orderFields.forEach(selector => {
+        const field = document.querySelector(selector);
+        if (field) {
+            field.value = '';
+        }
+    });
+    
+    // 5. Réinitialiser le statut du rouleau et la conformité
+    const rollStatusElement = document.getElementById('roll-status');
+    if (rollStatusElement) {
+        rollStatusElement.textContent = '';
+        rollStatusElement.className = 'roll-status-display';
+    }
+    
+    const conformityStatusElement = document.getElementById('conformity-status');
+    if (conformityStatusElement) {
+        conformityStatusElement.textContent = '';
+        conformityStatusElement.className = 'conformity-status';
+    }
+    
+    // 6. Réinitialiser l'ID du rouleau
+    const rollIdElement = document.getElementById('roll-id');
+    if (rollIdElement) {
+        rollIdElement.value = '';
+    }
+    
+    // 7. Synchroniser la sticky bar (vider les valeurs)
+    const stickyFields = [
+        '#sticky-roll-number',
+        '#sticky-roll-length',
+        '#sticky-tube-mass', 
+        '#sticky-total-mass'
+    ];
+    stickyFields.forEach(selector => {
+        const field = document.querySelector(selector);
+        if (field) {
+            field.textContent = '';
+        }
+    });
+    
+    const stickyRollId = document.getElementById('sticky-roll-id');
+    if (stickyRollId) {
+        stickyRollId.textContent = '';
+    }
+    
+    const stickyRollStatus = document.getElementById('sticky-roll-status');
+    if (stickyRollStatus) {
+        stickyRollStatus.textContent = '';
+        stickyRollStatus.className = 'roll-status-display';
+    }
+    
+    // 8. Réinitialiser les compteurs et indicateurs
+    const thicknessProgress = document.getElementById('thickness-progress');
+    if (thicknessProgress) {
+        thicknessProgress.textContent = '0/0';
+    }
+    
+    const nokCount = document.getElementById('nok-count');
+    if (nokCount) {
+        nokCount.textContent = '0';
+    }
+    
+    const defectsSummary = document.getElementById('defects-summary');
+    if (defectsSummary) {
+        defectsSummary.innerHTML = '';
+    }
+    
+    // 9. Régénérer la visualisation du rouleau (vide)
+    setTimeout(generateRollVisualization, 100);
+    
+    // 10. Mettre à jour les compteurs et statuts
+    setTimeout(updateRollConformity, 200);
+    setTimeout(updateThicknessCounter, 300);
+    setTimeout(updateNokCounter, 400);
+    setTimeout(updateDefectsSummary, 500);
+    
+    // 11. Effacer les données de la fiche de poste (shift/post data)
+    const shiftFields = [
+        'input[name="date"]',
+        'select[name="operator"]',
+        'select[name="vacation"]',
+        'select[name="opening_time"]',
+        'input[name="meter_reading_start"]',
+        'input[name="meter_reading_end"]',
+        'textarea[name="operator_comments"]'
+    ];
+    shiftFields.forEach(selector => {
+        const field = document.querySelector(selector);
+        if (field) {
+            if (field.type === 'checkbox') {
+                field.checked = false;
+            } else {
+                field.value = '';
+            }
+        }
+    });
+    
+    // Effacer les checkboxes de la fiche de poste
+    const shiftCheckboxes = [
+        'input[name="started_at_beginning"]',
+        'input[name="started_at_end"]'
+    ];
+    shiftCheckboxes.forEach(selector => {
+        const field = document.querySelector(selector);
+        if (field) {
+            field.checked = false;
+        }
+    });
+    
+    // Remettre la date d'aujourd'hui
+    const dateField = document.querySelector('input[name="date"]');
+    if (dateField) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        dateField.value = `${year}-${month}-${day}`;
+    }
+    
+    // 12. Effacer les déclarations de temps perdu
+    if (typeof window.lostTimeEntries !== 'undefined') {
+        window.lostTimeEntries = [];
+    }
+    if (typeof window.totalLostTimeMinutes !== 'undefined') {
+        window.totalLostTimeMinutes = 0;
+    }
+    
+    // Vider l'affichage DOM du temps perdu
+    const lostTimeList = document.getElementById('lost-time-list');
+    if (lostTimeList) {
+        lostTimeList.innerHTML = '';
+    }
+    
+    // Mettre à jour l'affichage du temps perdu dans la fiche de poste
+    setTimeout(() => {
+        if (typeof updateLostTimeDisplay === 'function') {
+            updateLostTimeDisplay();
+        }
+        if (typeof updateAvailabilityTime === 'function') {
+            updateAvailabilityTime();
+        }
+    }, 100);
+    
+    // 13. Déclencher l'auto-save pour effacer les données sauvegardées
+    clearTimeout(window.autoSaveTimeout);
+    window.autoSaveTimeout = setTimeout(autoSaveFormData, 600);
+    
+    console.log('Tous les champs ont été effacés et réinitialisés.');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     populateTimeOptions();
     loadFabricationOrders();
@@ -2691,6 +3052,23 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(restoreSavedData, 2000);
     setTimeout(updateRollId, 2500); // Générer l'ID après restauration
     setTimeout(generateRollVisualization, 3000); // Générer le rouleau après restauration
+    
+    // Debug check after everything has loaded
+    setTimeout(() => {
+        console.log('=== Final debug check ===');
+        const currentOrderSelect = document.getElementById('current-order');
+        const cuttingOrderSelect = document.getElementById('cutting-order');
+        const requiredLengthElement = document.getElementById('of-required-length-local');
+        
+        console.log('Current order value:', currentOrderSelect?.value);
+        console.log('Cutting order value:', cuttingOrderSelect?.value);
+        console.log('Required length element content:', requiredLengthElement?.textContent);
+        console.log('Fabrication orders data available:', !!window.fabricationOrdersData);
+        
+        // Force call updateRequiredLength for testing
+        console.log('Forcing updateRequiredLength call for debugging...');
+        updateRequiredLength();
+    }, 4000);
     
     // Initialiser la synchronisation de la sticky bar
     setTimeout(syncStickyBarValues, 3500);

@@ -12,7 +12,8 @@
       "Bash(python3 manage.py shell:*)",
       "Bash(rg:*)",
       "Bash(source:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

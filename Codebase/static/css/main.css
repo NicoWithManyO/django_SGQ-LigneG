@@ -185,6 +185,13 @@ body {
     font-weight: 500;
 }
 
+.of-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
 .mass-calc-field {
     display: flex;
     flex-direction: column;
@@ -206,31 +213,32 @@ body {
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 1px;
-    min-width: 200px;
+    width: 240px;
     display: inline-block;
+    text-align: center;
 }
 
 .roll-status-display .bg-success {
     background-color: #28a745 !important;
-    border: 3px solid #1e7e34;
+    border: 3px solid #1e7e34 !important;
     color: white !important;
 }
 
 .roll-status-display .bg-danger {
     background-color: #dc3545 !important;
-    border: 3px solid #c82333;
+    border: 3px solid #c82333 !important;
     color: white !important;
 }
 
 .roll-status-display .bg-warning {
     background-color: #28a745 !important;
     color: #fd7e14 !important;
-    border: 3px solid #1e7e34;
+    border: 3px solid #1e7e34 !important;
 }
 
 .roll-status-display .bg-secondary {
     background-color: transparent !important;
-    border: 3px solid transparent;
+    border: 3px solid transparent !important;
     color: #6c757d !important;
 }
 
@@ -904,9 +912,14 @@ input.fibrage-value-readonly {
 .fibrage-action-btn {
     margin-left: 1rem;
     align-self: center;
-    min-width: 140px;
+    width: 180px !important;
     font-weight: bold;
     transition: all 0.3s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: unset !important;
+    max-width: 180px !important;
 }
 
 /* Override pour les boutons de fiche de poste */
@@ -914,6 +927,65 @@ input.fibrage-value-readonly {
     margin-left: 0;
     margin-bottom: 0;
     align-self: auto;
+}
+
+/* Styles pour le bloc Ordre de Fabrication */
+.of-container {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+}
+
+.of-left-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.of-right-col {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+}
+
+.of-field-row {
+    display: flex;
+    flex-direction: column;
+}
+
+.of-field-row .form-label {
+    margin-bottom: 0.2rem;
+}
+
+.of-input {
+    max-width: 120px;
+    background-color: var(--primary-light) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--primary-text) !important;
+}
+
+.of-info-display {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.1rem;
+    font-size: 0.7rem;
+    text-align: right;
+}
+
+/* Remove dropdown arrows from OF fields */
+input[list].of-input {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+select.of-input {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    background-image: none !important;
 }
 
 .fibrage-action-btn.conforme {
@@ -926,6 +998,14 @@ input.fibrage-value-readonly {
     background-color: #fd7e14 !important;
     border-color: #fd7e14 !important;
     color: white !important;
+}
+
+.fibrage-action-btn:disabled {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: #adb5bd !important;
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
 }
 
 /* Statut de conformité dans la sticky bar */

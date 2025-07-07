@@ -56,7 +56,11 @@ def get_fabrication_orders(request):
         order_data = {
             'id': order.id,
             'order_number': order.order_number,
-            'for_cutting': order.for_cutting
+            'for_cutting': order.for_cutting,
+            'required_length': float(order.required_length),
+            'due_date': order.due_date.strftime('%d/%m/%Y') if order.due_date else None,
+            'produced_count': 0,  # TODO: calculer depuis les rouleaux produits
+            'produced_length': 0  # TODO: calculer depuis les rouleaux produits
         }
         
         if order.for_cutting:
