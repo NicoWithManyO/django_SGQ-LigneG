@@ -19,4 +19,7 @@ urlpatterns = [
     
     # Vérification shift
     path('check-shift-exists/', views.check_shift_exists, name='check_shift_exists'),
+    
+    # Gestion des opérateurs
+    path('operator/create/', views.operator_create, name='operator_create'),
 ]

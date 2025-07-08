@@ -10,7 +10,8 @@ Système de gestion de production de feutre pour **Saint-Gobain Quartz SAS - Nem
 ## 🎯 Fonctionnalités Principales
 
 ### 📋 Gestion des Postes de Production
-- **Fiche de Poste** : Gestion complète des shifts (opérateur, vacation, horaires)
+- **Fiche de Poste** : Gestion complète des shifts (opérateur, vacation, horaires début/fin)
+- **Création Rapide** : Boutons "+" discrets pour ajouter opérateurs et OF via modales
 - **Continuité Machine** : Report automatique des états machine entre postes
 - **Validation** : Contrôles obligatoires avant sauvegarde
 - **Traçabilité** : ID unique dynamique `JJMMAA_PrenomNom_Vacation`
@@ -54,8 +55,10 @@ Système de gestion de production de feutre pour **Saint-Gobain Quartz SAS - Nem
 - shift_id: str       # Auto-généré JJMMAA_PrenomNom_Vacation
 - date: date          # Date du poste
 - operator: FK        # Opérateur responsable
-- vacation: str       # Matin/ApresMidi/Nuit
-- opening_time: time  # Temps d'ouverture (30min à 10h par tranches 10min)
+- vacation: str       # Matin/ApresMidi/Nuit/Journée
+- start_time: time    # Heure de début du poste
+- end_time: time      # Heure de fin du poste
+- opening_time: property # Durée calculée (end_time - start_time)
 - started_at_*: bool  # États machine début/fin
 - meter_reading_*: int # Métrages début/fin
 ```
@@ -85,13 +88,14 @@ Système de gestion de production de feutre pour **Saint-Gobain Quartz SAS - Nem
 - **UX** : Champs disabled avec boutons d'édition + confirmation
 
 ### Blocs Principaux
-1. **Fiche de Poste** (sidebar gauche)
-2. **Ordre de Fabrication & Fibrage** (top-right)
-3. **Déclaration de Temps** (bottom-right)
+1. **Fiche de Poste** (sidebar gauche) - Layout 3 colonnes avec durée calculée
+2. **Ordre de Fabrication & Fibrage** (top-right) - Bouton création OF intégré
+3. **Déclaration de Temps** (bottom-right) - Affichage conditionnel selon état machine
 
 ### Conventions UX
 - **Champs vides** : Affichage cohérent `--`
 - **Édition** : Clic crayon → activation → confirmation
+- **Création Rapide** : Boutons "+" avec transparence hover (opérateurs, OF)
 - **Validation** : Messages d'erreur clairs en français
 - **Auto-save** : Indicateurs visuels de sauvegarde
 
@@ -138,6 +142,7 @@ python manage.py runserver
 ### Business Rules
 - **ID Postes** : `JJMMAA_PrenomNom_Vacation`
 - **ID Rouleaux** : `OFNumber_NumeroRouleau`
+- **Vacations** : Matin (4h-12h), ApresMidi (12h-20h), Nuit (20h-4h), Journée (7h30-15h30)
 - **Unités** : mètres (m), grammes (g), minutes (min)
 - **Statuts** : Anglais technique (`active`, `terminated`)
 
@@ -158,7 +163,7 @@ python manage.py runserver
 ## 🚀 Roadmap
 
 ### Phase 1 (Actuelle) ✅
-- [x] Gestion des postes de production
+- [x] Gestion des postes de production avec horaires début/fin
 - [x] Auto-save et restauration données
 - [x] Gestion OF avec statuts
 - [x] Interface responsive et intuitive
@@ -167,6 +172,9 @@ python manage.py runserver
 - [x] Visualisation rouleau avec champs défauts intégrés
 - [x] Sélection défauts depuis datalists
 - [x] Boutons d'effacement rapide des défauts
+- [x] Création rapide opérateurs et OF via modales
+- [x] Calcul automatique durée postes (support minuit)
+- [x] Vacation "Journée" avec horaires par défaut
 
 ### Phase 2 (À venir)
 - [ ] Intégration complète mesures d'épaisseur

@@ -272,11 +272,23 @@ body {
 .reading-group input {
     width: 50px;
     height: 20px;
-    font-size: 0.7rem;
+    font-size: 0.8rem;
+    font-weight: 600;
     padding: 0;
     text-align: center;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     border-radius: 3px;
+    background: var(--primary-light);
+    color: var(--primary-text);
+    margin: 0;
+    line-height: 1;
+}
+
+.reading-group input:focus {
+    background: white !important;
+    color: var(--primary-text) !important;
+    border-color: var(--primary-color) !important;
+    outline: none !important;
 }
 
 .average-display {
@@ -292,20 +304,51 @@ body {
 .sizing-bath {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     height: 100%;
+}
+
+.sizing-bath-field {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.sizing-bath-field label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary-text);
 }
 
 .sizing-bath input {
     width: 50px;
     height: 20px;
-    font-size: 0.7rem;
+    font-size: 0.8rem;
+    font-weight: 600;
     padding: 0;
     text-align: center;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     border-radius: 3px;
+    background: var(--primary-light);
+    color: var(--primary-text);
+    margin: 0;
+    line-height: 1;
+}
+
+.sizing-bath input:focus {
+    background: white !important;
+    color: var(--primary-text) !important;
+    border-color: var(--primary-color) !important;
+    outline: none !important;
+}
+
+.loi-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
 }
 
 .status-buttons {
@@ -337,11 +380,30 @@ body {
 .surface-mass-section .reading-group input {
     width: 50px;
     height: 20px;
-    font-size: 0.7rem;
+    font-size: 0.8rem;
+    font-weight: 600;
     padding: 0;
     text-align: center;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     border-radius: 3px;
+    background: var(--primary-light);
+    color: var(--primary-text);
+    margin: 0;
+    line-height: 1;
+}
+
+.reading-group input:focus {
+    background: white !important;
+    color: var(--primary-text) !important;
+    border-color: var(--primary-color) !important;
+    outline: none !important;
+}
+
+.surface-mass-section .reading-group input:focus {
+    background: white !important;
+    color: var(--primary-text) !important;
+    border-color: var(--primary-color) !important;
+    outline: none !important;
 }
 
 .surface-mass-section .reading-group small {

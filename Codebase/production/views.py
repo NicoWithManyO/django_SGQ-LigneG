@@ -158,6 +158,46 @@ def shift_save_field(request, shift_id):
 
 
 @require_POST
+def operator_create(request):
+    """Créer un nouvel opérateur via AJAX."""
+    try:
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        training_completed = request.POST.get('training_completed') == 'on'
+        
+        if not first_name or not last_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Le prénom et le nom sont obligatoires'
+            })
+        
+        # Créer l'opérateur
+        operator = Operator.objects.create(
+            first_name=first_name,
+            last_name=last_name,
+            training_completed=training_completed,
+            is_active=True
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'operator': {
+                'id': operator.id,
+                'full_name': operator.full_name,
+                'first_name': operator.first_name,
+                'last_name': operator.last_name,
+                'training_completed': operator.training_completed
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+
+
+@require_POST
 def auto_save_form(request):
     """Auto-sauvegarde des données du formulaire."""
     try:

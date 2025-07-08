@@ -8,4 +8,5 @@ urlpatterns = [
     path('get-fabrication-orders/', views.get_fabrication_orders, name='get_fabrication_orders'),
     path('check-of-exists/', views.check_of_exists, name='check_of_exists'),
     path('create-of/', views.create_of, name='create_of'),
+    path('fabrication-order/create/', views.fabrication_order_create, name='fabrication_order_create'),
 ]

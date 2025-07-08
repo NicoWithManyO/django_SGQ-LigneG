@@ -124,3 +124,45 @@ def create_of(request):
         return JsonResponse({'success': False, 'error': 'Données JSON invalides'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Erreur lors de la création: {str(e)}'})
+
+
+@require_POST
+def fabrication_order_create(request):
+    """Créer un nouvel OF via formulaire."""
+    try:
+        order_number = request.POST.get('order_number', '').strip()
+        required_length = request.POST.get('required_length', 0)
+        target_roll_length = request.POST.get('target_roll_length', 0)
+        due_date = request.POST.get('due_date')
+        for_cutting = request.POST.get('for_cutting') == 'on'
+        
+        if not order_number:
+            return JsonResponse({'success': False, 'error': 'Numéro d\'ordre requis'})
+        
+        # Vérifier si l'OF existe déjà
+        if FabricationOrder.objects.filter(order_number=order_number).exists():
+            return JsonResponse({'success': False, 'error': f'L\'OF "{order_number}" existe déjà'})
+        
+        # Créer l'OF
+        order_data = {
+            'order_number': order_number,
+            'required_length': required_length,
+            'target_roll_length': target_roll_length,
+            'for_cutting': for_cutting
+        }
+        
+        if due_date:
+            from datetime import datetime
+            order_data['due_date'] = datetime.strptime(due_date, '%Y-%m-%d').date()
+        
+        order = FabricationOrder.objects.create(**order_data)
+        
+        return JsonResponse({
+            'success': True,
+            'order_number': order.order_number,
+            'id': order.id,
+            'message': f'OF "{order_number}" créé avec succès'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Erreur lors de la création: {str(e)}'})

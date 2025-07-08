@@ -31,10 +31,58 @@
                 <div class="row mb-2">
                     <div class="col-12">
                         <label class="form-label">{{ form.operator.label }}</label>
-                        {{ form.operator }}
+                        <div class="row g-2">
+                            <div class="col-8">
+                                {{ form.operator }}
+                            </div>
+                            <div class="col-4 d-flex align-items-center justify-content-end">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addOperator()" title="Ajouter un opérateur" style="opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+                                    <i class="bi bi-person-plus"></i>
+                                </button>
+                            </div>
+                        </div>
                         {% if form.operator.errors %}
                             <div class="text-danger small">{{ form.operator.errors.0 }}</div>
                         {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Modale pour ajouter un opérateur -->
+                <div class="modal fade" id="addOperatorModal" tabindex="-1" aria-labelledby="addOperatorModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-sm">
+                        <div class="modal-content">
+                            <div class="modal-header border-0 pb-0">
+                                <h6 class="modal-title" id="addOperatorModalLabel">
+                                    <i class="bi bi-person-plus"></i> Nouvel Opérateur
+                                </h6>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="addOperatorForm">
+                                    {% csrf_token %}
+                                    <div class="mb-3">
+                                        <label for="operatorFirstName" class="form-label">Prénom</label>
+                                        <input type="text" class="form-control" id="operatorFirstName" name="first_name" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="operatorLastName" class="form-label">Nom</label>
+                                        <input type="text" class="form-control" id="operatorLastName" name="last_name" required>
+                                    </div>
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="operatorTrainingCompleted" name="training_completed" checked>
+                                        <label class="form-check-label" for="operatorTrainingCompleted">
+                                            Formation terminée
+                                        </label>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer border-0 pt-0">
+                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="saveOperator()">
+                                    <i class="bi bi-check-lg"></i> Créer
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -155,6 +203,13 @@
                                     {% endif %}
                                 </div>
                             </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div id="shutdown-message-end" style="visibility: hidden;">
+                                        <small class="text-muted text-center d-block startup-message-text">Pensez à déclarer du temps d'arrêt</small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -215,18 +270,10 @@ function toggleShiftBlock() {
     
     if (content.style.display === 'none') {
         content.style.display = 'block';
-        setTimeout(() => {
-            content.style.transition = 'opacity 0.3s ease';
-            content.style.opacity = '1';
-            chevron.className = 'bi bi-chevron-up';
-        }, 50);
+        chevron.className = 'bi bi-chevron-up';
     } else {
-        content.style.transition = 'opacity 0.3s ease';
-        content.style.opacity = '0';
-        setTimeout(() => {
-            content.style.display = 'none';
-            chevron.className = 'bi bi-chevron-down';
-        }, 300);
+        content.style.display = 'none';
+        chevron.className = 'bi bi-chevron-down';
     }
 }
 
@@ -330,8 +377,10 @@ function updateDurationDisplay() {
         
         // Mettre à jour l'affichage
         durationDisplay.innerHTML = `
-            <span class="fw-bold">${durationTimeStr}</span><br>
-            <small class="text-muted">(${durationMinutes}&nbsp;min)</small>
+            <div style="line-height: 1.1;">
+                <span class="fw-bold">${durationTimeStr}</span><br>
+                <small class="text-muted">(${durationMinutes}&nbsp;min)</small>
+            </div>
         `;
     } else {
         // Ne rien afficher si les heures ne sont pas remplies
@@ -462,6 +511,25 @@ function hasStartupTimeEntry() {
     });
 }
 
+// Fonction pour vérifier s'il y a des temps d'arrêt déclarés
+function hasShutdownTimeEntry() {
+    // Vérifier dans la variable globale lostTimeEntries
+    if (window.lostTimeEntries && window.lostTimeEntries.length > 0) {
+        const hasInGlobal = window.lostTimeEntries.some(entry => {
+            const motifLower = entry.motif.toLowerCase();
+            return motifLower.includes('arrêt') || motifLower.includes('arret');
+        });
+        if (hasInGlobal) return true;
+    }
+    
+    // Vérifier dans les éléments DOM
+    const lostTimeElements = document.querySelectorAll('#lost-time-list .fw-bold.text-primary');
+    return Array.from(lostTimeElements).some(element => {
+        const motifText = element.textContent.toLowerCase();
+        return motifText.includes('arrêt') || motifText.includes('arret');
+    });
+}
+
 // Gérer l'affichage conditionnel des champs meter reading
 function toggleMeterReadingFields() {
     const startedAtBeginning = document.querySelector('input[name="started_at_beginning"]');
@@ -498,8 +566,29 @@ function toggleMeterReadingFields() {
     }
     
     if (startedAtEnd && meterEndField) {
-        meterEndField.style.visibility = startedAtEnd.checked ? 'visible' : 'hidden';
-        console.log('Champ métrage fin:', startedAtEnd.checked ? 'visible' : 'hidden');
+        const shutdownMessageEnd = document.getElementById('shutdown-message-end');
+        
+        if (startedAtEnd.checked) {
+            // Machine démarrée -> afficher le champ métrage
+            meterEndField.style.visibility = 'visible';
+            if (shutdownMessageEnd) shutdownMessageEnd.style.visibility = 'hidden';
+            console.log('Champ métrage fin: visible, message arrêt: hidden');
+        } else {
+            // Machine pas démarrée -> vérifier s'il y a des temps d'arrêt
+            const hasShutdownTime = hasShutdownTimeEntry();
+            
+            if (hasShutdownTime) {
+                // Il y a des temps d'arrêt -> ne rien afficher
+                meterEndField.style.visibility = 'hidden';
+                if (shutdownMessageEnd) shutdownMessageEnd.style.visibility = 'hidden';
+                console.log('Champ métrage fin: hidden, message arrêt: hidden (temps déclaré)');
+            } else {
+                // Pas de temps d'arrêt -> afficher le message
+                meterEndField.style.visibility = 'hidden';
+                if (shutdownMessageEnd) shutdownMessageEnd.style.visibility = 'visible';
+                console.log('Champ métrage fin: hidden, message arrêt: visible');
+            }
+        }
     }
 }
 

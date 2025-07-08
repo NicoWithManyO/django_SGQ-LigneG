@@ -107,10 +107,9 @@ class ShiftForm(forms.ModelForm):
         }
     
     def finish_init(self):
-        # Filtrer les opérateurs actifs avec formation terminée et les trier alphabétiquement
+        # Filtrer les opérateurs actifs et les trier alphabétiquement
         self.fields['operator'].queryset = Operator.objects.filter(
-            is_active=True,
-            training_completed=True
+            is_active=True
         ).order_by('first_name')
         
         # Supprimer l'option vide (placeholder) pour le champ operator

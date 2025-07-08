@@ -74,7 +74,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="of-right-col">
+                    <div class="of-right-col" style="flex-direction: column; justify-content: space-between; height: 100%;">
                         <div class="of-info-display">
                             <small id="of-required-length-local" class="text-muted">--</small>
                             <small id="of-roll-count-local" class="text-muted">--</small>
@@ -83,6 +83,11 @@
                             <small id="of-produced-local" class="text-muted">--</small>
                             <small id="of-remaining-local" class="text-muted">--</small>
                             <small id="of-days-remaining-local" class="text-muted">--</small>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; align-items: flex-end; width: 100%;">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addFabricationOrder()" title="Créer un OF" style="opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+                                <i class="bi bi-plus"></i> OF
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -127,6 +132,7 @@
                                     <option value="demarrage">Démarrage</option>
                                     <option value="panne_maintenance">Panne/Maintenance</option>
                                     <option value="menage">Ménage sans fibrage</option>
+                                    <option value="arret">Arrêt</option>
                                     <option value="autre">Autre</option>
                                 </select>
                             </div>
@@ -174,17 +180,17 @@
                             <div class="micrometer-readings">
                                 <div class="reading-group">
                                     <label>#1</label>
-                                    <input type="number" class="form-control" step="0.01" placeholder="--">
+                                    <input type="text" class="form-control" placeholder="--">
                                 </div>
                                 <div class="reading-group">
                                     <label>#2</label>
-                                    <input type="number" class="form-control" step="0.01" placeholder="--">
+                                    <input type="text" class="form-control" placeholder="--">
                                 </div>
                                 <div class="reading-group">
                                     <label>#3</label>
-                                    <input type="number" class="form-control" step="0.01" placeholder="--">
+                                    <input type="text" class="form-control" placeholder="--">
                                 </div>
-                                <div class="average-display">
+                                <div class="average-display mt-0">
                                     <small class="text-muted">--</small>
                                 </div>
                             </div>
@@ -195,14 +201,20 @@
                     <div class="control-section center">
                         <div class="control-header">
                             <i class="bi bi-clipboard-data"></i>
-                            <span>Bain d'Ensimage</span>
+                            <span>Extrait Sec</span>
                         </div>
                         <div class="control-content">
                             <div class="sizing-bath">
-                                <input type="number" class="form-control" step="0.01" placeholder="--">
-                                <div class="status-buttons">
-                                    <button type="button" class="btn btn-success btn-sm">OK</button>
-                                    <button type="button" class="btn btn-secondary btn-sm">Donné</button>
+                                <div class="sizing-bath-field">
+                                    <input type="text" class="form-control" placeholder="--" id="sizing-bath-input">
+                                    <small class="text-muted" id="sizing-bath-time">--</small>
+                                </div>
+                                <hr style="width: 80%; margin: 0.5rem 0; border-color: var(--border-color);">
+                                <div class="loi-section">
+                                    <div class="status-buttons">
+                                        <button type="button" class="btn btn-secondary btn-sm">LOI donnée</button>
+                                    </div>
+                                    <small class="text-muted" id="loi-time">--</small>
                                 </div>
                             </div>
                         </div>
@@ -218,17 +230,17 @@
                             <div class="micrometer-readings">
                                 <div class="reading-group">
                                     <label>#1</label>
-                                    <input type="number" class="form-control" step="0.01" placeholder="--">
+                                    <input type="text" class="form-control" placeholder="--">
                                 </div>
                                 <div class="reading-group">
                                     <label>#2</label>
-                                    <input type="number" class="form-control" step="0.01" placeholder="--">
+                                    <input type="text" class="form-control" placeholder="--">
                                 </div>
                                 <div class="reading-group">
                                     <label>#3</label>
-                                    <input type="number" class="form-control" step="0.01" placeholder="--">
+                                    <input type="text" class="form-control" placeholder="--">
                                 </div>
-                                <div class="average-display">
+                                <div class="average-display mt-0">
                                     <small class="text-muted">--</small>
                                 </div>
                             </div>
@@ -245,15 +257,20 @@
                             <span>Contrôles Masse Surfacique Gauche</span>
                         </div>
                         <div class="surface-mass-readings">
-                            <div class="reading-pair">
-                                <div class="reading-group">
-                                    <label>GG</label>
-                                    <input type="number" class="form-control" step="0.0001" placeholder="--">
-                                    <small class="text-muted">--</small>
+                            <div class="d-flex flex-column">
+                                <div class="d-flex align-items-end gap-2">
+                                    <small class="text-muted" style="margin-bottom: 0;" id="gg-conversion">--</small>
+                                    <div class="reading-group">
+                                        <label>GG</label>
+                                        <input type="text" class="form-control" placeholder="--" id="gg-input">
+                                    </div>
+                                    <div class="reading-group">
+                                        <label>GC</label>
+                                        <input type="text" class="form-control" placeholder="--" id="gc-input">
+                                    </div>
+                                    <small class="text-muted" style="margin-bottom: 0;" id="gc-conversion">--</small>
                                 </div>
-                                <div class="reading-group">
-                                    <label>GC</label>
-                                    <input type="number" class="form-control" step="0.0001" placeholder="--">
+                                <div class="text-center mt-0">
                                     <small class="text-muted">--</small>
                                 </div>
                             </div>
@@ -267,15 +284,20 @@
                             <span>Contrôles Masse Surfacique Droite</span>
                         </div>
                         <div class="surface-mass-readings">
-                            <div class="reading-pair">
-                                <div class="reading-group">
-                                    <label>DC</label>
-                                    <input type="number" class="form-control" step="0.0001" placeholder="--">
-                                    <small class="text-muted">--</small>
+                            <div class="d-flex flex-column">
+                                <div class="d-flex align-items-end gap-2">
+                                    <small class="text-muted" style="margin-bottom: 0;" id="dc-conversion">--</small>
+                                    <div class="reading-group">
+                                        <label>DC</label>
+                                        <input type="text" class="form-control" placeholder="--" id="dc-input">
+                                    </div>
+                                    <div class="reading-group">
+                                        <label>DD</label>
+                                        <input type="text" class="form-control" placeholder="--" id="dd-input">
+                                    </div>
+                                    <small class="text-muted" style="margin-bottom: 0;" id="dd-conversion">--</small>
                                 </div>
-                                <div class="reading-group">
-                                    <label>DD</label>
-                                    <input type="number" class="form-control" step="0.0001" placeholder="--">
+                                <div class="text-center mt-0">
                                     <small class="text-muted">--</small>
                                 </div>
                             </div>
@@ -323,6 +345,65 @@
 
 </div>
 
+<!-- Modale pour ajouter un OF -->
+<div class="modal fade" id="addFabricationOrderModal" tabindex="-1" aria-labelledby="addFabricationOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title" id="addFabricationOrderModalLabel">
+                    <i class="bi bi-plus-circle"></i> Nouvel Ordre de Fabrication
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addFabricationOrderForm">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="ofOrderNumber" class="form-label">Numéro d'OF</label>
+                                <input type="text" class="form-control" id="ofOrderNumber" name="order_number" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="ofRequiredLength" class="form-label">Longueur requise (m)</label>
+                                <input type="number" class="form-control" id="ofRequiredLength" name="required_length" step="0.01" min="0" placeholder="0 = illimité">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="ofTargetRollLength" class="form-label">Longueur par rouleau (m)</label>
+                                <input type="number" class="form-control" id="ofTargetRollLength" name="target_roll_length" step="0.01" min="0" placeholder="0 = illimité">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="ofDueDate" class="form-label">Date d'échéance</label>
+                                <input type="date" class="form-control" id="ofDueDate" name="due_date">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="ofForCutting" name="for_cutting">
+                        <label class="form-check-label" for="ofForCutting">
+                            Pour la découpe
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="saveFabricationOrder()">
+                    <i class="bi bi-check-lg"></i> Créer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Sticky Bar Fibrage en cours -->
 <div class="fibrage-sticky-bar">
     <div class="fibrage-container">
@@ -336,7 +417,7 @@
             <!-- Centre : Numéro rouleau, ID, Lg, Masse tube, Masse totale, Bouton save -->
             <div class="fibrage-center">
                 <div class="fibrage-field">
-                    <label class="fibrage-label">Numéro de Rouleau</label>
+                    <label class="fibrage-label">N° Rouleau</label>
                     <div class="fibrage-value-with-edit">
                         <div class="fibrage-value-readonly" id="sticky-roll-number">1</div>
                         <button type="button" class="fibrage-edit-btn" onclick="makeEditable('sticky-roll-number')" title="Modifier">
@@ -832,7 +913,9 @@ function autoSaveFormData() {
         rollLength: document.querySelector('#roll-length')?.value || '',
         nextTubeMass: document.querySelector('#next-tube-mass')?.value || '',
         // Données du rouleau (mesures et défauts)
-        rollData: getRollData()
+        rollData: getRollData(),
+        // Contrôles qualité
+        qualityControls: getQualityControlsData()
     };
     
     console.log('Sauvegarde des données:', formData);
@@ -999,6 +1082,11 @@ function restoreSavedData() {
                     }
                     // Synchroniser la sticky bar après restauration
                     setTimeout(syncStickyBarValues, 200);
+                    
+                    // Restaurer les contrôles qualité
+                    if (data.qualityControls) {
+                        restoreQualityControlsData(data.qualityControls);
+                    }
                 }, 500);
                 
                 // Déclencher la visibilité des champs conditionnels après restauration
@@ -1031,14 +1119,25 @@ function restoreSavedData() {
 
 // Event listeners pour auto-save
 document.body.addEventListener('input', function(e) {
-    if ((e.target.closest('#shift-form') || e.target.closest('.block-content')) && !window.isRestoring) {
+    if ((e.target.closest('#shift-form') || e.target.closest('.block-content') || e.target.closest('.quality-controls-container')) && !window.isRestoring) {
         clearTimeout(window.autoSaveTimeout);
         window.autoSaveTimeout = setTimeout(autoSaveFormData, 1000);
+        
+        // Mettre à jour le bouton si c'est un champ requis pour le rouleau
+        if (e.target.id === 'roll-number' || e.target.id === 'tube-mass' || 
+            e.target.id === 'total-mass' || e.target.id === 'roll-length') {
+            setTimeout(() => {
+                const conformityStatus = document.getElementById('conformity-status');
+                if (conformityStatus) {
+                    updateStickyConformityStatus(conformityStatus.textContent);
+                }
+            }, 100);
+        }
     }
 });
 
 document.body.addEventListener('change', function(e) {
-    if ((e.target.closest('#shift-form') || e.target.closest('.block-content')) && !window.isRestoring) {
+    if ((e.target.closest('#shift-form') || e.target.closest('.block-content') || e.target.closest('.quality-controls-container')) && !window.isRestoring) {
         // Si c'est une checkbox de machine, mettre à jour la visibilité
         if (e.target.name === 'started_at_beginning' || e.target.name === 'started_at_end') {
             toggleMeterReadingFields();
@@ -1046,6 +1145,17 @@ document.body.addEventListener('change', function(e) {
         
         clearTimeout(window.autoSaveTimeout);
         window.autoSaveTimeout = setTimeout(autoSaveFormData, 1000);
+        
+        // Mettre à jour le bouton si c'est un champ requis pour le rouleau
+        if (e.target.id === 'roll-number' || e.target.id === 'tube-mass' || 
+            e.target.id === 'total-mass' || e.target.id === 'roll-length') {
+            setTimeout(() => {
+                const conformityStatus = document.getElementById('conformity-status');
+                if (conformityStatus) {
+                    updateStickyConformityStatus(conformityStatus.textContent);
+                }
+            }, 100);
+        }
     }
 });
 
@@ -1613,7 +1723,7 @@ function checkRollExists(rollId) {
 }
 
 // Initialiser au chargement de la page
-// Fonction pour toggle le bloc OF avec effet fondu
+// Fonction pour toggle le bloc OF
 function toggleOFBlock() {
     const content = document.getElementById('of-content');
     const chevron = document.getElementById('of-chevron');
@@ -1623,23 +1733,15 @@ function toggleOFBlock() {
     if (content.style.display === 'none') {
         // Afficher le contenu
         content.style.display = 'block';
-        setTimeout(() => {
-            content.style.transition = 'opacity 0.3s ease';
-            content.style.opacity = '1';
-            chevron.className = 'bi bi-chevron-up';
-        }, 50);
+        chevron.className = 'bi bi-chevron-up';
     } else {
         // Cacher le contenu
-        content.style.transition = 'opacity 0.3s ease';
-        content.style.opacity = '0';
-        setTimeout(() => {
-            content.style.display = 'none';
-            chevron.className = 'bi bi-chevron-down';
-        }, 300);
+        content.style.display = 'none';
+        chevron.className = 'bi bi-chevron-down';
     }
 }
 
-// Fonction pour toggle le bloc Contrôles Qualité avec effet fondu
+// Fonction pour toggle le bloc Contrôles Qualité
 function toggleQualityControlsBlock() {
     const content = document.getElementById('quality-controls-content');
     const chevron = document.getElementById('quality-controls-chevron');
@@ -1649,41 +1751,25 @@ function toggleQualityControlsBlock() {
     if (content.style.display === 'none') {
         // Afficher le contenu
         content.style.display = 'block';
-        setTimeout(() => {
-            content.style.transition = 'opacity 0.3s ease';
-            content.style.opacity = '1';
-            chevron.className = 'bi bi-chevron-up';
-        }, 50);
+        chevron.className = 'bi bi-chevron-up';
     } else {
         // Cacher le contenu
-        content.style.transition = 'opacity 0.3s ease';
-        content.style.opacity = '0';
-        setTimeout(() => {
-            content.style.display = 'none';
-            chevron.className = 'bi bi-chevron-down';
-        }, 300);
+        content.style.display = 'none';
+        chevron.className = 'bi bi-chevron-down';
     }
 }
 
-// Fonction pour toggle le bloc Déclaration de Temps avec effet fondu
+// Fonction pour toggle le bloc Déclaration de Temps
 function toggleTempsBlock() {
     const content = document.getElementById('temps-content');
     const chevron = document.getElementById('temps-chevron');
     
     if (content.style.display === 'none') {
         content.style.display = 'block';
-        setTimeout(() => {
-            content.style.transition = 'opacity 0.3s ease';
-            content.style.opacity = '1';
-            chevron.className = 'bi bi-chevron-up';
-        }, 50);
+        chevron.className = 'bi bi-chevron-up';
     } else {
-        content.style.transition = 'opacity 0.3s ease';
-        content.style.opacity = '0';
-        setTimeout(() => {
-            content.style.display = 'none';
-            chevron.className = 'bi bi-chevron-down';
-        }, 300);
+        content.style.display = 'none';
+        chevron.className = 'bi bi-chevron-down';
     }
 }
 
@@ -2338,16 +2424,51 @@ function updateStickyConformityStatus(conformityText) {
     // Récupérer l'ID du rouleau pour le bouton
     const rollId = document.getElementById('roll-id')?.textContent || '--';
     
-    if (conformityText === 'CONFORME') {
-        // Vérifier si toutes les mesures d'épaisseur sont complètes
-        const allThicknessMeasurementsFilled = areAllThicknessMeasurementsFilled();
+    // Vérifier tous les champs requis pour sauver un rouleau
+    function checkAllRequiredFields() {
+        // 1. Numéro de rouleau
+        const rollNumber = document.getElementById('roll-number')?.value || '';
+        if (!rollNumber || rollNumber.trim() === '') {
+            return false;
+        }
         
-        if (allThicknessMeasurementsFilled) {
-            // Toutes les mesures complètes ET conforme -> bouton vert (clickable)
+        // 2. Masse tube
+        const tubeMass = document.getElementById('tube-mass')?.value || '';
+        if (!tubeMass || tubeMass.trim() === '') {
+            return false;
+        }
+        
+        // 3. Masse totale
+        const totalMass = document.getElementById('total-mass')?.value || '';
+        if (!totalMass || totalMass.trim() === '') {
+            return false;
+        }
+        
+        // 4. Longueur
+        const rollLength = document.getElementById('roll-length')?.value || '';
+        if (!rollLength || rollLength.trim() === '') {
+            return false;
+        }
+        
+        // 5. Toutes les mesures d'épaisseur complètes
+        const allThicknessMeasurementsFilled = areAllThicknessMeasurementsFilled();
+        if (!allThicknessMeasurementsFilled) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    if (conformityText === 'CONFORME') {
+        // Vérifier si tous les champs requis sont remplis
+        const allRequiredFieldsFilled = checkAllRequiredFields();
+        
+        if (allRequiredFieldsFilled) {
+            // Tous les champs requis remplis ET conforme -> bouton vert (clickable)
             actionBtn.classList.add('conforme');
             actionBtn.disabled = false;
         } else {
-            // Conforme mais mesures incomplètes -> bouton secondaire (disabled)
+            // Conforme mais champs manquants -> bouton secondaire (disabled)
             actionBtn.classList.add('btn-secondary');
             actionBtn.disabled = true;
         }
@@ -2627,8 +2748,11 @@ function syncStickyBarValues() {
     
     // Synchroniser le statut de conformité
     const conformityStatus = document.getElementById('conformity-status');
-    if (conformityStatus && conformityStatus.textContent !== '--') {
+    if (conformityStatus) {
         updateStickyConformityStatus(conformityStatus.textContent);
+    } else {
+        // Si pas de statut, appeler quand même pour mettre à jour le bouton
+        updateStickyConformityStatus('--');
     }
 }
 
@@ -2782,6 +2906,8 @@ function syncToHiddenField(stickyId, value) {
         const hiddenField = document.getElementById(hiddenId);
         if (hiddenField) {
             hiddenField.value = value === '--' ? '' : value;
+            // Déclencher manuellement l'événement input pour que les event listeners se déclenchent
+            hiddenField.dispatchEvent(new Event('input', { bubbles: true }));
         }
         
         // Mettre à jour l'ID du rouleau si c'est le numéro
@@ -2793,6 +2919,13 @@ function syncToHiddenField(stickyId, value) {
         if (stickyId === 'sticky-total-mass' || stickyId === 'sticky-tube-mass' || stickyId === 'sticky-roll-length') {
             calculateMassNetAndGrammage();
             updateValidationInfoPanel();
+            // Mettre à jour le bouton d'action
+            const conformityStatus = document.getElementById('conformity-status');
+            if (conformityStatus) {
+                updateStickyConformityStatus(conformityStatus.textContent);
+            } else {
+                updateStickyConformityStatus('--');
+            }
         }
     }
 }
@@ -2820,6 +2953,11 @@ document.body.addEventListener('input', function(e) {
         setTimeout(() => {
             syncStickyBarValues();
             updateValidationInfoPanel();
+            // Mettre à jour le bouton d'action
+            const conformityStatus = document.getElementById('conformity-status');
+            if (conformityStatus) {
+                updateStickyConformityStatus(conformityStatus.textContent);
+            }
         }, 50);
     }
 });
@@ -2829,6 +2967,11 @@ document.body.addEventListener('change', function(e) {
         setTimeout(() => {
             syncStickyBarValues();
             updateValidationInfoPanel();
+            // Mettre à jour le bouton d'action
+            const conformityStatus = document.getElementById('conformity-status');
+            if (conformityStatus) {
+                updateStickyConformityStatus(conformityStatus.textContent);
+            }
         }, 50);
     }
 });
@@ -2870,7 +3013,7 @@ function updateValidationInfoPanel() {
     const allThicknessFilled = areAllThicknessMeasurementsFilled();
     
     if (!rollNumber || rollNumber.trim() === '') {
-        missingItems.push('numéro de rouleau');
+        missingItems.push('N° rouleau');
     }
     
     if (targetLength <= 0) {
@@ -3284,6 +3427,23 @@ function clearAllFields() {
         }
     });
     
+    // Forcer l'effacement des champs meter_reading après décocher les checkboxes
+    const meterReadingFields = [
+        'input[name="meter_reading_start"]',
+        'input[name="meter_reading_end"]'
+    ];
+    meterReadingFields.forEach(selector => {
+        const field = document.querySelector(selector);
+        if (field) {
+            field.value = '';
+        }
+    });
+    
+    // Déclencher toggleMeterReadingFields pour masquer les champs
+    if (typeof toggleMeterReadingFields === 'function') {
+        toggleMeterReadingFields();
+    }
+    
     // Remettre la date d'aujourd'hui
     const dateField = document.querySelector('input[name="date"]');
     if (dateField) {
@@ -3329,6 +3489,157 @@ function clearAllFields() {
     setTimeout(updateValidationInfoPanel, 700);
     
     console.log('Tous les champs ont été effacés et réinitialisés.');
+}
+
+// Fonction pour ouvrir la modale d'ajout d'opérateur
+function addOperator() {
+    const modal = new bootstrap.Modal(document.getElementById('addOperatorModal'));
+    modal.show();
+}
+
+// Fonction pour ouvrir la modale d'ajout d'OF
+function addFabricationOrder() {
+    const modal = new bootstrap.Modal(document.getElementById('addFabricationOrderModal'));
+    modal.show();
+}
+
+// Fonction pour sauvegarder un nouvel opérateur
+function saveOperator() {
+    console.log('saveOperator called');
+    
+    // Récupérer les données manuellement
+    const firstName = document.getElementById('operatorFirstName');
+    const lastName = document.getElementById('operatorLastName');
+    const trainingCompleted = document.getElementById('operatorTrainingCompleted');
+    
+    if (!firstName || !lastName) {
+        console.error('Form fields not found');
+        alert('Erreur: champs du formulaire non trouvés');
+        return;
+    }
+    
+    const firstNameValue = firstName.value.trim();
+    const lastNameValue = lastName.value.trim();
+    const trainingCompletedValue = trainingCompleted ? trainingCompleted.checked : true;
+    
+    console.log('Form data:', {
+        first_name: firstNameValue,
+        last_name: lastNameValue,
+        training_completed: trainingCompletedValue
+    });
+    
+    if (!firstNameValue || !lastNameValue) {
+        alert('Le prénom et le nom sont obligatoires');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('first_name', firstNameValue);
+    formData.append('last_name', lastNameValue);
+    if (trainingCompletedValue) {
+        formData.append('training_completed', 'on');
+    }
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    console.log('CSRF Token:', csrfToken);
+    
+    fetch('/operator/create/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': csrfToken,
+        }
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        
+        if (data.success) {
+            // Fermer la modale
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addOperatorModal'));
+            modal.hide();
+            
+            // Rafraîchir la liste des opérateurs dans le select
+            const operatorSelect = document.querySelector('select[name="operator"]');
+            if (operatorSelect) {
+                const newOption = new Option(data.operator.full_name, data.operator.id, true, true);
+                operatorSelect.add(newOption);
+            }
+            
+            // Réinitialiser le formulaire
+            firstName.value = '';
+            lastName.value = '';
+            if (trainingCompleted) trainingCompleted.checked = true;
+            
+            // Notification succès
+            console.log('Opérateur ajouté avec succès');
+        } else {
+            console.error('Erreur serveur:', data.error);
+            alert('Erreur lors de l\'ajout : ' + (data.error || 'Erreur inconnue'));
+        }
+    })
+    .catch(error => {
+        console.error('Erreur fetch:', error);
+        alert('Erreur lors de l\'ajout de l\'opérateur');
+    });
+}
+
+// Fonction pour sauvegarder un nouvel OF
+function saveFabricationOrder() {
+    console.log('saveFabricationOrder called');
+    
+    const orderNumber = document.getElementById('ofOrderNumber').value.trim();
+    const requiredLength = document.getElementById('ofRequiredLength').value || 0;
+    const targetRollLength = document.getElementById('ofTargetRollLength').value || 0;
+    const dueDate = document.getElementById('ofDueDate').value;
+    const forCutting = document.getElementById('ofForCutting').checked;
+    
+    if (!orderNumber) {
+        alert('Le numéro d\'OF est obligatoire');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('order_number', orderNumber);
+    formData.append('required_length', requiredLength);
+    formData.append('target_roll_length', targetRollLength);
+    if (dueDate) formData.append('due_date', dueDate);
+    if (forCutting) formData.append('for_cutting', 'on');
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch('/core/fabrication-order/create/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': csrfToken,
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Fermer la modale
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addFabricationOrderModal'));
+            modal.hide();
+            
+            // Rafraîchir la liste des OF
+            loadFabricationOrders();
+            
+            // Réinitialiser le formulaire
+            document.getElementById('addFabricationOrderForm').reset();
+            
+            console.log('OF créé avec succès');
+        } else {
+            alert('Erreur lors de la création : ' + (data.error || 'Erreur inconnue'));
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la création de l\'OF');
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -3387,6 +3698,267 @@ document.addEventListener('DOMContentLoaded', function() {
     if (conformityStatusElement) {
         observer.observe(conformityStatusElement, { childList: true, characterData: true, subtree: true });
     }
+});
+
+// Fonction pour calculer la moyenne des micromètres
+function calculateMicrometerAverage(side) {
+    const inputs = document.querySelectorAll(`.control-section.${side} .micrometer-readings input`);
+    const averageDisplay = document.querySelector(`.control-section.${side} .average-display small`);
+    
+    if (!averageDisplay) return;
+    
+    let sum = 0;
+    let count = 0;
+    
+    inputs.forEach(input => {
+        const value = parseFloat(input.value);
+        if (!isNaN(value)) {
+            sum += value;
+            count++;
+        }
+    });
+    
+    if (count > 0) {
+        const average = (sum / count).toFixed(2);
+        averageDisplay.textContent = average;
+    } else {
+        averageDisplay.textContent = '--';
+    }
+}
+
+// Fonction pour calculer la conversion de 25cm² vers 1m²
+function calculateGrammageConversion(inputValue) {
+    // 1 m² = 10000 cm²
+    // donc pour convertir de 25cm² vers 1m² : valeur * (10000/25) = valeur * 400
+    const value = parseFloat(inputValue.replace(',', '.'));
+    if (!isNaN(value)) {
+        const converted = (value * 400).toFixed(0);
+        return converted;
+    }
+    return '--';
+}
+
+// Fonction pour mettre à jour les conversions des masses surfaciques
+function updateSurfaceMassConversions() {
+    // GG
+    const ggInput = document.getElementById('gg-input');
+    const ggConversion = document.getElementById('gg-conversion');
+    if (ggInput && ggConversion) {
+        ggConversion.textContent = calculateGrammageConversion(ggInput.value);
+    }
+    
+    // GC
+    const gcInput = document.getElementById('gc-input');
+    const gcConversion = document.getElementById('gc-conversion');
+    if (gcInput && gcConversion) {
+        gcConversion.textContent = calculateGrammageConversion(gcInput.value);
+    }
+    
+    // DC
+    const dcInput = document.getElementById('dc-input');
+    const dcConversion = document.getElementById('dc-conversion');
+    if (dcInput && dcConversion) {
+        dcConversion.textContent = calculateGrammageConversion(dcInput.value);
+    }
+    
+    // DD
+    const ddInput = document.getElementById('dd-input');
+    const ddConversion = document.getElementById('dd-conversion');
+    if (ddInput && ddConversion) {
+        ddConversion.textContent = calculateGrammageConversion(ddInput.value);
+    }
+}
+
+// Fonction pour calculer la moyenne des masses surfaciques
+function calculateSurfaceMassAverage(side) {
+    const inputs = document.querySelectorAll(`.surface-mass-section.${side} .reading-group input`);
+    const averageDisplay = document.querySelector(`.surface-mass-section.${side} .text-center small`);
+    
+    if (!averageDisplay) return;
+    
+    let sum = 0;
+    let count = 0;
+    
+    inputs.forEach(input => {
+        // Remplacer la virgule par un point pour parseFloat
+        const value = parseFloat(input.value.replace(',', '.'));
+        if (!isNaN(value)) {
+            sum += value;
+            count++;
+        }
+    });
+    
+    if (count > 0) {
+        const average = (sum / count).toFixed(4);
+        // Remplacer le point par une virgule pour l'affichage
+        averageDisplay.textContent = average.replace('.', ',');
+    } else {
+        averageDisplay.textContent = '--';
+    }
+}
+
+// Fonction pour récupérer les données des contrôles qualité
+function getQualityControlsData() {
+    const data = {
+        micrometerLeft: [],
+        micrometerRight: [],
+        sizingBath: '',
+        surfaceMassLeft: [],
+        surfaceMassRight: []
+    };
+    
+    // Micromètres gauche
+    document.querySelectorAll('.control-section.left .micrometer-readings input').forEach(input => {
+        data.micrometerLeft.push(input.value);
+    });
+    
+    // Micromètres droite
+    document.querySelectorAll('.control-section.right .micrometer-readings input').forEach(input => {
+        data.micrometerRight.push(input.value);
+    });
+    
+    // Bain d'ensimage
+    const sizingBathInput = document.querySelector('.sizing-bath input');
+    if (sizingBathInput) {
+        data.sizingBath = sizingBathInput.value;
+    }
+    
+    // Masses surfaciques gauche
+    document.querySelectorAll('.surface-mass-section.left .reading-group input').forEach(input => {
+        data.surfaceMassLeft.push(input.value);
+    });
+    
+    // Masses surfaciques droite
+    document.querySelectorAll('.surface-mass-section.right .reading-group input').forEach(input => {
+        data.surfaceMassRight.push(input.value);
+    });
+    
+    return data;
+}
+
+// Fonction pour restaurer les données des contrôles qualité
+function restoreQualityControlsData(data) {
+    // Restaurer micromètres gauche
+    const micrometerLeftInputs = document.querySelectorAll('.control-section.left .micrometer-readings input');
+    data.micrometerLeft?.forEach((value, index) => {
+        if (micrometerLeftInputs[index] && value) {
+            micrometerLeftInputs[index].value = value;
+        }
+    });
+    
+    // Restaurer micromètres droite
+    const micrometerRightInputs = document.querySelectorAll('.control-section.right .micrometer-readings input');
+    data.micrometerRight?.forEach((value, index) => {
+        if (micrometerRightInputs[index] && value) {
+            micrometerRightInputs[index].value = value;
+        }
+    });
+    
+    // Restaurer bain d'ensimage
+    const sizingBathInput = document.querySelector('.sizing-bath input');
+    if (sizingBathInput && data.sizingBath) {
+        sizingBathInput.value = data.sizingBath;
+    }
+    
+    // Restaurer masses surfaciques gauche
+    const surfaceMassLeftInputs = document.querySelectorAll('.surface-mass-section.left .reading-group input');
+    data.surfaceMassLeft?.forEach((value, index) => {
+        if (surfaceMassLeftInputs[index] && value) {
+            surfaceMassLeftInputs[index].value = value;
+        }
+    });
+    
+    // Restaurer masses surfaciques droite
+    const surfaceMassRightInputs = document.querySelectorAll('.surface-mass-section.right .reading-group input');
+    data.surfaceMassRight?.forEach((value, index) => {
+        if (surfaceMassRightInputs[index] && value) {
+            surfaceMassRightInputs[index].value = value;
+        }
+    });
+    
+    // Recalculer les moyennes après restauration
+    calculateMicrometerAverage('left');
+    calculateMicrometerAverage('right');
+    calculateSurfaceMassAverage('left');
+    calculateSurfaceMassAverage('right');
+    
+    // Recalculer les conversions après restauration
+    updateSurfaceMassConversions();
+}
+
+// Fonction pour formater les valeurs de masse surfacique
+function formatSurfaceMassInput(input) {
+    let value = input.value.trim();
+    
+    // Si la valeur commence par une virgule, ajouter 0 devant
+    if (value.startsWith(',')) {
+        value = '0' + value;
+        input.value = value;
+    }
+    
+    // Si la valeur commence par un point, le remplacer par 0,
+    if (value.startsWith('.')) {
+        value = '0,' + value.substring(1);
+        input.value = value;
+    }
+}
+
+// Ajouter les event listeners pour les calculs de moyenne
+document.addEventListener('DOMContentLoaded', function() {
+    // Micromètres gauche
+    document.querySelectorAll('.control-section.left .micrometer-readings input').forEach(input => {
+        input.addEventListener('input', () => calculateMicrometerAverage('left'));
+        input.addEventListener('blur', function() {
+            formatSurfaceMassInput(this);
+            calculateMicrometerAverage('left');
+        });
+    });
+    
+    // Micromètres droite
+    document.querySelectorAll('.control-section.right .micrometer-readings input').forEach(input => {
+        input.addEventListener('input', () => calculateMicrometerAverage('right'));
+        input.addEventListener('blur', function() {
+            formatSurfaceMassInput(this);
+            calculateMicrometerAverage('right');
+        });
+    });
+    
+    // Masses surfaciques gauche
+    document.querySelectorAll('.surface-mass-section.left .reading-group input').forEach(input => {
+        input.addEventListener('input', function() {
+            calculateSurfaceMassAverage('left');
+            // Mettre à jour les conversions
+            updateSurfaceMassConversions();
+        });
+        input.addEventListener('blur', function() {
+            formatSurfaceMassInput(this);
+            calculateSurfaceMassAverage('left');
+            updateSurfaceMassConversions();
+        });
+    });
+    
+    // Masses surfaciques droite
+    document.querySelectorAll('.surface-mass-section.right .reading-group input').forEach(input => {
+        input.addEventListener('input', function() {
+            calculateSurfaceMassAverage('right');
+            // Mettre à jour les conversions
+            updateSurfaceMassConversions();
+        });
+        input.addEventListener('blur', function() {
+            formatSurfaceMassInput(this);
+            calculateSurfaceMassAverage('right');
+            updateSurfaceMassConversions();
+        });
+    });
+    
+    // Bain d'ensimage - Extrait Sec
+    const sizingBathInput = document.getElementById('sizing-bath-input');
+    if (sizingBathInput) {
+        sizingBathInput.addEventListener('blur', function() {
+            formatSurfaceMassInput(this);
+        });
+    }
+    
 });
 </script>
 {% endblock %}
