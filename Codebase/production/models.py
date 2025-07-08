@@ -1,4 +1,6 @@
 from django.db import models
+from django.core.exceptions import ValidationError
+from datetime import datetime, timedelta
 from core.models import Operator
 
 
@@ -9,6 +11,7 @@ class Shift(models.Model):
         ('Matin', 'Matin'),
         ('ApresMidi', 'Après-midi'),
         ('Nuit', 'Nuit'),
+        ('Journee', 'Journée'),
     ]
     
     # Attributs principaux
@@ -19,7 +22,8 @@ class Shift(models.Model):
                                 verbose_name="Opérateur", help_text="Opérateur responsable du poste")
     vacation = models.CharField(max_length=20, choices=VACATION_CHOICES, 
                                verbose_name="Vacation", help_text="Vacation du poste")
-    opening_time = models.DurationField(verbose_name="Temps d'ouverture", help_text="Temps d'ouverture du poste")
+    start_time = models.TimeField(null=True, blank=True, verbose_name="Heure de début", help_text="Heure de début du poste")
+    end_time = models.TimeField(null=True, blank=True, verbose_name="Heure de fin", help_text="Heure de fin du poste")
     availability_time = models.DurationField(verbose_name="Temps disponible", help_text="Temps de disponibilité")
     lost_time = models.DurationField(verbose_name="Temps perdu", help_text="Temps perdu")
     operator_comments = models.TextField(blank=True, 
@@ -55,6 +59,34 @@ class Shift(models.Model):
     def __str__(self):
         return f"{self.shift_id} - {self.operator.full_name} ({self.vacation})"
     
+    @property
+    def opening_time(self):
+        """Calcule le temps d'ouverture à partir des heures de début et fin."""
+        if not self.start_time or not self.end_time:
+            return timedelta(0)
+        
+        # Convertir les TimeField en datetime pour le calcul
+        start_datetime = datetime.combine(self.date, self.start_time)
+        end_datetime = datetime.combine(self.date, self.end_time)
+        
+        # Si l'heure de fin est avant l'heure de début, c'est que le poste passe minuit
+        if end_datetime < start_datetime:
+            end_datetime += timedelta(days=1)
+        
+        return end_datetime - start_datetime
+    
+    def clean(self):
+        """Validation du modèle."""
+        super().clean()
+        
+        if self.start_time and self.end_time:
+            # Vérifier que la durée du poste est raisonnable (max 24h)
+            duration = self.opening_time
+            if duration > timedelta(hours=24):
+                raise ValidationError("La durée du poste ne peut pas dépasser 24 heures.")
+            if duration <= timedelta(0):
+                raise ValidationError("L'heure de fin doit être après l'heure de début.")
+    
     def save(self, *args, **kwargs):
         """Génère automatiquement le shift_id et calcule les valeurs dérivées."""
         if not self.shift_id:
@@ -64,7 +96,7 @@ class Shift(models.Model):
             self.shift_id = f"{date_str}_{operator_clean}_{self.vacation}"
         
         # Calcul automatique des temps
-        if self.opening_time:
+        if self.start_time and self.end_time:
             # Availability_time = opening_time moins les temps d'arrêt programmés
             # Pour l'instant, on considère que availability_time = opening_time
             self.availability_time = self.opening_time
@@ -72,7 +104,6 @@ class Shift(models.Model):
             # Lost_time = opening_time - availability_time
             # Pour l'instant, on calcule comme opening_time - temps de production effectif
             # (logique à adapter selon vos besoins métier)
-            from datetime import timedelta
             self.lost_time = timedelta(seconds=0)  # À calculer selon votre logique
         
         # Calcul automatique du déchet brut

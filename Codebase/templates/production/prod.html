@@ -153,6 +153,137 @@
                 </div>
             </div>
         </div>
+
+        <!-- Bloc Contrôles Qualité -->
+        <div class="block-card">
+            <div class="block-header" style="cursor: pointer;" onclick="toggleQualityControlsBlock()">
+                <h5 class="block-title"><i class="bi bi-clipboard-check"></i> Contrôles Qualité</h5>
+                <div class="block-actions">
+                    <i class="bi bi-chevron-up" id="quality-controls-chevron"></i>
+                </div>
+            </div>
+            <div class="block-content" id="quality-controls-content">
+                <div class="quality-controls-grid">
+                    <!-- Contrôles Micrionnaire Gauche -->
+                    <div class="control-section left">
+                        <div class="control-header">
+                            <i class="bi bi-search"></i>
+                            <span>Contrôles Micrionnaire Gauche</span>
+                        </div>
+                        <div class="control-content">
+                            <div class="micrometer-readings">
+                                <div class="reading-group">
+                                    <label>#1</label>
+                                    <input type="number" class="form-control" step="0.01" placeholder="--">
+                                </div>
+                                <div class="reading-group">
+                                    <label>#2</label>
+                                    <input type="number" class="form-control" step="0.01" placeholder="--">
+                                </div>
+                                <div class="reading-group">
+                                    <label>#3</label>
+                                    <input type="number" class="form-control" step="0.01" placeholder="--">
+                                </div>
+                                <div class="average-display">
+                                    <small class="text-muted">--</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bain d'Ensimage (Centre) -->
+                    <div class="control-section center">
+                        <div class="control-header">
+                            <i class="bi bi-clipboard-data"></i>
+                            <span>Bain d'Ensimage</span>
+                        </div>
+                        <div class="control-content">
+                            <div class="sizing-bath">
+                                <input type="number" class="form-control" step="0.01" placeholder="--">
+                                <div class="status-buttons">
+                                    <button type="button" class="btn btn-success btn-sm">OK</button>
+                                    <button type="button" class="btn btn-secondary btn-sm">Donné</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contrôles Micrionnaire Droite -->
+                    <div class="control-section right">
+                        <div class="control-header">
+                            <i class="bi bi-search"></i>
+                            <span>Contrôles Micrionnaire Droite</span>
+                        </div>
+                        <div class="control-content">
+                            <div class="micrometer-readings">
+                                <div class="reading-group">
+                                    <label>#1</label>
+                                    <input type="number" class="form-control" step="0.01" placeholder="--">
+                                </div>
+                                <div class="reading-group">
+                                    <label>#2</label>
+                                    <input type="number" class="form-control" step="0.01" placeholder="--">
+                                </div>
+                                <div class="reading-group">
+                                    <label>#3</label>
+                                    <input type="number" class="form-control" step="0.01" placeholder="--">
+                                </div>
+                                <div class="average-display">
+                                    <small class="text-muted">--</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contrôles Masse Surfacique (Ligne du bas) -->
+                <div class="surface-mass-controls">
+                    <!-- Gauche -->
+                    <div class="surface-mass-section left">
+                        <div class="control-header">
+                            <i class="bi bi-clipboard-check"></i>
+                            <span>Contrôles Masse Surfacique Gauche</span>
+                        </div>
+                        <div class="surface-mass-readings">
+                            <div class="reading-pair">
+                                <div class="reading-group">
+                                    <label>GG</label>
+                                    <input type="number" class="form-control" step="0.0001" placeholder="--">
+                                    <small class="text-muted">--</small>
+                                </div>
+                                <div class="reading-group">
+                                    <label>GC</label>
+                                    <input type="number" class="form-control" step="0.0001" placeholder="--">
+                                    <small class="text-muted">--</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Droite -->
+                    <div class="surface-mass-section right">
+                        <div class="control-header">
+                            <i class="bi bi-bar-chart"></i>
+                            <span>Contrôles Masse Surfacique Droite</span>
+                        </div>
+                        <div class="surface-mass-readings">
+                            <div class="reading-pair">
+                                <div class="reading-group">
+                                    <label>DC</label>
+                                    <input type="number" class="form-control" step="0.0001" placeholder="--">
+                                    <small class="text-muted">--</small>
+                                </div>
+                                <div class="reading-group">
+                                    <label>DD</label>
+                                    <input type="number" class="form-control" step="0.0001" placeholder="--">
+                                    <small class="text-muted">--</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <!-- Visualisation Rouleau -->
         <div class="roll-visualization">
@@ -223,13 +354,13 @@
                 </div>
                 
                 <div class="fibrage-field">
-                    <label class="fibrage-label">Lg (m)</label>
-                    <div class="fibrage-value-center" id="sticky-roll-length" onclick="makeEditable('sticky-roll-length')">--</div>
+                    <label class="fibrage-label">Masse tube (g)</label>
+                    <div class="fibrage-value-center" id="sticky-tube-mass" onclick="makeEditable('sticky-tube-mass')">--</div>
                 </div>
                 
                 <div class="fibrage-field">
-                    <label class="fibrage-label">Masse tube (g)</label>
-                    <div class="fibrage-value-center" id="sticky-tube-mass" onclick="makeEditable('sticky-tube-mass')">--</div>
+                    <label class="fibrage-label">Lg (m)</label>
+                    <div class="fibrage-value-center" id="sticky-roll-length" onclick="makeEditable('sticky-roll-length')">--</div>
                 </div>
                 
                 <div class="fibrage-field">
@@ -609,16 +740,28 @@ function updateLostTimeDisplay() {
 
 // Mettre à jour l'availability time en tenant compte du temps perdu
 function updateAvailabilityTime() {
-    const openingTimeSelect = document.querySelector('select[name="opening_time"]');
+    const startTimeField = document.querySelector('input[name="start_time"]');
+    const endTimeField = document.querySelector('input[name="end_time"]');
     const availabilityDisplay = document.getElementById('availability-time-display');
     
-    if (openingTimeSelect && availabilityDisplay) {
-        const openingTimeValue = openingTimeSelect.value;
+    if (startTimeField && endTimeField && availabilityDisplay) {
+        const startTimeValue = startTimeField.value;
+        const endTimeValue = endTimeField.value;
         
-        if (openingTimeValue) {
-            // Convertir opening time en minutes
-            const [openingHours, openingMinutes] = openingTimeValue.split(':').map(Number);
-            const openingTotalMinutes = openingHours * 60 + openingMinutes;
+        if (startTimeValue && endTimeValue) {
+            // Calculer la durée entre start_time et end_time
+            const [startHours, startMinutes] = startTimeValue.split(':').map(Number);
+            const [endHours, endMinutes] = endTimeValue.split(':').map(Number);
+            
+            let startTotalMinutes = startHours * 60 + startMinutes;
+            let endTotalMinutes = endHours * 60 + endMinutes;
+            
+            // Si l'heure de fin est avant l'heure de début, c'est que le poste passe minuit
+            if (endTotalMinutes < startTotalMinutes) {
+                endTotalMinutes += 24 * 60; // Ajouter 24h en minutes
+            }
+            
+            const openingTotalMinutes = endTotalMinutes - startTotalMinutes;
             
             // Calculer availability time = opening time - lost time
             const availabilityMinutes = Math.max(0, openingTotalMinutes - (window.totalLostTimeMinutes || 0));
@@ -670,7 +813,8 @@ function autoSaveFormData() {
         date: document.querySelector('input[name="date"]')?.value || '',
         operator: document.querySelector('select[name="operator"]')?.value || '',
         vacation: document.querySelector('select[name="vacation"]')?.value || '',
-        opening_time: document.querySelector('select[name="opening_time"]')?.value || '',
+        start_time: document.querySelector('input[name="start_time"]')?.value || '',
+        end_time: document.querySelector('input[name="end_time"]')?.value || '',
         started_at_beginning: startedBeginningField ? startedBeginningField.checked : false,
         meter_reading_start: document.querySelector('input[name="meter_reading_start"]')?.value || '',
         started_at_end: startedEndField ? startedEndField.checked : false,
@@ -748,8 +892,16 @@ function restoreSavedData() {
                 const vacationField = document.querySelector('select[name="vacation"]');
                 if (vacationField && data.vacation) vacationField.value = data.vacation;
                 
-                const openingTimeField = document.querySelector('select[name="opening_time"]');
-                if (openingTimeField && data.opening_time) openingTimeField.value = data.opening_time;
+                const startTimeField = document.querySelector('input[name="start_time"]');
+                if (startTimeField && data.start_time) startTimeField.value = data.start_time;
+                
+                const endTimeField = document.querySelector('input[name="end_time"]');
+                if (endTimeField && data.end_time) endTimeField.value = data.end_time;
+                
+                // Mettre à jour l'affichage de la durée après restauration des heures
+                if (typeof updateDurationDisplay === 'function') {
+                    updateDurationDisplay();
+                }
                 
                 const startedBeginningField = document.querySelector('input[name="started_at_beginning"]');
                 if (startedBeginningField) {
@@ -834,6 +986,9 @@ function restoreSavedData() {
                 setTimeout(function() {
                     updateLostTimeDisplay();
                     updateAvailabilityTime();
+                    if (typeof updateDurationDisplay === 'function') {
+                        updateDurationDisplay();
+                    }
                     renderLostTimeList();
                     updateRollId(); // Générer l'ID du rouleau
                     // Générer le rouleau si longueur cible disponible
@@ -902,6 +1057,13 @@ document.body.addEventListener('htmx:afterSwap', function() {
 // Écouter l'événement de restauration forcée après save de poste
 document.addEventListener('forceRestore', function(e) {
     console.log('Événement forceRestore reçu:', e.detail);
+    
+    // Forcer la mise à jour de la durée après restauration
+    setTimeout(function() {
+        if (typeof updateDurationDisplay === 'function') {
+            updateDurationDisplay();
+        }
+    }, 100);
     
     // Éviter les doublons d'alerte
     if (window.saveAlertShown) {
@@ -1455,6 +1617,32 @@ function checkRollExists(rollId) {
 function toggleOFBlock() {
     const content = document.getElementById('of-content');
     const chevron = document.getElementById('of-chevron');
+    
+    if (!content || !chevron) return;
+    
+    if (content.style.display === 'none') {
+        // Afficher le contenu
+        content.style.display = 'block';
+        setTimeout(() => {
+            content.style.transition = 'opacity 0.3s ease';
+            content.style.opacity = '1';
+            chevron.className = 'bi bi-chevron-up';
+        }, 50);
+    } else {
+        // Cacher le contenu
+        content.style.transition = 'opacity 0.3s ease';
+        content.style.opacity = '0';
+        setTimeout(() => {
+            content.style.display = 'none';
+            chevron.className = 'bi bi-chevron-down';
+        }, 300);
+    }
+}
+
+// Fonction pour toggle le bloc Contrôles Qualité avec effet fondu
+function toggleQualityControlsBlock() {
+    const content = document.getElementById('quality-controls-content');
+    const chevron = document.getElementById('quality-controls-chevron');
     
     if (!content || !chevron) return;
     
@@ -2667,6 +2855,7 @@ function updateValidationInfoPanel() {
     
     // Vérifier les conditions principales
     const rollId = document.getElementById('roll-id')?.textContent || '--';
+    const rollNumber = document.getElementById('roll-number')?.value || '';
     const targetLength = parseFloat(document.getElementById('target-length')?.value) || 0;
     const rollLength = parseFloat(document.getElementById('roll-length')?.value) || 0;
     const tubeMass = parseFloat(document.getElementById('tube-mass')?.value) || 0;
@@ -2677,30 +2866,33 @@ function updateValidationInfoPanel() {
     let message = '';
     const missingItems = [];
     
-    if (rollId === '--' || !rollId) {
-        missingItems.push('ID rouleau');
+    // Vérifier d'abord si toutes les épaisseurs sont renseignées
+    const allThicknessFilled = areAllThicknessMeasurementsFilled();
+    
+    if (!rollNumber || rollNumber.trim() === '') {
+        missingItems.push('numéro de rouleau');
     }
     
     if (targetLength <= 0) {
         missingItems.push('longueur cible');
     }
     
-    if (rollLength <= 0) {
-        missingItems.push('longueur rouleau');
-    }
-    
-    if (tubeMass <= 0) {
-        missingItems.push('masse tube');
-    }
-    
-    if (totalMass <= 0) {
-        missingItems.push('masse totale');
-    }
-    
-    // Vérifier si toutes les épaisseurs sont renseignées (seulement si conforme)
-    const allThicknessFilled = areAllThicknessMeasurementsFilled();
-    if (!allThicknessFilled && targetLength > 0 && conformityStatus === 'CONFORME') {
+    // Si les épaisseurs ne sont pas toutes remplies, ne pas demander les masses
+    if (!allThicknessFilled && targetLength > 0) {
         missingItems.push('épaisseurs manquantes');
+    } else {
+        // Demander les masses et longueur seulement si toutes les épaisseurs sont remplies
+        if (tubeMass <= 0) {
+            missingItems.push('masse tube');
+        }
+        
+        if (rollLength <= 0) {
+            missingItems.push('longueur rouleau');
+        }
+        
+        if (totalMass <= 0) {
+            missingItems.push('masse totale');
+        }
     }
     
     // Générer le message approprié
@@ -3063,7 +3255,8 @@ function clearAllFields() {
         'input[name="date"]',
         'select[name="operator"]',
         'select[name="vacation"]',
-        'select[name="opening_time"]',
+        'input[name="start_time"]',
+        'input[name="end_time"]',
         'input[name="meter_reading_start"]',
         'input[name="meter_reading_end"]',
         'textarea[name="operator_comments"]'
@@ -3100,6 +3293,9 @@ function clearAllFields() {
         const day = String(today.getDate()).padStart(2, '0');
         dateField.value = `${year}-${month}-${day}`;
     }
+    
+    // Effacer l'affichage de la durée
+    updateDurationDisplay();
     
     // 12. Effacer les déclarations de temps perdu
     if (typeof window.lostTimeEntries !== 'undefined') {

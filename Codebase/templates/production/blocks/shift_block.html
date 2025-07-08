@@ -27,6 +27,18 @@
             {% csrf_token %}
             
             <div class="form-section">
+                <!-- Ligne 1: Opérateur -->
+                <div class="row mb-2">
+                    <div class="col-12">
+                        <label class="form-label">{{ form.operator.label }}</label>
+                        {{ form.operator }}
+                        {% if form.operator.errors %}
+                            <div class="text-danger small">{{ form.operator.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Ligne 2: Date et Vacation -->
                 <div class="row mb-2">
                     <div class="col-6">
                         <label class="form-label">{{ form.date.label }}</label>
@@ -41,54 +53,40 @@
                         {% endif %}
                     </div>
                     <div class="col-6">
-                        <label class="form-label">{{ form.operator.label }}</label>
-                        {{ form.operator }}
-                        {% if form.operator.errors %}
-                            <div class="text-danger small">{{ form.operator.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="row mb-2">
-                    <div class="col-6">
                         <label class="form-label">{{ form.vacation.label }}</label>
                         {{ form.vacation }}
                         {% if form.vacation.errors %}
                             <div class="text-danger small">{{ form.vacation.errors.0 }}</div>
                         {% endif %}
                     </div>
-                    <div class="col-6">
-                        <label class="form-label">{{ form.opening_time.label }}</label>
-                        {{ form.opening_time }}
-                        {% if form.opening_time.errors %}
-                            <div class="text-danger small">{{ form.opening_time.errors.0 }}</div>
+                </div>
+                
+                <!-- Ligne 3: Heures début et fin -->
+                <div class="row mb-2">
+                    <div class="col-5">
+                        <label class="form-label">{{ form.start_time.label }}</label>
+                        {{ form.start_time }}
+                        {% if form.start_time.errors %}
+                            <div class="text-danger small">{{ form.start_time.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-2 d-flex align-items-end justify-content-center">
+                        <div class="text-center" id="duration-display">
+                            
+                        </div>
+                    </div>
+                    <div class="col-5">
+                        <label class="form-label">{{ form.end_time.label }}</label>
+                        {{ form.end_time }}
+                        {% if form.end_time.errors %}
+                            <div class="text-danger small">{{ form.end_time.errors.0 }}</div>
                         {% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- Section Temps -->
-            <div class="form-section">
-                <h6 class="form-section-title">Temps de production</h6>
-                <div class="row mb-2">
-                    <div class="col-6">
-                        <label class="form-label">Temps disponible</label>
-                        <div class="form-control-plaintext" id="availability-time-display">
-                            <span class="fw-bold">--:--</span> <span class="text-muted small"></span>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label">Temps perdu</label>
-                        <div class="form-control-plaintext">
-                            <span class="fw-bold">00:00</span> <span class="text-muted small">(0 min)</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
             <!-- Section Paramètres Machine -->
             <div class="form-section">
-                <h6 class="form-section-title">État machine</h6>
                 
                 <!-- Début de poste -->
                 <div class="row mb-1">
@@ -162,15 +160,13 @@
                 </div>
             </div>
 
-            <div class="form-section">
-                <div class="row">
-                    <div class="col-12">
-                        <label class="form-label">{{ form.operator_comments.label }}</label>
-                        {{ form.operator_comments }}
-                        {% if form.operator_comments.errors %}
-                            <div class="text-danger small">{{ form.operator_comments.errors.0 }}</div>
-                        {% endif %}
-                    </div>
+            <div class="row">
+                <div class="col-12">
+                    <label class="form-label">{{ form.operator_comments.label }}</label>
+                    {{ form.operator_comments }}
+                    {% if form.operator_comments.errors %}
+                        <div class="text-danger small">{{ form.operator_comments.errors.0 }}</div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -236,23 +232,37 @@ function toggleShiftBlock() {
 
 function calculateAvailabilityTime() {
     console.log('Calculating availability time...');
-    const openingTimeSelect = document.querySelector('select[name="opening_time"]');
+    const startTimeField = document.querySelector('input[name="start_time"]');
+    const endTimeField = document.querySelector('input[name="end_time"]');
     const availabilityDisplay = document.getElementById('availability-time-display');
     
-    console.log('Opening time select:', openingTimeSelect);
+    console.log('Start time field:', startTimeField);
+    console.log('End time field:', endTimeField);
     console.log('Availability display:', availabilityDisplay);
     
-    if (openingTimeSelect && availabilityDisplay) {
-        const openingTimeValue = openingTimeSelect.value;
-        console.log('Opening time value:', openingTimeValue);
+    if (startTimeField && endTimeField && availabilityDisplay) {
+        const startTimeValue = startTimeField.value;
+        const endTimeValue = endTimeField.value;
+        console.log('Start time value:', startTimeValue);
+        console.log('End time value:', endTimeValue);
         
-        if (openingTimeValue) {
+        if (startTimeValue && endTimeValue) {
+            // Calculer la durée entre start_time et end_time
+            const [startHours, startMinutes] = startTimeValue.split(':').map(Number);
+            const [endHours, endMinutes] = endTimeValue.split(':').map(Number);
+            
+            let startTotalMinutes = startHours * 60 + startMinutes;
+            let endTotalMinutes = endHours * 60 + endMinutes;
+            
+            // Si l'heure de fin est avant l'heure de début, c'est que le poste passe minuit
+            if (endTotalMinutes < startTotalMinutes) {
+                endTotalMinutes += 24 * 60; // Ajouter 24h en minutes
+            }
+            
+            const openingTotalMinutes = endTotalMinutes - startTotalMinutes;
+            
             // Lost time = 0 pour l'instant
             const lostTotalMinutes = 0;
-            
-            // Convertir opening time en minutes
-            const [openingHours, openingMinutes] = openingTimeValue.split(':').map(Number);
-            const openingTotalMinutes = openingHours * 60 + openingMinutes;
             
             // Calculer availability time = opening time - lost time (0)
             const availabilityMinutes = openingTotalMinutes - lostTotalMinutes;
@@ -284,18 +294,136 @@ function calculateAvailabilityTime() {
     }
 }
 
+// Fonction pour calculer et afficher la durée entre les heures
+function updateDurationDisplay() {
+    const startTimeField = document.querySelector('input[name="start_time"]');
+    const endTimeField = document.querySelector('input[name="end_time"]');
+    const durationDisplay = document.getElementById('duration-display');
+    
+    if (!startTimeField || !endTimeField || !durationDisplay) {
+        return;
+    }
+    
+    const startTimeValue = startTimeField.value;
+    const endTimeValue = endTimeField.value;
+    
+    if (startTimeValue && endTimeValue) {
+        // Calculer la durée entre start_time et end_time
+        const [startHours, startMinutes] = startTimeValue.split(':').map(Number);
+        const [endHours, endMinutes] = endTimeValue.split(':').map(Number);
+        
+        let startTotalMinutes = startHours * 60 + startMinutes;
+        let endTotalMinutes = endHours * 60 + endMinutes;
+        
+        // Si l'heure de fin est avant l'heure de début, c'est que le poste passe minuit
+        if (endTotalMinutes < startTotalMinutes) {
+            endTotalMinutes += 24 * 60; // Ajouter 24h en minutes
+        }
+        
+        const durationMinutes = endTotalMinutes - startTotalMinutes;
+        
+        // Convertir en heures:minutes
+        const durationHours = Math.floor(durationMinutes / 60);
+        const remainingMinutes = durationMinutes % 60;
+        
+        const durationTimeStr = `${durationHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}`;
+        
+        // Mettre à jour l'affichage
+        durationDisplay.innerHTML = `
+            <span class="fw-bold">${durationTimeStr}</span><br>
+            <small class="text-muted">(${durationMinutes}&nbsp;min)</small>
+        `;
+    } else {
+        // Ne rien afficher si les heures ne sont pas remplies
+        durationDisplay.innerHTML = '';
+    }
+}
+
+// Fonction pour définir les heures par défaut selon la vacation
+function setDefaultTimesForVacation(vacation) {
+    const startTimeField = document.querySelector('input[name="start_time"]');
+    const endTimeField = document.querySelector('input[name="end_time"]');
+    
+    if (!startTimeField || !endTimeField) {
+        return;
+    }
+    
+    // Définir les heures par défaut selon la vacation
+    let defaultStartTime = '';
+    let defaultEndTime = '';
+    
+    switch(vacation) {
+        case 'Matin':
+            defaultStartTime = '04:00';
+            defaultEndTime = '12:00';
+            break;
+        case 'ApresMidi':
+            defaultStartTime = '12:00';
+            defaultEndTime = '20:00';
+            break;
+        case 'Nuit':
+            defaultStartTime = '20:00';
+            defaultEndTime = '04:00';
+            break;
+        case 'Journee':
+            defaultStartTime = '07:30';
+            defaultEndTime = '15:30';
+            break;
+        default:
+            return; // Ne pas modifier les heures si vacation inconnue
+    }
+    
+    // Toujours modifier les heures (même si elles ne sont pas vides)
+    startTimeField.value = defaultStartTime;
+    endTimeField.value = defaultEndTime;
+    
+    // Recalculer le temps d'ouverture après modification
+    calculateAvailabilityTime();
+    
+    // Mettre à jour l'affichage de la durée
+    updateDurationDisplay();
+    
+    console.log(`Heures définies pour ${vacation}: ${defaultStartTime} - ${defaultEndTime}`);
+}
+
 // Event listener qui fonctionne avec HTMX
 document.body.addEventListener('change', function(e) {
-    if (e.target && e.target.name === 'opening_time') {
-        console.log('Opening time changed!');
+    if (e.target && (e.target.name === 'start_time' || e.target.name === 'end_time')) {
+        console.log('Time field changed:', e.target.name);
         calculateAvailabilityTime();
+        updateDurationDisplay();
+    }
+    
+    // Si la vacation change, définir les heures par défaut
+    if (e.target && e.target.name === 'vacation') {
+        console.log('Vacation changed:', e.target.value);
+        setDefaultTimesForVacation(e.target.value);
     }
     
     // Vérifier si c'est un champ requis pour le bouton
     if (e.target && (e.target.name === 'operator' || e.target.name === 'date' || 
-                    e.target.name === 'vacation' || e.target.name === 'opening_time')) {
+                    e.target.name === 'vacation' || e.target.name === 'start_time' || e.target.name === 'end_time')) {
         console.log('Required field changed:', e.target.name, 'value:', e.target.value);
         updateShiftButtonState();
+    }
+});
+
+// Event listener spécifique pour le champ vacation (au cas où)
+document.body.addEventListener('input', function(e) {
+    if (e.target && e.target.name === 'vacation') {
+        console.log('Vacation input event:', e.target.value);
+        setTimeout(() => setDefaultTimesForVacation(e.target.value), 100);
+    }
+});
+
+// Event listener pour les selects
+document.body.addEventListener('click', function(e) {
+    if (e.target && e.target.name === 'vacation') {
+        // Ajouter un listener sur le select pour détecter le changement
+        e.target.addEventListener('change', function() {
+            console.log('Select vacation changed:', this.value);
+            setDefaultTimesForVacation(this.value);
+        });
     }
 });
 
@@ -304,6 +432,7 @@ document.body.addEventListener('htmx:afterSwap', function() {
     console.log('HTMX content swapped');
     setTimeout(function() {
         calculateAvailabilityTime();
+        updateDurationDisplay();
         updateShiftButtonState();
         
         // Additional check with longer delay
@@ -399,6 +528,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Restauration désactivée pour préserver les états');
         }
         calculateAvailabilityTime();
+        updateDurationDisplay();
         toggleMeterReadingFields();
         
         // Retry mechanism for button state update after page load
@@ -423,6 +553,7 @@ window.addEventListener('load', function() {
     console.log('Window fully loaded, checking button state...');
     setTimeout(function() {
         updateShiftButtonState();
+        updateDurationDisplay();
     }, 500);
 });
 
@@ -441,7 +572,7 @@ function setupShiftFormObserver() {
         mutations.forEach(function(mutation) {
             if (mutation.type === 'childList' || mutation.type === 'attributes') {
                 // Check if any of the required fields were added or modified
-                const requiredFields = ['operator', 'date', 'vacation', 'opening_time'];
+                const requiredFields = ['operator', 'date', 'vacation', 'start_time', 'end_time'];
                 
                 mutation.addedNodes.forEach(function(node) {
                     if (node.nodeType === Node.ELEMENT_NODE) {
@@ -597,8 +728,11 @@ function clearShiftData() {
         const vacationField = document.querySelector('select[name="vacation"]');
         if (vacationField) vacationField.value = '';
         
-        const openingTimeField = document.querySelector('select[name="opening_time"]');
-        if (openingTimeField) openingTimeField.value = '';
+        const startTimeField = document.querySelector('input[name="start_time"]');
+        if (startTimeField) startTimeField.value = '';
+        
+        const endTimeField = document.querySelector('input[name="end_time"]');
+        if (endTimeField) endTimeField.value = '';
         
         const startedBeginningField = document.querySelector('input[name="started_at_beginning"]');
         if (startedBeginningField) startedBeginningField.checked = false;
@@ -668,15 +802,16 @@ function checkShiftRequiredFields() {
     const operatorField = document.querySelector('select[name="operator"]');
     const dateField = document.querySelector('input[name="date"]');
     const vacationField = document.querySelector('select[name="vacation"]');
-    const openingTimeField = document.querySelector('select[name="opening_time"]');
+    const startTimeField = document.querySelector('input[name="start_time"]');
+    const endTimeField = document.querySelector('input[name="end_time"]');
     
     // Si les champs ne sont pas encore dans le DOM, retourner false
-    if (!operatorField || !dateField || !vacationField || !openingTimeField) {
+    if (!operatorField || !dateField || !vacationField || !startTimeField || !endTimeField) {
         console.log('Required fields not found in DOM');
         return false;
     }
     
-    return operatorField?.value && dateField?.value && vacationField?.value && openingTimeField?.value;
+    return operatorField?.value && dateField?.value && vacationField?.value && startTimeField?.value && endTimeField?.value;
 }
 
 // Confirmer avant de sauvegarder le poste
@@ -692,10 +827,11 @@ function confirmSaveShift() {
     const operatorField = document.querySelector('select[name="operator"]');
     const dateField = document.querySelector('input[name="date"]');
     const vacationField = document.querySelector('select[name="vacation"]');
-    const openingTimeField = document.querySelector('select[name="opening_time"]');
+    const startTimeField = document.querySelector('input[name="start_time"]');
+    const endTimeField = document.querySelector('input[name="end_time"]');
     
-    if (!operatorField?.value || !dateField?.value || !vacationField?.value || !openingTimeField?.value) {
-        alert('Veuillez remplir tous les champs obligatoires (Opérateur, Date, Vacation, Temps d\'ouverture)');
+    if (!operatorField?.value || !dateField?.value || !vacationField?.value || !startTimeField?.value || !endTimeField?.value) {
+        alert('Veuillez remplir tous les champs obligatoires (Opérateur, Date, Vacation, Heure de début, Heure de fin)');
         return;
     }
     
@@ -769,13 +905,14 @@ function confirmSaveShift() {
         const operatorText = operatorField.options[operatorField.selectedIndex]?.text || '';
         const dateValue = dateField.value;
         const vacationText = vacationField.options[vacationField.selectedIndex]?.text || '';
-        const openingTimeText = openingTimeField.options[openingTimeField.selectedIndex]?.text || '';
+        const startTimeValue = startTimeField.value;
+        const endTimeValue = endTimeField.value;
         
         // Formater la date
         const date = new Date(dateValue);
         const formattedDate = date.toLocaleDateString('fr-FR');
         
-        const confirmMessage = `Êtes-vous sûr de vouloir sauvegarder le poste de ${operatorText} du ${formattedDate} (${vacationText}) de ${openingTimeText} ?`;
+        const confirmMessage = `Êtes-vous sûr de vouloir sauvegarder le poste de ${operatorText} du ${formattedDate} (${vacationText}) de ${startTimeValue} à ${endTimeValue} ?`;
         
         if (confirm(confirmMessage)) {
             // Soumettre le formulaire via HTMX

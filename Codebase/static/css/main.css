@@ -206,6 +206,148 @@ body {
     padding: 0.3rem 0;
 }
 
+/* Contrôles Qualité */
+.quality-controls-container {
+    margin-bottom: 1rem;
+}
+
+.quality-controls-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.surface-mass-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.control-section {
+    padding: 0.5rem;
+    background: #f8f9fa;
+}
+
+.surface-mass-section {
+    padding: 0.5rem;
+    background: #f8f9fa;
+}
+
+.control-header {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--primary-text);
+    background: var(--primary-text);
+    color: white;
+    padding: 0.3rem 0.4rem;
+    border-radius: 3px;
+    margin: -0.75rem -0.75rem 0.5rem -0.75rem;
+}
+
+.micrometer-readings {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    align-items: center;
+}
+
+.reading-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.reading-group label {
+    min-width: 25px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary-text);
+}
+
+.reading-group input {
+    width: 50px;
+    height: 20px;
+    font-size: 0.7rem;
+    padding: 0;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.average-display {
+    text-align: center;
+    margin-top: 0.3rem;
+}
+
+.average-value {
+    font-weight: bold;
+    color: var(--primary-text);
+}
+
+.sizing-bath {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.sizing-bath input {
+    width: 50px;
+    height: 20px;
+    font-size: 0.7rem;
+    padding: 0;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.status-buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.status-buttons .btn {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+}
+
+.surface-mass-readings {
+    display: flex;
+    justify-content: center;
+}
+
+.reading-pair {
+    display: flex;
+    gap: 1rem;
+}
+
+.surface-mass-section .reading-group {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.25rem;
+}
+
+.surface-mass-section .reading-group input {
+    width: 50px;
+    height: 20px;
+    font-size: 0.7rem;
+    padding: 0;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.surface-mass-section .reading-group small {
+    font-size: 0.65rem;
+}
+
 .mass-calc-field {
     display: flex;
     flex-direction: column;
@@ -958,7 +1100,7 @@ input.fibrage-value-readonly {
 
 .of-right-col {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
     width: 100%;
 }

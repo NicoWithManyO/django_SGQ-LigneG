@@ -8,30 +8,24 @@ from datetime import time
 class ShiftForm(forms.ModelForm):
     """Formulaire pour la saisie des données de poste."""
     
-    # Générer les choix pour opening_time par tranches de 10 minutes avec minutes
-    OPENING_TIME_CHOICES = []
-    for hour in range(0, 11):  # De 0h à 10h
-        for minute in [0, 10, 20, 30, 40, 50]:
-            if hour == 0 and minute < 30:  # Min: 00:30
-                continue
-            if hour == 10 and minute > 0:  # Max: 10:00
-                break
-            time_obj = time(hour, minute)
-            time_str = time_obj.strftime('%H:%M')
-            total_minutes = hour * 60 + minute
-            display_str = f"{time_str} ({total_minutes} min)"
-            OPENING_TIME_CHOICES.append((time_str, display_str))
+    # Champs pour les heures de début et fin
+    start_time = forms.TimeField(
+        widget=forms.TimeInput(attrs={
+            'type': 'time',
+            'class': 'form-control fw-bold'
+        }),
+        label="Heure de début",
+        help_text="Heure de début du poste",
+        required=False
+    )
     
-    # Ajouter le placeholder et mettre 08:00 en premier
-    OPENING_TIME_CHOICES.insert(0, ('', '--'))
-    OPENING_TIME_CHOICES.sort(key=lambda x: (x[0] != '', x[0] != '08:00', x[0]))
-    
-    
-    opening_time = forms.ChoiceField(
-        choices=OPENING_TIME_CHOICES,
-        widget=forms.Select(attrs={'class': 'form-select fw-bold'}),
-        label="Temps d'ouverture",
-        help_text="Temps d'ouverture du poste (par tranches de 10 minutes)",
+    end_time = forms.TimeField(
+        widget=forms.TimeInput(attrs={
+            'type': 'time',
+            'class': 'form-control fw-bold'
+        }),
+        label="Heure de fin",
+        help_text="Heure de fin du poste",
         required=False
     )
     
@@ -54,7 +48,7 @@ class ShiftForm(forms.ModelForm):
         model = Shift
         fields = [
             'date', 'operator', 'vacation',
-            'opening_time',
+            'start_time', 'end_time',
             'started_at_beginning', 'meter_reading_start',
             'started_at_end', 'meter_reading_end',
             'total_length', 'ok_length', 'nok_length',
@@ -143,37 +137,33 @@ class ShiftForm(forms.ModelForm):
         if 'started_at_end' in self.initial:
             self.fields['started_at_end'].initial = self.initial['started_at_end']
         
-    def clean_opening_time(self):
-        """Validation du temps d'ouverture."""
-        opening_time_str = self.cleaned_data.get('opening_time')
-        if opening_time_str and opening_time_str != '':
-            # Convertir la string en objet time pour validation
-            from datetime import time
-            try:
-                hour, minute = map(int, opening_time_str.split(':'))
-                opening_time = time(hour, minute)
-            except ValueError:
-                raise ValidationError("Format d'heure invalide")
-            
-            min_time = time(0, 30)  # 00:30
-            max_time = time(10, 0)  # 10:00
-            
-            if not (min_time <= opening_time <= max_time):
-                raise ValidationError(
-                    "Le temps d'ouverture doit être entre 00:30 et 10:00"
-                )
-            
-            # Vérifier que les minutes sont des multiples de 10
-            if opening_time.minute % 10 != 0:
-                raise ValidationError(
-                    "Le temps d'ouverture doit être par tranches de 10 minutes (ex: 06:00, 06:10, 06:20...)"
-                )
-        
-        return opening_time_str
         
     def clean(self):
         """Validation personnalisée du formulaire."""
         cleaned_data = super().clean()
+        
+        # Validation des heures de début et fin
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
+        
+        if start_time and end_time:
+            # Simuler la durée du poste pour validation
+            from datetime import datetime, timedelta
+            today = datetime.today().date()
+            start_datetime = datetime.combine(today, start_time)
+            end_datetime = datetime.combine(today, end_time)
+            
+            # Si l'heure de fin est avant l'heure de début, c'est que le poste passe minuit
+            if end_datetime < start_datetime:
+                end_datetime += timedelta(days=1)
+            
+            duration = end_datetime - start_datetime
+            
+            # Vérifier que la durée est raisonnable
+            if duration > timedelta(hours=24):
+                raise ValidationError("La durée du poste ne peut pas dépasser 24 heures.")
+            if duration <= timedelta(0):
+                raise ValidationError("L'heure de fin doit être après l'heure de début.")
         
         # Validation des longueurs (sans raw_waste_length)
         total = cleaned_data.get('total_length', 0)
