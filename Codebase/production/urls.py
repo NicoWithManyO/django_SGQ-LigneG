@@ -22,4 +22,7 @@ urlpatterns = [
     
     # Gestion des opérateurs
     path('operator/create/', views.operator_create, name='operator_create'),
+    
+    # Contrôles qualité
+    path('quality-controls/save/', views.save_quality_controls, name='save_quality_controls'),
 ]

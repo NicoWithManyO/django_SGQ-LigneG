@@ -24,8 +24,8 @@ class Shift(models.Model):
                                verbose_name="Vacation", help_text="Vacation du poste")
     start_time = models.TimeField(null=True, blank=True, verbose_name="Heure de début", help_text="Heure de début du poste")
     end_time = models.TimeField(null=True, blank=True, verbose_name="Heure de fin", help_text="Heure de fin du poste")
-    availability_time = models.DurationField(verbose_name="Temps disponible", help_text="Temps de disponibilité")
-    lost_time = models.DurationField(verbose_name="Temps perdu", help_text="Temps perdu")
+    availability_time = models.DurationField(verbose_name="Temps disponible", help_text="Temps de disponibilité", null=True, blank=True)
+    lost_time = models.DurationField(verbose_name="Temps perdu", help_text="Temps perdu", null=True, blank=True)
     operator_comments = models.TextField(blank=True, 
                                        verbose_name="", help_text="Commentaires de l'opérateur")
     
@@ -135,3 +135,102 @@ class CurrentProd(models.Model):
     
     def __str__(self):
         return f"Saisie {self.session_key} - {self.updated_at.strftime('%H:%M:%S')}"
+
+
+class QualityControlSeries(models.Model):
+    """Modèle pour enregistrer les séries de contrôles qualité."""
+    
+    # Relation avec le shift (nullable car peut ne pas encore exister)
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, null=True, blank=True,
+                             related_name='quality_controls',
+                             verbose_name="Poste", help_text="Poste associé (si déjà sauvegardé)")
+    
+    # Identifiant de session pour lier au shift non sauvegardé
+    session_key = models.CharField(max_length=255, help_text="Clé de session pour lier au shift en cours")
+    
+    # Contrôles Micronnaire
+    micrometer_left_1 = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True,
+                                           verbose_name="Micronnaire Gauche #1")
+    micrometer_left_2 = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True,
+                                           verbose_name="Micronnaire Gauche #2")
+    micrometer_left_3 = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True,
+                                           verbose_name="Micronnaire Gauche #3")
+    micrometer_left_avg = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True,
+                                             verbose_name="Micronnaire Gauche Moyenne")
+    
+    micrometer_right_1 = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True,
+                                            verbose_name="Micronnaire Droite #1")
+    micrometer_right_2 = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True,
+                                            verbose_name="Micronnaire Droite #2")
+    micrometer_right_3 = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True,
+                                            verbose_name="Micronnaire Droite #3")
+    micrometer_right_avg = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True,
+                                              verbose_name="Micronnaire Droite Moyenne")
+    
+    # Extrait Sec
+    dry_extract = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True,
+                                     verbose_name="Extrait Sec (%)")
+    dry_extract_time = models.TimeField(null=True, blank=True,
+                                       verbose_name="Heure Extrait Sec")
+    
+    # Masses Surfaciques
+    surface_mass_gg = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True,
+                                         verbose_name="Masse Surfacique GG (g/25cm²)")
+    surface_mass_gc = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True,
+                                         verbose_name="Masse Surfacique GC (g/25cm²)")
+    surface_mass_left_avg = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True,
+                                               verbose_name="Masse Surfacique Gauche Moyenne")
+    
+    surface_mass_dc = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True,
+                                         verbose_name="Masse Surfacique DC (g/25cm²)")
+    surface_mass_dd = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True,
+                                         verbose_name="Masse Surfacique DD (g/25cm²)")
+    surface_mass_right_avg = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True,
+                                                verbose_name="Masse Surfacique Droite Moyenne")
+    
+    # LOI
+    loi_given = models.BooleanField(default=False, verbose_name="LOI donnée")
+    loi_time = models.TimeField(null=True, blank=True, verbose_name="Heure LOI")
+    
+    # Validation
+    is_valid = models.BooleanField(default=True, verbose_name="Contrôles valides",
+                                  help_text="Indique si tous les contrôles sont dans les tolérances")
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Date/heure du contrôle")
+    created_by = models.ForeignKey(Operator, on_delete=models.SET_NULL, null=True, blank=True,
+                                  verbose_name="Contrôlé par")
+    
+    class Meta:
+        verbose_name = "Série de contrôles qualité"
+        verbose_name_plural = "Séries de contrôles qualité"
+        ordering = ['-created_at']
+    
+    def save(self, *args, **kwargs):
+        """Calcule automatiquement les moyennes avant sauvegarde."""
+        # Moyenne Micronnaire Gauche
+        left_values = [v for v in [self.micrometer_left_1, self.micrometer_left_2, self.micrometer_left_3] if v is not None]
+        if left_values:
+            self.micrometer_left_avg = sum(left_values) / len(left_values)
+        
+        # Moyenne Micronnaire Droite
+        right_values = [v for v in [self.micrometer_right_1, self.micrometer_right_2, self.micrometer_right_3] if v is not None]
+        if right_values:
+            self.micrometer_right_avg = sum(right_values) / len(right_values)
+        
+        # Moyenne Masse Surfacique Gauche
+        left_mass_values = [v for v in [self.surface_mass_gg, self.surface_mass_gc] if v is not None]
+        if left_mass_values:
+            self.surface_mass_left_avg = sum(left_mass_values) / len(left_mass_values)
+        
+        # Moyenne Masse Surfacique Droite
+        right_mass_values = [v for v in [self.surface_mass_dc, self.surface_mass_dd] if v is not None]
+        if right_mass_values:
+            self.surface_mass_right_avg = sum(right_mass_values) / len(right_mass_values)
+        
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        if self.shift:
+            return f"Contrôles {self.shift.shift_id} - {self.created_at.strftime('%H:%M')}"
+        return f"Contrôles session {self.session_key} - {self.created_at.strftime('%H:%M')}"

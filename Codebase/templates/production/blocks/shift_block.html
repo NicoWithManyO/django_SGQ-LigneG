@@ -47,44 +47,6 @@
                     </div>
                 </div>
                 
-                <!-- Modale pour ajouter un opérateur -->
-                <div class="modal fade" id="addOperatorModal" tabindex="-1" aria-labelledby="addOperatorModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-sm">
-                        <div class="modal-content">
-                            <div class="modal-header border-0 pb-0">
-                                <h6 class="modal-title" id="addOperatorModalLabel">
-                                    <i class="bi bi-person-plus"></i> Nouvel Opérateur
-                                </h6>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <form id="addOperatorForm">
-                                    {% csrf_token %}
-                                    <div class="mb-3">
-                                        <label for="operatorFirstName" class="form-label">Prénom</label>
-                                        <input type="text" class="form-control" id="operatorFirstName" name="first_name" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="operatorLastName" class="form-label">Nom</label>
-                                        <input type="text" class="form-control" id="operatorLastName" name="last_name" required>
-                                    </div>
-                                    <div class="form-check mb-3">
-                                        <input class="form-check-input" type="checkbox" id="operatorTrainingCompleted" name="training_completed" checked>
-                                        <label class="form-check-label" for="operatorTrainingCompleted">
-                                            Formation terminée
-                                        </label>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="modal-footer border-0 pt-0">
-                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
-                                <button type="button" class="btn btn-primary btn-sm" onclick="saveOperator()">
-                                    <i class="bi bi-check-lg"></i> Créer
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 
                 <!-- Ligne 2: Date et Vacation -->
                 <div class="row mb-2">
@@ -233,11 +195,51 @@
             {% endif %}
 
         </form>
+        
+        <!-- Modale pour ajouter un opérateur (hors du formulaire principal pour éviter les conflits) -->
+        <div class="modal fade" id="addOperatorModal" tabindex="-1" aria-labelledby="addOperatorModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <h6 class="modal-title" id="addOperatorModalLabel">
+                            <i class="bi bi-person-plus"></i> Nouvel Opérateur
+                        </h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addOperatorForm">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="operatorFirstName" class="form-label">Prénom</label>
+                                <input type="text" class="form-control" id="operatorFirstName" name="first_name" required autocomplete="off">
+                            </div>
+                            <div class="mb-3">
+                                <label for="operatorLastName" class="form-label">Nom</label>
+                                <input type="text" class="form-control" id="operatorLastName" name="last_name" required autocomplete="off">
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="operatorTrainingCompleted" name="training_completed" checked>
+                                <label class="form-check-label" for="operatorTrainingCompleted">
+                                    Formation terminée
+                                </label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="saveOperator()">
+                            <i class="bi bi-check-lg"></i> Créer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <div class="d-flex justify-content-center mt-3">
             <button 
                 type="button" 
                 id="save-shift-btn"
-                onclick="confirmSaveShift()"
+                onclick="window.confirmSaveShift ? window.confirmSaveShift() : console.error('confirmSaveShift non définie')"
                 class="btn btn-secondary btn-sm fibrage-action-btn"
             >
                 <i class="bi bi-save"></i> Enregistrer le Poste
@@ -696,7 +698,26 @@ function setupShiftFormObserver() {
 // Initialize observer after DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(setupShiftFormObserver, 1500);
+    
+    // Ajouter des écouteurs pour débugger HTMX
+    document.body.addEventListener('htmx:beforeRequest', function(evt) {
+        console.log('HTMX beforeRequest:', evt.detail);
+    });
+    
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        console.log('HTMX afterRequest:', evt.detail);
+        if (evt.detail.xhr) {
+            console.log('Response status:', evt.detail.xhr.status);
+            console.log('Response text:', evt.detail.xhr.responseText);
+        }
+    });
+    
+    document.body.addEventListener('htmx:responseError', function(evt) {
+        console.error('HTMX responseError:', evt.detail);
+    });
 });
+
+// La fonction confirmSaveShift est maintenant définie dans prod.html
 
 // Periodic check for button state (helpful for debugging and ensuring consistency)
 function startPeriodicButtonCheck() {

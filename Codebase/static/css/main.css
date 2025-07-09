@@ -1,5 +1,51 @@
 /* CSS principal pour SGQ Ligne G */
 
+/* Toggle personnalisé LOI */
+.custom-toggle {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+}
+
+.custom-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .3s;
+    border-radius: 20px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+.custom-toggle input:checked + .toggle-slider {
+    background-color: #28a745;
+}
+
+.custom-toggle input:checked + .toggle-slider:before {
+    transform: translateX(16px);
+}
+
 /* Surcharge de la navbar Bootstrap */
 .navbar.bg-primary {
     background-color: var(--primary-text) !important;
@@ -23,7 +69,8 @@
     --danger-color: #dc3545;
     --light-bg: #f8f9fa;
     --border-color: #215C98;
-    --body-bg: #d6d8db;
+    --body-bg: #9da1a8;
+    --block-bg: #f0f1f3;
 }
 
 /* Fond gris pour le body */
@@ -72,6 +119,7 @@ body {
 
 .block-content {
     padding: 0.6rem;
+    background: var(--block-bg);
 }
 
 .block-footer {
@@ -114,7 +162,7 @@ body {
 }
 
 .roll-visualization {
-    background: white;
+    background: var(--block-bg);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 1rem;
@@ -252,8 +300,9 @@ body {
 .micrometer-readings {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.5rem;
     align-items: center;
+    justify-content: center;
 }
 
 .reading-group {
@@ -293,7 +342,7 @@ body {
 
 .average-display {
     text-align: center;
-    margin-top: 0.3rem;
+    margin-top: 0;
 }
 
 .average-value {
@@ -450,8 +499,11 @@ body {
 
 .roll-status-display .bg-warning {
     background-color: #28a745 !important;
-    color: #fd7e14 !important;
+    color: white !important;
     border: 3px solid #1e7e34 !important;
+    text-decoration: underline !important;
+    text-decoration-color: #fd7e14 !important;
+    text-decoration-thickness: 3px !important;
 }
 
 .roll-status-display .bg-secondary {
@@ -470,7 +522,8 @@ body {
     height: auto;
     overflow: visible;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border-radius: 0;
+    background: white;
 }
 
 .roll-grid {
@@ -686,8 +739,11 @@ body {
 
 .thickness-input.thickness-warning {
     background: #28a745;
-    color: #fd7e14;
+    color: white;
     border-color: #28a745;
+    text-decoration: underline;
+    text-decoration-color: #fd7e14;
+    text-decoration-thickness: 2px;
 }
 
 .thickness-input.thickness-critical {
@@ -729,8 +785,11 @@ body {
 
 .thickness-catchup-input.thickness-warning {
     background: #28a745;
-    color: #fd7e14;
+    color: white;
     border-color: #28a745;
+    text-decoration: underline;
+    text-decoration-color: #fd7e14;
+    text-decoration-thickness: 2px;
 }
 
 .thickness-catchup-input.thickness-critical {
@@ -749,7 +808,10 @@ body {
 .thickness-catchup-style.thickness-warning {
     background: #d4edda !important;
     border-color: #28a745 !important;
-    color: #fd7e14 !important;
+    color: #155724 !important;
+    text-decoration: underline !important;
+    text-decoration-color: #fd7e14 !important;
+    text-decoration-thickness: 2px !important;
 }
 
 .thickness-catchup-style.thickness-critical {
@@ -774,6 +836,22 @@ body {
     background: #28a745;
     color: white;
     border-color: #28a745;
+}
+
+/* Styles pour la validation des contrôles qualité */
+.quality-ok {
+    color: #28a745 !important;
+    font-weight: 600;
+}
+
+.quality-warning {
+    color: #fd7e14 !important;
+    font-weight: 600;
+}
+
+.quality-critical {
+    color: #dc3545 !important;
+    font-weight: 600;
 }
 
 .thickness-input:focus {

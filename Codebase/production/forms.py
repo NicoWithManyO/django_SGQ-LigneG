@@ -35,7 +35,7 @@ class ShiftForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-select fw-bold'}),
         label="Vacation",
         help_text="Vacation du poste",
-        required=False
+        required=True  # Vacation est obligatoire dans le modèle
     )
     
     def __init__(self, *args, **kwargs):
@@ -49,6 +49,7 @@ class ShiftForm(forms.ModelForm):
         fields = [
             'date', 'operator', 'vacation',
             'start_time', 'end_time',
+            'availability_time', 'lost_time',  # Ajout des champs requis
             'started_at_beginning', 'meter_reading_start',
             'started_at_end', 'meter_reading_end',
             'total_length', 'ok_length', 'nok_length',
@@ -103,7 +104,10 @@ class ShiftForm(forms.ModelForm):
                 'class': 'form-control',
                 'rows': 3,
                 'placeholder': 'Commentaires de l\'opérateur...'
-            })
+            }),
+            # Champs cachés pour availability_time et lost_time
+            'availability_time': forms.HiddenInput(),
+            'lost_time': forms.HiddenInput()
         }
     
     def finish_init(self):
@@ -122,6 +126,8 @@ class ShiftForm(forms.ModelForm):
         self.fields['ok_length'].required = False
         self.fields['nok_length'].required = False
         self.fields['operator_comments'].required = False
+        self.fields['availability_time'].required = False
+        self.fields['lost_time'].required = False
         
         # Valeurs par défaut pour nouveau formulaire
         if not self.instance.pk:  # Nouveau formulaire

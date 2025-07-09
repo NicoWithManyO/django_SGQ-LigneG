@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import DefectType, RollDefect, ThicknessMeasurement, ThicknessSpecification
+from .models import DefectType, RollDefect, ThicknessMeasurement, Specification
 
 # Configuration admin pour l'application quality
 # Contrôles qualité, mesures et défauts
@@ -80,17 +80,25 @@ class ThicknessMeasurementAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(ThicknessSpecification)
-class ThicknessSpecificationAdmin(admin.ModelAdmin):
-    list_display = ['ep_nominale', 'ep_mini', 'ep_mini_alerte', 'ep_max_alerte', 'is_active', 'updated_at']
-    list_filter = ['is_active', 'created_at']
-    search_fields = ['comments']
+
+@admin.register(Specification)
+class SpecificationAdmin(admin.ModelAdmin):
+    list_display = ['spec_type', 'name', 'value_nominal', 'unit', 'value_min', 'value_max', 'is_blocking', 'is_active', 'updated_at']
+    list_filter = ['spec_type', 'is_blocking', 'is_active', 'created_at']
+    search_fields = ['name', 'comments']
     readonly_fields = ['created_at', 'updated_at']
     
     fieldsets = (
-        ('Spécifications d\'Épaisseur', {
-            'fields': ('ep_mini', 'ep_mini_alerte', 'ep_nominale', 'ep_max_alerte', 'is_active'),
-            'description': 'Ordre: mini ≤ mini_alerte ≤ nominale ≤ max_alerte'
+        ('Identification', {
+            'fields': ('spec_type', 'name', 'unit', 'is_active')
+        }),
+        ('Valeurs de Spécification', {
+            'fields': ('value_min', 'value_min_alert', 'value_nominal', 'value_max_alert', 'value_max'),
+            'description': 'Toutes les valeurs sont optionnelles. Ordre: min ≤ min_alerte ≤ nominale ≤ max_alerte ≤ max'
+        }),
+        ('Options', {
+            'fields': ('is_blocking', 'max_nok'),
+            'description': 'is_blocking: Le non-respect rend le produit non conforme. max_nok: Pour les épaisseurs uniquement.'
         }),
         ('Informations', {
             'fields': ('comments',)

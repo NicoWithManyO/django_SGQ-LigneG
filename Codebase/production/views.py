@@ -5,7 +5,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 from django_htmx.http import HttpResponseClientRedirect
 import json
 from datetime import datetime
-from .models import Shift, CurrentProd
+from .models import Shift, CurrentProd, QualityControlSeries
 from .forms import ShiftForm
 from core.models import Operator
 from quality.models import DefectType
@@ -25,15 +25,101 @@ def prod(request):
 
 def shift_block(request, shift_id=None):
     """Vue pour le bloc Poste - création ou modification."""
+    print(f"DEBUG: shift_block appelé avec shift_id={shift_id}, method={request.method}")
     shift = None
     if shift_id:
         shift = get_object_or_404(Shift, pk=shift_id)
     
     if request.method == 'POST':
+        print(f"DEBUG: POST request received in shift_block")
+        print(f"DEBUG: POST data: {request.POST}")
         form = ShiftForm(request.POST, instance=shift)
+        print(f"DEBUG: Form created, checking validity...")
         if form.is_valid():
+            print(f"DEBUG: Form is valid, attempting to save...")
             try:
                 shift = form.save()
+                print(f"DEBUG: Shift saved successfully with ID: {shift.id}, shift_id: {shift.shift_id}")
+                
+                # Sauvegarder les contrôles qualité s'ils existent
+                session_key = request.session.session_key
+                if session_key:
+                    try:
+                        current_prod = CurrentProd.objects.get(session_key=session_key)
+                        quality_data = current_prod.form_data.get('qualityControls', {})
+                        
+                        # Vérifier si des contrôles qualité existent
+                        has_quality_data = any([
+                            quality_data.get('micrometerLeft', []),
+                            quality_data.get('micrometerRight', []),
+                            quality_data.get('sizingBath'),
+                            quality_data.get('surfaceMassLeft', []),
+                            quality_data.get('surfaceMassRight', []),
+                            quality_data.get('loiGiven', False)
+                        ])
+                        
+                        if has_quality_data:
+                            # Créer l'objet QualityControlSeries
+                            quality_control = QualityControlSeries(shift=shift)
+                            
+                            # Remplir les valeurs Micronnaire
+                            micrometer_left = quality_data.get('micrometerLeft', [])
+                            if len(micrometer_left) >= 3:
+                                quality_control.micrometer_left_1 = float(micrometer_left[0]) if micrometer_left[0] else None
+                                quality_control.micrometer_left_2 = float(micrometer_left[1]) if micrometer_left[1] else None
+                                quality_control.micrometer_left_3 = float(micrometer_left[2]) if micrometer_left[2] else None
+                            
+                            micrometer_right = quality_data.get('micrometerRight', [])
+                            if len(micrometer_right) >= 3:
+                                quality_control.micrometer_right_1 = float(micrometer_right[0]) if micrometer_right[0] else None
+                                quality_control.micrometer_right_2 = float(micrometer_right[1]) if micrometer_right[1] else None
+                                quality_control.micrometer_right_3 = float(micrometer_right[2]) if micrometer_right[2] else None
+                            
+                            # Extrait Sec
+                            if quality_data.get('sizingBath'):
+                                quality_control.dry_extract = float(quality_data['sizingBath'].replace(',', '.'))
+                            
+                            # Heure Extrait Sec
+                            if quality_data.get('sizingBathTime') and quality_data['sizingBathTime'] != '--':
+                                try:
+                                    quality_control.dry_extract_time = datetime.strptime(quality_data['sizingBathTime'], '%H:%M').time()
+                                except:
+                                    pass
+                            
+                            # Masses Surfaciques
+                            surface_mass_left = quality_data.get('surfaceMassLeft', [])
+                            if len(surface_mass_left) >= 2:
+                                # GG et GC
+                                if surface_mass_left[0]:
+                                    quality_control.surface_mass_gg = float(surface_mass_left[0].replace(',', '.'))
+                                if surface_mass_left[1]:
+                                    quality_control.surface_mass_gc = float(surface_mass_left[1].replace(',', '.'))
+                            
+                            surface_mass_right = quality_data.get('surfaceMassRight', [])
+                            if len(surface_mass_right) >= 2:
+                                # DC et DD
+                                if surface_mass_right[0]:
+                                    quality_control.surface_mass_dc = float(surface_mass_right[0].replace(',', '.'))
+                                if surface_mass_right[1]:
+                                    quality_control.surface_mass_dd = float(surface_mass_right[1].replace(',', '.'))
+                            
+                            # LOI
+                            quality_control.loi_given = quality_data.get('loiGiven', False)
+                            if quality_data.get('loiTime') and quality_data['loiTime'] != '--':
+                                try:
+                                    quality_control.loi_time = datetime.strptime(quality_data['loiTime'], '%H:%M').time()
+                                except:
+                                    pass
+                            
+                            # Opérateur
+                            quality_control.created_by = shift.operator
+                            
+                            # Sauvegarder
+                            quality_control.save()
+                            print(f"Contrôles qualité sauvegardés pour le shift {shift.shift_id}")
+                    
+                    except CurrentProd.DoesNotExist:
+                        pass
                 
                 # Vider seulement les données de fiche de poste (garder OF, lg cible, rouleau)
                 session_key = request.session.session_key
@@ -103,10 +189,22 @@ def shift_block(request, shift_id=None):
                 
                 return redirect('production:prod')
             except Exception as e:
+                print(f"DEBUG: Exception during save: {str(e)}")
+                print(f"DEBUG: Exception type: {type(e)}")
+                import traceback
+                traceback.print_exc()
                 messages.error(request, f"Erreur lors de la sauvegarde: {str(e)}")
                 if request.htmx:
                     context = {'form': form, 'shift': shift, 'is_edit': shift is not None}
                     return render(request, 'production/blocks/shift_block.html', context)
+        else:
+            print(f"DEBUG: Form is NOT valid")
+            print(f"DEBUG: Form errors: {form.errors}")
+            print(f"DEBUG: Form non-field errors: {form.non_field_errors()}")
+            # Retourner le formulaire avec les erreurs pour que l'utilisateur les voie
+            if request.htmx:
+                context = {'form': form, 'shift': shift, 'is_edit': shift is not None}
+                return render(request, 'production/blocks/shift_block.html', context)
     else:
         if shift is None:
             # Nouveau formulaire avec date d'aujourd'hui
@@ -236,6 +334,15 @@ def auto_save_form(request):
             'success': False,
             'error': f'Erreur de sauvegarde: {str(e)}'
         }, status=500)
+
+
+@require_POST
+def save_quality_controls(request):
+    """Fonction désactivée - les contrôles qualité sont maintenant sauvegardés avec le poste."""
+    return JsonResponse({
+        'success': False,
+        'error': 'Cette fonction est désactivée. Les contrôles qualité sont sauvegardés avec le poste.'
+    })
 
 
 def get_saved_form_data(request):

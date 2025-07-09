@@ -3,6 +3,26 @@
 {% block title %}PROD - SGQ Ligne G{% endblock %}
 
 {% block content %}
+<script>
+// Définir confirmSaveShift immédiatement au niveau global
+window.confirmSaveShift = function() {
+    // Vérifier si tous les contrôles qualité sont remplis
+    const allQualityControlsFilled = checkAllQualityControlsFilled();
+    
+    if (!allQualityControlsFilled) {
+        alert('Veuillez remplir tous les contrôles qualité avant de sauvegarder le poste.');
+        return;
+    }
+    
+    if (confirm('Êtes-vous sûr de vouloir enregistrer ce poste ?')) {
+        const form = document.getElementById('shift-form');
+        if (form) {
+            htmx.trigger(form, 'submit');
+        }
+    }
+}
+
+</script>
 <div class="production-dashboard">
     
     <!-- Sidebar gauche - Tous les blocs -->
@@ -54,7 +74,7 @@
                         <div class="of-field-row">
                             <label class="form-label">Lg cible (m)</label>
                             <div class="input-group">
-                                <input type="number" id="target-length" class="form-control fw-bold of-input" step="0.01" min="0" placeholder="--" disabled>
+                                <input type="number" id="target-length" class="form-control fw-bold of-input" step="0.01" min="0" placeholder="--" disabled autocomplete="off">
                                 <button type="button" class="btn btn-outline-secondary btn-sm" 
                                         onclick="editTargetLength()" title="Modifier">
                                     <i class="bi bi-pencil"></i>
@@ -94,13 +114,13 @@
                 
                 <!-- Champs cachés pour maintenir la fonctionnalité auto-save -->
                 <div style="display: none;">
-                    <input type="text" id="roll-number" value="">
+                    <input type="text" id="roll-number" value="" autocomplete="off">
                     <div id="roll-id">--</div>
                     <span id="roll-status" class="badge"></span>
-                    <input type="number" id="next-tube-mass" value="">
-                    <input type="number" id="roll-length" value="">
-                    <input type="number" id="tube-mass" value="">
-                    <input type="number" id="total-mass" value="">
+                    <input type="number" id="next-tube-mass" value="" autocomplete="off">
+                    <input type="number" id="roll-length" value="" autocomplete="off">
+                    <input type="number" id="tube-mass" value="" autocomplete="off">
+                    <input type="number" id="total-mass" value="" autocomplete="off">
                 </div>
                 
             </div>
@@ -138,7 +158,7 @@
                             </div>
                             <div class="col-4">
                                 <label class="form-label">Commentaire</label>
-                                <input type="text" class="form-control" placeholder="Détails...">
+                                <input type="text" class="form-control" placeholder="Détails..." autocomplete="off">
                             </div>
                             <div class="col-3">
                                 <label class="form-label">Temps</label>
@@ -163,32 +183,32 @@
         <!-- Bloc Contrôles Qualité -->
         <div class="block-card">
             <div class="block-header" style="cursor: pointer;" onclick="toggleQualityControlsBlock()">
-                <h5 class="block-title"><i class="bi bi-clipboard-check"></i> Contrôles Qualité</h5>
+                <h5 class="block-title"><i class="bi bi-clipboard-check"></i> Contrôles Qualité <span id="thickness-spec-name" style="font-size: 0.8rem; font-weight: normal;"></span></h5>
                 <div class="block-actions">
                     <i class="bi bi-chevron-up" id="quality-controls-chevron"></i>
                 </div>
             </div>
             <div class="block-content" id="quality-controls-content">
-                <div class="quality-controls-grid">
+                <div class="quality-controls-grid d-flex gap-3" style="width: 100%;">
                     <!-- Contrôles Micrionnaire Gauche -->
-                    <div class="control-section left">
+                    <div class="control-section left" style="flex: 1;">
                         <div class="control-header">
                             <i class="bi bi-search"></i>
-                            <span>Contrôles Micrionnaire Gauche</span>
+                            <span>Contrôles Micronnaire Gauche</span>
                         </div>
                         <div class="control-content">
                             <div class="micrometer-readings">
                                 <div class="reading-group">
                                     <label>#1</label>
-                                    <input type="text" class="form-control" placeholder="--">
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off">
                                 </div>
                                 <div class="reading-group">
                                     <label>#2</label>
-                                    <input type="text" class="form-control" placeholder="--">
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off">
                                 </div>
                                 <div class="reading-group">
                                     <label>#3</label>
-                                    <input type="text" class="form-control" placeholder="--">
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off">
                                 </div>
                                 <div class="average-display mt-0">
                                     <small class="text-muted">--</small>
@@ -198,7 +218,7 @@
                     </div>
 
                     <!-- Bain d'Ensimage (Centre) -->
-                    <div class="control-section center">
+                    <div class="control-section center" style="flex: 1;">
                         <div class="control-header">
                             <i class="bi bi-clipboard-data"></i>
                             <span>Extrait Sec</span>
@@ -206,39 +226,45 @@
                         <div class="control-content">
                             <div class="sizing-bath">
                                 <div class="sizing-bath-field">
-                                    <input type="text" class="form-control" placeholder="--" id="sizing-bath-input">
+                                    <input type="text" class="form-control" placeholder="--" id="sizing-bath-input" autocomplete="off">
                                     <small class="text-muted" id="sizing-bath-time">--</small>
                                 </div>
                                 <hr style="width: 80%; margin: 0.5rem 0; border-color: var(--border-color);">
                                 <div class="loi-section">
-                                    <div class="status-buttons">
-                                        <button type="button" class="btn btn-secondary btn-sm">LOI donnée</button>
+                                    <div class="d-flex flex-column align-items-center">
+                                        <div class="d-flex align-items-center justify-content-center gap-1">
+                                            <label style="font-size: 0.75rem; font-weight: 500; color: var(--primary-text); margin: 0;">Échantillon LOI</label>
+                                            <label class="custom-toggle">
+                                                <input type="checkbox" id="loiSwitch" onchange="toggleLOI(this)">
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                        <small class="text-muted mt-1" id="loi-time">--</small>
                                     </div>
-                                    <small class="text-muted" id="loi-time">--</small>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Contrôles Micrionnaire Droite -->
-                    <div class="control-section right">
+                    <div class="control-section right" style="flex: 1;">
                         <div class="control-header">
                             <i class="bi bi-search"></i>
-                            <span>Contrôles Micrionnaire Droite</span>
+                            <span>Contrôles Micronnaire Droite</span>
                         </div>
                         <div class="control-content">
                             <div class="micrometer-readings">
                                 <div class="reading-group">
                                     <label>#1</label>
-                                    <input type="text" class="form-control" placeholder="--">
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off">
                                 </div>
                                 <div class="reading-group">
                                     <label>#2</label>
-                                    <input type="text" class="form-control" placeholder="--">
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off">
                                 </div>
                                 <div class="reading-group">
                                     <label>#3</label>
-                                    <input type="text" class="form-control" placeholder="--">
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off">
                                 </div>
                                 <div class="average-display mt-0">
                                     <small class="text-muted">--</small>
@@ -249,9 +275,9 @@
                 </div>
 
                 <!-- Contrôles Masse Surfacique (Ligne du bas) -->
-                <div class="surface-mass-controls">
+                <div class="surface-mass-controls" style="display: flex; flex-wrap: nowrap; width: 100%; gap: 3rem;">
                     <!-- Gauche -->
-                    <div class="surface-mass-section left">
+                    <div class="surface-mass-section left" style="flex: 1;">
                         <div class="control-header">
                             <i class="bi bi-clipboard-check"></i>
                             <span>Contrôles Masse Surfacique Gauche</span>
@@ -262,11 +288,11 @@
                                     <small class="text-muted" style="margin-bottom: 0;" id="gg-conversion">--</small>
                                     <div class="reading-group">
                                         <label>GG</label>
-                                        <input type="text" class="form-control" placeholder="--" id="gg-input">
+                                        <input type="text" class="form-control" placeholder="--" id="gg-input" autocomplete="off">
                                     </div>
                                     <div class="reading-group">
                                         <label>GC</label>
-                                        <input type="text" class="form-control" placeholder="--" id="gc-input">
+                                        <input type="text" class="form-control" placeholder="--" id="gc-input" autocomplete="off">
                                     </div>
                                     <small class="text-muted" style="margin-bottom: 0;" id="gc-conversion">--</small>
                                 </div>
@@ -276,11 +302,19 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Bouton Clear au centre -->
+                    <div class="d-flex flex-column align-items-center justify-content-center gap-2" style="padding: 0 10px;">
+                        <small id="quality-controls-status" class="text-muted text-center" style="font-size: 0.65rem; max-width: 150px; font-style: italic;">Renseignez les contrôles pour pouvoir sauvegarder le poste</small>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearQualityControls()" style="opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </button>
+                    </div>
 
                     <!-- Droite -->
-                    <div class="surface-mass-section right">
+                    <div class="surface-mass-section right" style="flex: 1;">
                         <div class="control-header">
-                            <i class="bi bi-bar-chart"></i>
+                            <i class="bi bi-clipboard-check"></i>
                             <span>Contrôles Masse Surfacique Droite</span>
                         </div>
                         <div class="surface-mass-readings">
@@ -289,11 +323,11 @@
                                     <small class="text-muted" style="margin-bottom: 0;" id="dc-conversion">--</small>
                                     <div class="reading-group">
                                         <label>DC</label>
-                                        <input type="text" class="form-control" placeholder="--" id="dc-input">
+                                        <input type="text" class="form-control" placeholder="--" id="dc-input" autocomplete="off">
                                     </div>
                                     <div class="reading-group">
                                         <label>DD</label>
-                                        <input type="text" class="form-control" placeholder="--" id="dd-input">
+                                        <input type="text" class="form-control" placeholder="--" id="dd-input" autocomplete="off">
                                     </div>
                                     <small class="text-muted" style="margin-bottom: 0;" id="dd-conversion">--</small>
                                 </div>
@@ -362,13 +396,13 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="ofOrderNumber" class="form-label">Numéro d'OF</label>
-                                <input type="text" class="form-control" id="ofOrderNumber" name="order_number" required>
+                                <input type="text" class="form-control" id="ofOrderNumber" name="order_number" required autocomplete="off">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="ofRequiredLength" class="form-label">Longueur requise (m)</label>
-                                <input type="number" class="form-control" id="ofRequiredLength" name="required_length" step="0.01" min="0" placeholder="0 = illimité">
+                                <input type="number" class="form-control" id="ofRequiredLength" name="required_length" step="0.01" min="0" placeholder="0 = illimité" autocomplete="off">
                             </div>
                         </div>
                     </div>
@@ -376,13 +410,13 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="ofTargetRollLength" class="form-label">Longueur par rouleau (m)</label>
-                                <input type="number" class="form-control" id="ofTargetRollLength" name="target_roll_length" step="0.01" min="0" placeholder="0 = illimité">
+                                <input type="number" class="form-control" id="ofTargetRollLength" name="target_roll_length" step="0.01" min="0" placeholder="0 = illimité" autocomplete="off">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="ofDueDate" class="form-label">Date d'échéance</label>
-                                <input type="date" class="form-control" id="ofDueDate" name="due_date">
+                                <input type="date" class="form-control" id="ofDueDate" name="due_date" autocomplete="off">
                             </div>
                         </div>
                     </div>
@@ -919,6 +953,7 @@ function autoSaveFormData() {
     };
     
     console.log('Sauvegarde des données:', formData);
+    console.log('Données qualité spécifiquement:', formData.qualityControls);
     
     fetch('{% url "production:auto_save_form" %}', {
         method: 'POST',
@@ -1085,8 +1120,34 @@ function restoreSavedData() {
                     
                     // Restaurer les contrôles qualité
                     if (data.qualityControls) {
+                        console.log('Restauration contrôles qualité avec données:', data.qualityControls);
                         restoreQualityControlsData(data.qualityControls);
+                        
+                        // Plus de hash - sauvegarde intégrée au poste
+                        
+                        // Vérifier l'état du bouton après restauration avec un délai pour laisser le temps aux valeurs de se charger
+                        setTimeout(() => {
+                            console.log('Début de la vérification après restauration...');
+                            
+                            // Recalculer toutes les moyennes d'abord
+                            calculateMicrometerAverage('left');
+                            calculateMicrometerAverage('right');
+                            calculateSurfaceMassAverage('left');
+                            calculateSurfaceMassAverage('right');
+                            updateSurfaceMassConversions();
+                            
+                            // Attendre un peu plus pour que tout soit bien calculé
+                            setTimeout(() => {
+                                // Plus de vérification - les contrôles seront sauvegardés avec le poste
+                                checkAllQualityControlsFilled();
+                            }, 200);
+                        }, 1000);
+                    } else {
+                        console.log('Pas de données de contrôles qualité à restaurer');
                     }
+                    
+                    // Vérifier l'état des contrôles après restauration
+                    setTimeout(checkAllQualityControlsFilled, 1500);
                 }, 500);
                 
                 // Déclencher la visibilité des champs conditionnels après restauration
@@ -1821,7 +1882,7 @@ function generateRollVisualization() {
                         <input type="text" class="defect-input-side" 
                                placeholder="" data-side="left" data-meter="${meter}"
                                list="defect-list-left-${meter}"
-                               onchange="validateDefect(this)" oninput="validateDefect(this); updateDefectHasValueClass(this)">
+                               onchange="validateDefect(this)" oninput="validateDefect(this); updateDefectHasValueClass(this)" autocomplete="off">
                         <button type="button" class="defect-clear-btn" 
                                 onclick="clearDefectInput(this)" title="Effacer">×</button>
                     </div>
@@ -1842,7 +1903,7 @@ function generateRollVisualization() {
                         <input type="text" class="defect-input-center" 
                                placeholder="" data-side="center" data-meter="${meter}"
                                list="defect-list-center-${meter}"
-                               onchange="validateDefect(this)" oninput="validateDefect(this); updateDefectHasValueClass(this)">
+                               onchange="validateDefect(this)" oninput="validateDefect(this); updateDefectHasValueClass(this)" autocomplete="off">
                         <button type="button" class="defect-clear-btn" 
                                 onclick="clearDefectInput(this)" title="Effacer">×</button>
                     </div>
@@ -1863,7 +1924,7 @@ function generateRollVisualization() {
                         <input type="text" class="defect-input-side" 
                                placeholder="" data-side="right" data-meter="${meter}"
                                list="defect-list-right-${meter}"
-                               onchange="validateDefect(this)" oninput="validateDefect(this); updateDefectHasValueClass(this)">
+                               onchange="validateDefect(this)" oninput="validateDefect(this); updateDefectHasValueClass(this)" autocomplete="off">
                         <button type="button" class="defect-clear-btn" 
                                 onclick="clearDefectInput(this)" title="Effacer">×</button>
                     </div>
@@ -1911,26 +1972,26 @@ function generateLeftThicknessInputs(meter) {
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
                    placeholder="" data-point="G1" data-meter="${meter}" 
-                   onchange="validateThickness(this)" onclick="this.select()">
+                   onchange="validateThickness(this)" onclick="this.select()" autocomplete="off">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
                    placeholder="" data-point="G1" data-meter="${meter}" data-catchup="true"
-                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;">
+                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;" autocomplete="off">
         </div>
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
                    placeholder="" data-point="G2" data-meter="${meter}"
-                   onchange="validateThickness(this)" onclick="this.select()">
+                   onchange="validateThickness(this)" onclick="this.select()" autocomplete="off">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
                    placeholder="" data-point="G2" data-meter="${meter}" data-catchup="true"
-                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;">
+                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;" autocomplete="off">
         </div>
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
                    placeholder="" data-point="G3" data-meter="${meter}"
-                   onchange="validateThickness(this)" onclick="this.select()">
+                   onchange="validateThickness(this)" onclick="this.select()" autocomplete="off">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
                    placeholder="" data-point="G3" data-meter="${meter}" data-catchup="true"
-                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;">
+                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;" autocomplete="off">
         </div>
     `;
 }
@@ -1941,26 +2002,26 @@ function generateRightThicknessInputs(meter) {
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
                    placeholder="" data-point="D1" data-meter="${meter}"
-                   onchange="validateThickness(this)" onclick="this.select()">
+                   onchange="validateThickness(this)" onclick="this.select()" autocomplete="off">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
                    placeholder="" data-point="D1" data-meter="${meter}" data-catchup="true"
-                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;">
+                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;" autocomplete="off">
         </div>
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
                    placeholder="" data-point="D2" data-meter="${meter}"
-                   onchange="validateThickness(this)" onclick="this.select()">
+                   onchange="validateThickness(this)" onclick="this.select()" autocomplete="off">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
                    placeholder="" data-point="D2" data-meter="${meter}" data-catchup="true"
-                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;">
+                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;" autocomplete="off">
         </div>
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
                    placeholder="" data-point="D3" data-meter="${meter}"
-                   onchange="validateThickness(this)" onclick="this.select()">
+                   onchange="validateThickness(this)" onclick="this.select()" autocomplete="off">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
                    placeholder="" data-point="D3" data-meter="${meter}" data-catchup="true"
-                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;">
+                   onchange="validateThickness(this)" onclick="this.select()" style="display: none;" autocomplete="off">
         </div>
     `;
 }
@@ -1972,16 +2033,30 @@ function loadThicknessSpecifications() {
     .then(data => {
         window.thicknessSpecs = data;
         console.log('Spécifications d\'épaisseur chargées:', data);
+        
+        // Afficher le nom des spécifications
+        const specNameElement = document.getElementById('thickness-spec-name');
+        if (specNameElement && data.name) {
+            specNameElement.textContent = `(${data.name})`;
+        }
     })
     .catch(error => {
         console.error('Erreur chargement spécifications:', error);
         // Valeurs par défaut en cas d'erreur
         window.thicknessSpecs = {
+            name: '80gr/m² (défaut)',
             ep_mini: 3.0,
             ep_mini_alerte: 3.5,
             ep_nominale: 4.0,
-            ep_max_alerte: 4.5
+            ep_max_alerte: 4.5,
+            max_nok: 4
         };
+        
+        // Afficher le nom par défaut
+        const specNameElement = document.getElementById('thickness-spec-name');
+        if (specNameElement) {
+            specNameElement.textContent = '(80gr/m² défaut)';
+        }
     });
 }
 
@@ -2098,9 +2173,6 @@ function validateThickness(input) {
         if (!isCatchup) {
             hideCatchupField(input);
         }
-        updateRollConformity();
-        updateThicknessCounter();
-        updateNokCounter();
         return;
     }
     
@@ -3646,6 +3718,7 @@ document.addEventListener('DOMContentLoaded', function() {
     populateTimeOptions();
     loadFabricationOrders();
     loadThicknessSpecifications(); // Charger les spécifications d'épaisseur
+    loadAllSpecifications(); // Charger toutes les spécifications pour les contrôles qualité
     setTimeout(restoreSavedData, 2000);
     setTimeout(updateRollId, 2500); // Générer l'ID après restauration
     setTimeout(generateRollVisualization, 3000); // Générer le rouleau après restauration
@@ -3683,6 +3756,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialiser le résumé des défauts
     setTimeout(updateDefectsSummary, 6000);
     
+    // Appliquer la validation des contrôles qualité après restauration
+    setTimeout(() => {
+        if (Object.keys(allSpecifications).length > 0) {
+            applyQualityControlValidation();
+        }
+    }, 6500);
     
     // Démarrer l'observation des changements
     const rollIdElement = document.getElementById('roll-id');
@@ -3698,6 +3777,36 @@ document.addEventListener('DOMContentLoaded', function() {
     if (conformityStatusElement) {
         observer.observe(conformityStatusElement, { childList: true, characterData: true, subtree: true });
     }
+    
+    // Ajouter les listeners pour les contrôles qualité
+    setTimeout(() => {
+        // Ajouter les listeners pour vérifier l'état des contrôles
+        document.querySelectorAll('.micrometer-readings input').forEach(input => {
+            input.addEventListener('input', checkAllQualityControlsFilled);
+            input.addEventListener('blur', checkAllQualityControlsFilled);
+        });
+        
+        document.querySelectorAll('.surface-mass-section input[type="text"]').forEach(input => {
+            if (!input.readOnly) {
+                input.addEventListener('input', checkAllQualityControlsFilled);
+                input.addEventListener('blur', checkAllQualityControlsFilled);
+            }
+        });
+        
+        const sizingBathInput = document.getElementById('sizing-bath-input');
+        if (sizingBathInput) {
+            sizingBathInput.addEventListener('input', checkAllQualityControlsFilled);
+            sizingBathInput.addEventListener('blur', checkAllQualityControlsFilled);
+        }
+        
+        const loiSwitch = document.getElementById('loiSwitch');
+        if (loiSwitch) {
+            loiSwitch.addEventListener('change', checkAllQualityControlsFilled);
+        }
+        
+        // Vérifier l'état initial
+        checkAllQualityControlsFilled();
+    }, 1000);
 });
 
 // Fonction pour calculer la moyenne des micromètres
@@ -3803,8 +3912,11 @@ function getQualityControlsData() {
         micrometerLeft: [],
         micrometerRight: [],
         sizingBath: '',
+        sizingBathTime: '',
         surfaceMassLeft: [],
-        surfaceMassRight: []
+        surfaceMassRight: [],
+        loiGiven: false,
+        loiTime: ''
     };
     
     // Micromètres gauche
@@ -3817,21 +3929,42 @@ function getQualityControlsData() {
         data.micrometerRight.push(input.value);
     });
     
-    // Bain d'ensimage
-    const sizingBathInput = document.querySelector('.sizing-bath input');
+    // Bain d'ensimage (Extrait sec)
+    const sizingBathInput = document.getElementById('sizing-bath-input');
     if (sizingBathInput) {
         data.sizingBath = sizingBathInput.value;
     }
     
-    // Masses surfaciques gauche
-    document.querySelectorAll('.surface-mass-section.left .reading-group input').forEach(input => {
-        data.surfaceMassLeft.push(input.value);
-    });
+    // Heure du bain d'ensimage
+    const sizingBathTime = document.getElementById('sizing-bath-time');
+    if (sizingBathTime) {
+        data.sizingBathTime = sizingBathTime.textContent;
+    }
     
-    // Masses surfaciques droite
-    document.querySelectorAll('.surface-mass-section.right .reading-group input').forEach(input => {
-        data.surfaceMassRight.push(input.value);
-    });
+    // Masses surfaciques gauche (GG et GC)
+    const ggInput = document.getElementById('gg-input');
+    const gcInput = document.getElementById('gc-input');
+    if (ggInput) data.surfaceMassLeft.push(ggInput.value);
+    if (gcInput) data.surfaceMassLeft.push(gcInput.value);
+    
+    // Masses surfaciques droite (DC et DD)
+    const dcInput = document.getElementById('dc-input');
+    const ddInput = document.getElementById('dd-input');
+    if (dcInput) data.surfaceMassRight.push(dcInput.value);
+    if (ddInput) data.surfaceMassRight.push(ddInput.value);
+    
+    // LOI
+    const loiSwitch = document.getElementById('loiSwitch');
+    if (loiSwitch) {
+        data.loiGiven = loiSwitch.checked;
+        console.log('LOI sauvegarde - état:', data.loiGiven);
+    }
+    
+    const loiTime = document.getElementById('loi-time');
+    if (loiTime && loiTime.textContent !== '--') {
+        data.loiTime = loiTime.textContent;
+        console.log('LOI sauvegarde - heure:', data.loiTime);
+    }
     
     return data;
 }
@@ -3854,10 +3987,16 @@ function restoreQualityControlsData(data) {
         }
     });
     
-    // Restaurer bain d'ensimage
-    const sizingBathInput = document.querySelector('.sizing-bath input');
+    // Restaurer bain d'ensimage (Extrait sec)
+    const sizingBathInput = document.getElementById('sizing-bath-input');
     if (sizingBathInput && data.sizingBath) {
         sizingBathInput.value = data.sizingBath;
+    }
+    
+    // Restaurer l'heure du bain d'ensimage
+    const sizingBathTime = document.getElementById('sizing-bath-time');
+    if (sizingBathTime && data.sizingBathTime) {
+        sizingBathTime.textContent = data.sizingBathTime;
     }
     
     // Restaurer masses surfaciques gauche
@@ -3876,6 +4015,29 @@ function restoreQualityControlsData(data) {
         }
     });
     
+    // Restaurer LOI
+    console.log('LOI restauration - données:', {loiGiven: data.loiGiven, loiTime: data.loiTime});
+    
+    if (data.loiGiven !== undefined) {
+        const loiSwitch = document.getElementById('loiSwitch');
+        if (loiSwitch) {
+            loiSwitch.checked = data.loiGiven;
+            console.log('LOI restauration - switch ' + (data.loiGiven ? 'activé' : 'désactivé'));
+        } else {
+            console.log('LOI restauration - switch non trouvé');
+        }
+    }
+    
+    if (data.loiTime) {
+        const loiTimeElement = document.getElementById('loi-time');
+        if (loiTimeElement) {
+            loiTimeElement.textContent = data.loiTime;
+            console.log('LOI restauration - heure mise à jour:', data.loiTime);
+        } else {
+            console.log('LOI restauration - élément heure non trouvé');
+        }
+    }
+    
     // Recalculer les moyennes après restauration
     calculateMicrometerAverage('left');
     calculateMicrometerAverage('right');
@@ -3892,14 +4054,291 @@ function formatSurfaceMassInput(input) {
     
     // Si la valeur commence par une virgule, ajouter 0 devant
     if (value.startsWith(',')) {
-        value = '0' + value;
-        input.value = value;
+        input.value = '0' + value;
+        console.log('Formaté virgule:', input.value);
     }
     
     // Si la valeur commence par un point, le remplacer par 0,
-    if (value.startsWith('.')) {
-        value = '0,' + value.substring(1);
-        input.value = value;
+    else if (value.startsWith('.')) {
+        input.value = '0,' + value.substring(1);
+        console.log('Formaté point:', input.value);
+    }
+}
+
+// Fonction pour mettre à jour l'heure et la date
+function updateDateTime(elementId, inputValue) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        // Si le champ est vide, afficher --
+        if (!inputValue || inputValue.trim() === '') {
+            element.textContent = '--';
+        } else {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const timeString = `${hours}:${minutes}`;
+            element.textContent = timeString;
+        }
+    }
+}
+
+// Variable globale pour stocker toutes les spécifications
+let allSpecifications = {};
+
+// Fonction pour gérer le switch LOI
+function toggleLOI(switchElement) {
+    if (switchElement.checked) {
+        // Activer LOI
+        // Enregistrer l'heure
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const timeString = `${hours}:${minutes}`;
+        document.getElementById('loi-time').textContent = timeString;
+    } else {
+        // Désactiver LOI
+        document.getElementById('loi-time').textContent = '--';
+    }
+    
+    // Forcer la perte de focus pour que le switch se mette à jour visuellement
+    switchElement.blur();
+    
+    // Déclencher l'autosave
+    console.log('LOI toggle - déclenchement autosave');
+    autoSaveFormData();
+    
+    // Vérifier l'état après le toggle
+    checkAllQualityControlsFilled();
+}
+
+// Fonction pour effacer les contrôles qualité
+function clearQualityControls() {
+    if (confirm('Voulez-vous vraiment effacer tous les contrôles qualité ?')) {
+        // Effacer tous les champs Micronnaire
+        document.querySelectorAll('.micrometer-readings input').forEach(input => {
+            input.value = '';
+            input.classList.remove('quality-ok', 'quality-warning', 'quality-critical');
+        });
+        
+        // Effacer Extrait Sec
+        const sizingBathInput = document.getElementById('sizing-bath-input');
+        if (sizingBathInput) {
+            sizingBathInput.value = '';
+            sizingBathInput.classList.remove('quality-ok', 'quality-warning', 'quality-critical');
+        }
+        document.getElementById('sizing-bath-time').textContent = '--';
+        
+        // Effacer Masses Surfaciques
+        ['gg-input', 'gc-input', 'dc-input', 'dd-input'].forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.value = '';
+                input.classList.remove('quality-ok', 'quality-warning', 'quality-critical');
+            }
+        });
+        
+        // Réinitialiser LOI
+        const loiSwitch = document.getElementById('loiSwitch');
+        if (loiSwitch) {
+            loiSwitch.checked = false;
+        }
+        document.getElementById('loi-time').textContent = '--';
+        
+        // Réinitialiser les moyennes
+        document.querySelectorAll('.average-display small').forEach(avg => {
+            avg.textContent = '--';
+        });
+        document.querySelectorAll('.text-center small.text-muted').forEach(avg => {
+            if (avg.parentElement.classList.contains('text-center')) {
+                avg.textContent = '--';
+            }
+        });
+        
+        // Réinitialiser les conversions
+        ['gg-conversion', 'gc-conversion', 'dc-conversion', 'dd-conversion'].forEach(id => {
+            const elem = document.getElementById(id);
+            if (elem) elem.textContent = '--';
+        });
+        
+        console.log('Contrôles qualité effacés');
+        
+        // Plus de gestion d'état - sauvegarde intégrée au poste
+        
+        // Vérifier l'état après effacement
+        checkAllQualityControlsFilled();
+        
+        // Déclencher l'autosave pour sauvegarder l'état effacé
+        setTimeout(autoSaveFormData, 100);
+    }
+}
+
+// Fonction supprimée - sauvegarde intégrée au poste
+
+// Fonction pour vérifier si tous les contrôles qualité sont remplis
+function checkAllQualityControlsFilled() {
+    let allFilled = true;
+    
+    // Vérifier les micronnaires (6 champs)
+    document.querySelectorAll('.micrometer-readings input').forEach(input => {
+        if (!input.value || input.value.trim() === '') {
+            allFilled = false;
+        }
+    });
+    
+    // Vérifier l'extrait sec
+    const sizingBathInput = document.getElementById('sizing-bath-input');
+    if (!sizingBathInput || !sizingBathInput.value || sizingBathInput.value.trim() === '') {
+        allFilled = false;
+    }
+    
+    // Vérifier les masses surfaciques (4 champs)
+    const massInputs = ['gg-input', 'gc-input', 'dc-input', 'dd-input'];
+    massInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (!input || !input.value || input.value.trim() === '') {
+            allFilled = false;
+        }
+    });
+    
+    // Vérifier LOI
+    const loiSwitch = document.getElementById('loiSwitch');
+    if (!loiSwitch || !loiSwitch.checked) {
+        allFilled = false;
+    }
+    
+    // Mettre à jour le message
+    const statusElement = document.getElementById('quality-controls-status');
+    if (statusElement) {
+        if (allFilled) {
+            statusElement.textContent = 'Les contrôles seront sauvegardés avec le poste';
+            statusElement.classList.remove('text-danger', 'text-muted');
+            statusElement.classList.add('text-success');
+        } else {
+            statusElement.textContent = 'Renseignez les contrôles pour pouvoir sauvegarder le poste';
+            statusElement.classList.remove('text-success', 'text-danger');
+            statusElement.classList.add('text-muted');
+        }
+    }
+    
+    return allFilled;
+}
+
+// Fonction pour charger toutes les spécifications
+function loadAllSpecifications() {
+    fetch('/quality/get-all-specifications/')
+        .then(response => response.json())
+        .then(data => {
+            allSpecifications = data;
+            console.log('Spécifications chargées:', allSpecifications);
+            // Après chargement, appliquer la validation aux champs existants
+            // Attendre un peu pour être sûr que les données sont restaurées
+            setTimeout(applyQualityControlValidation, 3000);
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des spécifications:', error);
+        });
+}
+
+// Fonction pour obtenir le statut d'une valeur par rapport aux spécifications
+function getValueStatus(value, spec) {
+    if (!spec || value === null || value === undefined || value === '') {
+        return 'normal';
+    }
+    
+    const numValue = parseFloat(value.toString().replace(',', '.'));
+    if (isNaN(numValue)) {
+        return 'normal';
+    }
+    
+    // Vérifier les seuils critiques d'abord
+    if (spec.value_min !== null && numValue < spec.value_min) {
+        return 'critical';
+    }
+    if (spec.value_max !== null && numValue > spec.value_max) {
+        return 'critical';
+    }
+    
+    // Vérifier les seuils d'alerte
+    if (spec.value_min_alert !== null && numValue < spec.value_min_alert) {
+        return 'warning';
+    }
+    if (spec.value_max_alert !== null && numValue > spec.value_max_alert) {
+        return 'warning';
+    }
+    
+    return 'ok';
+}
+
+// Fonction pour appliquer le style selon le statut
+function applyValidationStyle(input, status) {
+    // Enlever toutes les classes de validation
+    input.classList.remove('quality-ok', 'quality-warning', 'quality-critical');
+    
+    // Ajouter la classe appropriée
+    switch(status) {
+        case 'ok':
+            input.classList.add('quality-ok');
+            break;
+        case 'warning':
+            input.classList.add('quality-warning');
+            break;
+        case 'critical':
+            input.classList.add('quality-critical');
+            break;
+    }
+}
+
+// Fonction pour valider un champ de contrôle qualité
+function validateQualityControl(input, specType) {
+    const value = input.value.trim();
+    if (!value || value === '--') {
+        applyValidationStyle(input, 'normal');
+        return;
+    }
+    
+    // Trouver la spécification correspondante (pour l'instant on prend 80gr/m²)
+    const specKey = `${specType}_80gr/m²`;
+    const spec = allSpecifications[specKey];
+    
+    if (!spec) {
+        console.warn(`Pas de spécification trouvée pour ${specKey}`);
+        return;
+    }
+    
+    const status = getValueStatus(value, spec);
+    applyValidationStyle(input, status);
+}
+
+// Fonction pour appliquer la validation à tous les champs de contrôle qualité
+function applyQualityControlValidation() {
+    console.log('Application de la validation des contrôles qualité...');
+    
+    // Micronnaire
+    document.querySelectorAll('.micrometer-readings input').forEach(input => {
+        // Valider immédiatement si le champ contient une valeur
+        if (input.value && input.value !== '--') {
+            validateQualityControl(input, 'micrometer');
+        }
+    });
+    
+    // Masse surfacique
+    document.querySelectorAll('.surface-mass-section input[type="text"]').forEach(input => {
+        // Exclure les champs de conversion (readonly)
+        if (!input.readOnly) {
+            // Valider immédiatement si le champ contient une valeur
+            if (input.value && input.value !== '--') {
+                validateQualityControl(input, 'surface_mass');
+            }
+        }
+    });
+    
+    // Extrait sec
+    const dryExtractInput = document.getElementById('sizing-bath-input');
+    if (dryExtractInput) {
+        // Valider immédiatement si le champ contient une valeur
+        if (dryExtractInput.value && dryExtractInput.value !== '--') {
+            validateQualityControl(dryExtractInput, 'dry_extract');
+        }
     }
 }
 
@@ -3907,7 +4346,10 @@ function formatSurfaceMassInput(input) {
 document.addEventListener('DOMContentLoaded', function() {
     // Micromètres gauche
     document.querySelectorAll('.control-section.left .micrometer-readings input').forEach(input => {
-        input.addEventListener('input', () => calculateMicrometerAverage('left'));
+        input.addEventListener('input', () => {
+            calculateMicrometerAverage('left');
+            validateQualityControl(input, 'micrometer');
+        });
         input.addEventListener('blur', function() {
             formatSurfaceMassInput(this);
             calculateMicrometerAverage('left');
@@ -3916,7 +4358,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Micromètres droite
     document.querySelectorAll('.control-section.right .micrometer-readings input').forEach(input => {
-        input.addEventListener('input', () => calculateMicrometerAverage('right'));
+        input.addEventListener('input', () => {
+            calculateMicrometerAverage('right');
+            validateQualityControl(input, 'micrometer');
+        });
         input.addEventListener('blur', function() {
             formatSurfaceMassInput(this);
             calculateMicrometerAverage('right');
@@ -3929,6 +4374,7 @@ document.addEventListener('DOMContentLoaded', function() {
             calculateSurfaceMassAverage('left');
             // Mettre à jour les conversions
             updateSurfaceMassConversions();
+            validateQualityControl(input, 'surface_mass');
         });
         input.addEventListener('blur', function() {
             formatSurfaceMassInput(this);
@@ -3943,6 +4389,7 @@ document.addEventListener('DOMContentLoaded', function() {
             calculateSurfaceMassAverage('right');
             // Mettre à jour les conversions
             updateSurfaceMassConversions();
+            validateQualityControl(input, 'surface_mass');
         });
         input.addEventListener('blur', function() {
             formatSurfaceMassInput(this);
@@ -3954,8 +4401,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Bain d'ensimage - Extrait Sec
     const sizingBathInput = document.getElementById('sizing-bath-input');
     if (sizingBathInput) {
+        sizingBathInput.addEventListener('input', function() {
+            updateDateTime('sizing-bath-time', this.value);
+            validateQualityControl(this, 'dry_extract');
+        });
         sizingBathInput.addEventListener('blur', function() {
             formatSurfaceMassInput(this);
+            updateDateTime('sizing-bath-time', this.value);
         });
     }
     
