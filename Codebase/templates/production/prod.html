@@ -4,23 +4,7 @@
 
 {% block content %}
 <script>
-// Définir confirmSaveShift immédiatement au niveau global
-window.confirmSaveShift = function() {
-    // Vérifier si tous les contrôles qualité sont remplis
-    const allQualityControlsFilled = checkAllQualityControlsFilled();
-    
-    if (!allQualityControlsFilled) {
-        alert('Veuillez remplir tous les contrôles qualité avant de sauvegarder le poste.');
-        return;
-    }
-    
-    if (confirm('Êtes-vous sûr de vouloir enregistrer ce poste ?')) {
-        const form = document.getElementById('shift-form');
-        if (form) {
-            htmx.trigger(form, 'submit');
-        }
-    }
-}
+// La fonction confirmSaveShift est maintenant définie dans shift_block.html
 
 </script>
 <div class="production-dashboard">
@@ -1236,26 +1220,17 @@ document.addEventListener('forceRestore', function(e) {
         }
     }, 100);
     
-    // Éviter les doublons d'alerte
-    if (window.saveAlertShown) {
-        console.log('Alerte déjà affichée, ignoré');
-        return;
-    }
-    
-    // Afficher l'alerte de sauvegarde
-    alert('Sauvegarde OK');
-    window.saveAlertShown = true;
-    
-    // Réinitialiser le flag après un délai
-    setTimeout(function() {
-        window.saveAlertShown = false;
-    }, 3000);
-    
     // Réinitialiser le flag et forcer la restauration
     window.isRestoring = false;
     setTimeout(function() {
         restoreSavedData();
     }, 200);
+});
+
+// Écouter spécifiquement l'événement de succès de sauvegarde
+document.addEventListener('shiftSaveSuccess', function(e) {
+    console.log('Shift sauvegardé avec succès!');
+    alert('Sauvegarde OK');
 });
 
 // Gestion des ordres de fabrication
@@ -4167,6 +4142,11 @@ function clearQualityControls() {
         // Vérifier l'état après effacement
         checkAllQualityControlsFilled();
         
+        // Mettre à jour l'état du bouton shift après effacement
+        if (typeof updateShiftButtonState === 'function') {
+            updateShiftButtonState();
+        }
+        
         // Déclencher l'autosave pour sauvegarder l'état effacé
         setTimeout(autoSaveFormData, 100);
     }
@@ -4175,7 +4155,7 @@ function clearQualityControls() {
 // Fonction supprimée - sauvegarde intégrée au poste
 
 // Fonction pour vérifier si tous les contrôles qualité sont remplis
-function checkAllQualityControlsFilled() {
+window.checkAllQualityControlsFilled = function() {
     let allFilled = true;
     
     // Vérifier les micronnaires (6 champs)
@@ -4309,6 +4289,52 @@ function validateQualityControl(input, specType) {
     applyValidationStyle(input, status);
 }
 
+// Fonction pour remplir aléatoirement les contrôles qualité
+function fillRandomQualityControls() {
+    console.log('Remplissage aléatoire des contrôles qualité...');
+    
+    // Micronnaire - valeurs autour de 22-26 ml/min (2 chiffres après la virgule)
+    document.querySelectorAll('.micrometer-readings input').forEach(input => {
+        const randomValue = (22 + Math.random() * 4).toFixed(2);
+        input.value = randomValue;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('blur', { bubbles: true }));
+    });
+    
+    // Extrait sec - valeurs autour de 7.5-8.5% (2 chiffres après la virgule)
+    const sizingBathInput = document.getElementById('sizing-bath-input');
+    if (sizingBathInput) {
+        const randomValue = (7.5 + Math.random() * 1).toFixed(2);
+        sizingBathInput.value = randomValue;
+        sizingBathInput.dispatchEvent(new Event('input', { bubbles: true }));
+        sizingBathInput.dispatchEvent(new Event('blur', { bubbles: true }));
+    }
+    
+    // Masses surfaciques - valeurs autour de 0.08-0.10 g/25cm² (4 chiffres après la virgule)
+    const massInputs = ['gg-input', 'gc-input', 'dc-input', 'dd-input'];
+    massInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            const randomValue = (0.08 + Math.random() * 0.02).toFixed(4);
+            input.value = randomValue;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('blur', { bubbles: true }));
+        }
+    });
+    
+    // LOI - toujours coché
+    const loiSwitch = document.getElementById('loiSwitch');
+    if (loiSwitch && !loiSwitch.checked) {
+        loiSwitch.checked = true;
+        loiSwitch.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    
+    // Sauvegarder automatiquement
+    autoSaveFormData();
+    
+    console.log('Contrôles qualité remplis aléatoirement');
+}
+
 // Fonction pour appliquer la validation à tous les champs de contrôle qualité
 function applyQualityControlValidation() {
     console.log('Application de la validation des contrôles qualité...');
@@ -4349,6 +4375,10 @@ document.addEventListener('DOMContentLoaded', function() {
         input.addEventListener('input', () => {
             calculateMicrometerAverage('left');
             validateQualityControl(input, 'micrometer');
+            // Mettre à jour l'état du bouton shift
+            if (typeof updateShiftButtonState === 'function') {
+                updateShiftButtonState();
+            }
         });
         input.addEventListener('blur', function() {
             formatSurfaceMassInput(this);
@@ -4361,6 +4391,10 @@ document.addEventListener('DOMContentLoaded', function() {
         input.addEventListener('input', () => {
             calculateMicrometerAverage('right');
             validateQualityControl(input, 'micrometer');
+            // Mettre à jour l'état du bouton shift
+            if (typeof updateShiftButtonState === 'function') {
+                updateShiftButtonState();
+            }
         });
         input.addEventListener('blur', function() {
             formatSurfaceMassInput(this);
@@ -4375,6 +4409,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Mettre à jour les conversions
             updateSurfaceMassConversions();
             validateQualityControl(input, 'surface_mass');
+            // Mettre à jour l'état du bouton shift
+            if (typeof updateShiftButtonState === 'function') {
+                updateShiftButtonState();
+            }
         });
         input.addEventListener('blur', function() {
             formatSurfaceMassInput(this);
@@ -4390,6 +4428,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Mettre à jour les conversions
             updateSurfaceMassConversions();
             validateQualityControl(input, 'surface_mass');
+            // Mettre à jour l'état du bouton shift
+            if (typeof updateShiftButtonState === 'function') {
+                updateShiftButtonState();
+            }
         });
         input.addEventListener('blur', function() {
             formatSurfaceMassInput(this);
@@ -4404,10 +4446,25 @@ document.addEventListener('DOMContentLoaded', function() {
         sizingBathInput.addEventListener('input', function() {
             updateDateTime('sizing-bath-time', this.value);
             validateQualityControl(this, 'dry_extract');
+            // Mettre à jour l'état du bouton shift
+            if (typeof updateShiftButtonState === 'function') {
+                updateShiftButtonState();
+            }
         });
         sizingBathInput.addEventListener('blur', function() {
             formatSurfaceMassInput(this);
             updateDateTime('sizing-bath-time', this.value);
+        });
+    }
+    
+    // LOI Switch
+    const loiSwitch = document.getElementById('loiSwitch');
+    if (loiSwitch) {
+        loiSwitch.addEventListener('change', function() {
+            // Mettre à jour l'état du bouton shift
+            if (typeof updateShiftButtonState === 'function') {
+                updateShiftButtonState();
+            }
         });
     }
     

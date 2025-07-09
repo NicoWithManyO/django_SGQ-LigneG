@@ -31,92 +31,149 @@ def shift_block(request, shift_id=None):
         shift = get_object_or_404(Shift, pk=shift_id)
     
     if request.method == 'POST':
-        print(f"DEBUG: POST request received in shift_block")
-        print(f"DEBUG: POST data: {request.POST}")
         form = ShiftForm(request.POST, instance=shift)
-        print(f"DEBUG: Form created, checking validity...")
         if form.is_valid():
-            print(f"DEBUG: Form is valid, attempting to save...")
+            
+            # VÉRIFIER LES CONTRÔLES QUALITÉ AVANT DE SAUVEGARDER LE SHIFT
+            session_key = request.session.session_key
+            all_quality_filled = False
+            
+            if session_key:
+                try:
+                    current_prod = CurrentProd.objects.get(session_key=session_key)
+                    quality_data = current_prod.form_data.get('qualityControls', {})
+                    
+                    # Vérifier si des contrôles qualité existent et sont complets
+                    micrometers_left = [v for v in quality_data.get('micrometerLeft', []) if v]
+                    micrometers_right = [v for v in quality_data.get('micrometerRight', []) if v]
+                    micrometers_filled = (len(micrometers_left) == 3 and len(micrometers_right) == 3)
+                    
+                    sizing_bath_filled = bool(quality_data.get('sizingBath'))
+                    
+                    mass_left = [v for v in quality_data.get('surfaceMassLeft', []) if v]
+                    mass_right = [v for v in quality_data.get('surfaceMassRight', []) if v]
+                    mass_filled = (len(mass_left) == 2 and len(mass_right) == 2)
+                    
+                    loi_filled = quality_data.get('loiGiven', False)
+                    
+                    # Vérifier si TOUS les contrôles sont remplis
+                    all_quality_filled = micrometers_filled and sizing_bath_filled and mass_filled and loi_filled
+                    
+                except CurrentProd.DoesNotExist:
+                    all_quality_filled = False
+            
+            # BLOQUER LA SAUVEGARDE SI LES CONTRÔLES NE SONT PAS COMPLETS
+            if not all_quality_filled:
+                error_message = "Tous les contrôles qualité doivent être remplis avant de sauvegarder le poste."
+                if request.htmx:
+                    # Retourner le formulaire avec une alerte JavaScript
+                    context = {
+                        'form': form, 
+                        'shift': shift, 
+                        'is_edit': shift is not None,
+                        'show_alert': error_message
+                    }
+                    return render(request, 'production/blocks/shift_block.html', context)
+                else:
+                    messages.error(request, error_message)
+                    return redirect('production:prod')
+            
+            # VÉRIFIER SI LE POSTE EXISTE DÉJÀ
+            # Générer le shift_id selon le format du modèle
+            date_obj = form.cleaned_data['date']
+            operator = form.cleaned_data['operator']
+            vacation = form.cleaned_data['vacation']
+            
+            # Format: JJMMAA_PrenomNom_Vacation
+            date_formatted = date_obj.strftime('%d%m%y')
+            operator_clean = operator.full_name_no_space
+            expected_shift_id = f"{date_formatted}_{operator_clean}_{vacation}"
+            
+            # Vérifier si c'est une création (pas une édition) et si le shift existe déjà
+            if not shift and Shift.objects.filter(shift_id=expected_shift_id).exists():
+                error_message = f"Ce poste existe déjà : {expected_shift_id}"
+                if request.htmx:
+                    # Retourner le formulaire avec une alerte JavaScript
+                    context = {
+                        'form': form, 
+                        'shift': shift, 
+                        'is_edit': False,
+                        'show_alert': error_message
+                    }
+                    return render(request, 'production/blocks/shift_block.html', context)
+                else:
+                    messages.error(request, error_message)
+                    return redirect('production:prod')
+            
+            # SAUVEGARDER LE SHIFT SEULEMENT SI LES CONTRÔLES SONT COMPLETS ET LE POSTE N'EXISTE PAS
             try:
                 shift = form.save()
                 print(f"DEBUG: Shift saved successfully with ID: {shift.id}, shift_id: {shift.shift_id}")
                 
-                # Sauvegarder les contrôles qualité s'ils existent
-                session_key = request.session.session_key
+                # Maintenant sauvegarder les contrôles qualité
                 if session_key:
                     try:
                         current_prod = CurrentProd.objects.get(session_key=session_key)
                         quality_data = current_prod.form_data.get('qualityControls', {})
                         
-                        # Vérifier si des contrôles qualité existent
-                        has_quality_data = any([
-                            quality_data.get('micrometerLeft', []),
-                            quality_data.get('micrometerRight', []),
-                            quality_data.get('sizingBath'),
-                            quality_data.get('surfaceMassLeft', []),
-                            quality_data.get('surfaceMassRight', []),
-                            quality_data.get('loiGiven', False)
-                        ])
+                        # Créer l'objet QualityControlSeries (on sait qu'ils sont complets)
+                        quality_control = QualityControlSeries(shift=shift)
                         
-                        if has_quality_data:
-                            # Créer l'objet QualityControlSeries
-                            quality_control = QualityControlSeries(shift=shift)
-                            
-                            # Remplir les valeurs Micronnaire
-                            micrometer_left = quality_data.get('micrometerLeft', [])
-                            if len(micrometer_left) >= 3:
-                                quality_control.micrometer_left_1 = float(micrometer_left[0]) if micrometer_left[0] else None
-                                quality_control.micrometer_left_2 = float(micrometer_left[1]) if micrometer_left[1] else None
-                                quality_control.micrometer_left_3 = float(micrometer_left[2]) if micrometer_left[2] else None
-                            
-                            micrometer_right = quality_data.get('micrometerRight', [])
-                            if len(micrometer_right) >= 3:
-                                quality_control.micrometer_right_1 = float(micrometer_right[0]) if micrometer_right[0] else None
-                                quality_control.micrometer_right_2 = float(micrometer_right[1]) if micrometer_right[1] else None
-                                quality_control.micrometer_right_3 = float(micrometer_right[2]) if micrometer_right[2] else None
-                            
-                            # Extrait Sec
-                            if quality_data.get('sizingBath'):
-                                quality_control.dry_extract = float(quality_data['sizingBath'].replace(',', '.'))
-                            
-                            # Heure Extrait Sec
-                            if quality_data.get('sizingBathTime') and quality_data['sizingBathTime'] != '--':
-                                try:
-                                    quality_control.dry_extract_time = datetime.strptime(quality_data['sizingBathTime'], '%H:%M').time()
-                                except:
-                                    pass
-                            
-                            # Masses Surfaciques
-                            surface_mass_left = quality_data.get('surfaceMassLeft', [])
-                            if len(surface_mass_left) >= 2:
-                                # GG et GC
-                                if surface_mass_left[0]:
-                                    quality_control.surface_mass_gg = float(surface_mass_left[0].replace(',', '.'))
-                                if surface_mass_left[1]:
-                                    quality_control.surface_mass_gc = float(surface_mass_left[1].replace(',', '.'))
-                            
-                            surface_mass_right = quality_data.get('surfaceMassRight', [])
-                            if len(surface_mass_right) >= 2:
-                                # DC et DD
-                                if surface_mass_right[0]:
-                                    quality_control.surface_mass_dc = float(surface_mass_right[0].replace(',', '.'))
-                                if surface_mass_right[1]:
-                                    quality_control.surface_mass_dd = float(surface_mass_right[1].replace(',', '.'))
-                            
-                            # LOI
-                            quality_control.loi_given = quality_data.get('loiGiven', False)
-                            if quality_data.get('loiTime') and quality_data['loiTime'] != '--':
-                                try:
-                                    quality_control.loi_time = datetime.strptime(quality_data['loiTime'], '%H:%M').time()
-                                except:
-                                    pass
-                            
-                            # Opérateur
-                            quality_control.created_by = shift.operator
-                            
-                            # Sauvegarder
-                            quality_control.save()
-                            print(f"Contrôles qualité sauvegardés pour le shift {shift.shift_id}")
+                        # Remplir les valeurs Micronnaire
+                        micrometer_left = quality_data.get('micrometerLeft', [])
+                        if len(micrometer_left) >= 3:
+                            quality_control.micrometer_left_1 = float(micrometer_left[0]) if micrometer_left[0] else None
+                            quality_control.micrometer_left_2 = float(micrometer_left[1]) if micrometer_left[1] else None
+                            quality_control.micrometer_left_3 = float(micrometer_left[2]) if micrometer_left[2] else None
+                        
+                        micrometer_right = quality_data.get('micrometerRight', [])
+                        if len(micrometer_right) >= 3:
+                            quality_control.micrometer_right_1 = float(micrometer_right[0]) if micrometer_right[0] else None
+                            quality_control.micrometer_right_2 = float(micrometer_right[1]) if micrometer_right[1] else None
+                            quality_control.micrometer_right_3 = float(micrometer_right[2]) if micrometer_right[2] else None
+                        
+                        # Extrait Sec
+                        if quality_data.get('sizingBath'):
+                            quality_control.dry_extract = float(quality_data['sizingBath'].replace(',', '.'))
+                        
+                        # Heure Extrait Sec
+                        if quality_data.get('sizingBathTime') and quality_data['sizingBathTime'] != '--':
+                            try:
+                                quality_control.dry_extract_time = datetime.strptime(quality_data['sizingBathTime'], '%H:%M').time()
+                            except:
+                                pass
+                        
+                        # Masses Surfaciques
+                        surface_mass_left = quality_data.get('surfaceMassLeft', [])
+                        if len(surface_mass_left) >= 2:
+                            # GG et GC
+                            if surface_mass_left[0]:
+                                quality_control.surface_mass_gg = float(surface_mass_left[0].replace(',', '.'))
+                            if surface_mass_left[1]:
+                                quality_control.surface_mass_gc = float(surface_mass_left[1].replace(',', '.'))
+                        
+                        surface_mass_right = quality_data.get('surfaceMassRight', [])
+                        if len(surface_mass_right) >= 2:
+                            # DC et DD
+                            if surface_mass_right[0]:
+                                quality_control.surface_mass_dc = float(surface_mass_right[0].replace(',', '.'))
+                            if surface_mass_right[1]:
+                                quality_control.surface_mass_dd = float(surface_mass_right[1].replace(',', '.'))
+                        
+                        # LOI
+                        quality_control.loi_given = quality_data.get('loiGiven', False)
+                        if quality_data.get('loiTime') and quality_data['loiTime'] != '--':
+                            try:
+                                quality_control.loi_time = datetime.strptime(quality_data['loiTime'], '%H:%M').time()
+                            except:
+                                pass
+                        
+                        # Opérateur
+                        quality_control.created_by = shift.operator
+                        
+                        # Sauvegarder
+                        quality_control.save()
+                        print(f"Contrôles qualité sauvegardés pour le shift {shift.shift_id}")
                     
                     except CurrentProd.DoesNotExist:
                         pass
@@ -164,8 +221,26 @@ def shift_block(request, shift_id=None):
                             next_vacation = 'Matin'
                         
                         preserved_data['vacation'] = next_vacation
+                        
+                        # Définir les heures par défaut selon la vacation
+                        if next_vacation == 'Matin':
+                            preserved_data['start_time'] = '04:00'
+                            preserved_data['end_time'] = '12:00'
+                        elif next_vacation == 'ApresMidi':
+                            preserved_data['start_time'] = '12:00'
+                            preserved_data['end_time'] = '20:00'
+                        elif next_vacation == 'Nuit':
+                            preserved_data['start_time'] = '20:00'
+                            preserved_data['end_time'] = '04:00'
+                        
+                        # Garder la date d'aujourd'hui
+                        from datetime import date
+                        preserved_data['date'] = date.today().strftime('%Y-%m-%d')
+                        
                         # Machine toujours démarrée en fin par défaut
                         preserved_data['started_at_end'] = True
+                        # Vider le métrage de fin pour le prochain formulaire
+                        preserved_data['meter_reading_end'] = ''
                         
                         # Sauvegarder les données préservées
                         current_prod.form_data = preserved_data
@@ -183,9 +258,12 @@ def shift_block(request, shift_id=None):
                     context = {
                         'shift': None, 
                         'form': new_form,
-                        'is_edit': False
+                        'is_edit': False,
+                        'save_success': True  # Indiquer que la sauvegarde a réussi
                     }
-                    return render(request, 'production/blocks/shift_block.html', context)
+                    response = render(request, 'production/blocks/shift_block.html', context)
+                    response['HX-Trigger'] = 'shiftSaveSuccess'
+                    return response
                 
                 return redirect('production:prod')
             except Exception as e:

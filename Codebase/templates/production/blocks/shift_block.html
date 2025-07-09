@@ -1,5 +1,10 @@
 <!-- Bloc Standard Poste -->
 <div class="block-card" id="shift-block">
+    {% if show_alert %}
+    <script>
+        alert("{{ show_alert|escapejs }}");
+    </script>
+    {% endif %}
     <div class="block-header" style="cursor: pointer;" onclick="toggleShiftBlock()">
         <h5 class="block-title" id="shift-title">
             <i class="bi bi-clipboard-data"></i> Fiche de Poste
@@ -187,12 +192,6 @@
                 </div>
             </div>
 
-            <!-- Messages d'erreur généraux -->
-            {% if form.non_field_errors %}
-                <div class="alert alert-danger">
-                    {{ form.non_field_errors }}
-                </div>
-            {% endif %}
 
         </form>
         
@@ -605,6 +604,10 @@ document.body.addEventListener('change', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM chargé, attente des éléments HTMX...');
     
+    // Forcer la mise à jour immédiate
+    console.log('=== MISE À JOUR IMMÉDIATE DU BOUTON ===');
+    updateShiftButtonState();
+    
     // Attendre que les éléments soient disponibles et initialisés
     setTimeout(function() {
         console.log('Tentative de restauration des données...');
@@ -623,11 +626,12 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleMeterReadingFields();
         
         // Retry mechanism for button state update after page load
+        console.log('=== MISE À JOUR APRÈS 1 SECONDE ===');
         updateShiftButtonState();
         
         // Additional delayed check to ensure button state is correct
         setTimeout(function() {
-            console.log('Additional button state check after page load...');
+            console.log('=== MISE À JOUR APRÈS 1.5 SECONDES ===');
             updateShiftButtonState();
         }, 500);
     }, 1000);
@@ -715,6 +719,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.addEventListener('htmx:responseError', function(evt) {
         console.error('HTMX responseError:', evt.detail);
     });
+    
+    // Gestionnaire pour les alertes personnalisées
+    document.body.addEventListener('showAlert', function(evt) {
+        if (evt.detail && evt.detail.message) {
+            alert(evt.detail.message);
+        }
+    });
 });
 
 // La fonction confirmSaveShift est maintenant définie dans prod.html
@@ -752,6 +763,18 @@ window.forceUpdateShiftButtonState = function() {
     console.log('Manual button state update triggered');
     updateShiftButtonState();
 };
+
+// Ajouter à window pour pouvoir tester
+window.updateShiftButtonState = updateShiftButtonState;
+
+// Forcer une mise à jour toutes les 2 secondes pour tester
+setInterval(function() {
+    const saveBtn = document.getElementById('save-shift-btn');
+    if (saveBtn) {
+        console.log('=== AUTO UPDATE CHECK ===');
+        updateShiftButtonState();
+    }
+}, 2000);
 
 // Event listener global pour HTMX swap (clear automatique)
 document.body.addEventListener('htmx:afterSwap', function(e) {
@@ -898,11 +921,13 @@ function updateShiftButtonState(retryCount = 0) {
         // Champs requis remplis -> bouton vert (clickable)
         saveBtn.classList.add('btn-success', 'conforme');
         saveBtn.disabled = false;
+        saveBtn.style.cursor = 'pointer';
         console.log('Button state updated: enabled (green)');
     } else {
         // Champs requis manquants -> bouton gris (disabled)
         saveBtn.classList.add('btn-secondary');
         saveBtn.disabled = true;
+        saveBtn.style.cursor = 'not-allowed';
         console.log('Button state updated: disabled (grey)');
     }
 }
@@ -921,7 +946,78 @@ function checkShiftRequiredFields() {
         return false;
     }
     
-    return operatorField?.value && dateField?.value && vacationField?.value && startTimeField?.value && endTimeField?.value;
+    // Débugger les valeurs
+    console.log('Checking shift fields:', {
+        operator: operatorField?.value || 'EMPTY',
+        date: dateField?.value || 'EMPTY',
+        vacation: vacationField?.value || 'EMPTY', 
+        startTime: startTimeField?.value || 'EMPTY',
+        endTime: endTimeField?.value || 'EMPTY'
+    });
+    
+    // Vérifier les champs de base
+    const basicFieldsFilled = operatorField?.value && dateField?.value && vacationField?.value && startTimeField?.value && endTimeField?.value;
+    
+    console.log('Basic fields filled:', basicFieldsFilled);
+    
+    if (!basicFieldsFilled) {
+        return false;
+    }
+    
+    // Vérifier aussi les contrôles qualité
+    console.log('Checking quality controls...');
+    
+    // Utiliser la fonction locale
+    const qualityControlsFilled = checkAllQualityControlsFilled();
+    
+    const finalResult = basicFieldsFilled && qualityControlsFilled;
+    console.log('FINAL RESULT:', finalResult);
+    
+    return finalResult;
+}
+
+// Fonction pour vérifier si tous les contrôles qualité sont remplis
+function checkAllQualityControlsFilled() {
+    console.log('Vérification locale des contrôles qualité...');
+    
+    let allFilled = true;
+    
+    // Vérifier les micronnaires (6 champs)
+    const micrometerInputs = document.querySelectorAll('.micrometer-readings input');
+    console.log('Micronnaire inputs found:', micrometerInputs.length);
+    micrometerInputs.forEach((input, index) => {
+        if (!input.value || input.value.trim() === '') {
+            console.log(`Micronnaire ${index + 1} vide`);
+            allFilled = false;
+        }
+    });
+    
+    // Vérifier l'extrait sec
+    const sizingBathInput = document.getElementById('sizing-bath-input');
+    if (!sizingBathInput || !sizingBathInput.value || sizingBathInput.value.trim() === '') {
+        console.log('Extrait sec vide');
+        allFilled = false;
+    }
+    
+    // Vérifier les masses surfaciques (4 champs)
+    const massInputs = ['gg-input', 'gc-input', 'dc-input', 'dd-input'];
+    massInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (!input || !input.value || input.value.trim() === '') {
+            console.log(`Masse surfacique ${id} vide`);
+            allFilled = false;
+        }
+    });
+    
+    // Vérifier LOI
+    const loiSwitch = document.getElementById('loiSwitch');
+    if (!loiSwitch || !loiSwitch.checked) {
+        console.log('LOI non coché');
+        allFilled = false;
+    }
+    
+    console.log('Résultat vérification locale:', allFilled);
+    return allFilled;
 }
 
 // Confirmer avant de sauvegarder le poste
@@ -942,6 +1038,13 @@ function confirmSaveShift() {
     
     if (!operatorField?.value || !dateField?.value || !vacationField?.value || !startTimeField?.value || !endTimeField?.value) {
         alert('Veuillez remplir tous les champs obligatoires (Opérateur, Date, Vacation, Heure de début, Heure de fin)');
+        return;
+    }
+    
+    // VÉRIFIER LES CONTRÔLES QUALITÉ
+    const qualityControlsFilled = checkAllQualityControlsFilled();
+    if (!qualityControlsFilled) {
+        alert('Veuillez remplir tous les contrôles qualité avant de sauvegarder le poste.');
         return;
     }
     
@@ -989,55 +1092,28 @@ function confirmSaveShift() {
         }
     }
     
-    // Vérifier d'abord si le poste existe déjà
-    const checkData = {
-        date: dateField.value,
-        operator: operatorField.value,
-        vacation: vacationField.value
-    };
+    // Soumettre directement - la vérification se fera côté serveur
+    const operatorText = operatorField.options[operatorField.selectedIndex]?.text || '';
+    const dateValue = dateField.value;
+    const vacationText = vacationField.options[vacationField.selectedIndex]?.text || '';
+    const startTimeValue = startTimeField.value;
+    const endTimeValue = endTimeField.value;
     
-    fetch('/check-shift-exists/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: JSON.stringify(checkData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.exists) {
-            alert(`Ce poste existe déjà : ${data.shift_id}`);
-            return;
+    // Formater la date
+    const date = new Date(dateValue);
+    const formattedDate = date.toLocaleDateString('fr-FR');
+    
+    const confirmMessage = `Êtes-vous sûr de vouloir sauvegarder le poste de ${operatorText} du ${formattedDate} (${vacationText}) de ${startTimeValue} à ${endTimeValue} ?`;
+    
+    if (confirm(confirmMessage)) {
+        // Soumettre le formulaire via HTMX
+        const form = document.getElementById('shift-form');
+        if (form) {
+            // Créer et déclencher un événement submit
+            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+            form.dispatchEvent(submitEvent);
         }
-        
-        // Si le poste n'existe pas, procéder à la confirmation
-        const operatorText = operatorField.options[operatorField.selectedIndex]?.text || '';
-        const dateValue = dateField.value;
-        const vacationText = vacationField.options[vacationField.selectedIndex]?.text || '';
-        const startTimeValue = startTimeField.value;
-        const endTimeValue = endTimeField.value;
-        
-        // Formater la date
-        const date = new Date(dateValue);
-        const formattedDate = date.toLocaleDateString('fr-FR');
-        
-        const confirmMessage = `Êtes-vous sûr de vouloir sauvegarder le poste de ${operatorText} du ${formattedDate} (${vacationText}) de ${startTimeValue} à ${endTimeValue} ?`;
-        
-        if (confirm(confirmMessage)) {
-            // Soumettre le formulaire via HTMX
-            const form = document.getElementById('shift-form');
-            if (form) {
-                // Créer et déclencher un événement submit
-                const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-                form.dispatchEvent(submitEvent);
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Erreur lors de la vérification:', error);
-        alert('Erreur lors de la vérification du poste');
-    });
+    }
 }
 
 
