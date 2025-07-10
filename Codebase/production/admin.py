@@ -2,6 +2,18 @@ from django.contrib import admin
 from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness, LostTimeEntry
 
 
+class LostTimeInline(admin.TabularInline):
+    """Inline pour les temps d'arrêt d'un shift."""
+    model = LostTimeEntry
+    extra = 0
+    fields = ('motif', 'comment', 'duration', 'created_at')
+    readonly_fields = ('motif', 'comment', 'duration', 'created_at')
+    can_delete = False
+    
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(Shift)
 class ShiftAdmin(admin.ModelAdmin):
     """Configuration admin pour le modèle Shift."""
@@ -10,6 +22,7 @@ class ShiftAdmin(admin.ModelAdmin):
     list_filter = ('vacation', 'date', 'operator')
     search_fields = ('shift_id', 'operator', 'operator_comments')
     readonly_fields = ('shift_id', 'created_at', 'updated_at')
+    inlines = [LostTimeInline]
     
     fieldsets = (
         ('Informations générales', {
@@ -73,8 +86,13 @@ class QualityControlAdmin(admin.ModelAdmin):
     list_display = ('__str__', 'shift', 'created_at', 'created_by', 'is_valid', 'has_micrometer', 'has_surface_mass', 'has_dry_extract')
     list_filter = ('created_at', 'created_by', 'loi_given', 'is_valid')
     search_fields = ('session_key', 'shift__shift_id')
-    readonly_fields = ('created_at', 'micrometer_left_avg', 'micrometer_right_avg', 
-                      'surface_mass_left_avg', 'surface_mass_right_avg')
+    readonly_fields = ('shift', 'session_key', 'created_by', 'is_valid', 'created_at',
+                      'micrometer_left_1', 'micrometer_left_2', 'micrometer_left_3', 'micrometer_left_avg',
+                      'micrometer_right_1', 'micrometer_right_2', 'micrometer_right_3', 'micrometer_right_avg',
+                      'dry_extract', 'dry_extract_time',
+                      'surface_mass_gg', 'surface_mass_gc', 'surface_mass_left_avg',
+                      'surface_mass_dc', 'surface_mass_dd', 'surface_mass_right_avg',
+                      'loi_given', 'loi_time')
     
     fieldsets = (
         ('Identification', {
@@ -127,6 +145,12 @@ class QualityControlAdmin(admin.ModelAdmin):
         return obj.dry_extract is not None
     has_dry_extract.boolean = True
     has_dry_extract.short_description = "Extrait Sec"
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 class RollDefectInline(admin.TabularInline):
@@ -134,6 +158,11 @@ class RollDefectInline(admin.TabularInline):
     model = RollDefect
     extra = 0
     fields = ('defect_name', 'meter_position', 'side_position')
+    readonly_fields = ('defect_name', 'meter_position', 'side_position')
+    can_delete = False
+    
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 class RollThicknessInline(admin.TabularInline):
@@ -142,7 +171,12 @@ class RollThicknessInline(admin.TabularInline):
     extra = 0
     fields = ('meter_position', 'measurement_point', 'thickness_value', 
               'is_catchup', 'is_within_tolerance')
-    readonly_fields = ('is_within_tolerance',)
+    readonly_fields = ('meter_position', 'measurement_point', 'thickness_value', 
+                      'is_catchup', 'is_within_tolerance')
+    can_delete = False
+    
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Roll)
@@ -153,7 +187,7 @@ class RollAdmin(admin.ModelAdmin):
                     'destination', 'has_blocking_defects', 'has_thickness_issues')
     list_filter = ('status', 'destination', 'has_blocking_defects', 'has_thickness_issues', 'shift')
     search_fields = ('roll_id', 'shift__shift_id')
-    readonly_fields = ('created_at', 'updated_at', 'shift_id_str')
+    readonly_fields = ('created_at', 'updated_at', 'shift_id_str', 'length', 'tube_mass', 'total_mass')
     inlines = [RollDefectInline, RollThicknessInline]
     
     fieldsets = (
@@ -180,7 +214,13 @@ class RollDefectAdmin(admin.ModelAdmin):
     list_display = ('roll', 'defect_name', 'meter_position', 'side_position', 'created_at')
     list_filter = ('defect_name', 'side_position', 'created_at')
     search_fields = ('roll__roll_id', 'defect_name')
-    readonly_fields = ('created_at',)
+    readonly_fields = ('roll', 'defect_name', 'meter_position', 'side_position', 'created_at')
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
     
     fieldsets = (
         ('Rouleau', {
@@ -204,7 +244,14 @@ class RollThicknessAdmin(admin.ModelAdmin):
                     'is_catchup', 'is_within_tolerance', 'created_at')
     list_filter = ('is_within_tolerance', 'is_catchup', 'measurement_point', 'created_at')
     search_fields = ('roll__roll_id',)
-    readonly_fields = ('created_at',)
+    readonly_fields = ('roll', 'meter_position', 'measurement_point', 'thickness_value', 
+                      'is_catchup', 'is_within_tolerance', 'created_at')
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
     
     fieldsets = (
         ('Rouleau', {
@@ -223,14 +270,6 @@ class RollThicknessAdmin(admin.ModelAdmin):
     )
 
 
-class LostTimeInline(admin.TabularInline):
-    """Inline pour les temps d'arrêt d'un shift."""
-    model = LostTimeEntry
-    extra = 0
-    fields = ('motif', 'comment', 'duration')
-    readonly_fields = ('created_at',)
-
-
 @admin.register(LostTimeEntry)
 class LostTimeEntryAdmin(admin.ModelAdmin):
     """Configuration admin pour le modèle LostTimeEntry."""
@@ -238,7 +277,13 @@ class LostTimeEntryAdmin(admin.ModelAdmin):
     list_display = ('shift', 'motif', 'duration', 'comment', 'created_at')
     list_filter = ('motif', 'created_at', 'shift')
     search_fields = ('shift__shift_id', 'motif', 'comment')
-    readonly_fields = ('created_at',)
+    readonly_fields = ('shift', 'session_key', 'motif', 'comment', 'duration', 'created_at')
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
     
     fieldsets = (
         ('Shift', {

@@ -124,7 +124,12 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div id="meter-reading-start-field" style="visibility: hidden;">
-                                        <label class="form-label small">{{ form.meter_reading_start.label }}</label>
+                                        <label class="form-label small">
+                                            {{ form.meter_reading_start.label }}
+                                            <button type="button" class="btn btn-link btn-sm p-0 ms-1" onclick="loadLastMeterReading()" title="Reprendre la valeur du dernier poste">
+                                                <i class="bi bi-arrow-clockwise"></i>
+                                            </button>
+                                        </label>
                                         {{ form.meter_reading_start }}
                                         {% if form.meter_reading_start.errors %}
                                             <div class="text-danger small">{{ form.meter_reading_start.errors.0 }}</div>
@@ -914,6 +919,11 @@ function updateShiftButtonState(retryCount = 0) {
     
     const allRequiredFieldsFilled = checkShiftRequiredFields();
     
+    // Appeler la fonction pour mettre à jour le message des contrôles qualité
+    if (typeof window.updateQualityControlsMessage === 'function') {
+        window.updateQualityControlsMessage();
+    }
+    
     // Nettoyer les classes existantes
     saveBtn.classList.remove('btn-secondary', 'conforme', 'btn-success');
     
@@ -1118,5 +1128,15 @@ function confirmSaveShift() {
 
 
 // Système localStorage supprimé - sera remplacé par auto-save serveur
+
+// Si on édite un shift existant, charger ses temps d'arrêt
+{% if shift %}
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Chargement des temps d\'arrêt du shift {{ shift.id }}');
+    if (typeof loadShiftLostTimes === 'function') {
+        loadShiftLostTimes({{ shift.id }});
+    }
+});
+{% endif %}
 
 </script>

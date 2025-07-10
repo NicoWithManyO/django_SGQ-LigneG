@@ -57,7 +57,7 @@ class Shift(models.Model):
         ordering = ['-date', '-created_at']
     
     def __str__(self):
-        return f"{self.shift_id} - {self.operator.full_name} ({self.vacation})"
+        return self.shift_id
     
     @property
     def opening_time(self):
@@ -161,7 +161,7 @@ class LostTimeEntry(models.Model):
     class Meta:
         verbose_name = "Temps d'arrêt"
         verbose_name_plural = "Temps d'arrêt"
-        ordering = ['shift', 'created_at']
+        ordering = ['-created_at', '-id']
     
     def __str__(self):
         if self.shift:
@@ -236,7 +236,7 @@ class QualityControl(models.Model):
     class Meta:
         verbose_name = "Contrôle qualité"
         verbose_name_plural = "Contrôles qualité"
-        ordering = ['-created_at']
+        ordering = ['-created_at', '-id']
     
     def save(self, *args, **kwargs):
         """Calcule automatiquement les moyennes avant sauvegarde."""
@@ -336,7 +336,7 @@ class Roll(models.Model):
     class Meta:
         verbose_name = "Rouleau"
         verbose_name_plural = "Rouleaux"
-        ordering = ['shift', 'roll_number']
+        ordering = ['-created_at', '-id']
         unique_together = [['shift', 'roll_number']]
     
     def save(self, *args, **kwargs):

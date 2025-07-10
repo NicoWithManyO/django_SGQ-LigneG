@@ -779,6 +779,42 @@ function removeLostTimeEntry(entryId) {
     console.log(`Temps perdu supprimé: ${entry.minutes} min. Total: ${window.totalLostTimeMinutes} min`);
 }
 
+// Fonction pour charger les temps d'arrêt d'un shift existant
+function loadShiftLostTimes(shiftId) {
+    fetch(`/shift/${shiftId}/lost-times/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.lost_times) {
+                // Réinitialiser les temps d'arrêt
+                window.lostTimeEntries = [];
+                window.totalLostTimeMinutes = 0;
+                
+                // Ajouter chaque temps d'arrêt
+                data.lost_times.forEach((lostTime, index) => {
+                    const entry = {
+                        id: `lt-${Date.now()}-${index}`,
+                        motif: lostTime.motif,
+                        comment: lostTime.comment || '',
+                        minutes: lostTime.duration
+                    };
+                    
+                    window.lostTimeEntries.push(entry);
+                    window.totalLostTimeMinutes += lostTime.duration;
+                });
+                
+                console.log(`${data.lost_times.length} temps d'arrêt chargés depuis le shift`);
+                
+                // Mettre à jour l'affichage
+                renderLostTimeList();
+                updateLostTimeDisplay();
+                updateAvailabilityTime();
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des temps d\'arrêt:', error);
+        });
+}
+
 // Effacer toutes les données sauvegardées
 function clearAllSavedData() {
     if (confirm('Êtes-vous sûr de vouloir effacer toutes les données saisies ?')) {
@@ -1069,6 +1105,22 @@ function restoreSavedData() {
                 if (data.lostTimeEntries && Array.isArray(data.lostTimeEntries)) {
                     window.lostTimeEntries = data.lostTimeEntries;
                     console.log('Entrées temps perdu restaurées:', data.lostTimeEntries.length);
+                }
+                
+                // Charger les temps d'arrêt du shift s'il existe
+                // Chercher l'URL du formulaire pour déterminer si on édite un shift
+                const shiftForm = document.querySelector('#shift-form');
+                if (shiftForm) {
+                    const formAction = shiftForm.getAttribute('hx-post');
+                    if (formAction && formAction.includes('/shift/edit/')) {
+                        // Extraire l'ID du shift de l'URL
+                        const shiftIdMatch = formAction.match(/\/shift\/edit\/(\d+)\//);
+                        if (shiftIdMatch && shiftIdMatch[1]) {
+                            const shiftId = shiftIdMatch[1];
+                            console.log('Shift en édition détecté, ID:', shiftId);
+                            loadShiftLostTimes(shiftId);
+                        }
+                    }
                 }
                 
                 // Restaurer les OF sélectionnés
@@ -1889,7 +1941,7 @@ function toggleTempsBlock() {
 }
 
 // Fonction pour générer la visualisation du rouleau
-function generateRollVisualization() {
+function generateRollVisualization(preserveData = true) {
     const targetLengthInput = document.getElementById('target-length');
     const rollContent = document.getElementById('roll-content');
     const rollTargetDisplay = document.getElementById('roll-target-length-display');
@@ -1898,8 +1950,8 @@ function generateRollVisualization() {
     
     const targetLength = parseFloat(targetLengthInput.value);
     
-    // Sauvegarder les données existantes avant régénération
-    const existingRollData = getRollData();
+    // Sauvegarder les données existantes avant régénération (seulement si preserveData est true)
+    const existingRollData = preserveData ? getRollData() : null;
     
     // Mettre à jour l'affichage de la longueur cible
     if (rollTargetDisplay) {
@@ -1925,7 +1977,8 @@ function generateRollVisualization() {
     let rollHTML = '';
     
     for (let meter = 1; meter <= Math.ceil(targetLength); meter++) {
-        const isMeasurementZone = meter >= 3 && (meter - 3) % 5 === 0;
+        // Si longueur < 3m, seul le mètre 1 est une zone de mesure
+        const isMeasurementZone = targetLength < 3 ? meter === 1 : (meter >= 3 && (meter - 3) % 5 === 0);
         const rowClass = isMeasurementZone ? 'roll-row measurement-zone' : 'roll-row';
         
         rollHTML += `
@@ -2002,8 +2055,8 @@ function generateRollVisualization() {
     // Initialiser les classes has-value pour tous les défauts
     initializeDefectHasValueClasses();
     
-    // Restaurer les données sauvegardées
-    if (existingRollData && (Object.keys(existingRollData.thicknessMeasurements).length > 0 || 
+    // Restaurer les données sauvegardées (seulement si on préserve les données)
+    if (preserveData && existingRollData && (Object.keys(existingRollData.thicknessMeasurements).length > 0 || 
                            Object.keys(existingRollData.thicknessCatchups).length > 0 || 
                            Object.keys(existingRollData.defects).length > 0)) {
         setTimeout(() => {
@@ -2686,14 +2739,29 @@ function handleActionButton() {
                     document.getElementById('sticky-tube-mass').textContent = '--';
                     document.getElementById('sticky-total-mass').textContent = '--';
                     
-                    // Régénérer le conteneur du rouleau pour vider toutes les mesures et défauts
+                    // Effacer et régénérer le rouleau pour vider toutes les mesures et défauts
                     const rollContainer = document.getElementById('roll-container');
                     if (rollContainer) {
-                        // Déclencher la génération du rouleau via le changement de longueur
+                        // Régénérer le rouleau vide
                         const targetLengthInput = document.getElementById('target-length');
                         if (targetLengthInput && targetLengthInput.value) {
-                            generateRollVisualization();
+                            // Force la régénération complète du rouleau SANS préserver les données
+                            generateRollVisualization(false);
                         }
+                        
+                        // Attendre un peu que le DOM soit régénéré puis forcer l'auto-save
+                        setTimeout(() => {
+                            // Mettre à jour tous les compteurs et statuts
+                            updateRollConformity();
+                            updateThicknessCounter();
+                            updateNokCounter();
+                            updateDefectsSummary();
+                            updateValidationInfoPanel();
+                            
+                            // Forcer l'auto-save pour persister l'effacement
+                            clearTimeout(window.autoSaveTimeout);
+                            window.autoSaveTimeout = setTimeout(autoSaveFormData, 100);
+                        }, 100);
                     }
                     
                     // Mettre à jour l'ID du rouleau
@@ -3102,6 +3170,29 @@ function makeEditable(elementId) {
         } else if (e.key === 'Escape') {
             input.value = currentValue;
             finishEdit();
+        } else if (e.key === 'Tab') {
+            // Gérer la navigation par TAB uniquement pour nos champs
+            if (elementId === 'sticky-tube-mass' || 
+                elementId === 'sticky-roll-length' || 
+                elementId === 'sticky-total-mass') {
+                
+                e.preventDefault();
+                
+                // Finir l'édition normalement
+                input.blur();
+                
+                // Naviguer vers le prochain champ après un court délai
+                setTimeout(() => {
+                    if (elementId === 'sticky-tube-mass') {
+                        document.getElementById('sticky-roll-length').click();
+                    } else if (elementId === 'sticky-roll-length') {
+                        document.getElementById('sticky-total-mass').click();
+                    } else if (elementId === 'sticky-total-mass') {
+                        const btn = document.getElementById('sticky-action-btn');
+                        if (btn) btn.focus();
+                    }
+                }, 150);
+            }
         }
     };
 }
@@ -3890,35 +3981,6 @@ document.addEventListener('DOMContentLoaded', function() {
         observer.observe(conformityStatusElement, { childList: true, characterData: true, subtree: true });
     }
     
-    // Ajouter les listeners pour les contrôles qualité
-    setTimeout(() => {
-        // Ajouter les listeners pour vérifier l'état des contrôles
-        document.querySelectorAll('.micrometer-readings input').forEach(input => {
-            input.addEventListener('input', checkAllQualityControlsFilled);
-            input.addEventListener('blur', checkAllQualityControlsFilled);
-        });
-        
-        document.querySelectorAll('.surface-mass-section input[type="text"]').forEach(input => {
-            if (!input.readOnly) {
-                input.addEventListener('input', checkAllQualityControlsFilled);
-                input.addEventListener('blur', checkAllQualityControlsFilled);
-            }
-        });
-        
-        const sizingBathInput = document.getElementById('sizing-bath-input');
-        if (sizingBathInput) {
-            sizingBathInput.addEventListener('input', checkAllQualityControlsFilled);
-            sizingBathInput.addEventListener('blur', checkAllQualityControlsFilled);
-        }
-        
-        const loiSwitch = document.getElementById('loiSwitch');
-        if (loiSwitch) {
-            loiSwitch.addEventListener('change', checkAllQualityControlsFilled);
-        }
-        
-        // Vérifier l'état initial
-        checkAllQualityControlsFilled();
-    }, 1000);
 });
 
 // Fonction pour calculer la moyenne des micromètres
@@ -4291,8 +4353,8 @@ function clearQualityControls() {
 
 // Fonction supprimée - sauvegarde intégrée au poste
 
-// Fonction pour vérifier si tous les contrôles qualité sont remplis
-window.checkAllQualityControlsFilled = function() {
+// Fonction pour vérifier si tous les contrôles qualité sont remplis ET mettre à jour le message
+window.updateQualityControlsMessage = function() {
     let allFilled = true;
     
     // Vérifier les micronnaires (6 champs)

@@ -192,15 +192,15 @@ def shift_block(request, shift_id=None):
                     if session_key:
                         try:
                             current_prod = CurrentProd.objects.get(session_key=session_key)
-                            lost_times = current_prod.form_data.get('lostTimes', [])
+                            lost_times = current_prod.form_data.get('lostTimeEntries', [])
                             
                             for lost_time_data in lost_times:
-                                if lost_time_data.get('motif') and lost_time_data.get('duration'):
+                                if lost_time_data.get('motif') and lost_time_data.get('minutes'):
                                     lost_time_entry = LostTimeEntry(
                                         shift=shift,
                                         motif=lost_time_data.get('motif', ''),
                                         comment=lost_time_data.get('comment', ''),
-                                        duration=int(lost_time_data.get('duration', 0))
+                                        duration=int(lost_time_data.get('minutes', 0))
                                     )
                                     lost_time_entry.save()
                                     print(f"Temps d'arrêt sauvegardé: {lost_time_entry.motif} - {lost_time_entry.duration}min")
@@ -630,6 +630,24 @@ def save_roll(request):
         
         # shift peut être None, ce n'est pas un problème
         
+        # Construire l'ID du shift même s'il n'est pas encore sauvegardé
+        shift_id_str = None
+        if form_data.get('date') and form_data.get('operator') and form_data.get('vacation'):
+            try:
+                from datetime import datetime
+                date_obj = datetime.strptime(form_data.get('date'), '%Y-%m-%d').date()
+                date_str = date_obj.strftime('%d%m%y')
+                
+                # Récupérer l'opérateur pour avoir son nom complet sans espaces
+                operator = Operator.objects.get(id=form_data.get('operator'))
+                operator_clean = operator.full_name_no_space
+                
+                vacation = form_data.get('vacation')
+                shift_id_str = f"{date_str}_{operator_clean}_{vacation}"
+            except Exception as e:
+                print(f"Erreur lors de la construction du shift_id_str: {e}")
+                pass
+        
         # Récupérer l'OF
         of_id = form_data.get('currentOrderId')
         if not of_id:
@@ -670,7 +688,7 @@ def save_roll(request):
         # Créer le rouleau (avec shift si disponible, sinon avec session_key)
         roll = Roll.objects.create(
             shift=shift,  # Peut être None
-            shift_id_str=shift.shift_id if shift else None,  # Stocker l'ID du shift en texte
+            shift_id_str=shift.shift_id if shift else shift_id_str,  # Utiliser l'ID construit si pas de shift
             session_key=session_key if not shift else None,  # Stocker session_key si pas de shift
             fabrication_order=fabrication_order,
             roll_number=int(roll_number),
