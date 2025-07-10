@@ -57,7 +57,7 @@
   - Opérateur : prénom + nom (sans espaces)
   - Vacation : `Matin`, `ApresMidi`, `Nuit`
 - **Rouleaux** : format dynamique `OFNumber_NumeroRoll`
-  - Exemple : `OF12345_001`, `OF12345_002`
+  - Exemple : `OF12345_001`, `OF12345_002` (numéros toujours sur 3 chiffres)
   - OF Number : numéro d'ordre de fabrication
   - Numéro Roll : numéro séquentiel du rouleau dans l'OF
   - Construction automatique à partir des données du formulaire

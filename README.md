@@ -18,7 +18,7 @@ Système de gestion de production de feutre pour **Saint-Gobain Quartz SAS - Nem
 
 ### 🏭 Suivi de Production
 - **Ordres de Fabrication (OF)** : Gestion avec statut terminé/actif
-- **Rouleaux** : Suivi complet avec ID automatique `OF_NumRouleau`
+- **Rouleaux** : Suivi complet avec ID automatique `OF_NumRouleau` (format 3 chiffres : `3254_001`)
 - **Paramètres Machine** : Métrages début/fin, états machine
 - **Temps de Production** : Calcul automatique disponible/perdu
 
@@ -31,6 +31,7 @@ Système de gestion de production de feutre pour **Saint-Gobain Quartz SAS - Nem
 - **Auto-Save** : Sauvegarde continue de toutes les données saisies
 - **Persistance Session** : Restauration automatique après rechargement
 - **Données Préservées** : Maintien OF/rouleau après save de poste
+- **Rouleaux Sans Poste** : Possibilité de sauvegarder des rouleaux avant le poste (liaison automatique ultérieure)
 
 ## 🏗️ Architecture Technique
 
@@ -175,6 +176,9 @@ python manage.py runserver
 - [x] Création rapide opérateurs et OF via modales
 - [x] Calcul automatique durée postes (support minuit)
 - [x] Vacation "Journée" avec horaires par défaut
+- [x] Sauvegarde rouleaux indépendante du poste
+- [x] Formatage automatique numéros rouleaux (001, 020, 100)
+- [x] Détection rouleaux existants avec indicateur visuel
 
 ### Phase 2 (À venir)
 - [ ] Intégration complète mesures d'épaisseur
