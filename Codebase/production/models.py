@@ -137,6 +137,38 @@ class CurrentProd(models.Model):
         return f"Saisie {self.session_key} - {self.updated_at.strftime('%H:%M:%S')}"
 
 
+class LostTimeEntry(models.Model):
+    """Modèle pour enregistrer les temps d'arrêt."""
+    
+    # Relation avec le shift (nullable car peut ne pas encore exister)
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, null=True, blank=True,
+                             related_name='lost_time_entries',
+                             verbose_name="Poste", help_text="Poste associé (si déjà sauvegardé)")
+    
+    # Identifiant de session pour lier au shift non sauvegardé
+    session_key = models.CharField(max_length=255, null=True, blank=True,
+                                  help_text="Clé de session pour lier au shift en cours")
+    
+    # Données du temps d'arrêt
+    motif = models.CharField(max_length=100, verbose_name="Motif d'arrêt")
+    comment = models.TextField(blank=True, verbose_name="Commentaire")
+    duration = models.PositiveIntegerField(verbose_name="Durée (minutes)", 
+                                          help_text="Durée de l'arrêt en minutes")
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Temps d'arrêt"
+        verbose_name_plural = "Temps d'arrêt"
+        ordering = ['shift', 'created_at']
+    
+    def __str__(self):
+        if self.shift:
+            return f"{self.shift.shift_id} - {self.motif} ({self.duration}min)"
+        return f"Session {self.session_key} - {self.motif} ({self.duration}min)"
+
+
 class QualityControl(models.Model):
     """Modèle pour enregistrer les contrôles qualité."""
     
@@ -244,11 +276,16 @@ class Roll(models.Model):
                               help_text="ID unique du rouleau (format: OF_NumRouleau)")
     
     # Relation avec le shift (nullable car peut être créé avant le shift)
-    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, 
+    shift = models.ForeignKey(Shift, on_delete=models.SET_NULL, 
                              related_name='rolls',
                              verbose_name="Poste de production",
                              null=True, blank=True,
                              help_text="Poste associé (sera lié lors de la sauvegarde du poste)")
+    
+    # ID du shift stocké en texte pour traçabilité (garde l'ID même si le shift est supprimé)
+    shift_id_str = models.CharField(max_length=50, null=True, blank=True,
+                                   verbose_name="ID du poste (texte)",
+                                   help_text="ID du poste conservé même après suppression")
     
     # Identifiant de session pour lier au shift non sauvegardé
     session_key = models.CharField(max_length=255, null=True, blank=True,

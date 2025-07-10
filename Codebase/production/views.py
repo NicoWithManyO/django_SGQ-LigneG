@@ -5,7 +5,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 from django_htmx.http import HttpResponseClientRedirect
 import json
 from datetime import datetime
-from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness
+from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness, LostTimeEntry
 from .forms import ShiftForm
 from core.models import Operator, FabricationOrder
 from quality.models import DefectType
@@ -117,7 +117,7 @@ def shift_block(request, shift_id=None):
                         shift__isnull=True
                     )
                     if orphan_rolls.exists():
-                        orphan_rolls.update(shift=shift, session_key=None)
+                        orphan_rolls.update(shift=shift, shift_id_str=shift.shift_id, session_key=None)
                         print(f"DEBUG: {orphan_rolls.count()} rouleaux orphelins liés au shift {shift.shift_id}")
                 
                 # Maintenant sauvegarder les contrôles qualité
@@ -187,6 +187,35 @@ def shift_block(request, shift_id=None):
                     
                     except CurrentProd.DoesNotExist:
                         pass
+                    
+                    # Sauvegarder les temps d'arrêt
+                    if session_key:
+                        try:
+                            current_prod = CurrentProd.objects.get(session_key=session_key)
+                            lost_times = current_prod.form_data.get('lostTimes', [])
+                            
+                            for lost_time_data in lost_times:
+                                if lost_time_data.get('motif') and lost_time_data.get('duration'):
+                                    lost_time_entry = LostTimeEntry(
+                                        shift=shift,
+                                        motif=lost_time_data.get('motif', ''),
+                                        comment=lost_time_data.get('comment', ''),
+                                        duration=int(lost_time_data.get('duration', 0))
+                                    )
+                                    lost_time_entry.save()
+                                    print(f"Temps d'arrêt sauvegardé: {lost_time_entry.motif} - {lost_time_entry.duration}min")
+                            
+                            # Lier les temps d'arrêt orphelins (créés sans shift) à ce shift
+                            orphan_lost_times = LostTimeEntry.objects.filter(
+                                session_key=session_key,
+                                shift__isnull=True
+                            )
+                            if orphan_lost_times.exists():
+                                orphan_lost_times.update(shift=shift, session_key=None)
+                                print(f"DEBUG: {orphan_lost_times.count()} temps d'arrêt orphelins liés au shift {shift.shift_id}")
+                                
+                        except CurrentProd.DoesNotExist:
+                            pass
                 
                 # Vider seulement les données de fiche de poste (garder OF, lg cible, rouleau)
                 session_key = request.session.session_key
@@ -641,6 +670,7 @@ def save_roll(request):
         # Créer le rouleau (avec shift si disponible, sinon avec session_key)
         roll = Roll.objects.create(
             shift=shift,  # Peut être None
+            shift_id_str=shift.shift_id if shift else None,  # Stocker l'ID du shift en texte
             session_key=session_key if not shift else None,  # Stocker session_key si pas de shift
             fabrication_order=fabrication_order,
             roll_number=int(roll_number),
@@ -722,4 +752,30 @@ def save_roll(request):
         return JsonResponse({
             'success': False,
             'error': f'Erreur lors de la sauvegarde: {str(e)}'
+        }, status=500)
+
+
+def get_shift_lost_times(request, shift_id):
+    """Récupérer les temps d'arrêt d'un shift."""
+    try:
+        shift = get_object_or_404(Shift, id=shift_id)
+        lost_times = shift.lost_time_entries.all().order_by('created_at')
+        
+        lost_times_data = []
+        for lost_time in lost_times:
+            lost_times_data.append({
+                'motif': lost_time.motif,
+                'comment': lost_time.comment,
+                'duration': lost_time.duration
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'lost_times': lost_times_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors de la récupération des temps d\'arrêt: {str(e)}'
         }, status=500)

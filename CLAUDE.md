@@ -49,9 +49,10 @@ python manage.py collectstatic
 - `Shift`: Production shifts with auto-generated IDs (DDMMYY_FirstnameLastname_Vacation)
 - `CurrentProd`: Session-based auto-save for form persistence
 - `QualityControl`: Quality measurements linked to shifts (renamed from QualityControlSeries)
-- `Roll`: Individual production rolls with conformity tracking
+- `Roll`: Individual production rolls with conformity tracking (preserves shift_id_str even if shift deleted)
 - `RollDefect`: Defects on rolls with position tracking
 - `RollThickness`: Thickness measurements at 6 points
+- `LostTimeEntry`: Individual lost time entries linked to shifts
 - Key feature: Quality controls must be complete before shift can be saved
 
 **`quality/`** - Quality control and defect tracking
@@ -106,6 +107,12 @@ python manage.py collectstatic
 - `started_at_end` from previous shift → `started_at_beginning` for next shift
 - Meter readings carry over between shifts
 - Ensures production tracking continuity
+
+**Lost Time Tracking**
+- Lost time entries saved as individual `LostTimeEntry` records
+- Linked to shift when shift is saved
+- Preserved in session during data entry
+- Accessible in admin interface
 
 **Shift Transitions**
 - Vacation sequence: Matin → ApresMidi → Nuit → Matin

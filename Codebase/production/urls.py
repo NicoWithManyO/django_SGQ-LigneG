@@ -28,4 +28,7 @@ urlpatterns = [
     
     # Sauvegarde rouleau
     path('roll/save/', views.save_roll, name='save_roll'),
+    
+    # Temps d'arrêt
+    path('shift/<int:shift_id>/lost-times/', views.get_shift_lost_times, name='get_shift_lost_times'),
 ]

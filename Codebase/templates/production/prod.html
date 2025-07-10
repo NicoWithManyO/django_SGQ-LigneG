@@ -437,7 +437,7 @@
                 <div class="fibrage-field">
                     <label class="fibrage-label">N° Rouleau</label>
                     <div class="fibrage-value-with-edit">
-                        <div class="fibrage-value-readonly" id="sticky-roll-number">1</div>
+                        <div class="fibrage-value-readonly" id="sticky-roll-number">--</div>
                         <button type="button" class="fibrage-edit-btn" onclick="makeEditable('sticky-roll-number')" title="Modifier">
                             <i class="bi bi-pencil"></i>
                         </button>
@@ -469,8 +469,8 @@
                 
                 <div class="fibrage-field mass-calc-field">
                     <div class="mass-calc-info">
-                        <small class="fibrage-text" id="mass-net">Masse nette : --</small>
-                        <small class="fibrage-text" id="grammage">Grammage : --</small>
+                        <small class="fibrage-text" id="mass-net">--</small>
+                        <small class="fibrage-text" id="grammage">--</small>
                     </div>
                 </div>
                 
@@ -1750,6 +1750,7 @@ function editRollNumber() {
     };
 }
 
+let lastCheckedRollId = null;
 function updateRollId() {
     const currentOrderSelect = document.getElementById('current-order');
     const rollNumberInput = document.getElementById('roll-number');
@@ -1786,8 +1787,9 @@ function updateRollId() {
         
         rollIdDisplay.textContent = rollId;
         
-        // Vérifier si l'ID existe déjà (seulement pour les conformes)
-        if (!rollId.includes('Decoupe')) {
+        // Vérifier si l'ID existe déjà (seulement pour les conformes et si l'ID a changé)
+        if (!rollId.includes('Decoupe') && rollId !== lastCheckedRollId) {
+            lastCheckedRollId = rollId;
             checkRollExists(rollId);
         }
         
@@ -1804,9 +1806,9 @@ function updateRollId() {
 function checkRollExists(rollId) {
     const rollStatus = document.getElementById('roll-status');
     
-    // Afficher un indicateur de chargement
-    rollStatus.textContent = '⏳';
-    rollStatus.className = 'badge bg-secondary';
+    // Ne pas afficher d'indicateur de chargement pour éviter le flash
+    // rollStatus.textContent = '⏳';
+    // rollStatus.className = 'badge bg-secondary';
     
     // Synchroniser immédiatement
     setTimeout(syncStickyBarValues, 50);
@@ -1815,7 +1817,7 @@ function checkRollExists(rollId) {
     .then(response => response.json())
     .then(data => {
         if (data.exists) {
-            rollStatus.textContent = '⚠️ Existe';
+            rollStatus.textContent = '⚠️';
             rollStatus.className = 'badge bg-danger';
         } else {
             rollStatus.textContent = '';
@@ -2079,17 +2081,30 @@ function generateRightThicknessInputs(meter) {
 }
 
 // Fonction pour charger les spécifications d'épaisseur
+let thicknessSpecsLoaded = false;
 function loadThicknessSpecifications() {
     fetch('/quality/get-thickness-specs/')
     .then(response => response.json())
     .then(data => {
+        const firstLoad = !thicknessSpecsLoaded;
         window.thicknessSpecs = data;
+        thicknessSpecsLoaded = true;
         console.log('Spécifications d\'épaisseur chargées:', data);
         
         // Afficher le nom des spécifications
         const specNameElement = document.getElementById('thickness-spec-name');
         if (specNameElement && data.name) {
             specNameElement.textContent = `(${data.name})`;
+        }
+        
+        // Si c'est le premier chargement ET qu'il y a déjà des valeurs, valider
+        if (firstLoad) {
+            const allThicknessInputs = document.querySelectorAll('.thickness-input');
+            allThicknessInputs.forEach(input => {
+                if (input.value && input.value.trim()) {
+                    validateThickness(input);
+                }
+            });
         }
     })
     .catch(error => {
@@ -2823,7 +2838,10 @@ function restoreRollData(rollData) {
                 const input = document.querySelector(`[data-meter="${meter}"][data-point="${point}"]:not([data-catchup])`);
                 if (input) {
                     input.value = rollData.thicknessMeasurements[meter][point];
-                    validateThickness(input); // Appliquer la validation après restauration
+                    // Ne valider que si les specs sont chargées pour éviter une double validation
+                    if (window.thicknessSpecs) {
+                        validateThickness(input);
+                    }
                 }
             });
         });
@@ -2837,7 +2855,10 @@ function restoreRollData(rollData) {
                 if (catchupInput) {
                     catchupInput.value = rollData.thicknessCatchups[meter][point];
                     catchupInput.style.display = 'block'; // Afficher le champ de rattrapage
-                    validateThickness(catchupInput); // Appliquer la validation après restauration
+                    // Ne valider que si les specs sont chargées pour éviter une double validation
+                    if (window.thicknessSpecs) {
+                        validateThickness(catchupInput);
+                    }
                 }
             });
         });
@@ -2871,10 +2892,12 @@ function restoreRollData(rollData) {
 
 // Fonction pour synchroniser les valeurs avec la sticky bar
 function syncStickyBarValues() {
+    console.log('syncStickyBarValues appelé');
     // Synchroniser le numéro de rouleau
     const rollNumber = document.getElementById('roll-number')?.value || '--';
     const stickyRollNumber = document.getElementById('sticky-roll-number');
     if (stickyRollNumber) {
+        console.log('Sync roll number:', rollNumber);
         stickyRollNumber.textContent = rollNumber;
     }
     
@@ -2935,11 +2958,19 @@ function syncStickyBarValues() {
 }
 
 // Fonction pour calculer et afficher la masse nette et le grammage
+let massCalcTimeout = null;
 function calculateMassNetAndGrammage() {
-    // Récupérer les valeurs des champs
-    const totalMassValue = parseFloat(document.getElementById('total-mass')?.value) || 0;
-    const tubeMassValue = parseFloat(document.getElementById('tube-mass')?.value) || 0;
-    const rollLengthValue = parseFloat(document.getElementById('roll-length')?.value) || 0;
+    // Annuler le calcul précédent si en cours
+    if (massCalcTimeout) {
+        clearTimeout(massCalcTimeout);
+    }
+    
+    // Différer le calcul de 50ms pour éviter les calculs multiples
+    massCalcTimeout = setTimeout(() => {
+        // Récupérer les valeurs des champs
+        const totalMassValue = parseFloat(document.getElementById('total-mass')?.value) || 0;
+        const tubeMassValue = parseFloat(document.getElementById('tube-mass')?.value) || 0;
+        const rollLengthValue = parseFloat(document.getElementById('roll-length')?.value) || 0;
     
     // Récupérer les éléments d'affichage
     const massNetElement = document.getElementById('mass-net');
@@ -2966,8 +2997,9 @@ function calculateMassNetAndGrammage() {
         grammageElement.textContent = grammage === '--' ? '--' : `${grammage} g/m²`;
     }
     
-    // Mettre à jour le panneau de validation après calcul des masses
-    updateValidationInfoPanel();
+        // Mettre à jour le panneau de validation après calcul des masses
+        updateValidationInfoPanel();
+    }, 50);
 }
 
 // Fonction pour rendre les valeurs de la sticky bar éditables
@@ -3823,26 +3855,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 4000);
     
     // Initialiser la synchronisation de la sticky bar
-    setTimeout(syncStickyBarValues, 3500);
+    setTimeout(syncStickyBarValues, 500);
     
-    // Initialiser le statut de conformité
-    setTimeout(updateRollConformity, 5000);
+    // Ces fonctions sont déjà appelées par generateRollVisualization et restoreRollData
+    // Pas besoin de les rappeler pour éviter le double clignotement
     
-    // Initialiser le compteur d'épaisseur
-    setTimeout(updateThicknessCounter, 5500);
+    // // Initialiser le statut de conformité
+    // setTimeout(updateRollConformity, 5000);
     
-    // Initialiser le compteur NOK
-    setTimeout(updateNokCounter, 5600);
+    // // Initialiser le compteur d'épaisseur
+    // setTimeout(updateThicknessCounter, 5500);
     
-    // Initialiser le résumé des défauts
-    setTimeout(updateDefectsSummary, 6000);
+    // // Initialiser le compteur NOK
+    // setTimeout(updateNokCounter, 5600);
     
-    // Appliquer la validation des contrôles qualité après restauration
-    setTimeout(() => {
-        if (Object.keys(allSpecifications).length > 0) {
-            applyQualityControlValidation();
-        }
-    }, 6500);
+    // // Initialiser le résumé des défauts
+    // setTimeout(updateDefectsSummary, 6000);
+    
+    // La validation est déjà appliquée dans loadAllSpecifications() après 3s
+    // Pas besoin de la rappeler pour éviter le double clignotement
     
     // Démarrer l'observation des changements
     const rollIdElement = document.getElementById('roll-id');

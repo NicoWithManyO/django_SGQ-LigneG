@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness
+from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness, LostTimeEntry
 
 
 @admin.register(Shift)
@@ -153,12 +153,12 @@ class RollAdmin(admin.ModelAdmin):
                     'destination', 'has_blocking_defects', 'has_thickness_issues')
     list_filter = ('status', 'destination', 'has_blocking_defects', 'has_thickness_issues', 'shift')
     search_fields = ('roll_id', 'shift__shift_id')
-    readonly_fields = ('created_at', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at', 'shift_id_str')
     inlines = [RollDefectInline, RollThicknessInline]
     
     fieldsets = (
         ('Identification', {
-            'fields': ('roll_id', 'shift', 'fabrication_order', 'roll_number')
+            'fields': ('roll_id', 'shift', 'shift_id_str', 'fabrication_order', 'roll_number')
         }),
         ('Données de production', {
             'fields': ('length', 'tube_mass', 'total_mass')
@@ -215,6 +215,37 @@ class RollThicknessAdmin(admin.ModelAdmin):
         }),
         ('Validation', {
             'fields': ('is_within_tolerance',)
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+class LostTimeInline(admin.TabularInline):
+    """Inline pour les temps d'arrêt d'un shift."""
+    model = LostTimeEntry
+    extra = 0
+    fields = ('motif', 'comment', 'duration')
+    readonly_fields = ('created_at',)
+
+
+@admin.register(LostTimeEntry)
+class LostTimeEntryAdmin(admin.ModelAdmin):
+    """Configuration admin pour le modèle LostTimeEntry."""
+    
+    list_display = ('shift', 'motif', 'duration', 'comment', 'created_at')
+    list_filter = ('motif', 'created_at', 'shift')
+    search_fields = ('shift__shift_id', 'motif', 'comment')
+    readonly_fields = ('created_at',)
+    
+    fieldsets = (
+        ('Shift', {
+            'fields': ('shift', 'session_key')
+        }),
+        ('Temps d\'arrêt', {
+            'fields': ('motif', 'comment', 'duration')
         }),
         ('Métadonnées', {
             'fields': ('created_at',),
