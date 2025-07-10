@@ -25,4 +25,7 @@ urlpatterns = [
     
     # Contrôles qualité
     path('quality-controls/save/', views.save_quality_controls, name='save_quality_controls'),
+    
+    # Sauvegarde rouleau
+    path('roll/save/', views.save_roll, name='save_roll'),
 ]

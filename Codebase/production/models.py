@@ -137,8 +137,8 @@ class CurrentProd(models.Model):
         return f"Saisie {self.session_key} - {self.updated_at.strftime('%H:%M:%S')}"
 
 
-class QualityControlSeries(models.Model):
-    """Modèle pour enregistrer les séries de contrôles qualité."""
+class QualityControl(models.Model):
+    """Modèle pour enregistrer les contrôles qualité."""
     
     # Relation avec le shift (nullable car peut ne pas encore exister)
     shift = models.ForeignKey(Shift, on_delete=models.CASCADE, null=True, blank=True,
@@ -202,8 +202,8 @@ class QualityControlSeries(models.Model):
                                   verbose_name="Contrôlé par")
     
     class Meta:
-        verbose_name = "Série de contrôles qualité"
-        verbose_name_plural = "Séries de contrôles qualité"
+        verbose_name = "Contrôle qualité"
+        verbose_name_plural = "Contrôles qualité"
         ordering = ['-created_at']
     
     def save(self, *args, **kwargs):
@@ -234,3 +234,169 @@ class QualityControlSeries(models.Model):
         if self.shift:
             return f"Contrôles {self.shift.shift_id} - {self.created_at.strftime('%H:%M')}"
         return f"Contrôles session {self.session_key} - {self.created_at.strftime('%H:%M')}"
+
+
+class Roll(models.Model):
+    """Modèle représentant un rouleau de production."""
+    
+    # Identifiant unique du rouleau
+    roll_id = models.CharField(max_length=50, unique=True, 
+                              help_text="ID unique du rouleau (format: OF_NumRouleau)")
+    
+    # Relation avec le shift (nullable car peut être créé avant le shift)
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE, 
+                             related_name='rolls',
+                             verbose_name="Poste de production",
+                             null=True, blank=True,
+                             help_text="Poste associé (sera lié lors de la sauvegarde du poste)")
+    
+    # Identifiant de session pour lier au shift non sauvegardé
+    session_key = models.CharField(max_length=255, null=True, blank=True,
+                                  help_text="Clé de session pour lier au shift en cours")
+    
+    # Relation avec l'ordre de fabrication
+    fabrication_order = models.ForeignKey('core.FabricationOrder', on_delete=models.CASCADE,
+                                         related_name='rolls',
+                                         verbose_name="Ordre de fabrication",
+                                         null=True, blank=True)
+    
+    # Données de production
+    roll_number = models.PositiveIntegerField(verbose_name="N° Rouleau")
+    length = models.DecimalField(max_digits=10, decimal_places=2, 
+                                verbose_name="Longueur (m)")
+    tube_mass = models.DecimalField(max_digits=10, decimal_places=2, 
+                                   verbose_name="Masse tube (kg)")
+    total_mass = models.DecimalField(max_digits=10, decimal_places=2, 
+                                    verbose_name="Masse totale (kg)")
+    
+    # Statut et destination
+    STATUS_CHOICES = [
+        ('CONFORME', 'Conforme'),
+        ('NON_CONFORME', 'Non conforme'),
+    ]
+    
+    DESTINATION_CHOICES = [
+        ('PRODUCTION', 'Production'),
+        ('DECOUPE', 'Découpe'),
+        ('DECHETS', 'Déchets'),
+    ]
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, 
+                             default='CONFORME', verbose_name="Statut")
+    destination = models.CharField(max_length=20, choices=DESTINATION_CHOICES,
+                                  default='PRODUCTION', verbose_name="Destination")
+    
+    # Détails de conformité
+    has_blocking_defects = models.BooleanField(default=False, 
+                                              verbose_name="Défauts bloquants")
+    has_thickness_issues = models.BooleanField(default=False, 
+                                              verbose_name="Problèmes d'épaisseur")
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Rouleau"
+        verbose_name_plural = "Rouleaux"
+        ordering = ['shift', 'roll_number']
+        unique_together = [['shift', 'roll_number']]
+    
+    def save(self, *args, **kwargs):
+        """Génère automatiquement le roll_id selon le statut."""
+        if not self.roll_id:
+            if self.status == 'NON_CONFORME':
+                # Format pour non conforme: OFDecoupe_JJMMAA_HHMM
+                from datetime import datetime
+                now = datetime.now()
+                date_str = now.strftime('%d%m%y')
+                time_str = now.strftime('%H%M')
+                self.roll_id = f"OFDecoupe_{date_str}_{time_str}"
+            elif self.fabrication_order and self.roll_number:
+                # Format pour conforme: OF_NumRouleau (ex: OF123_001)
+                self.roll_id = f"{self.fabrication_order.order_number}_{self.roll_number:03d}"
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.roll_id} - {self.length}m"
+
+
+class RollDefect(models.Model):
+    """Défauts constatés sur les rouleaux."""
+    
+    POSITION_SIDE_CHOICES = [
+        ('left', 'Gauche'),
+        ('center', 'Centre'), 
+        ('right', 'Droite'),
+    ]
+    
+    # Relation avec le rouleau
+    roll = models.ForeignKey(Roll, on_delete=models.CASCADE, 
+                            related_name='defects',
+                            verbose_name="Rouleau")
+    
+    # Type de défaut (pour l'instant simple CharField, à terme ForeignKey vers DefectType)
+    defect_name = models.CharField(max_length=100, verbose_name="Nom du défaut")
+    
+    # Position sur le rouleau
+    meter_position = models.PositiveIntegerField(verbose_name="Position (mètre)")
+    side_position = models.CharField(max_length=10, choices=POSITION_SIDE_CHOICES,
+                                   verbose_name="Côté")
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Défaut rouleau"
+        verbose_name_plural = "Défauts rouleaux" 
+        ordering = ['roll', 'meter_position']
+        unique_together = [['roll', 'meter_position', 'side_position', 'defect_name']]
+    
+    def __str__(self):
+        return f"{self.roll.roll_id} - {self.defect_name} à {self.meter_position}m ({self.get_side_position_display()})"
+
+
+class RollThickness(models.Model):
+    """Mesures d'épaisseur sur les rouleaux."""
+    
+    MEASUREMENT_POINTS = [
+        ('GG', 'Gauche Gauche'),
+        ('GC', 'Gauche Centre'), 
+        ('GD', 'Gauche Droite'),
+        ('DG', 'Droite Gauche'),
+        ('DC', 'Droite Centre'),
+        ('DD', 'Droite Droite'),
+    ]
+    
+    # Relation avec le rouleau
+    roll = models.ForeignKey(Roll, on_delete=models.CASCADE, 
+                            related_name='thickness_measurements',
+                            verbose_name="Rouleau")
+    
+    # Position de mesure
+    meter_position = models.PositiveIntegerField(verbose_name="Position (mètre)")
+    measurement_point = models.CharField(max_length=2, choices=MEASUREMENT_POINTS,
+                                       verbose_name="Point de mesure")
+    
+    # Valeur mesurée
+    thickness_value = models.DecimalField(max_digits=5, decimal_places=2,
+                                        verbose_name="Épaisseur (mm)")
+    
+    # Indique si c'est une mesure de rattrapage
+    is_catchup = models.BooleanField(default=False, verbose_name="Mesure de rattrapage")
+    
+    # Validation (sera calculée selon les spécifications)
+    is_within_tolerance = models.BooleanField(default=True, verbose_name="Dans les tolérances")
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Mesure d'épaisseur"
+        verbose_name_plural = "Mesures d'épaisseur"
+        ordering = ['roll', 'meter_position', 'measurement_point']
+        # Pas d'unique_together car on peut avoir plusieurs mesures (normale + rattrapage)
+    
+    def __str__(self):
+        catchup_str = " (rattrapage)" if self.is_catchup else ""
+        return f"{self.roll.roll_id} - {self.measurement_point} à {self.meter_position}m: {self.thickness_value}mm{catchup_str}"

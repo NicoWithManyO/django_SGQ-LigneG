@@ -167,7 +167,7 @@
         <!-- Bloc Contrôles Qualité -->
         <div class="block-card">
             <div class="block-header" style="cursor: pointer;" onclick="toggleQualityControlsBlock()">
-                <h5 class="block-title"><i class="bi bi-clipboard-check"></i> Contrôles Qualité <span id="thickness-spec-name" style="font-size: 0.8rem; font-weight: normal;"></span></h5>
+                <h5 class="block-title"><i class="bi bi-clipboard-check"></i> Contrôles Qualité - Profil : 80gr/m²</h5>
                 <div class="block-actions">
                     <i class="bi bi-chevron-up" id="quality-controls-chevron"></i>
                 </div>
@@ -178,7 +178,7 @@
                     <div class="control-section left" style="flex: 1;">
                         <div class="control-header">
                             <i class="bi bi-search"></i>
-                            <span>Contrôles Micronnaire Gauche</span>
+                            <span>Contrôles Micronnaire Gauche (mg/min)</span>
                         </div>
                         <div class="control-content">
                             <div class="micrometer-readings">
@@ -205,7 +205,7 @@
                     <div class="control-section center" style="flex: 1;">
                         <div class="control-header">
                             <i class="bi bi-clipboard-data"></i>
-                            <span>Extrait Sec</span>
+                            <span>Extrait Sec (%)</span>
                         </div>
                         <div class="control-content">
                             <div class="sizing-bath">
@@ -234,7 +234,7 @@
                     <div class="control-section right" style="flex: 1;">
                         <div class="control-header">
                             <i class="bi bi-search"></i>
-                            <span>Contrôles Micronnaire Droite</span>
+                            <span>Contrôles Micronnaire Droite (mg/min)</span>
                         </div>
                         <div class="control-content">
                             <div class="micrometer-readings">
@@ -264,7 +264,7 @@
                     <div class="surface-mass-section left" style="flex: 1;">
                         <div class="control-header">
                             <i class="bi bi-clipboard-check"></i>
-                            <span>Contrôles Masse Surfacique Gauche</span>
+                            <span>Contrôles Masse Surfacique Gauche (g/25cm²)</span>
                         </div>
                         <div class="surface-mass-readings">
                             <div class="d-flex flex-column">
@@ -299,7 +299,7 @@
                     <div class="surface-mass-section right" style="flex: 1;">
                         <div class="control-header">
                             <i class="bi bi-clipboard-check"></i>
-                            <span>Contrôles Masse Surfacique Droite</span>
+                            <span>Contrôles Masse Surfacique Droite (g/25cm²)</span>
                         </div>
                         <div class="surface-mass-readings">
                             <div class="d-flex flex-column">
@@ -422,14 +422,14 @@
     </div>
 </div>
 
-<!-- Sticky Bar Fibrage en cours -->
+<!-- Sticky Bar En cours -->
 <div class="fibrage-sticky-bar">
     <div class="fibrage-container">
         <div class="fibrage-content">
             
             <!-- Gauche : Titre -->
             <div class="fibrage-left">
-                <h6><i class="bi bi-box-seam"></i> Fibrage en cours</h6>
+                <h6><i class="bi bi-box-seam"></i> En cours</h6>
             </div>
             
             <!-- Centre : Numéro rouleau, ID, Lg, Masse tube, Masse totale, Bouton save -->
@@ -447,8 +447,8 @@
                 <div class="fibrage-field">
                     <label class="fibrage-label">ID Rouleau</label>
                     <div class="fibrage-id-group">
-                        <span class="fibrage-text" id="sticky-roll-id">3254_1</span>
-                        <!-- <span class="fibrage-status-text" id="sticky-roll-status">⚠️ Existe</span> -->
+                        <span class="fibrage-text" id="sticky-roll-id">--</span>
+                        <span class="fibrage-status-text" id="sticky-roll-status"></span>
                     </div>
                 </div>
                 
@@ -933,7 +933,12 @@ function autoSaveFormData() {
         // Données du rouleau (mesures et défauts)
         rollData: getRollData(),
         // Contrôles qualité
-        qualityControls: getQualityControlsData()
+        qualityControls: getQualityControlsData(),
+        // Statut de conformité
+        conformityStatus: {
+            status: document.getElementById('conformity-status')?.textContent || 'CONFORME',
+            destination: document.getElementById('destination-value')?.textContent || 'DECOUPE'
+        }
     };
     
     console.log('Sauvegarde des données:', formData);
@@ -1231,6 +1236,54 @@ document.addEventListener('forceRestore', function(e) {
 document.addEventListener('shiftSaveSuccess', function(e) {
     console.log('Shift sauvegardé avec succès!');
     alert('Sauvegarde OK');
+    
+    // Nettoyer les défauts et épaisseurs du rouleau actuel
+    // 1. Vider tous les défauts
+    document.querySelectorAll('.defect-input-side, .defect-input-center').forEach(input => {
+        input.value = '';
+        validateDefect(input);
+        updateDefectHasValueClass(input);
+    });
+    
+    // 2. Vider toutes les épaisseurs
+    document.querySelectorAll('.thickness-input').forEach(input => {
+        input.value = '';
+        validateThickness(input);
+    });
+    
+    // 3. Masquer les champs de rattrapage
+    document.querySelectorAll('[data-catchup="true"]').forEach(input => {
+        input.value = '';
+        input.style.display = 'none';
+    });
+    
+    // 4. Réinitialiser les compteurs
+    setTimeout(updateRollConformity, 100);
+    setTimeout(updateThicknessCounter, 150);
+    setTimeout(updateNokCounter, 200);
+    setTimeout(updateDefectsSummary, 250);
+    
+    // 5. Incrémenter le numéro de rouleau
+    const rollNumberInput = document.getElementById('roll-number');
+    if (rollNumberInput && rollNumberInput.value) {
+        const currentNumber = parseInt(rollNumberInput.value) || 0;
+        const nextNumber = currentNumber + 1;
+        rollNumberInput.value = String(nextNumber).padStart(3, '0');
+        updateRollId();
+    }
+    
+    // 6. Vider les masses et longueur
+    const fieldsToReset = ['tube-mass', 'total-mass', 'roll-length'];
+    fieldsToReset.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.value = '';
+        }
+    });
+    
+    // 7. Déclencher l'auto-save pour sauvegarder l'état nettoyé
+    clearTimeout(window.autoSaveTimeout);
+    window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
 });
 
 // Gestion des ordres de fabrication
@@ -1702,17 +1755,41 @@ function updateRollId() {
     const rollNumberInput = document.getElementById('roll-number');
     const rollIdDisplay = document.getElementById('roll-id');
     const rollStatus = document.getElementById('roll-status');
+    const conformityStatus = document.getElementById('conformity-status');
     
     const selectedOption = currentOrderSelect.options[currentOrderSelect.selectedIndex];
     const orderNumber = selectedOption && selectedOption.value ? selectedOption.textContent : '';
-    const rollNumber = rollNumberInput.value.trim();
+    let rollNumber = rollNumberInput.value.trim();
+    
+    // Formater le numéro de rouleau avec des zéros (padding à 3 chiffres)
+    if (rollNumber && !isNaN(rollNumber)) {
+        rollNumber = rollNumber.padStart(3, '0');
+        rollNumberInput.value = rollNumber; // Mettre à jour le champ avec le format
+    }
     
     if (orderNumber && rollNumber) {
-        const rollId = `${orderNumber}_${rollNumber}`;
+        let rollId;
+        
+        // Si NON CONFORME, utiliser le format spécial
+        if (conformityStatus && conformityStatus.textContent === 'NON CONFORME') {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: '2-digit'
+            }).replace(/\//g, '');
+            rollId = `${orderNumber}_${dateStr}_HHMM`;
+        } else {
+            // Format normal pour CONFORME
+            rollId = `${orderNumber}_${rollNumber}`;
+        }
+        
         rollIdDisplay.textContent = rollId;
         
-        // Vérifier si l'ID existe déjà
-        checkRollExists(rollId);
+        // Vérifier si l'ID existe déjà (seulement pour les conformes)
+        if (!rollId.includes('Decoupe')) {
+            checkRollExists(rollId);
+        }
         
     } else {
         rollIdDisplay.textContent = '--';
@@ -1738,8 +1815,8 @@ function checkRollExists(rollId) {
     .then(response => response.json())
     .then(data => {
         if (data.exists) {
-            // rollStatus.textContent = '⚠️ Existe';
-            // rollStatus.className = 'badge bg-danger';
+            rollStatus.textContent = '⚠️ Existe';
+            rollStatus.className = 'badge bg-danger';
         } else {
             rollStatus.textContent = '';
             rollStatus.className = 'badge';
@@ -1941,61 +2018,61 @@ function generateRollVisualization() {
     updateValidationInfoPanel();
 }
 
-// Fonction pour générer les mesures gauche (G1, G2, G3)
+// Fonction pour générer les mesures gauche (GG, GC, GD)
 function generateLeftThicknessInputs(meter) {
     return `
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
-                   placeholder="" data-point="G1" data-meter="${meter}" 
+                   placeholder="" data-point="GG" data-meter="${meter}" 
                    onchange="validateThickness(this)" onclick="this.select()" autocomplete="off">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
-                   placeholder="" data-point="G1" data-meter="${meter}" data-catchup="true"
+                   placeholder="" data-point="GG" data-meter="${meter}" data-catchup="true"
                    onchange="validateThickness(this)" onclick="this.select()" style="display: none;" autocomplete="off">
         </div>
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
-                   placeholder="" data-point="G2" data-meter="${meter}"
+                   placeholder="" data-point="GC" data-meter="${meter}"
                    onchange="validateThickness(this)" onclick="this.select()" autocomplete="off">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
-                   placeholder="" data-point="G2" data-meter="${meter}" data-catchup="true"
+                   placeholder="" data-point="GC" data-meter="${meter}" data-catchup="true"
                    onchange="validateThickness(this)" onclick="this.select()" style="display: none;" autocomplete="off">
         </div>
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
-                   placeholder="" data-point="G3" data-meter="${meter}"
+                   placeholder="" data-point="GD" data-meter="${meter}"
                    onchange="validateThickness(this)" onclick="this.select()" autocomplete="off">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
-                   placeholder="" data-point="G3" data-meter="${meter}" data-catchup="true"
+                   placeholder="" data-point="GD" data-meter="${meter}" data-catchup="true"
                    onchange="validateThickness(this)" onclick="this.select()" style="display: none;" autocomplete="off">
         </div>
     `;
 }
 
-// Fonction pour générer les mesures droite (D1, D2, D3)
+// Fonction pour générer les mesures droite (DG, DC, DD)
 function generateRightThicknessInputs(meter) {
     return `
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
-                   placeholder="" data-point="D1" data-meter="${meter}"
+                   placeholder="" data-point="DG" data-meter="${meter}"
                    onchange="validateThickness(this)" onclick="this.select()" autocomplete="off">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
-                   placeholder="" data-point="D1" data-meter="${meter}" data-catchup="true"
+                   placeholder="" data-point="DG" data-meter="${meter}" data-catchup="true"
                    onchange="validateThickness(this)" onclick="this.select()" style="display: none;" autocomplete="off">
         </div>
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
-                   placeholder="" data-point="D2" data-meter="${meter}"
+                   placeholder="" data-point="DC" data-meter="${meter}"
                    onchange="validateThickness(this)" onclick="this.select()" autocomplete="off">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
-                   placeholder="" data-point="D2" data-meter="${meter}" data-catchup="true"
+                   placeholder="" data-point="DC" data-meter="${meter}" data-catchup="true"
                    onchange="validateThickness(this)" onclick="this.select()" style="display: none;" autocomplete="off">
         </div>
         <div class="thickness-group">
             <input type="number" class="thickness-input" step="0.01" min="0" 
-                   placeholder="" data-point="D3" data-meter="${meter}"
+                   placeholder="" data-point="DD" data-meter="${meter}"
                    onchange="validateThickness(this)" onclick="this.select()" autocomplete="off">
             <input type="number" class="thickness-catchup-input" step="0.01" min="0" 
-                   placeholder="" data-point="D3" data-meter="${meter}" data-catchup="true"
+                   placeholder="" data-point="DD" data-meter="${meter}" data-catchup="true"
                    onchange="validateThickness(this)" onclick="this.select()" style="display: none;" autocomplete="off">
         </div>
     `;
@@ -2549,24 +2626,78 @@ function handleActionButton() {
     
     const statusText = conformityStatus.textContent;
     
-    if (statusText === 'CONFORME') {
-        // Sauvegarder le rouleau conforme
-        if (rollId !== '--') {
-            console.log(`Sauvegarde du rouleau conforme: ${rollId}`);
-            // Ici tu peux ajouter la logique de sauvegarde
-            saveFibrageData(); // Utiliser la fonction existante
-            alert(`Rouleau ${rollId} sauvegardé avec succès !`);
-        } else {
-            alert('Aucun ID de rouleau à sauvegarder');
+    if (statusText === 'CONFORME' || statusText === 'NON CONFORME') {
+        // Demander confirmation
+        const message = statusText === 'CONFORME' 
+            ? `Sauvegarder le rouleau ${rollId} - CONFORME ?`
+            : `Envoyer le rouleau ${rollId} vers DÉCOUPE - NON CONFORME ?`;
+            
+        if (!confirm(message)) {
+            return;
         }
-    } else if (statusText === 'NON CONFORME') {
-        // Envoyer vers découpe
-        console.log(`Envoi vers découpe du rouleau NON CONFORME: ${rollId}`);
-        // Ici tu peux ajouter la logique d'envoi vers découpe
-        if (confirm(`Envoyer le rouleau ${rollId} vers la découpe ?`)) {
-            alert(`Rouleau ${rollId} envoyé vers la découpe`);
-            // Logique d'envoi vers découpe à implémenter
-        }
+        
+        // D'abord sauvegarder les données actuelles via auto-save
+        autoSaveFormData();
+        
+        // Attendre un peu que l'auto-save se termine puis sauvegarder le rouleau
+        setTimeout(() => {
+            fetch('{% url "production:save_roll" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    
+                    // Mettre à jour le numéro de rouleau dans l'UI
+                    const rollNumberInput = document.getElementById('roll-number');
+                    const stickyRollNumber = document.getElementById('sticky-roll-number');
+                    if (rollNumberInput && data.new_roll_number) {
+                        rollNumberInput.value = data.new_roll_number;
+                        if (stickyRollNumber) {
+                            stickyRollNumber.textContent = data.new_roll_number;
+                        }
+                    }
+                    
+                    // Nettoyer les champs du rouleau
+                    document.getElementById('roll-length').value = '';
+                    document.getElementById('tube-mass').value = '';
+                    document.getElementById('total-mass').value = '';
+                    document.getElementById('sticky-roll-length').textContent = '--';
+                    document.getElementById('sticky-tube-mass').textContent = '--';
+                    document.getElementById('sticky-total-mass').textContent = '--';
+                    
+                    // Régénérer le conteneur du rouleau pour vider toutes les mesures et défauts
+                    const rollContainer = document.getElementById('roll-container');
+                    if (rollContainer) {
+                        // Déclencher la génération du rouleau via le changement de longueur
+                        const targetLengthInput = document.getElementById('target-length');
+                        if (targetLengthInput && targetLengthInput.value) {
+                            generateRollVisualization();
+                        }
+                    }
+                    
+                    // Mettre à jour l'ID du rouleau
+                    setTimeout(() => {
+                        updateRollId();
+                        updateValidationInfoPanel();
+                    }, 100);
+                } else {
+                    alert(`Erreur: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                console.error('Erreur détaillée:', error);
+                // Ne pas afficher l'alerte si c'est juste un problème de parsing de la réponse
+                if (error.message && !error.message.includes('JSON')) {
+                    alert('Erreur lors de la sauvegarde du rouleau: ' + error.message);
+                }
+            });
+        }, 500);
     } else {
         alert('Statut de conformité non déterminé');
     }
@@ -2755,12 +2886,12 @@ function syncStickyBarValues() {
     }
     
     // Synchroniser le statut
-    // const rollStatus = document.getElementById('roll-status')?.textContent || '';
-    // const stickyRollStatus = document.getElementById('sticky-roll-status');
-    // if (stickyRollStatus) {
-    //     stickyRollStatus.textContent = rollStatus;
-    //     stickyRollStatus.className = 'fibrage-status-text';
-    // }
+    const rollStatus = document.getElementById('roll-status')?.textContent || '';
+    const stickyRollStatus = document.getElementById('sticky-roll-status');
+    if (stickyRollStatus) {
+        stickyRollStatus.textContent = rollStatus;
+        stickyRollStatus.className = 'fibrage-status-text';
+    }
     
     // Synchroniser la masse du prochain tube
     const nextTubeMass = document.getElementById('next-tube-mass')?.value || '--';
@@ -2877,8 +3008,18 @@ function makeEditable(elementId) {
         
         // Vérifier s'il y a eu changement pour le numéro de rouleau
         if (elementId === 'sticky-roll-number' && newValue !== currentValue) {
+            // Formater les valeurs pour l'affichage dans la confirmation
+            let formattedNewValue = newValue;
+            let formattedCurrentValue = currentValue;
+            if (newValue !== '--' && !isNaN(newValue)) {
+                formattedNewValue = String(newValue).padStart(3, '0');
+            }
+            if (currentValue !== '--' && !isNaN(currentValue)) {
+                formattedCurrentValue = String(currentValue).padStart(3, '0');
+            }
+            
             // Confirmation après modification
-            if (!confirm(`Confirmer le changement du numéro de rouleau de "${currentValue}" vers "${newValue}" ?`)) {
+            if (!confirm(`Confirmer le changement du numéro de rouleau de "${formattedCurrentValue}" vers "${formattedNewValue}" ?`)) {
                 // Annuler : remettre l'ancienne valeur
                 input.value = currentValue;
                 // Relancer finishEdit avec l'ancienne valeur
@@ -2895,6 +3036,11 @@ function makeEditable(elementId) {
     
     function finishEditWithValue(finalValue) {
         const span = document.createElement('div');
+        
+        // Formater le numéro de rouleau avec des zéros si c'est un nombre
+        if (elementId === 'sticky-roll-number' && finalValue !== '--' && !isNaN(finalValue)) {
+            finalValue = String(finalValue).padStart(3, '0');
+        }
         
         // Déterminer la classe selon l'élément
         if (elementId === 'sticky-roll-number') {
@@ -3029,6 +3175,12 @@ const observer = new MutationObserver(function(mutations) {
         if (mutation.type === 'childList' || mutation.type === 'characterData') {
             const target = mutation.target;
             if (target.id === 'roll-id' || target.id === 'roll-status' || target.id === 'conformity-status') {
+                // Si c'est le statut de conformité qui change, mettre à jour l'ID du rouleau
+                if (target.id === 'conformity-status') {
+                    setTimeout(() => {
+                        updateRollId();
+                    }, 50);
+                }
                 setTimeout(() => {
                     syncStickyBarValues();
                     updateValidationInfoPanel();
@@ -3174,9 +3326,9 @@ function validateDefect(input) {
         input.style.border = '1px solid #ffeaa7';
     }
     
-    // Déclencher la sauvegarde des défauts
-    clearTimeout(window.defectSaveTimeout);
-    window.defectSaveTimeout = setTimeout(saveRollDefects, 1000);
+    // DÉSACTIVÉ : Les défauts seront sauvegardés avec le rouleau
+    // clearTimeout(window.defectSaveTimeout);
+    // window.defectSaveTimeout = setTimeout(saveRollDefects, 1000);
     
     // Mettre à jour le résumé des défauts
     updateDefectsSummary();
@@ -3185,53 +3337,7 @@ function validateDefect(input) {
     setTimeout(updateRollConformity, 200);
 }
 
-// Fonction pour sauvegarder les défauts du rouleau
-function saveRollDefects() {
-    const rollId = document.getElementById('roll-id')?.textContent;
-    if (!rollId || rollId === '--') {
-        console.log('Pas d\'ID rouleau pour sauvegarder les défauts');
-        return;
-    }
-    
-    const defectsData = getRollData().defects;
-    
-    // Ne sauvegarder que s'il y a des défauts
-    if (Object.keys(defectsData).length === 0) {
-        console.log('Aucun défaut à sauvegarder');
-        return;
-    }
-    
-    fetch('/quality/save-roll-defects/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({
-            roll_id: rollId,
-            defects: defectsData
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            console.log('Défauts sauvegardés:', data.saved_defects);
-            
-            // Mettre à jour les données de défauts pour la conformité
-            window.rollDefectData = {
-                blocking_defects_count: data.blocking_defects_count
-            };
-            
-            // Mettre à jour le statut de conformité
-            setTimeout(updateRollConformity, 100);
-        } else {
-            console.error('Erreur sauvegarde défauts:', data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Erreur réseau sauvegarde défauts:', error);
-    });
-}
+// SUPPRIMÉ : Les défauts seront sauvegardés avec le rouleau
 
 
 // Fonction de test pour le système de rattrapage

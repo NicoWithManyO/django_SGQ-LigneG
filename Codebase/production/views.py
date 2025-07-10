@@ -5,9 +5,9 @@ from django.views.decorators.http import require_http_methods, require_POST
 from django_htmx.http import HttpResponseClientRedirect
 import json
 from datetime import datetime
-from .models import Shift, CurrentProd, QualityControlSeries
+from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness
 from .forms import ShiftForm
-from core.models import Operator
+from core.models import Operator, FabricationOrder
 from quality.models import DefectType
 
 
@@ -110,14 +110,24 @@ def shift_block(request, shift_id=None):
                 shift = form.save()
                 print(f"DEBUG: Shift saved successfully with ID: {shift.id}, shift_id: {shift.shift_id}")
                 
+                # Lier les rouleaux orphelins (créés sans shift) à ce shift
+                if session_key:
+                    orphan_rolls = Roll.objects.filter(
+                        session_key=session_key,
+                        shift__isnull=True
+                    )
+                    if orphan_rolls.exists():
+                        orphan_rolls.update(shift=shift, session_key=None)
+                        print(f"DEBUG: {orphan_rolls.count()} rouleaux orphelins liés au shift {shift.shift_id}")
+                
                 # Maintenant sauvegarder les contrôles qualité
                 if session_key:
                     try:
                         current_prod = CurrentProd.objects.get(session_key=session_key)
                         quality_data = current_prod.form_data.get('qualityControls', {})
                         
-                        # Créer l'objet QualityControlSeries (on sait qu'ils sont complets)
-                        quality_control = QualityControlSeries(shift=shift)
+                        # Créer l'objet QualityControl (on sait qu'ils sont complets)
+                        quality_control = QualityControl(shift=shift)
                         
                         # Remplir les valeurs Micronnaire
                         micrometer_left = quality_data.get('micrometerLeft', [])
@@ -471,9 +481,8 @@ def check_roll_id(request):
         return JsonResponse({'exists': False})
     
     try:
-        # Ici on vérifierait dans une table Roll si elle existait
-        # Pour l'instant on simule une vérification - TEMPORAIRE pour test
-        exists = True  # Simuler qu'il existe déjà pour tester l'affichage
+        # Vérifier si un rouleau avec cet ID existe déjà
+        exists = Roll.objects.filter(roll_id=roll_id).exists()
         
         return JsonResponse({
             'exists': exists,
@@ -547,4 +556,170 @@ def check_shift_exists(request):
         return JsonResponse({
             'exists': False,
             'error': f'Erreur de vérification: {str(e)}'
+        }, status=500)
+
+@require_POST
+def save_roll(request):
+    """Sauvegarder un rouleau avec ses défauts et mesures d'épaisseur."""
+    try:
+        # Récupérer les données de la session
+        session_key = request.session.session_key
+        if not session_key:
+            return JsonResponse({
+                'success': False,
+                'error': 'Session non trouvée'
+            }, status=400)
+        
+        try:
+            current_prod = CurrentProd.objects.get(session_key=session_key)
+            form_data = current_prod.form_data
+        except CurrentProd.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Aucune donnée de production en cours'
+            }, status=400)
+        
+        # Récupérer les données du rouleau
+        roll_data = form_data.get('rollData', {})
+        roll_number = form_data.get('rollNumber')
+        roll_length = form_data.get('rollLength')
+        tube_mass = form_data.get('tubeMass')
+        total_mass = form_data.get('totalMass')
+        
+        # Vérifier les données requises
+        if not all([roll_number, roll_length, tube_mass, total_mass]):
+            return JsonResponse({
+                'success': False,
+                'error': 'Données du rouleau incomplètes'
+            }, status=400)
+        
+        # Récupérer le shift actuel (le plus récent) si il existe
+        shift = Shift.objects.filter(
+            operator__id=form_data.get('operator'),
+            date=form_data.get('date')
+        ).order_by('-created_at').first()
+        
+        # shift peut être None, ce n'est pas un problème
+        
+        # Récupérer l'OF
+        of_id = form_data.get('currentOrderId')
+        if not of_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Aucun ordre de fabrication sélectionné'
+            }, status=400)
+        
+        try:
+            fabrication_order = FabricationOrder.objects.get(id=of_id)
+        except FabricationOrder.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Ordre de fabrication non trouvé'
+            }, status=400)
+        
+        # Déterminer le statut et la destination basé sur la validation UI
+        # Récupérer le statut depuis les données du formulaire (calculé côté client)
+        conformity_data = form_data.get('conformityStatus', {})
+        status_from_ui = conformity_data.get('status', 'CONFORME')
+        
+        # Vérifier les défauts bloquants
+        defects_data = roll_data.get('defects', {})
+        has_blocking_defects = any(defects_data.values())  # Simplifié pour l'instant
+        
+        # Vérifier les problèmes d'épaisseur
+        # TODO: Implémenter la logique de validation des épaisseurs
+        has_thickness_issues = False
+        
+        # Utiliser le statut de l'UI qui a déjà fait la validation
+        if status_from_ui == 'NON CONFORME':
+            status = 'NON_CONFORME'
+            destination = 'DECOUPE'
+        else:
+            status = 'CONFORME'
+            destination = 'PRODUCTION'
+        
+        # Créer le rouleau (avec shift si disponible, sinon avec session_key)
+        roll = Roll.objects.create(
+            shift=shift,  # Peut être None
+            session_key=session_key if not shift else None,  # Stocker session_key si pas de shift
+            fabrication_order=fabrication_order,
+            roll_number=int(roll_number),
+            length=float(roll_length),
+            tube_mass=float(tube_mass),
+            total_mass=float(total_mass),
+            status=status,
+            destination=destination,
+            has_blocking_defects=has_blocking_defects,
+            has_thickness_issues=has_thickness_issues
+        )
+        
+        # Sauvegarder les défauts
+        defects_data = roll_data.get('defects', {})
+        for meter_str, positions in defects_data.items():
+            meter = int(meter_str)
+            for position, defect_name in positions.items():
+                if defect_name and defect_name.strip():
+                    RollDefect.objects.create(
+                        roll=roll,
+                        defect_name=defect_name.strip(),
+                        meter_position=meter,
+                        side_position=position
+                    )
+        
+        # Sauvegarder les mesures d'épaisseur principales
+        thickness_data = roll_data.get('thicknessMeasurements', {})
+        for meter_str, measurements in thickness_data.items():
+            meter = int(meter_str)
+            for point, value in measurements.items():
+                if value:
+                    RollThickness.objects.create(
+                        roll=roll,
+                        meter_position=meter,
+                        measurement_point=point,
+                        thickness_value=float(value),
+                        is_catchup=False
+                    )
+        
+        # Sauvegarder les mesures de rattrapage
+        catchup_data = roll_data.get('thicknessCatchups', {})
+        for meter_str, measurements in catchup_data.items():
+            meter = int(meter_str)
+            for point, value in measurements.items():
+                if value:
+                    RollThickness.objects.create(
+                        roll=roll,
+                        meter_position=meter,
+                        measurement_point=point,
+                        thickness_value=float(value),
+                        is_catchup=True
+                    )
+        
+        # Incrémenter le numéro de rouleau pour le prochain
+        new_roll_number = int(roll_number) + 1
+        current_prod.form_data['rollNumber'] = str(new_roll_number)
+        
+        # Nettoyer les données du rouleau mais garder le reste
+        current_prod.form_data['rollLength'] = ''
+        current_prod.form_data['tubeMass'] = ''
+        current_prod.form_data['totalMass'] = ''
+        current_prod.form_data['rollData'] = {
+            'thicknessMeasurements': {},
+            'thicknessCatchups': {},
+            'defects': {}
+        }
+        
+        # Sauvegarder les changements
+        current_prod.save()
+        
+        return JsonResponse({
+            'success': True,
+            'roll_id': roll.roll_id,
+            'new_roll_number': new_roll_number,
+            'message': f'Rouleau {roll.roll_id} sauvegardé avec succès'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors de la sauvegarde: {str(e)}'
         }, status=500)

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Shift, CurrentProd, QualityControlSeries
+from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness
 
 
 @admin.register(Shift)
@@ -66,9 +66,9 @@ class CurrentProdAdmin(admin.ModelAdmin):
     has_data.short_description = "Contient des données"
 
 
-@admin.register(QualityControlSeries)
-class QualityControlSeriesAdmin(admin.ModelAdmin):
-    """Configuration admin pour le modèle QualityControlSeries."""
+@admin.register(QualityControl)
+class QualityControlAdmin(admin.ModelAdmin):
+    """Configuration admin pour le modèle QualityControl."""
     
     list_display = ('__str__', 'shift', 'created_at', 'created_by', 'is_valid', 'has_micrometer', 'has_surface_mass', 'has_dry_extract')
     list_filter = ('created_at', 'created_by', 'loi_given', 'is_valid')
@@ -127,3 +127,97 @@ class QualityControlSeriesAdmin(admin.ModelAdmin):
         return obj.dry_extract is not None
     has_dry_extract.boolean = True
     has_dry_extract.short_description = "Extrait Sec"
+
+
+class RollDefectInline(admin.TabularInline):
+    """Inline pour les défauts d'un rouleau."""
+    model = RollDefect
+    extra = 0
+    fields = ('defect_name', 'meter_position', 'side_position')
+
+
+class RollThicknessInline(admin.TabularInline):
+    """Inline pour les mesures d'épaisseur d'un rouleau."""
+    model = RollThickness
+    extra = 0
+    fields = ('meter_position', 'measurement_point', 'thickness_value', 
+              'is_catchup', 'is_within_tolerance')
+    readonly_fields = ('is_within_tolerance',)
+
+
+@admin.register(Roll)
+class RollAdmin(admin.ModelAdmin):
+    """Configuration admin pour le modèle Roll."""
+    
+    list_display = ('roll_id', 'shift', 'roll_number', 'length', 'status', 
+                    'destination', 'has_blocking_defects', 'has_thickness_issues')
+    list_filter = ('status', 'destination', 'has_blocking_defects', 'has_thickness_issues', 'shift')
+    search_fields = ('roll_id', 'shift__shift_id')
+    readonly_fields = ('created_at', 'updated_at')
+    inlines = [RollDefectInline, RollThicknessInline]
+    
+    fieldsets = (
+        ('Identification', {
+            'fields': ('roll_id', 'shift', 'fabrication_order', 'roll_number')
+        }),
+        ('Données de production', {
+            'fields': ('length', 'tube_mass', 'total_mass')
+        }),
+        ('Conformité', {
+            'fields': ('status', 'destination', 'has_blocking_defects', 'has_thickness_issues')
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(RollDefect)
+class RollDefectAdmin(admin.ModelAdmin):
+    """Configuration admin pour le modèle RollDefect."""
+    
+    list_display = ('roll', 'defect_name', 'meter_position', 'side_position', 'created_at')
+    list_filter = ('defect_name', 'side_position', 'created_at')
+    search_fields = ('roll__roll_id', 'defect_name')
+    readonly_fields = ('created_at',)
+    
+    fieldsets = (
+        ('Rouleau', {
+            'fields': ('roll',)
+        }),
+        ('Défaut', {
+            'fields': ('defect_name', 'meter_position', 'side_position')
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(RollThickness)
+class RollThicknessAdmin(admin.ModelAdmin):
+    """Configuration admin pour le modèle RollThickness."""
+    
+    list_display = ('roll', 'meter_position', 'measurement_point', 'thickness_value', 
+                    'is_catchup', 'is_within_tolerance', 'created_at')
+    list_filter = ('is_within_tolerance', 'is_catchup', 'measurement_point', 'created_at')
+    search_fields = ('roll__roll_id',)
+    readonly_fields = ('created_at',)
+    
+    fieldsets = (
+        ('Rouleau', {
+            'fields': ('roll',)
+        }),
+        ('Mesure', {
+            'fields': ('meter_position', 'measurement_point', 'thickness_value', 'is_catchup')
+        }),
+        ('Validation', {
+            'fields': ('is_within_tolerance',)
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
