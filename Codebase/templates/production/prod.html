@@ -2829,6 +2829,45 @@ function addRollEventListeners() {
         }
     });
     
+    // Navigation avec TAB dans les champs d'épaisseur
+    rollContainer.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab' && e.target.matches('.thickness-input')) {
+            e.preventDefault();
+            
+            // Récupérer tous les champs d'épaisseur visibles
+            const allThicknessInputs = Array.from(document.querySelectorAll('.thickness-input:not([data-catchup])'));
+            const currentIndex = allThicknessInputs.indexOf(e.target);
+            
+            if (currentIndex !== -1) {
+                let nextIndex;
+                if (e.shiftKey) {
+                    // Shift+Tab : aller au précédent
+                    nextIndex = currentIndex - 1;
+                    if (nextIndex < 0) nextIndex = allThicknessInputs.length - 1;
+                } else {
+                    // Tab : aller au suivant
+                    nextIndex = currentIndex + 1;
+                    if (nextIndex >= allThicknessInputs.length) {
+                        // Si on est sur la dernière case, aller dans le champ Longueur
+                        const lengthField = document.getElementById('roll-length');
+                        if (lengthField) {
+                            lengthField.focus();
+                            lengthField.select();
+                            return;
+                        }
+                        nextIndex = 0;
+                    }
+                }
+                
+                const nextInput = allThicknessInputs[nextIndex];
+                if (nextInput) {
+                    nextInput.focus();
+                    nextInput.select();
+                }
+            }
+        }
+    });
+    
     rollContainer.addEventListener('change', function(e) {
         if (e.target.matches('.thickness-input, [data-catchup="true"], .defect-input-side, .defect-input-center')) {
             clearTimeout(window.autoSaveTimeout);
