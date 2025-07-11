@@ -6,17 +6,76 @@
 <style>
 /* Style pour le bouton poubelle */
 .waste-button {
+    background-color: transparent !important;
+    border: none !important;
+    color: white !important;
     transition: all 0.3s ease;
 }
 
 .waste-button:hover {
     background-color: #dc3545 !important;
-    border-color: #dc3545 !important;
+    border: none !important;
     color: white !important;
 }
 
 .waste-button:hover i {
     color: white !important;
+}
+
+/* Styles pour le bloc Productivité */
+.productivity-metric {
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+}
+
+.metric-value {
+    margin-top: 5px;
+}
+
+/* Styles pour les onglets de productivité */
+.productivity-tabs {
+    display: flex;
+    gap: 5px;
+    border-bottom: 2px solid #e9ecef;
+    margin-bottom: 15px;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 5px 12px;
+    font-size: 0.85rem;
+    color: #6c757d;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    color: #0054a6;
+    background-color: #f8f9fa;
+}
+
+.tab-btn.active {
+    color: #0054a6;
+    font-weight: 600;
+    border-bottom-color: #0054a6;
+}
+
+.tab-btn i {
+    margin-right: 5px;
+}
+
+.tab-content {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 </style>
 <script>
@@ -178,6 +237,150 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Bloc Productivité -->
+            <div class="block-card">
+                <div class="block-header" style="cursor: pointer;" onclick="toggleProductiviteBlock()">
+                    <h5 class="block-title"><i class="bi bi-graph-up"></i> Productivité</h5>
+                    <div class="block-actions">
+                        <i class="bi bi-chevron-up" id="productivite-chevron"></i>
+                    </div>
+                </div>
+                <div class="block-content" id="productivite-content">
+                    <!-- Tabs navigation -->
+                    <div class="productivity-tabs mb-3">
+                        <button class="tab-btn active" onclick="showProductivityTab('temps')" data-tab="temps">
+                            <i class="bi bi-clock"></i> Temps
+                        </button>
+                        <button class="tab-btn" onclick="showProductivityTab('production')" data-tab="production">
+                            <i class="bi bi-speedometer2"></i> Production
+                        </button>
+                        <button class="tab-btn" onclick="showProductivityTab('qualite')" data-tab="qualite">
+                            <i class="bi bi-check-circle"></i> Qualité
+                        </button>
+                    </div>
+                    
+                    <!-- Tab: Temps -->
+                    <div class="tab-content" id="tab-temps" style="display: block;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Temps d'Ouverture (TO)</label>
+                                    <div class="metric-value">
+                                        <span id="temps-ouverture" class="h4 fw-bold text-primary">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Temps Disponible (TD)</label>
+                                    <div class="metric-value">
+                                        <span id="temps-disponible" class="h4 fw-bold text-success">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Temps Perdu</label>
+                                    <div class="metric-value">
+                                        <span id="temps-perdu-total" class="h4 fw-bold text-danger">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Taux de Disponibilité</label>
+                                    <div class="metric-value">
+                                        <span id="taux-disponibilite" class="h4 fw-bold">--%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab: Production -->
+                    <div class="tab-content" id="tab-production" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Longueur Totale</label>
+                                    <div class="metric-value">
+                                        <span id="prod-longueur-totale" class="h4 fw-bold text-primary">-- m</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Nombre de Rouleaux</label>
+                                    <div class="metric-value">
+                                        <span id="prod-nb-rouleaux" class="h4 fw-bold text-info">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Cadence Moyenne</label>
+                                    <div class="metric-value">
+                                        <span id="prod-cadence" class="h4 fw-bold">-- m/h</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Progression OF</label>
+                                    <div class="metric-value">
+                                        <span id="prod-progression-of" class="h4 fw-bold">--%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab: Qualité -->
+                    <div class="tab-content" id="tab-qualite" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Taux de Conformité</label>
+                                    <div class="metric-value">
+                                        <span id="qual-taux-conformite" class="h4 fw-bold text-success">--%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Rouleaux Non Conformes</label>
+                                    <div class="metric-value">
+                                        <span id="qual-rouleaux-nc" class="h4 fw-bold text-danger">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Défauts Bloquants</label>
+                                    <div class="metric-value">
+                                        <span id="qual-defauts-bloquants" class="h4 fw-bold text-warning">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Contrôles OK</label>
+                                    <div class="metric-value">
+                                        <span id="qual-controles-ok" class="h4 fw-bold text-success">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Bloc Contrôles Qualité -->
@@ -200,15 +403,15 @@
                             <div class="micrometer-readings">
                                 <div class="reading-group">
                                     <label>#1</label>
-                                    <input type="text" class="form-control" placeholder="--" autocomplete="off">
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
                                 </div>
                                 <div class="reading-group">
                                     <label>#2</label>
-                                    <input type="text" class="form-control" placeholder="--" autocomplete="off">
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
                                 </div>
                                 <div class="reading-group">
                                     <label>#3</label>
-                                    <input type="text" class="form-control" placeholder="--" autocomplete="off">
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
                                 </div>
                                 <div class="average-display mt-0">
                                     <small class="text-muted">--</small>
@@ -226,7 +429,7 @@
                         <div class="control-content">
                             <div class="sizing-bath">
                                 <div class="sizing-bath-field">
-                                    <input type="text" class="form-control" placeholder="--" id="sizing-bath-input" autocomplete="off">
+                                    <input type="text" class="form-control" placeholder="--" id="sizing-bath-input" autocomplete="off" inputmode="decimal">
                                     <small class="text-muted" id="sizing-bath-time">--</small>
                                 </div>
                                 <hr style="width: 80%; margin: 0.5rem 0; border-color: var(--border-color);">
@@ -256,15 +459,15 @@
                             <div class="micrometer-readings">
                                 <div class="reading-group">
                                     <label>#1</label>
-                                    <input type="text" class="form-control" placeholder="--" autocomplete="off">
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
                                 </div>
                                 <div class="reading-group">
                                     <label>#2</label>
-                                    <input type="text" class="form-control" placeholder="--" autocomplete="off">
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
                                 </div>
                                 <div class="reading-group">
                                     <label>#3</label>
-                                    <input type="text" class="form-control" placeholder="--" autocomplete="off">
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
                                 </div>
                                 <div class="average-display mt-0">
                                     <small class="text-muted">--</small>
@@ -288,11 +491,11 @@
                                     <small class="text-muted" style="margin-bottom: 0;" id="gg-conversion">--</small>
                                     <div class="reading-group">
                                         <label>GG</label>
-                                        <input type="text" class="form-control" placeholder="--" id="gg-input" autocomplete="off">
+                                        <input type="text" class="form-control" placeholder="--" id="gg-input" autocomplete="off" inputmode="decimal">
                                     </div>
                                     <div class="reading-group">
                                         <label>GC</label>
-                                        <input type="text" class="form-control" placeholder="--" id="gc-input" autocomplete="off">
+                                        <input type="text" class="form-control" placeholder="--" id="gc-input" autocomplete="off" inputmode="decimal">
                                     </div>
                                     <small class="text-muted" style="margin-bottom: 0;" id="gc-conversion">--</small>
                                 </div>
@@ -323,11 +526,11 @@
                                     <small class="text-muted" style="margin-bottom: 0;" id="dc-conversion">--</small>
                                     <div class="reading-group">
                                         <label>DC</label>
-                                        <input type="text" class="form-control" placeholder="--" id="dc-input" autocomplete="off">
+                                        <input type="text" class="form-control" placeholder="--" id="dc-input" autocomplete="off" inputmode="decimal">
                                     </div>
                                     <div class="reading-group">
                                         <label>DD</label>
-                                        <input type="text" class="form-control" placeholder="--" id="dd-input" autocomplete="off">
+                                        <input type="text" class="form-control" placeholder="--" id="dd-input" autocomplete="off" inputmode="decimal">
                                     </div>
                                     <small class="text-muted" style="margin-bottom: 0;" id="dd-conversion">--</small>
                                 </div>
@@ -715,6 +918,9 @@ function addLostTime() {
     updateAvailabilityTime();
     renderLostTimeList();
     
+    // Mettre à jour les métriques de productivité
+    updateProductivityMetrics();
+    
     // Mettre à jour les champs de métrage (pour le message de démarrage)
     toggleMeterReadingFields();
     
@@ -740,28 +946,52 @@ function renderLostTimeList() {
         return;
     }
     
-    let html = '<div class="border-top pt-2">';
+    let html = '<div class="pt-2">';
+    
+    // Ajouter le total en haut si plus d'une entrée
+    if (window.lostTimeEntries.length > 1) {
+        const hours = Math.floor(window.totalLostTimeMinutes / 60);
+        const minutes = window.totalLostTimeMinutes % 60;
+        const totalStr = hours > 0 ? `${hours}h${minutes.toString().padStart(2, '0')}` : `${minutes} min`;
+        
+        html += `
+            <div class="d-flex align-items-center py-1 border-bottom" style="font-size: 0.8rem;">
+                <div class="me-2" style="width: 55px;">
+                    <small class="text-muted"></small>
+                </div>
+                <div class="me-2">
+                    <span class="fw-bold text-dark"></span>
+                </div>
+                <div class="me-2 flex-grow-1"></div>
+                <div class="me-2">
+                    <span class="badge bg-secondary">${totalStr}</span>
+                </div>
+                <div style="width: 32px;"></div>
+            </div>
+        `;
+    }
     
     window.lostTimeEntries.forEach(entry => {
         html += `
-            <div class="d-flex align-items-center py-1 border-bottom" style="font-size: 0.8rem;">
+            <div class="d-flex align-items-center py-1" style="font-size: 0.8rem;">
+                <div class="me-2">
+                    <small class="text-muted">${entry.timestamp}</small>
+                </div>
                 <div class="me-2">
                     <span class="fw-bold text-primary">${entry.motif}</span>
                 </div>
-                <div class="me-2 flex-grow-1">
+                <div class="me-2 flex-grow-1 text-center">
                     ${entry.comment ? `<span class="text-muted">${entry.comment}</span>` : ''}
                 </div>
                 <div class="me-2">
                     <span class="badge bg-secondary">${entry.timeStr}</span>
                 </div>
-                <div class="me-2">
-                    <small class="text-muted">${entry.timestamp}</small>
-                </div>
                 <div>
-                    <button type="button" class="btn btn-outline-danger btn-sm" 
+                    <button type="button" class="btn btn-outline-danger" 
                             onclick="removeLostTimeEntry(${entry.id})" 
-                            title="Supprimer">
-                        <i class="bi bi-trash"></i>
+                            title="Supprimer"
+                            style="padding: 2px 6px; font-size: 0.75rem; line-height: 1;">
+                        <i class="bi bi-trash" style="font-size: 0.75rem;"></i>
                     </button>
                 </div>
             </div>
@@ -789,6 +1019,9 @@ function removeLostTimeEntry(entryId) {
     updateLostTimeDisplay();
     updateAvailabilityTime();
     renderLostTimeList();
+    
+    // Mettre à jour les métriques de productivité
+    updateProductivityMetrics();
     
     // Mettre à jour les champs de métrage (pour le message de démarrage)
     toggleMeterReadingFields();
@@ -1048,7 +1281,14 @@ function restoreSavedData() {
                 
                 // Restaurer les champs normalement
                 const dateField = document.querySelector('input[name="date"]');
-                if (dateField && data.date) dateField.value = data.date;
+                // Ne pas restaurer la date si on vient de sauvegarder un poste
+                if (dateField && data.date && !window.justSavedShift) {
+                    dateField.value = data.date;
+                }
+                // Réinitialiser le flag après utilisation
+                if (window.justSavedShift) {
+                    window.justSavedShift = false;
+                }
                 
                 const operatorField = document.querySelector('select[name="operator"]');
                 if (operatorField && data.operator) operatorField.value = data.operator;
@@ -1080,10 +1320,21 @@ function restoreSavedData() {
                 }
                 
                 const meterStartField = document.querySelector('input[name="meter_reading_start"]');
-                if (meterStartField && data.meter_reading_start) meterStartField.value = data.meter_reading_start;
+                if (meterStartField && data.meter_reading_start) {
+                    meterStartField.value = data.meter_reading_start;
+                    console.log('Métrage début restauré:', data.meter_reading_start);
+                }
                 
                 const meterEndField = document.querySelector('input[name="meter_reading_end"]');
-                if (meterEndField && data.meter_reading_end) meterEndField.value = data.meter_reading_end;
+                if (meterEndField && data.meter_reading_end) {
+                    meterEndField.value = data.meter_reading_end;
+                    console.log('Métrage fin restauré:', data.meter_reading_end);
+                }
+                
+                // Appeler toggleMeterReadingFields après restauration des checkboxes
+                if (typeof toggleMeterReadingFields === 'function') {
+                    setTimeout(toggleMeterReadingFields, 100);
+                }
                 
                 const commentsField = document.querySelector('textarea[name="operator_comments"]');
                 if (commentsField && data.operator_comments) commentsField.value = data.operator_comments;
@@ -1170,6 +1421,7 @@ function restoreSavedData() {
                         updateDurationDisplay();
                     }
                     renderLostTimeList();
+                    updateProductivityMetrics();
                     updateRollId(); // Générer l'ID du rouleau
                     // Générer le rouleau si longueur cible disponible
                     generateRollVisualization();
@@ -1266,8 +1518,15 @@ document.body.addEventListener('change', function(e) {
             toggleMeterReadingFields();
         }
         
-        clearTimeout(window.autoSaveTimeout);
-        window.autoSaveTimeout = setTimeout(autoSaveFormData, 1000);
+        // Si c'est le champ date, forcer l'auto-save immédiatement
+        if (e.target.type === 'date' || e.target.name === 'date') {
+            console.log('Date changed, triggering auto-save');
+            clearTimeout(window.autoSaveTimeout);
+            window.autoSaveTimeout = setTimeout(autoSaveFormData, 100); // Plus rapide pour la date
+        } else {
+            clearTimeout(window.autoSaveTimeout);
+            window.autoSaveTimeout = setTimeout(autoSaveFormData, 1000);
+        }
         
         // Mettre à jour le bouton si c'est un champ requis pour le rouleau
         if (e.target.id === 'roll-number' || e.target.id === 'tube-mass' || 
@@ -1309,6 +1568,28 @@ document.addEventListener('forceRestore', function(e) {
 document.addEventListener('shiftSaveSuccess', function(e) {
     console.log('Shift sauvegardé avec succès!');
     alert('Sauvegarde OK');
+    
+    // Marquer qu'on vient de sauvegarder pour empêcher la restauration de la date
+    window.justSavedShift = true;
+    
+    // IMPORTANT: Vider les temps déclarés visuellement
+    window.lostTimeEntries = [];
+    window.totalLostTimeMinutes = 0;
+    const lostTimeList = document.getElementById('lost-time-list');
+    if (lostTimeList) {
+        lostTimeList.innerHTML = '';
+    }
+    // Mettre à jour l'affichage
+    if (typeof displayLostTimes === 'function') {
+        displayLostTimes();
+    }
+    if (typeof updateLostTimeDisplay === 'function') {
+        updateLostTimeDisplay();
+    }
+    if (typeof updateAvailabilityTime === 'function') {
+        updateAvailabilityTime();
+    }
+    console.log('Temps déclarés vidés après sauvegarde');
     
     // Effacer les contrôles qualité APRÈS la sauvegarde réussie
     clearQualityControlsAfterSave();
@@ -1969,6 +2250,139 @@ function toggleTempsBlock() {
         content.style.display = 'none';
         chevron.className = 'bi bi-chevron-down';
     }
+}
+
+// Fonction pour toggle le bloc Productivité
+function toggleProductiviteBlock() {
+    const content = document.getElementById('productivite-content');
+    const chevron = document.getElementById('productivite-chevron');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        chevron.className = 'bi bi-chevron-up';
+        updateProductivityMetrics(); // Mettre à jour les métriques à l'ouverture
+    } else {
+        content.style.display = 'none';
+        chevron.className = 'bi bi-chevron-down';
+    }
+}
+
+// Fonction pour changer d'onglet dans le bloc Productivité
+function showProductivityTab(tabName) {
+    // Cacher tous les contenus d'onglets
+    const allTabs = document.querySelectorAll('.tab-content');
+    allTabs.forEach(tab => {
+        tab.style.display = 'none';
+    });
+    
+    // Retirer la classe active de tous les boutons
+    const allButtons = document.querySelectorAll('.tab-btn');
+    allButtons.forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Afficher l'onglet sélectionné
+    const selectedTab = document.getElementById('tab-' + tabName);
+    if (selectedTab) {
+        selectedTab.style.display = 'block';
+    }
+    
+    // Activer le bouton sélectionné
+    const selectedButton = document.querySelector(`[data-tab="${tabName}"]`);
+    if (selectedButton) {
+        selectedButton.classList.add('active');
+    }
+    
+    // Mettre à jour les données selon l'onglet
+    if (tabName === 'temps') {
+        updateProductivityMetrics();
+    } else if (tabName === 'production') {
+        updateProductionMetrics();
+    } else if (tabName === 'qualite') {
+        updateQualityMetrics();
+    }
+}
+
+// Fonction pour calculer et afficher les métriques de productivité
+function updateProductivityMetrics() {
+    // Récupérer les heures de début et fin
+    const startTimeField = document.querySelector('input[name="start_time"]');
+    const endTimeField = document.querySelector('input[name="end_time"]');
+    
+    if (!startTimeField || !endTimeField || !startTimeField.value || !endTimeField.value) {
+        // Pas d'heures définies, afficher --
+        document.getElementById('temps-ouverture').textContent = '--';
+        document.getElementById('temps-disponible').textContent = '--';
+        document.getElementById('temps-perdu-total').textContent = '--';
+        document.getElementById('taux-disponibilite').textContent = '--%';
+        return;
+    }
+    
+    // Calculer le temps d'ouverture (TO)
+    const [startHours, startMinutes] = startTimeField.value.split(':').map(Number);
+    const [endHours, endMinutes] = endTimeField.value.split(':').map(Number);
+    
+    let totalMinutes = (endHours * 60 + endMinutes) - (startHours * 60 + startMinutes);
+    if (totalMinutes < 0) {
+        totalMinutes += 24 * 60; // Gestion du passage à minuit
+    }
+    
+    const toHours = Math.floor(totalMinutes / 60);
+    const toMinutes = totalMinutes % 60;
+    const toStr = toHours > 0 ? `${toHours}h${toMinutes.toString().padStart(2, '0')}` : `${toMinutes} min`;
+    
+    // Temps perdu total
+    const tpMinutes = window.totalLostTimeMinutes || 0;
+    const tpHours = Math.floor(tpMinutes / 60);
+    const tpRemainingMinutes = tpMinutes % 60;
+    const tpStr = tpHours > 0 ? `${tpHours}h${tpRemainingMinutes.toString().padStart(2, '0')}` : `${tpMinutes} min`;
+    
+    // Temps disponible (TD = TO - TP)
+    const tdMinutes = totalMinutes - tpMinutes;
+    const tdHours = Math.floor(tdMinutes / 60);
+    const tdRemainingMinutes = tdMinutes % 60;
+    const tdStr = tdHours > 0 ? `${tdHours}h${tdRemainingMinutes.toString().padStart(2, '0')}` : `${tdMinutes} min`;
+    
+    // Taux de disponibilité (TD/TO * 100)
+    const tauxDisponibilite = totalMinutes > 0 ? Math.round((tdMinutes / totalMinutes) * 100) : 0;
+    
+    // Mettre à jour l'affichage
+    document.getElementById('temps-ouverture').textContent = toStr;
+    document.getElementById('temps-disponible').textContent = tdStr;
+    document.getElementById('temps-perdu-total').textContent = tpStr;
+    
+    const tauxElement = document.getElementById('taux-disponibilite');
+    tauxElement.textContent = `${tauxDisponibilite}%`;
+    
+    // Changer la couleur selon le taux
+    tauxElement.classList.remove('text-success', 'text-warning', 'text-danger');
+    if (tauxDisponibilite >= 90) {
+        tauxElement.classList.add('text-success');
+    } else if (tauxDisponibilite >= 70) {
+        tauxElement.classList.add('text-warning');
+    } else {
+        tauxElement.classList.add('text-danger');
+    }
+}
+
+// Fonction pour mettre à jour les métriques de production
+function updateProductionMetrics() {
+    // TODO: Implémenter le calcul des métriques de production
+    // Pour l'instant, valeurs par défaut
+    document.getElementById('prod-longueur-totale').textContent = '-- m';
+    document.getElementById('prod-nb-rouleaux').textContent = '--';
+    document.getElementById('prod-cadence').textContent = '-- m/h';
+    document.getElementById('prod-progression-of').textContent = '--%';
+}
+
+// Fonction pour mettre à jour les métriques de qualité
+function updateQualityMetrics() {
+    // TODO: Implémenter le calcul des métriques de qualité
+    // Pour l'instant, valeurs par défaut
+    document.getElementById('qual-taux-conformite').textContent = '--%';
+    document.getElementById('qual-rouleaux-nc').textContent = '--';
+    document.getElementById('qual-defauts-bloquants').textContent = '--';
+    document.getElementById('qual-controles-ok').textContent = '--';
 }
 
 // Fonction pour générer la visualisation du rouleau
@@ -4000,11 +4414,160 @@ function saveFabricationOrder() {
     });
 }
 
+// Fonction pour forcer la saisie numérique sur les contrôles qualité et sticky bar
+function enforceNumericQualityControls() {
+    // Sélectionner tous les champs qui doivent être numériques
+    const numericSelectors = [
+        '.micrometer-readings input',
+        '#sizing-bath-input',
+        '.surface-mass-readings input'
+    ];
+    
+    numericSelectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(input => {
+            // Ajouter l'attribut inputmode pour mobile
+            input.setAttribute('inputmode', 'decimal');
+            
+            // Empêcher la saisie de caractères non numériques
+            input.addEventListener('keypress', function(e) {
+                const char = String.fromCharCode(e.which);
+                const value = this.value;
+                
+                // Autoriser: chiffres, point, virgule, backspace, delete, tab, escape, enter
+                if (!/[0-9]/.test(char) && 
+                    char !== '.' && 
+                    char !== ',' &&
+                    e.which !== 8 && // backspace
+                    e.which !== 9 && // tab
+                    e.which !== 27 && // escape
+                    e.which !== 13) { // enter
+                    e.preventDefault();
+                    return;
+                }
+                
+                // Empêcher plusieurs séparateurs décimaux
+                if ((char === '.' || char === ',') && (value.includes('.') || value.includes(','))) {
+                    e.preventDefault();
+                    return;
+                }
+            });
+            
+            // Convertir virgule en point avant l'envoi à Django
+            input.addEventListener('blur', function(e) {
+                if (this.value.includes(',')) {
+                    this.value = this.value.replace(',', '.');
+                }
+            });
+            
+            // Nettoyer les caractères non autorisés
+            input.addEventListener('input', function(e) {
+                let value = this.value;
+                // Supprimer tout caractère non numérique sauf le point et la virgule
+                value = value.replace(/[^0-9.,]/g, '');
+                // S'assurer qu'il n'y a qu'un seul séparateur
+                const separators = value.match(/[.,]/g);
+                if (separators && separators.length > 1) {
+                    // Garder seulement le premier séparateur
+                    const firstSepIndex = value.search(/[.,]/);
+                    value = value.substring(0, firstSepIndex + 1) + value.substring(firstSepIndex + 1).replace(/[.,]/g, '');
+                }
+                if (this.value !== value) {
+                    this.value = value;
+                }
+            });
+            
+            // Gérer le collage
+            input.addEventListener('paste', function(e) {
+                e.preventDefault();
+                let paste = (e.clipboardData || window.clipboardData).getData('text');
+                paste = paste.replace(',', '.');
+                paste = paste.replace(/[^0-9.]/g, '');
+                // Vérifier que c'est un nombre valide
+                if (!isNaN(paste) && paste !== '') {
+                    this.value = paste;
+                    this.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+        });
+    });
+}
+
+// Fonction pour valider les champs numériques dans la sticky bar
+function enforceNumericStickyBar() {
+    // Observer pour détecter quand un champ devient éditable
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length > 0) {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeName === 'INPUT' && node.type === 'text') {
+                        // Appliquer la validation numérique
+                        node.setAttribute('inputmode', 'decimal');
+                        
+                        node.addEventListener('keypress', function(e) {
+                            const char = String.fromCharCode(e.which);
+                            const value = this.value;
+                            
+                            if (!/[0-9]/.test(char) && 
+                                char !== '.' && 
+                                char !== ',' &&
+                                e.which !== 8 && 
+                                e.which !== 9 && 
+                                e.which !== 27 && 
+                                e.which !== 13) {
+                                e.preventDefault();
+                                return;
+                            }
+                            
+                            if ((char === '.' || char === ',') && (value.includes('.') || value.includes(','))) {
+                                e.preventDefault();
+                                return;
+                            }
+                        });
+                        
+                        node.addEventListener('blur', function(e) {
+                            if (this.value.includes(',')) {
+                                this.value = this.value.replace(',', '.');
+                            }
+                        });
+                        
+                        node.addEventListener('input', function(e) {
+                            let value = this.value;
+                            value = value.replace(/[^0-9.,]/g, '');
+                            const separators = value.match(/[.,]/g);
+                            if (separators && separators.length > 1) {
+                                const firstSepIndex = value.search(/[.,]/);
+                                value = value.substring(0, firstSepIndex + 1) + value.substring(firstSepIndex + 1).replace(/[.,]/g, '');
+                            }
+                            if (this.value !== value) {
+                                this.value = value;
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    });
+    
+    // Observer les champs de la sticky bar
+    const stickyFields = ['sticky-tube-mass', 'sticky-roll-length', 'sticky-total-mass', 'sticky-next-tube-mass'];
+    stickyFields.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            observer.observe(element, { childList: true });
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     populateTimeOptions();
     loadFabricationOrders();
     loadThicknessSpecifications(); // Charger les spécifications d'épaisseur
     loadAllSpecifications(); // Charger toutes les spécifications pour les contrôles qualité
+    
+    // Appliquer la validation numérique
+    enforceNumericQualityControls();
+    enforceNumericStickyBar();
+    
     setTimeout(restoreSavedData, 2000);
     setTimeout(updateRollId, 2500); // Générer l'ID après restauration
     setTimeout(generateRollVisualization, 3000); // Générer le rouleau après restauration

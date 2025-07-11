@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import DefectType, RollDefect, ThicknessMeasurement, Specification
+from .models import DefectType, Specification
 
 # Configuration admin pour l'application quality
 # Contrôles qualité, mesures et défauts
@@ -25,59 +25,6 @@ class DefectTypeAdmin(admin.ModelAdmin):
         }),
     )
 
-
-@admin.register(RollDefect)
-class RollDefectAdmin(admin.ModelAdmin):
-    list_display = ['roll_id', 'defect_type', 'meter_position', 'side_position', 'status', 'is_blocking', 'detected_at']
-    list_filter = ['status', 'is_blocking', 'side_position', 'defect_type']
-    search_fields = ['roll_id', 'description']
-    readonly_fields = ['detected_at', 'is_blocking']
-    
-    fieldsets = (
-        ('Identification', {
-            'fields': ('roll_id', 'defect_type')
-        }),
-        ('Localisation', {
-            'fields': ('meter_position', 'side_position')
-        }),
-        ('Défaut', {
-            'fields': ('description', 'operator_comments')
-        }),
-        ('Statut', {
-            'fields': ('status', 'is_blocking', 'resolved_at')
-        }),
-        ('Métadonnées', {
-            'fields': ('detected_at',),
-            'classes': ('collapse',)
-        }),
-    )
-
-
-@admin.register(ThicknessMeasurement)
-class ThicknessMeasurementAdmin(admin.ModelAdmin):
-    list_display = ['roll_id', 'meter_position', 'measurement_point', 'thickness_value', 'is_within_tolerance', 'measured_at']
-    list_filter = ['measurement_point', 'is_within_tolerance']
-    search_fields = ['roll_id']
-    readonly_fields = ['measured_at', 'is_within_tolerance']
-    
-    fieldsets = (
-        ('Identification', {
-            'fields': ('roll_id',)
-        }),
-        ('Mesure', {
-            'fields': ('meter_position', 'measurement_point', 'thickness_value')
-        }),
-        ('Tolérances', {
-            'fields': ('min_tolerance', 'max_tolerance', 'is_within_tolerance')
-        }),
-        ('Commentaires', {
-            'fields': ('operator_comments',)
-        }),
-        ('Métadonnées', {
-            'fields': ('measured_at',),
-            'classes': ('collapse',)
-        }),
-    )
 
 
 

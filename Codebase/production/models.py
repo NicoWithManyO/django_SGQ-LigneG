@@ -18,7 +18,7 @@ class Shift(models.Model):
     shift_id = models.CharField(max_length=50, unique=True, 
                                help_text="ID unique généré automatiquement (format: date_operator_vacation)")
     date = models.DateField(verbose_name="Date", help_text="Date de production")
-    operator = models.ForeignKey(Operator, on_delete=models.CASCADE, 
+    operator = models.ForeignKey(Operator, on_delete=models.SET_NULL, null=True,
                                 verbose_name="Opérateur", help_text="Opérateur responsable du poste")
     vacation = models.CharField(max_length=20, choices=VACATION_CHOICES, 
                                verbose_name="Vacation", help_text="Vacation du poste")
@@ -87,24 +87,36 @@ class Shift(models.Model):
             if duration <= timedelta(0):
                 raise ValidationError("L'heure de fin doit être après l'heure de début.")
     
+    def calculate_lost_time(self):
+        """Calcule le temps perdu total à partir des entrées de temps d'arrêt."""
+        from django.db.models import Sum
+        total_minutes = self.lost_time_entries.aggregate(
+            total=Sum('duration')
+        )['total'] or 0
+        return timedelta(minutes=total_minutes)
+    
     def save(self, *args, **kwargs):
         """Génère automatiquement le shift_id et calcule les valeurs dérivées."""
         if not self.shift_id:
             # Format: JJMMAA_PrenomNom_Vacation
             date_str = self.date.strftime('%d%m%y')
-            operator_clean = self.operator.full_name_no_space
+            if self.operator:
+                operator_clean = self.operator.full_name_no_space
+            else:
+                operator_clean = "SansOperateur"
             self.shift_id = f"{date_str}_{operator_clean}_{self.vacation}"
         
         # Calcul automatique des temps
         if self.start_time and self.end_time:
-            # Availability_time = opening_time moins les temps d'arrêt programmés
-            # Pour l'instant, on considère que availability_time = opening_time
-            self.availability_time = self.opening_time
+            # Lost_time = somme de tous les temps d'arrêt déclarés
+            # Si l'objet n'a pas encore de pk, on ne peut pas calculer (pas encore de relations)
+            if self.pk:
+                self.lost_time = self.calculate_lost_time()
+            else:
+                self.lost_time = timedelta(seconds=0)
             
-            # Lost_time = opening_time - availability_time
-            # Pour l'instant, on calcule comme opening_time - temps de production effectif
-            # (logique à adapter selon vos besoins métier)
-            self.lost_time = timedelta(seconds=0)  # À calculer selon votre logique
+            # Availability_time (Temps Disponible) = opening_time (Temps d'Ouverture) - lost_time (Temps Perdu)
+            self.availability_time = self.opening_time - self.lost_time
         
         # Calcul automatique du déchet brut
         if self.total_length and self.ok_length and self.nok_length:
@@ -276,6 +288,7 @@ class Roll(models.Model):
                               help_text="ID unique du rouleau (format: OF_NumRouleau)")
     
     # Relation avec le shift (nullable car peut être créé avant le shift)
+    # SET_NULL pour garder les rouleaux même si le poste est supprimé
     shift = models.ForeignKey(Shift, on_delete=models.SET_NULL, 
                              related_name='rolls',
                              verbose_name="Poste de production",
@@ -340,8 +353,9 @@ class Roll(models.Model):
         unique_together = [['shift', 'roll_number']]
     
     def save(self, *args, **kwargs):
-        """Génère automatiquement le roll_id selon le statut."""
+        """Génère automatiquement le roll_id selon le statut si non fourni."""
         if not self.roll_id:
+            # Génération de secours si l'ID n'est pas fourni par la vue
             if self.status == 'NON_CONFORME':
                 # Format pour non conforme: OFDecoupe_JJMMAA_HHMM
                 from datetime import datetime

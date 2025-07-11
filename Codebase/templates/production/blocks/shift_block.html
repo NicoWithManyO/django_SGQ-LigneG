@@ -842,6 +842,17 @@ function clearDeclaredTimes() {
         updateLostTimeDisplay();
     }
     
+    // Forcer la mise à jour de l'affichage des temps déclarés
+    if (typeof displayLostTimes === 'function') {
+        displayLostTimes();
+        console.log('Affichage des temps déclarés mis à jour');
+    }
+    
+    // Mettre à jour le temps disponible
+    if (typeof updateAvailabilityTime === 'function') {
+        updateAvailabilityTime();
+    }
+    
     console.log('Temps déclarés vidés');
 }
 

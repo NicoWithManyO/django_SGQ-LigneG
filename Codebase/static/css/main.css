@@ -156,9 +156,14 @@ body {
 
 .top-blocks {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 0.5rem;
-    align-items: stretch;
+    align-items: flex-start;
+}
+
+.top-blocks .block-card {
+    flex: 1;
+    min-width: 0;
 }
 
 .roll-visualization {

@@ -69,18 +69,20 @@ class ShiftForm(forms.ModelForm):
             }),
             'meter_reading_start': forms.NumberInput(attrs={
                 'class': 'form-control fw-bold',
-                'step': '1',
+                'step': '0.01',
                 'min': '0',
-                'placeholder': 'Métrage si démarrée'
+                'placeholder': 'Métrage si démarrée',
+                'inputmode': 'decimal'
             }),
             'started_at_end': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             }),
             'meter_reading_end': forms.NumberInput(attrs={
                 'class': 'form-control fw-bold',
-                'step': '1',
+                'step': '0.01',
                 'min': '0',
-                'placeholder': 'Métrage si démarrée'
+                'placeholder': 'Métrage si démarrée',
+                'inputmode': 'decimal'
             }),
             'total_length': forms.NumberInput(attrs={
                 'class': 'form-control fw-bold',

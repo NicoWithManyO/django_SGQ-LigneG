@@ -8,7 +8,7 @@ class LostTimeInline(admin.TabularInline):
     extra = 0
     fields = ('motif', 'comment', 'duration', 'created_at')
     readonly_fields = ('motif', 'comment', 'duration', 'created_at')
-    can_delete = False
+    can_delete = True
     
     def has_add_permission(self, request, obj=None):
         return False
@@ -20,7 +20,7 @@ class ShiftAdmin(admin.ModelAdmin):
     
     list_display = ('shift_id', 'operator', 'date', 'vacation', 'total_length', 'ok_length')
     list_filter = ('vacation', 'date', 'operator')
-    search_fields = ('shift_id', 'operator', 'operator_comments')
+    search_fields = ('shift_id', 'operator__first_name', 'operator__last_name', 'operator_comments')
     readonly_fields = ('shift_id', 'created_at', 'updated_at')
     inlines = [LostTimeInline]
     
@@ -52,23 +52,40 @@ class ShiftAdmin(admin.ModelAdmin):
         if obj:  # Modification d'un objet existant
             return self.readonly_fields
         return ('created_at', 'updated_at')  # Création d'un nouvel objet
+    
+    def delete_queryset(self, request, queryset):
+        """Suppression personnalisée pour éviter les erreurs avec les signaux."""
+        # Désactiver temporairement les signaux lors de la suppression en masse
+        from django.db.models import signals
+        from production.signals import update_shift_lost_time
+        
+        # Déconnecter le signal
+        signals.post_delete.disconnect(update_shift_lost_time, sender=LostTimeEntry)
+        
+        try:
+            # Effectuer la suppression
+            super().delete_queryset(request, queryset)
+        finally:
+            # Reconnecter le signal
+            signals.post_delete.connect(update_shift_lost_time, sender=LostTimeEntry)
 
 
 @admin.register(CurrentProd)
 class CurrentProdAdmin(admin.ModelAdmin):
-    """Configuration admin pour le modèle CurrentProd."""
+    """Configuration admin pour le modèle CurrentProd - LECTURE SEULE."""
     
     list_display = ('session_key', 'updated_at', 'has_data')
     list_filter = ('created_at', 'updated_at')
     search_fields = ('session_key',)
-    readonly_fields = ('session_key', 'created_at', 'updated_at')
+    readonly_fields = ('session_key', 'created_at', 'updated_at', 'form_data')
     
     fieldsets = (
         ('Session', {
             'fields': ('session_key', 'created_at', 'updated_at')
         }),
-        ('Données', {
-            'fields': ('form_data',)
+        ('Données (Lecture seule)', {
+            'fields': ('form_data',),
+            'description': 'Données temporaires d\'auto-sauvegarde - Ne pas modifier manuellement'
         }),
     )
     
@@ -77,6 +94,18 @@ class CurrentProdAdmin(admin.ModelAdmin):
         return bool(obj.form_data and len(obj.form_data) > 0)
     has_data.boolean = True
     has_data.short_description = "Contient des données"
+    
+    def has_add_permission(self, request):
+        """Empêcher la création manuelle."""
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        """Lecture seule - pas de modification."""
+        return True  # True pour voir, mais tous les champs sont readonly
+    
+    def has_delete_permission(self, request, obj=None):
+        """Autoriser la suppression pour nettoyer les sessions obsolètes."""
+        return True
 
 
 @admin.register(QualityControl)
@@ -150,7 +179,8 @@ class QualityControlAdmin(admin.ModelAdmin):
         return False
     
     def has_delete_permission(self, request, obj=None):
-        return False
+        # Permettre la suppression si c'est via la suppression en cascade d'un rouleau
+        return True
 
 
 class RollDefectInline(admin.TabularInline):
@@ -159,7 +189,7 @@ class RollDefectInline(admin.TabularInline):
     extra = 0
     fields = ('defect_name', 'meter_position', 'side_position')
     readonly_fields = ('defect_name', 'meter_position', 'side_position')
-    can_delete = False
+    can_delete = True
     
     def has_add_permission(self, request, obj=None):
         return False
@@ -173,7 +203,7 @@ class RollThicknessInline(admin.TabularInline):
               'is_catchup', 'is_within_tolerance')
     readonly_fields = ('meter_position', 'measurement_point', 'thickness_value', 
                       'is_catchup', 'is_within_tolerance')
-    can_delete = False
+    can_delete = True
     
     def has_add_permission(self, request, obj=None):
         return False
@@ -208,7 +238,9 @@ class RollAdmin(admin.ModelAdmin):
     
     def get_operator(self, obj):
         """Retourne l'opérateur du shift associé."""
-        return obj.shift.operator if obj.shift else '-'
+        if obj.shift and obj.shift.operator:
+            return obj.shift.operator
+        return '-'
     get_operator.short_description = 'Opérateur'
     get_operator.admin_order_field = 'shift__operator'
 
@@ -226,7 +258,8 @@ class RollDefectAdmin(admin.ModelAdmin):
         return False
     
     def has_delete_permission(self, request, obj=None):
-        return False
+        # Permettre la suppression si c'est via la suppression en cascade d'un rouleau
+        return True
     
     fieldsets = (
         ('Rouleau', {
@@ -257,7 +290,8 @@ class RollThicknessAdmin(admin.ModelAdmin):
         return False
     
     def has_delete_permission(self, request, obj=None):
-        return False
+        # Permettre la suppression si c'est via la suppression en cascade d'un rouleau
+        return True
     
     fieldsets = (
         ('Rouleau', {
@@ -289,7 +323,8 @@ class LostTimeEntryAdmin(admin.ModelAdmin):
         return False
     
     def has_delete_permission(self, request, obj=None):
-        return False
+        # Permettre la suppression si c'est via la suppression en cascade d'un rouleau
+        return True
     
     fieldsets = (
         ('Shift', {

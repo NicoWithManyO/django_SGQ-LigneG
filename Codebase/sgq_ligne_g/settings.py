@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'production',
     'quality',
     'reports',
+    'reporting',
 ]
 
 MIDDLEWARE = [

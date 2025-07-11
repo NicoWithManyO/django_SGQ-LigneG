@@ -237,6 +237,17 @@ def shift_block(request, shift_id=None):
                             if orphan_lost_times.exists():
                                 orphan_lost_times.update(shift=shift, session_key=None)
                                 print(f"DEBUG: {orphan_lost_times.count()} temps d'arrêt orphelins liés au shift {shift.shift_id}")
+                            
+                            # Recalculer le temps perdu total du shift maintenant que tous les temps d'arrêt sont liés
+                            shift.lost_time = shift.calculate_lost_time()
+                            
+                            # Recalculer le temps disponible (TD = TO - Temps Perdu)
+                            if shift.start_time and shift.end_time:
+                                shift.availability_time = shift.opening_time - shift.lost_time
+                            
+                            shift.save(update_fields=['lost_time', 'availability_time'])
+                            print(f"Temps perdu total mis à jour: {shift.lost_time}")
+                            print(f"Temps disponible mis à jour: {shift.availability_time}")
                                 
                         except CurrentProd.DoesNotExist:
                             pass
@@ -262,12 +273,22 @@ def shift_block(request, shift_id=None):
                                 preserved_data[field] = form_data[field]
                         
                         # Reporter l'état machine de fin vers début pour le poste suivant
-                        if hasattr(shift, 'started_at_end') and shift.started_at_end:
+                        # D'abord essayer de récupérer depuis les données du formulaire
+                        started_at_end = form.cleaned_data.get('started_at_end', False)
+                        meter_reading_end = form.cleaned_data.get('meter_reading_end', None)
+                        
+                        # Si pas dans cleaned_data, essayer depuis form_data (auto-save)
+                        if 'started_at_end' in form_data:
+                            started_at_end = form_data.get('started_at_end', False)
+                        if 'meter_reading_end' in form_data:
+                            meter_reading_end = form_data.get('meter_reading_end', None)
+                        
+                        if started_at_end:
                             preserved_data['started_at_beginning'] = True
                             # Reporter le métrage de fin vers début
-                            if hasattr(shift, 'meter_reading_end') and shift.meter_reading_end:
-                                preserved_data['meter_reading_start'] = str(shift.meter_reading_end)
-                            print(f"DEBUG: Machine démarrée en fin, reporté vers début. Métrage: {shift.meter_reading_end}")
+                            if meter_reading_end:
+                                preserved_data['meter_reading_start'] = str(meter_reading_end)
+                            print(f"DEBUG: Machine démarrée en fin, reporté vers début. Métrage: {meter_reading_end}")
                         else:
                             preserved_data['started_at_beginning'] = False
                             preserved_data['meter_reading_start'] = ''
@@ -296,14 +317,44 @@ def shift_block(request, shift_id=None):
                             preserved_data['start_time'] = '20:00'
                             preserved_data['end_time'] = '04:00'
                         
-                        # Garder la date d'aujourd'hui
+                        # Préserver la date du jour pour le prochain poste
                         from datetime import date
                         preserved_data['date'] = date.today().strftime('%Y-%m-%d')
                         
                         # Machine toujours démarrée en fin par défaut
                         preserved_data['started_at_end'] = True
-                        # Vider le métrage de fin pour le prochain formulaire
-                        preserved_data['meter_reading_end'] = ''
+                        # NE PAS vider le métrage de fin car il sera utilisé comme métrage de début du prochain poste
+                        # preserved_data['meter_reading_end'] = ''
+                        
+                        # Reporter la longueur enroulée en fin vers le début du prochain poste
+                        # Si on a un shift qui vient d'être sauvegardé, prendre sa longueur totale
+                        if shift and shift.total_length:
+                            preserved_data['meter_reading_start'] = str(float(shift.total_length))
+                            print(f"DEBUG: Longueur totale du poste reportée: {shift.total_length} m")
+                        
+                        # IMPORTANT: Vider TOUTES les données de production après sauvegarde du poste
+                        preserved_data['lostTimeEntries'] = []
+                        preserved_data['totalLostTimeMinutes'] = 0
+                        
+                        # Vider les données du rouleau
+                        preserved_data['currentOrderId'] = ''
+                        preserved_data['cuttingOrderId'] = ''
+                        preserved_data['targetLength'] = ''
+                        preserved_data['rollNumber'] = ''
+                        preserved_data['tubeMass'] = ''
+                        preserved_data['totalMass'] = ''
+                        preserved_data['rollLength'] = ''
+                        preserved_data['nextTubeMass'] = ''
+                        preserved_data['rollData'] = {}
+                        
+                        # Vider les contrôles qualité
+                        preserved_data['qualityControls'] = {}
+                        
+                        # Vider le statut de conformité
+                        preserved_data['conformityStatus'] = {
+                            'status': 'CONFORME',
+                            'destination': 'DECOUPE'
+                        }
                         
                         # Sauvegarder les données préservées
                         current_prod.form_data = preserved_data
@@ -312,11 +363,35 @@ def shift_block(request, shift_id=None):
                     except CurrentProd.DoesNotExist:
                         pass
                 
-                # Si requête HTMX, on renvoie un formulaire vide
-                # L'auto-save/restore va restaurer les données appropriées
+                # Si requête HTMX, on renvoie un formulaire avec les données préservées
                 if request.htmx:
                     from datetime import date
                     initial_data = {'date': date.today()}
+                    
+                    # Charger les données préservées si elles existent
+                    if session_key:
+                        try:
+                            current_prod = CurrentProd.objects.get(session_key=session_key)
+                            preserved = current_prod.form_data
+                            # Ajouter les données préservées aux initial_data SAUF la date
+                            if preserved.get('started_at_beginning'):
+                                initial_data['started_at_beginning'] = True
+                            if preserved.get('meter_reading_start'):
+                                initial_data['meter_reading_start'] = preserved.get('meter_reading_start')
+                            if preserved.get('started_at_end'):
+                                initial_data['started_at_end'] = True
+                            if preserved.get('vacation'):
+                                initial_data['vacation'] = preserved.get('vacation')
+                            if preserved.get('start_time'):
+                                initial_data['start_time'] = preserved.get('start_time')
+                            if preserved.get('end_time'):
+                                initial_data['end_time'] = preserved.get('end_time')
+                            # Charger la date depuis preserved (qui est toujours aujourd'hui après save)
+                            if preserved.get('date'):
+                                initial_data['date'] = preserved.get('date')
+                        except CurrentProd.DoesNotExist:
+                            pass
+                    
                     new_form = ShiftForm(initial=initial_data)
                     context = {
                         'shift': None, 
@@ -579,8 +654,14 @@ def check_shift_exists(request):
         
         # Récupérer l'opérateur
         try:
-            operator = Operator.objects.get(id=operator_id)
-        except Operator.DoesNotExist:
+            if operator_id:
+                operator = Operator.objects.get(id=operator_id)
+            else:
+                return JsonResponse({
+                    'exists': False,
+                    'error': 'Aucun opérateur sélectionné'
+                }, status=400)
+        except (Operator.DoesNotExist, ValueError):
             return JsonResponse({
                 'exists': False,
                 'error': 'Opérateur introuvable'
@@ -647,10 +728,14 @@ def save_roll(request):
             }, status=400)
         
         # Récupérer le shift actuel (le plus récent) si il existe
-        shift = Shift.objects.filter(
-            operator__id=form_data.get('operator'),
-            date=form_data.get('date')
-        ).order_by('-created_at').first()
+        operator_id = form_data.get('operator')
+        if operator_id and operator_id != '':
+            shift = Shift.objects.filter(
+                operator__id=operator_id,
+                date=form_data.get('date')
+            ).order_by('-created_at').first()
+        else:
+            shift = None
         
         # shift peut être None, ce n'est pas un problème
         
@@ -663,8 +748,12 @@ def save_roll(request):
                 date_str = date_obj.strftime('%d%m%y')
                 
                 # Récupérer l'opérateur pour avoir son nom complet sans espaces
-                operator = Operator.objects.get(id=form_data.get('operator'))
-                operator_clean = operator.full_name_no_space
+                operator_id = form_data.get('operator')
+                if operator_id and operator_id != '':
+                    operator = Operator.objects.get(id=operator_id)
+                    operator_clean = operator.full_name_no_space
+                else:
+                    operator_clean = 'UnknownOperator'
                 
                 vacation = form_data.get('vacation')
                 shift_id_str = f"{date_str}_{operator_clean}_{vacation}"
@@ -674,7 +763,7 @@ def save_roll(request):
         
         # Récupérer l'OF
         of_id = form_data.get('currentOrderId')
-        if not of_id:
+        if not of_id or of_id == '':
             return JsonResponse({
                 'success': False,
                 'error': 'Aucun ordre de fabrication sélectionné'
@@ -682,7 +771,7 @@ def save_roll(request):
         
         try:
             fabrication_order = FabricationOrder.objects.get(id=of_id)
-        except FabricationOrder.DoesNotExist:
+        except (FabricationOrder.DoesNotExist, ValueError):
             return JsonResponse({
                 'success': False,
                 'error': 'Ordre de fabrication non trouvé'
@@ -709,8 +798,31 @@ def save_roll(request):
             status = 'CONFORME'
             destination = 'PRODUCTION'
         
+        # Générer le roll_id selon le statut
+        if status == 'NON_CONFORME':
+            # Récupérer l'OF de découpe
+            cutting_order_id = form_data.get('cuttingOrderId')
+            if cutting_order_id and cutting_order_id != '':
+                try:
+                    cutting_order = FabricationOrder.objects.get(id=cutting_order_id)
+                    cutting_order_number = cutting_order.order_number
+                except:
+                    cutting_order_number = 'OFDecoupe'
+            else:
+                cutting_order_number = 'OFDecoupe'
+            
+            # Format pour non conforme: OFDecoupe_JJMMAA
+            from datetime import datetime
+            now = datetime.now()
+            date_str = now.strftime('%d%m%y')
+            roll_id = f"{cutting_order_number}_{date_str}"
+        else:
+            # Format pour conforme: OF_NumRouleau
+            roll_id = f"{fabrication_order.order_number}_{int(roll_number):03d}"
+        
         # Créer le rouleau (avec shift si disponible, sinon avec session_key)
         roll = Roll.objects.create(
+            roll_id=roll_id,  # Passer l'ID généré
             shift=shift,  # Peut être None
             shift_id_str=shift.shift_id if shift else shift_id_str,  # Utiliser l'ID construit si pas de shift
             session_key=session_key if not shift else None,  # Stocker session_key si pas de shift
@@ -766,9 +878,13 @@ def save_roll(request):
                         is_catchup=True
                     )
         
-        # Incrémenter le numéro de rouleau pour le prochain
-        new_roll_number = int(roll_number) + 1
-        current_prod.form_data['rollNumber'] = str(new_roll_number)
+        # Incrémenter le numéro de rouleau SEULEMENT si le rouleau est CONFORME
+        if status == 'CONFORME':
+            new_roll_number = int(roll_number) + 1
+            current_prod.form_data['rollNumber'] = str(new_roll_number)
+        else:
+            # Pour un rouleau NON CONFORME, garder le même numéro
+            new_roll_number = int(roll_number)
         
         # Nettoyer les données du rouleau mais garder le reste
         current_prod.form_data['rollLength'] = ''

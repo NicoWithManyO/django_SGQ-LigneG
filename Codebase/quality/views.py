@@ -3,7 +3,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 import json
-from .models import DefectType, RollDefect, Specification
+from .models import DefectType, Specification
+from production.models import RollDefect
 
 
 def get_thickness_specifications(request):
