@@ -847,6 +847,40 @@ function clearDeclaredTimes() {
 
 
 // Vider seulement les données de la fiche de poste
+function loadLastMeterReading() {
+    console.log('Chargement du dernier métrage...');
+    
+    fetch('{% url "production:get_last_meter_reading" %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const meterStartField = document.querySelector('input[name="meter_reading_start"]');
+                if (meterStartField) {
+                    meterStartField.value = data.meter_reading;
+                    console.log(`Métrage chargé: ${data.meter_reading} m du poste ${data.shift_info}`);
+                    
+                    // Déclencher l'auto-save
+                    if (typeof autoSaveFormData === 'function') {
+                        autoSaveFormData();
+                    }
+                    
+                    // Feedback visuel
+                    meterStartField.style.backgroundColor = '#d4edda';
+                    setTimeout(() => {
+                        meterStartField.style.backgroundColor = '';
+                    }, 2000);
+                }
+            } else {
+                console.log('Aucun métrage trouvé:', data.message);
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement du métrage:', error);
+            alert('Erreur lors du chargement du dernier métrage');
+        });
+}
+
 function clearShiftData() {
     if (confirm('Êtes-vous sûr de vouloir effacer les données de la fiche de poste ?')) {
         // Vider les champs de la fiche de poste uniquement

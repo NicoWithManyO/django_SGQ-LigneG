@@ -3,6 +3,22 @@
 {% block title %}PROD - SGQ Ligne G{% endblock %}
 
 {% block content %}
+<style>
+/* Style pour le bouton poubelle */
+.waste-button {
+    transition: all 0.3s ease;
+}
+
+.waste-button:hover {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: white !important;
+}
+
+.waste-button:hover i {
+    color: white !important;
+}
+</style>
 <script>
 // La fonction confirmSaveShift est maintenant définie dans shift_block.html
 
@@ -474,9 +490,14 @@
                     </div>
                 </div>
                 
-                <button type="button" id="sticky-action-btn" class="btn btn-secondary btn-sm fibrage-action-btn" onclick="handleActionButton()">
-                    <i class="bi bi-save"></i> --
-                </button>
+                <div class="d-flex gap-4">
+                    <button type="button" id="sticky-action-btn" class="btn btn-secondary btn-sm fibrage-action-btn" onclick="handleActionButton()">
+                        <i class="bi bi-save"></i> --
+                    </button>
+                    <button type="button" id="waste-btn" class="btn btn-outline-secondary btn-sm waste-button" onclick="sendToWaste()" title="Envoyer aux déchets">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
             </div>
             
             <!-- Droite : Masse prochain tube -->
@@ -1289,6 +1310,9 @@ document.addEventListener('shiftSaveSuccess', function(e) {
     console.log('Shift sauvegardé avec succès!');
     alert('Sauvegarde OK');
     
+    // Effacer les contrôles qualité APRÈS la sauvegarde réussie
+    clearQualityControlsAfterSave();
+    
     // Nettoyer les défauts et épaisseurs du rouleau actuel
     // 1. Vider tous les défauts
     document.querySelectorAll('.defect-input-side, .defect-input-center').forEach(input => {
@@ -1814,6 +1838,11 @@ function updateRollId() {
     const orderNumber = selectedOption && selectedOption.value ? selectedOption.textContent : '';
     let rollNumber = rollNumberInput.value.trim();
     
+    // Récupérer l'OF de découpe
+    const cuttingOrderSelect = document.getElementById('cutting-order');
+    const cuttingOrderOption = cuttingOrderSelect.options[cuttingOrderSelect.selectedIndex];
+    const cuttingOrderNumber = cuttingOrderOption && cuttingOrderOption.value ? cuttingOrderOption.textContent : '';
+    
     // Formater le numéro de rouleau avec des zéros (padding à 3 chiffres)
     if (rollNumber && !isNaN(rollNumber)) {
         rollNumber = rollNumber.padStart(3, '0');
@@ -1823,7 +1852,7 @@ function updateRollId() {
     if (orderNumber && rollNumber) {
         let rollId;
         
-        // Si NON CONFORME, utiliser le format spécial
+        // Si NON CONFORME, utiliser le format spécial avec l'OF de découpe
         if (conformityStatus && conformityStatus.textContent === 'NON CONFORME') {
             const now = new Date();
             const dateStr = now.toLocaleDateString('fr-FR', {
@@ -1831,7 +1860,9 @@ function updateRollId() {
                 month: '2-digit',
                 year: '2-digit'
             }).replace(/\//g, '');
-            rollId = `${orderNumber}_${dateStr}_HHMM`;
+            // Utiliser l'OF de découpe pour les non conformes
+            const ofToUse = cuttingOrderNumber || 'OFDecoupe';
+            rollId = `${ofToUse}_${dateStr}`;
         } else {
             // Format normal pour CONFORME
             rollId = `${orderNumber}_${rollNumber}`;
@@ -2678,6 +2709,12 @@ function updateStickyConformityStatus(conformityText) {
     }
 }
 
+// Fonction pour envoyer un rouleau aux déchets
+function sendToWaste() {
+    // TODO: Implémenter la fonction d'envoi aux déchets
+    console.log('Fonction sendToWaste() à implémenter');
+}
+
 // Fonction pour gérer le clic sur le bouton d'action
 function handleActionButton() {
     const actionBtn = document.getElementById('sticky-action-btn');
@@ -2848,11 +2885,17 @@ function addRollEventListeners() {
                     // Tab : aller au suivant
                     nextIndex = currentIndex + 1;
                     if (nextIndex >= allThicknessInputs.length) {
-                        // Si on est sur la dernière case, aller dans le champ Longueur
-                        const lengthField = document.getElementById('roll-length');
-                        if (lengthField) {
-                            lengthField.focus();
-                            lengthField.select();
+                        // Si on est sur la dernière case, vérifier si Masse tube est vide
+                        const stickyTubeMass = document.getElementById('sticky-tube-mass');
+                        const stickyLengthField = document.getElementById('sticky-roll-length');
+                        
+                        if (stickyTubeMass && (!stickyTubeMass.textContent || stickyTubeMass.textContent === '--' || stickyTubeMass.textContent.trim() === '')) {
+                            // Si Masse tube est vide, aller dedans
+                            stickyTubeMass.click();
+                            return;
+                        } else if (stickyLengthField) {
+                            // Sinon aller dans Longueur
+                            stickyLengthField.click();
                             return;
                         }
                         nextIndex = 0;
@@ -4324,7 +4367,67 @@ function toggleLOI(switchElement) {
     checkAllQualityControlsFilled();
 }
 
-// Fonction pour effacer les contrôles qualité
+// Fonction pour effacer les contrôles qualité APRÈS sauvegarde du poste (sans confirmation)
+function clearQualityControlsAfterSave() {
+    console.log('Effacement des contrôles qualité après sauvegarde du poste');
+    
+    // Effacer tous les champs Micronnaire
+    document.querySelectorAll('.micrometer-readings input').forEach(input => {
+        input.value = '';
+        input.classList.remove('quality-ok', 'quality-warning', 'quality-critical');
+    });
+    
+    // Effacer l'extrait sec
+    const sizingBathInput = document.getElementById('sizing-bath-input');
+    if (sizingBathInput) {
+        sizingBathInput.value = '';
+        sizingBathInput.classList.remove('quality-ok', 'quality-warning', 'quality-critical');
+    }
+    
+    // Effacer le temps extrait sec
+    const sizingBathTime = document.getElementById('sizing-bath-time');
+    if (sizingBathTime) {
+        sizingBathTime.textContent = '--';
+    }
+    
+    // Effacer toutes les masses surfaciques
+    document.querySelectorAll('.surface-mass-section input[type="text"]').forEach(input => {
+        if (!input.readOnly) {
+            input.value = '';
+            input.classList.remove('quality-ok', 'quality-warning', 'quality-critical');
+        }
+    });
+    
+    // Effacer les conversions
+    document.querySelectorAll('.surface-mass-display').forEach(display => {
+        display.textContent = '--';
+    });
+    
+    // Réinitialiser LOI
+    const loiSwitch = document.getElementById('loiSwitch');
+    if (loiSwitch) {
+        loiSwitch.checked = false;
+        document.getElementById('loi-time').textContent = '--';
+    }
+    
+    // Recalculer les moyennes (toutes à 0)
+    document.querySelectorAll('.average-display small').forEach(avg => {
+        avg.textContent = 'Moy: --';
+    });
+    
+    // Mettre à jour l'état après effacement
+    updateQualityControlsMessage();
+    
+    // Mettre à jour l'état du bouton shift après effacement
+    if (typeof updateShiftButtonState === 'function') {
+        updateShiftButtonState();
+    }
+    
+    // Déclencher l'autosave pour sauvegarder l'état effacé
+    setTimeout(autoSaveFormData, 100);
+}
+
+// Fonction pour effacer les contrôles qualité (avec confirmation pour bouton Clear)
 function clearQualityControls() {
     if (confirm('Voulez-vous vraiment effacer tous les contrôles qualité ?')) {
         // Effacer tous les champs Micronnaire

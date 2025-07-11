@@ -183,10 +183,10 @@ class RollThicknessInline(admin.TabularInline):
 class RollAdmin(admin.ModelAdmin):
     """Configuration admin pour le modèle Roll."""
     
-    list_display = ('roll_id', 'shift', 'roll_number', 'length', 'status', 
-                    'destination', 'has_blocking_defects', 'has_thickness_issues')
-    list_filter = ('status', 'destination', 'has_blocking_defects', 'has_thickness_issues', 'shift')
-    search_fields = ('roll_id', 'shift__shift_id')
+    list_display = ('roll_id', 'shift', 'get_operator', 'roll_number', 'length', 'status', 
+                    'destination')
+    list_filter = ('status', 'destination', 'has_blocking_defects', 'has_thickness_issues', 'shift__operator', 'shift')
+    search_fields = ('roll_id', 'shift__shift_id', 'shift__operator__first_name', 'shift__operator__last_name')
     readonly_fields = ('created_at', 'updated_at', 'shift_id_str', 'length', 'tube_mass', 'total_mass')
     inlines = [RollDefectInline, RollThicknessInline]
     
@@ -205,6 +205,12 @@ class RollAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+    
+    def get_operator(self, obj):
+        """Retourne l'opérateur du shift associé."""
+        return obj.shift.operator if obj.shift else '-'
+    get_operator.short_description = 'Opérateur'
+    get_operator.admin_order_field = 'shift__operator'
 
 
 @admin.register(RollDefect)

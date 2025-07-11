@@ -31,4 +31,7 @@ urlpatterns = [
     
     # Temps d'arrêt
     path('shift/<int:shift_id>/lost-times/', views.get_shift_lost_times, name='get_shift_lost_times'),
+    
+    # Récupérer le dernier métrage
+    path('get-last-meter-reading/', views.get_last_meter_reading, name='get_last_meter_reading'),
 ]

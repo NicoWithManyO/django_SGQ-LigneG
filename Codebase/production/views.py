@@ -11,6 +11,30 @@ from core.models import Operator, FabricationOrder
 from quality.models import DefectType
 
 
+def get_last_meter_reading(request):
+    """Récupère le métrage du dernier poste."""
+    try:
+        # Récupérer le dernier shift avec meter_reading_end
+        last_shift = Shift.objects.exclude(meter_reading_end__isnull=True).order_by('-date', '-created_at').first()
+        
+        if last_shift:
+            return JsonResponse({
+                'success': True,
+                'meter_reading': float(last_shift.meter_reading_end),
+                'shift_info': f"{last_shift.shift_id}"
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': 'Aucun poste précédent trouvé avec un métrage'
+            })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Erreur: {str(e)}'
+        })
+
+
 def prod(request):
     """Vue principale de production."""
     shifts = Shift.objects.select_related('operator').order_by('-date', '-created_at')[:10]
