@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save, post_delete, pre_delete
 from django.dispatch import receiver
-from .models import LostTimeEntry, Shift
+from .models import LostTimeEntry, Shift, RollThickness, Roll
 
 
 @receiver([post_save, post_delete], sender=LostTimeEntry)
@@ -28,4 +28,18 @@ def update_shift_lost_time(sender, instance, **kwargs):
             instance.shift.save(update_fields=['lost_time', 'availability_time'])
         except Shift.DoesNotExist:
             # Le shift a été supprimé, ne rien faire
+            pass
+
+
+@receiver([post_save, post_delete], sender=RollThickness)
+def update_roll_thickness_averages(sender, instance, **kwargs):
+    """Met à jour les moyennes d'épaisseur du rouleau quand une mesure est ajoutée/modifiée/supprimée."""
+    if instance.roll:
+        try:
+            # Recalculer les moyennes d'épaisseur
+            instance.roll.calculate_thickness_averages()
+            # Sauvegarder uniquement les champs des moyennes
+            instance.roll.save(update_fields=['avg_thickness_left', 'avg_thickness_right'])
+        except Roll.DoesNotExist:
+            # Le rouleau a été supprimé, ne rien faire
             pass

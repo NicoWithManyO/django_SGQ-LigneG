@@ -315,9 +315,9 @@ class Roll(models.Model):
     length = models.DecimalField(max_digits=10, decimal_places=2, 
                                 verbose_name="Longueur (m)")
     tube_mass = models.DecimalField(max_digits=10, decimal_places=2, 
-                                   verbose_name="Masse tube (kg)")
+                                   verbose_name="Masse tube (g)")
     total_mass = models.DecimalField(max_digits=10, decimal_places=2, 
-                                    verbose_name="Masse totale (kg)")
+                                    verbose_name="Masse totale (g)")
     
     # Statut et destination
     STATUS_CHOICES = [
@@ -342,6 +342,20 @@ class Roll(models.Model):
     has_thickness_issues = models.BooleanField(default=False, 
                                               verbose_name="Problèmes d'épaisseur")
     
+    # Moyennes d'épaisseurs
+    avg_thickness_left = models.DecimalField(max_digits=5, decimal_places=2, 
+                                           null=True, blank=True,
+                                           verbose_name="Épaisseur moyenne gauche (mm)")
+    avg_thickness_right = models.DecimalField(max_digits=5, decimal_places=2, 
+                                            null=True, blank=True,
+                                            verbose_name="Épaisseur moyenne droite (mm)")
+    
+    # Masse nette calculée
+    net_mass = models.DecimalField(max_digits=10, decimal_places=2, 
+                                  null=True, blank=True,
+                                  verbose_name="Masse nette (g)",
+                                  help_text="Masse totale - Masse tube")
+    
     # Métadonnées
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -352,8 +366,34 @@ class Roll(models.Model):
         ordering = ['-created_at', '-id']
         unique_together = [['shift', 'roll_number']]
     
+    def calculate_thickness_averages(self):
+        """Calcule les moyennes d'épaisseur gauche et droite à partir des mesures."""
+        from django.db.models import Avg
+        
+        # Points de mesure gauche: GG, GC, GD
+        left_points = ['GG', 'GC', 'GD'] 
+        # Points de mesure droite: DG, DC, DD
+        right_points = ['DG', 'DC', 'DD']
+        
+        # Calculer moyenne gauche
+        left_avg = self.thickness_measurements.filter(
+            measurement_point__in=left_points,
+            is_catchup=False  # Ne prendre que les mesures normales
+        ).aggregate(avg=Avg('thickness_value'))['avg']
+        
+        # Calculer moyenne droite
+        right_avg = self.thickness_measurements.filter(
+            measurement_point__in=right_points,
+            is_catchup=False
+        ).aggregate(avg=Avg('thickness_value'))['avg']
+        
+        if left_avg:
+            self.avg_thickness_left = round(left_avg, 2)
+        if right_avg:
+            self.avg_thickness_right = round(right_avg, 2)
+    
     def save(self, *args, **kwargs):
-        """Génère automatiquement le roll_id selon le statut si non fourni."""
+        """Génère automatiquement le roll_id selon le statut si non fourni et calcule la masse nette."""
         if not self.roll_id:
             # Génération de secours si l'ID n'est pas fourni par la vue
             if self.status == 'NON_CONFORME':
@@ -366,6 +406,11 @@ class Roll(models.Model):
             elif self.fabrication_order and self.roll_number:
                 # Format pour conforme: OF_NumRouleau (ex: OF123_001)
                 self.roll_id = f"{self.fabrication_order.order_number}_{self.roll_number:03d}"
+        
+        # Calculer la masse nette
+        if self.total_mass and self.tube_mass:
+            self.net_mass = self.total_mass - self.tube_mass
+        
         super().save(*args, **kwargs)
     
     def __str__(self):

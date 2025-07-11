@@ -22,6 +22,24 @@
     color: white !important;
 }
 
+/* Style pour le bouton ciseau */
+.cut-button {
+    background-color: transparent !important;
+    border: none !important;
+    color: white !important;
+    transition: all 0.3s ease;
+}
+
+.cut-button:hover {
+    background-color: #fd7e14 !important;
+    border: none !important;
+    color: white !important;
+}
+
+.cut-button:hover i {
+    color: white !important;
+}
+
 /* Styles pour le bloc Productivité */
 .productivity-metric {
     text-align: center;
@@ -260,7 +278,7 @@
                 <div class="block-content" id="temps-content">
                     <form class="time-declaration-form">
                         <div class="row align-items-end mb-2">
-                            <div class="col-4">
+                            <div class="col-3">
                                 <label class="form-label">Motif</label>
                                 <select class="form-select fw-bold">
                                     <option value="">--</option>
@@ -275,7 +293,7 @@
                                 <label class="form-label">Commentaire</label>
                                 <input type="text" class="form-control" placeholder="Détails..." autocomplete="off">
                             </div>
-                            <div class="col-4">
+                            <div class="col-3">
                                 <label class="form-label">Temps</label>
                                 <select class="form-select fw-bold" id="time-duration-select">
                                     <option value="">--</option>
@@ -854,11 +872,14 @@
                     </div>
                 </div>
                 
-                <div class="d-flex gap-4">
+                <div class="d-flex align-items-center">
                     <button type="button" id="sticky-action-btn" class="btn btn-secondary btn-sm fibrage-action-btn" onclick="handleActionButton()">
                         <i class="bi bi-save"></i> --
                     </button>
-                    <button type="button" id="waste-btn" class="btn btn-outline-secondary btn-sm waste-button" onclick="sendToWaste()" title="Envoyer aux déchets">
+                    <button type="button" id="cut-btn" class="btn btn-outline-secondary btn-sm cut-button ms-3" onclick="forceToCutting()" title="Forcer vers la découpe">
+                        <i class="bi bi-scissors"></i>
+                    </button>
+                    <button type="button" id="waste-btn" class="btn btn-outline-secondary btn-sm waste-button ms-3" onclick="sendToWaste()" title="Envoyer aux déchets">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
@@ -3302,6 +3323,12 @@ function updateStickyConformityStatus(conformityText) {
 function sendToWaste() {
     // TODO: Implémenter la fonction d'envoi aux déchets
     console.log('Fonction sendToWaste() à implémenter');
+}
+
+// Fonction pour forcer l'envoi vers la découpe
+function forceToCutting() {
+    // TODO: Implémenter la fonction pour forcer vers la découpe
+    console.log('Fonction forceToCutting() à implémenter');
 }
 
 // Fonction pour gérer le clic sur le bouton d'action

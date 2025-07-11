@@ -204,6 +204,7 @@ class RollThicknessInline(admin.TabularInline):
     readonly_fields = ('meter_position', 'measurement_point', 'thickness_value', 
                       'is_catchup', 'is_within_tolerance')
     can_delete = True
+    classes = ['collapse']
     
     def has_add_permission(self, request, obj=None):
         return False
@@ -217,7 +218,7 @@ class RollAdmin(admin.ModelAdmin):
                     'destination')
     list_filter = ('status', 'destination', 'has_blocking_defects', 'has_thickness_issues', 'shift__operator', 'shift')
     search_fields = ('roll_id', 'shift__shift_id', 'shift__operator__first_name', 'shift__operator__last_name')
-    readonly_fields = ('created_at', 'updated_at', 'shift_id_str', 'length', 'tube_mass', 'total_mass')
+    readonly_fields = ('created_at', 'updated_at', 'shift_id_str', 'length', 'tube_mass', 'total_mass', 'net_mass', 'avg_thickness_left', 'avg_thickness_right')
     inlines = [RollDefectInline, RollThicknessInline]
     
     fieldsets = (
@@ -225,7 +226,11 @@ class RollAdmin(admin.ModelAdmin):
             'fields': ('roll_id', 'shift', 'shift_id_str', 'fabrication_order', 'roll_number')
         }),
         ('Données de production', {
-            'fields': ('length', 'tube_mass', 'total_mass')
+            'fields': ('length', 'tube_mass', 'total_mass', 'net_mass')
+        }),
+        ('Moyennes d\'épaisseur', {
+            'fields': ('avg_thickness_left', 'avg_thickness_right'),
+            'classes': ('collapse',)
         }),
         ('Conformité', {
             'fields': ('status', 'destination', 'has_blocking_defects', 'has_thickness_issues')

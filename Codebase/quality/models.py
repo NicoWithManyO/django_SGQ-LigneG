@@ -46,8 +46,9 @@ class Specification(models.Model):
     SPEC_TYPES = [
         ('thickness', 'Épaisseur'),
         ('micrometer', 'Micronnaire'),
-        ('surface_mass', 'Masse surfacique'),
+        ('surface_mass', 'Masse surfacique (g/25cm²)'),
         ('dry_extract', 'Extrait sec'),
+        ('global_surface_mass', 'Masse surfacique globale (g/m²)'),
     ]
     
     # Type de spécification
