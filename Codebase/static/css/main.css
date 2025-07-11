@@ -161,6 +161,31 @@ body {
     align-items: flex-start;
 }
 
+.left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1.5;
+    min-width: 0;
+}
+
+.right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+    min-width: 250px;
+}
+
+.left-column .block-card {
+    width: 100%;
+}
+
+.right-column .block-card {
+    width: 100%;
+    height: fit-content;
+}
+
 .top-blocks .block-card {
     flex: 1;
     min-width: 0;

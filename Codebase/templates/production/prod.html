@@ -25,48 +25,73 @@
 /* Styles pour le bloc Productivité */
 .productivity-metric {
     text-align: center;
-    padding: 10px;
-    border-radius: 8px;
+    padding: 10px 5px;
+    border-radius: 6px;
     background-color: #f8f9fa;
+    min-height: 70px;
+}
+
+.productivity-metric label {
+    font-size: 0.75rem !important;
+    margin-bottom: 3px;
+    line-height: 1.2;
 }
 
 .metric-value {
-    margin-top: 5px;
+    margin-top: 3px;
 }
 
-/* Styles pour les onglets de productivité */
+.metric-value span {
+    font-size: 1.1rem !important;
+    line-height: 1.3;
+}
+
+/* Styles pour les onglets de productivité intégrés au header */
+.productivity-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.productivity-title-tabs {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
 .productivity-tabs {
     display: flex;
-    gap: 5px;
-    border-bottom: 2px solid #e9ecef;
-    margin-bottom: 15px;
+    gap: 2px;
+    margin: 0;
 }
 
 .tab-btn {
-    background: none;
+    background: rgba(255, 255, 255, 0.1);
     border: none;
-    padding: 5px 12px;
-    font-size: 0.85rem;
-    color: #6c757d;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
     cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     white-space: nowrap;
+    border-radius: 3px;
 }
 
 .tab-btn:hover {
-    color: #0054a6;
-    background-color: #f8f9fa;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
 }
 
 .tab-btn.active {
-    color: #0054a6;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--primary-text);
     font-weight: 600;
-    border-bottom-color: #0054a6;
 }
 
 .tab-btn i {
-    margin-right: 5px;
+    margin-right: 3px;
+    font-size: 0.7rem;
 }
 
 .tab-content {
@@ -76,6 +101,34 @@
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+/* Styles pour la check-list */
+.checklist-items {
+    padding: 10px;
+}
+
+.checklist-items .form-check {
+    padding: 5px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    margin-bottom: 0.25rem !important;
+}
+
+.checklist-items .form-check:hover {
+    background-color: #f8f9fa;
+}
+
+.checklist-items .form-check-input {
+    width: 14px;
+    height: 14px;
+    margin-top: 0;
+}
+
+.checklist-items .form-check-label {
+    margin-left: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
 }
 </style>
 <script>
@@ -193,8 +246,11 @@
         <!-- Blocs du haut -->
         <div class="top-blocks">
             
-            <!-- Bloc Déclaration de Temps -->
-            <div class="block-card">
+            <!-- Colonne gauche : Productivité et Déclaration de temps -->
+            <div class="left-column">
+                
+                <!-- Bloc Productivité -->
+                <div class="block-card">
                 <div class="block-header" style="cursor: pointer;" onclick="toggleTempsBlock()">
                     <h5 class="block-title"><i class="bi bi-clock"></i> Déclaration de Temps</h5>
                     <div class="block-actions">
@@ -204,7 +260,7 @@
                 <div class="block-content" id="temps-content">
                     <form class="time-declaration-form">
                         <div class="row align-items-end mb-2">
-                            <div class="col-3">
+                            <div class="col-4">
                                 <label class="form-label">Motif</label>
                                 <select class="form-select fw-bold">
                                     <option value="">--</option>
@@ -219,7 +275,7 @@
                                 <label class="form-label">Commentaire</label>
                                 <input type="text" class="form-control" placeholder="Détails..." autocomplete="off">
                             </div>
-                            <div class="col-3">
+                            <div class="col-4">
                                 <label class="form-label">Temps</label>
                                 <select class="form-select fw-bold" id="time-duration-select">
                                     <option value="">--</option>
@@ -238,62 +294,80 @@
                 </div>
             </div>
             
-            <!-- Bloc Productivité -->
-            <div class="block-card">
-                <div class="block-header" style="cursor: pointer;" onclick="toggleProductiviteBlock()">
-                    <h5 class="block-title"><i class="bi bi-graph-up"></i> Productivité</h5>
-                    <div class="block-actions">
-                        <i class="bi bi-chevron-up" id="productivite-chevron"></i>
+                <!-- Bloc Productivité -->
+                <div class="block-card">
+                <div class="block-header" style="cursor: pointer;" onclick="event.target.closest('.block-actions') || event.target.tagName === 'BUTTON' ? null : toggleProductiviteBlock()">
+                    <div class="productivity-header">
+                        <div class="productivity-title-tabs">
+                            <h5 class="block-title mb-0"><i class="bi bi-graph-up"></i> Productivité</h5>
+                            <!-- Tabs navigation dans le header -->
+                            <div class="productivity-tabs">
+                                <button class="tab-btn active" onclick="showProductivityTab('temps'); event.stopPropagation();" data-tab="temps">
+                                    <i class="bi bi-clock"></i> Temps
+                                </button>
+                                <button class="tab-btn" onclick="showProductivityTab('production'); event.stopPropagation();" data-tab="production">
+                                    <i class="bi bi-speedometer2"></i> Production
+                                </button>
+                                <button class="tab-btn" onclick="showProductivityTab('qualite'); event.stopPropagation();" data-tab="qualite">
+                                    <i class="bi bi-check-circle"></i> Qualité
+                                </button>
+                            </div>
+                        </div>
+                        <div class="block-actions">
+                            <i class="bi bi-chevron-up" id="productivite-chevron"></i>
+                        </div>
                     </div>
                 </div>
                 <div class="block-content" id="productivite-content">
-                    <!-- Tabs navigation -->
-                    <div class="productivity-tabs mb-3">
-                        <button class="tab-btn active" onclick="showProductivityTab('temps')" data-tab="temps">
-                            <i class="bi bi-clock"></i> Temps
-                        </button>
-                        <button class="tab-btn" onclick="showProductivityTab('production')" data-tab="production">
-                            <i class="bi bi-speedometer2"></i> Production
-                        </button>
-                        <button class="tab-btn" onclick="showProductivityTab('qualite')" data-tab="qualite">
-                            <i class="bi bi-check-circle"></i> Qualité
-                        </button>
-                    </div>
                     
                     <!-- Tab: Temps -->
                     <div class="tab-content" id="tab-temps" style="display: block;">
-                        <div class="row">
-                            <div class="col-md-6">
+                        <div class="row g-2">
+                            <div class="col-4">
                                 <div class="productivity-metric">
-                                    <label class="text-muted small">Temps d'Ouverture (TO)</label>
+                                    <label class="text-muted small">Temps d'Ouverture</label>
                                     <div class="metric-value">
-                                        <span id="temps-ouverture" class="h4 fw-bold text-primary">--</span>
+                                        <span id="temps-ouverture" class="h6 fw-bold text-primary">--</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-4">
                                 <div class="productivity-metric">
-                                    <label class="text-muted small">Temps Disponible (TD)</label>
+                                    <label class="text-muted small">Temps Disponible</label>
                                     <div class="metric-value">
-                                        <span id="temps-disponible" class="h4 fw-bold text-success">--</span>
+                                        <span id="temps-disponible" class="h6 fw-bold text-success">--</span>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-6">
+                            <div class="col-4">
                                 <div class="productivity-metric">
                                     <label class="text-muted small">Temps Perdu</label>
                                     <div class="metric-value">
-                                        <span id="temps-perdu-total" class="h4 fw-bold text-danger">--</span>
+                                        <span id="temps-perdu-total" class="h6 fw-bold text-danger">--</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-4">
                                 <div class="productivity-metric">
-                                    <label class="text-muted small">Taux de Disponibilité</label>
+                                    <label class="text-muted small">Taux Disponibilité</label>
                                     <div class="metric-value">
-                                        <span id="taux-disponibilite" class="h4 fw-bold">--%</span>
+                                        <span id="taux-disponibilite" class="h6 fw-bold">--%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Temps Fonctionnement</label>
+                                    <div class="metric-value">
+                                        <span id="temps-fonctionnement" class="h6 fw-bold text-info">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Rendement</label>
+                                    <div class="metric-value">
+                                        <span id="temps-rendement" class="h6 fw-bold">--%</span>
                                     </div>
                                 </div>
                             </div>
@@ -302,38 +376,52 @@
                     
                     <!-- Tab: Production -->
                     <div class="tab-content" id="tab-production" style="display: none;">
-                        <div class="row">
-                            <div class="col-md-6">
+                        <div class="row g-2">
+                            <div class="col-4">
                                 <div class="productivity-metric">
                                     <label class="text-muted small">Longueur Totale</label>
                                     <div class="metric-value">
-                                        <span id="prod-longueur-totale" class="h4 fw-bold text-primary">-- m</span>
+                                        <span id="prod-longueur-totale" class="h6 fw-bold text-primary">--</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-4">
                                 <div class="productivity-metric">
-                                    <label class="text-muted small">Nombre de Rouleaux</label>
+                                    <label class="text-muted small">Nb Rouleaux</label>
                                     <div class="metric-value">
-                                        <span id="prod-nb-rouleaux" class="h4 fw-bold text-info">--</span>
+                                        <span id="prod-nb-rouleaux" class="h6 fw-bold text-info">--</span>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-6">
+                            <div class="col-4">
                                 <div class="productivity-metric">
                                     <label class="text-muted small">Cadence Moyenne</label>
                                     <div class="metric-value">
-                                        <span id="prod-cadence" class="h4 fw-bold">-- m/h</span>
+                                        <span id="prod-cadence" class="h6 fw-bold">--</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-4">
                                 <div class="productivity-metric">
                                     <label class="text-muted small">Progression OF</label>
                                     <div class="metric-value">
-                                        <span id="prod-progression-of" class="h4 fw-bold">--%</span>
+                                        <span id="prod-progression-of" class="h6 fw-bold">--%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Longueur OK</label>
+                                    <div class="metric-value">
+                                        <span id="prod-longueur-ok" class="h6 fw-bold text-success">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Longueur NOK</label>
+                                    <div class="metric-value">
+                                        <span id="prod-longueur-nok" class="h6 fw-bold text-danger">--</span>
                                     </div>
                                 </div>
                             </div>
@@ -342,38 +430,52 @@
                     
                     <!-- Tab: Qualité -->
                     <div class="tab-content" id="tab-qualite" style="display: none;">
-                        <div class="row">
-                            <div class="col-md-6">
+                        <div class="row g-2">
+                            <div class="col-4">
                                 <div class="productivity-metric">
-                                    <label class="text-muted small">Taux de Conformité</label>
+                                    <label class="text-muted small">Taux Conformité</label>
                                     <div class="metric-value">
-                                        <span id="qual-taux-conformite" class="h4 fw-bold text-success">--%</span>
+                                        <span id="qual-taux-conformite" class="h6 fw-bold text-success">--%</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-4">
                                 <div class="productivity-metric">
-                                    <label class="text-muted small">Rouleaux Non Conformes</label>
+                                    <label class="text-muted small">Rouleaux NC</label>
                                     <div class="metric-value">
-                                        <span id="qual-rouleaux-nc" class="h4 fw-bold text-danger">--</span>
+                                        <span id="qual-rouleaux-nc" class="h6 fw-bold text-danger">--</span>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-6">
+                            <div class="col-4">
                                 <div class="productivity-metric">
                                     <label class="text-muted small">Défauts Bloquants</label>
                                     <div class="metric-value">
-                                        <span id="qual-defauts-bloquants" class="h4 fw-bold text-warning">--</span>
+                                        <span id="qual-defauts-bloquants" class="h6 fw-bold text-warning">--</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-4">
                                 <div class="productivity-metric">
                                     <label class="text-muted small">Contrôles OK</label>
                                     <div class="metric-value">
-                                        <span id="qual-controles-ok" class="h4 fw-bold text-success">--</span>
+                                        <span id="qual-controles-ok" class="h6 fw-bold text-success">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Total Défauts</label>
+                                    <div class="metric-value">
+                                        <span id="qual-taux-defauts" class="h6 fw-bold">--%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Déchets</label>
+                                    <div class="metric-value">
+                                        <span id="qual-dechets" class="h6 fw-bold text-danger">--</span>
                                     </div>
                                 </div>
                             </div>
@@ -381,7 +483,66 @@
                     </div>
                 </div>
             </div>
-        </div>
+            
+        </div> <!-- Fin left-column -->
+        
+        <!-- Colonne droite : Check-list -->
+        <div class="right-column">
+            <!-- Bloc Check-list -->
+            <div class="block-card">
+                <div class="block-header" style="cursor: pointer;" onclick="toggleChecklistBlock()">
+                    <h5 class="block-title"><i class="bi bi-check2-square"></i> Check-list</h5>
+                    <div class="block-actions">
+                        <i class="bi bi-chevron-up" id="checklist-chevron"></i>
+                    </div>
+                </div>
+                <div class="block-content" id="checklist-content">
+                    <div class="checklist-items">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="check-parametres">
+                            <label class="form-check-label" for="check-parametres">
+                                Paramètres machine vérifiés
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="check-qualite">
+                            <label class="form-check-label" for="check-qualite">
+                                Contrôles qualité effectués
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="check-nettoyage">
+                            <label class="form-check-label" for="check-nettoyage">
+                                Nettoyage zone de travail
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="check-consignes">
+                            <label class="form-check-label" for="check-consignes">
+                                Consignes de sécurité respectées
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="check-documentation">
+                            <label class="form-check-label" for="check-documentation">
+                                Documentation à jour
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="check-anomalies">
+                            <label class="form-check-label" for="check-anomalies">
+                                Anomalies signalées
+                            </label>
+                        </div>
+                        <div class="signature-field d-flex justify-content-end mt-3">
+                            <input type="text" class="form-control fw-bold" id="operator-signature" placeholder="Signature" maxlength="5" style="text-transform: uppercase; width: 80px; text-align: center;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- Fin right-column -->
+        
+        </div> <!-- Fin top-blocks -->
 
         <!-- Bloc Contrôles Qualité -->
         <div class="block-card">
@@ -2261,6 +2422,20 @@ function toggleProductiviteBlock() {
         content.style.display = 'block';
         chevron.className = 'bi bi-chevron-up';
         updateProductivityMetrics(); // Mettre à jour les métriques à l'ouverture
+    } else {
+        content.style.display = 'none';
+        chevron.className = 'bi bi-chevron-down';
+    }
+}
+
+// Fonction pour toggle le bloc Check-list
+function toggleChecklistBlock() {
+    const content = document.getElementById('checklist-content');
+    const chevron = document.getElementById('checklist-chevron');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        chevron.className = 'bi bi-chevron-up';
     } else {
         content.style.display = 'none';
         chevron.className = 'bi bi-chevron-down';
