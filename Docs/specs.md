@@ -29,28 +29,39 @@ Système de gestion de production de rouleaux de feutre permettant de tracer et 
 
 ## Modèles de Données
 
-### Poste
-- ID unique dynamique (format : date_operator_vacation)
+### Shift (Poste)
+- ID unique dynamique (format : JJMMAA_PrenomNom_Vacation)
 - Date de production
-- Opérateur responsable
-- Vacation (Matin/ApresMidi/Nuit)
-- Caractéristiques techniques
-- Statut (actif/inactif)
+- Opérateur responsable (FK vers Operator avec SET_NULL)
+- Vacation (Matin/ApresMidi/Nuit/Journée)
+- Heures début/fin avec calcul automatique durée
+- Temps disponible (TO - TP calculé automatiquement)
+- États machine début/fin (started_at_beginning/end)
+- Métrages début/fin pour continuité
+- Commentaires opérateur
+- Signature check-list avec heure
 
-### Rouleau
-- ID unique dynamique (format : OFNumber_NumeroRoll)
-- Numéro d'ordre de fabrication (OF)
-- Numéro séquentiel dans l'OF
-- Poste de fabrication (relation avec Poste)
-- Date/heure de production
-- Longueur totale
-- Statut qualité
+### Roll (Rouleau)
+- ID unique dynamique :
+  - Format conformes : OF_NumRouleau (ex: 3254_001)
+  - Format non-conformes : OFDecoupe_JJMMAA_HHMM
+- Ordre de fabrication (FK vers FabricationOrder)
+- Numéro rouleau (formaté 3 chiffres : 001, 020, 100)
+- Shift nullable (peut être sauvegardé avant le poste)
+- Longueur, masses tube/totale/nette (auto-calculée)
+- Moyennes épaisseur gauche/droite (auto-calculées via signals)
+- Statut (CONFORME/NON_CONFORME)
+- Destination (PRODUCTION/DECOUPE/DECHETS)
+- Indicateurs défauts bloquants et problèmes épaisseur
 
-### Mesure d'Épaisseur
-- Rouleau associé
+### RollThickness (Mesure d'Épaisseur)
+- Rouleau associé (FK avec cascade)
 - Position sur le rouleau (tous les 5m à partir de 3m)
-- 6 points de mesure (3 à droite, 3 à gauche)
-- Valeurs d'épaisseur
+- Points de mesure : GG, GC, GD, DG, DC, DD
+- Valeur épaisseur en mm
+- Flag mesure de rattrapage (is_catchup)
+- Validation automatique tolérances (is_within_tolerance)
+- Signal pour calcul automatique des moyennes
 
 ### DefectType (Type de Défaut)
 - ID unique
@@ -84,13 +95,15 @@ Système de gestion de production de rouleaux de feutre permettant de tracer et 
 - Timestamp de mesure
 - Commentaires opérateur
 
-### Contrôle Global (Quality)
-- Poste concerné
-- Date/heure du contrôle
-- Paramètres qualité contrôlés
-- Valeurs mesurées
-- Opérateur responsable
-- Fréquence : au moins une fois par poste, possibilité de mises à jour multiples par l'opérateur
+### QualityControl (Contrôles Qualité)
+- Shift associé (FK avec cascade)
+- Session_key pour liaison temporaire
+- Micronnaire : 6 valeurs (3G + 3D) avec moyennes auto
+- Extrait sec : valeur % + heure
+- Masses surfaciques : GG, GC, DC, DD (g/25cm²) avec moyennes
+- LOI : booléen donnée + heure
+- Validation automatique is_valid
+- OBLIGATOIRE avant sauvegarde du poste
 
 ## Logique Métier
 
@@ -157,28 +170,94 @@ Système de gestion de production de rouleaux de feutre permettant de tracer et 
 - **Paramètres process** : températures, vitesses, pressions
 - **Historique réglages** : traçabilité des modifications
 
-## Génération de Documents
+## Nouveaux Modèles Ajoutés
 
-### Documents Excel
-- **Relevé de contrôle** : mesures d'épaisseur par rouleau avec graphiques
-- **Certificat de conformité** : validation qualité finale du rouleau
-- **Rapport de poste** : synthèse des contrôles globaux Quality
-- **Historique des défauts** : liste des défauts par période/rouleau
+### CurrentProd (Auto-Save)
+- Session_key unique par utilisateur
+- form_data JSON avec toutes les données du formulaire
+- Sauvegarde automatique toutes les secondes
+- Préservation sélective après save poste
+- Lecture seule dans l'admin
 
-### Fonctionnalités d'Export
-- Templates Excel personnalisables
-- Génération automatique ou manuelle
-- Filtres par période, poste, rouleau
-- Intégration de graphiques et tableaux
+### LostTimeEntry (Temps Perdus)
+- Shift nullable (liaison via session avant save)
+- Motif, commentaire, durée en minutes
+- Signal pour calcul automatique lost_time du shift
+- Affichage avec heure dans l'interface
 
-## Exigences Techniques
+### MachineParameters (Paramètres Machine)
+- Profils de configuration nommés
+- Débits oxygène/propane primaire/secondaire
+- Vitesses primaire/secondaire
+- Vitesse tapis (m/h) avec conversion m/min
+- Flag is_active pour profil actif
 
-### Librairies Python
-- `openpyxl` : génération et manipulation de fichiers Excel
-- `pandas` : manipulation des données pour export
-- `matplotlib` : génération de graphiques intégrés aux exports
+### Specification (Spécifications Qualité)
+- Types : thickness, micrometer, surface_mass, dry_extract, global_surface_mass
+- Valeurs min/max critiques et alertes
+- Valeur nominale cible
+- Unité de mesure configurable
+- Max NOK autorisés pour épaisseurs
 
-### Performance
-- Génération asynchrone pour gros volumes
-- Cache des templates Excel
-- Optimisation des requêtes pour l'export
+## Interface Utilisateur Améliorée
+
+### Layout Principal
+- **Colonne gauche** : Productivité + Déclaration temps (verticaux)
+- **Colonne droite** : Check-list avec boutons 3 états (N/A, OK, NOK)
+- **Sticky Bar** : Gestion rouleau en cours avec actions cut/waste
+- **Blocs repliables** : Tous les blocs avec chevrons
+
+### Bloc Productivité
+- Onglets intégrés dans le header
+- 3 onglets : Temps, Production, Qualité
+- 3 colonnes × 2 lignes de métriques par onglet
+- Métriques temps réel mises à jour dynamiquement
+
+### Check-list de Fin de Poste
+- 6 points de contrôle avec boutons 3 états
+- Champ signature avec heure automatique
+- Largeur fixe même repliée
+
+### Visualisation Rouleau
+- Grille dynamique selon longueur
+- Défauts positionnés visuellement
+- Indicateurs épaisseur et conformité
+- Validation temps réel
+
+## Fonctionnalités HTMX
+- Rechargement partiel des blocs
+- Auto-save côté serveur via /auto-save-form/
+- Validation temps réel sans rechargement
+- Messages d'erreur intégrés
+
+## Génération de Documents (Prévue Phase 3)
+- Module reports en attente d'implémentation
+- Export Excel avec openpyxl prévu
+- Templates personnalisables planifiés
+
+## Architecture Technique
+
+### Backend
+- Django 5.2.4 avec Python 3.11+
+- django-htmx 1.23.2 pour interactivité
+- Signals Django pour calculs automatiques
+- Sessions pour persistance données
+
+### Frontend
+- Bootstrap 5.1.3 pour le responsive
+- HTMX 2.0 pour les mises à jour dynamiques
+- JavaScript vanilla pour validations temps réel
+- CSS avec variables pour thème Saint-Gobain
+
+### Sécurité & Performance
+- CSRF tokens pour HTMX via meta tag
+- Debounce auto-save 1 seconde
+- Validation côté client et serveur
+- Admin Django hautement personnalisé avec inlines
+
+### Points d'Attention Production
+- DEBUG = False obligatoire
+- PostgreSQL recommandé (SQLite en dev)
+- Static files via serveur web
+- Session middleware requis
+- Signals critiques pour intégrité données

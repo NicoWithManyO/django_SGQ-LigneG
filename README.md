@@ -19,8 +19,10 @@ Système de gestion de production de feutre pour **Saint-Gobain Quartz SAS - Nem
 ### 🏭 Suivi de Production
 - **Ordres de Fabrication (OF)** : Gestion avec statut terminé/actif
 - **Rouleaux** : Suivi complet avec ID automatique `OF_NumRouleau` (format 3 chiffres : `3254_001`)
-- **Paramètres Machine** : Métrages début/fin, états machine
+- **Paramètres Machine** : Profils de configuration machine (débits, vitesses)
 - **Temps de Production** : Calcul automatique disponible/perdu
+- **Productivité** : Tableau de bord avec métriques temps réel (Temps, Production, Qualité)
+- **Check-list** : Contrôles de fin de poste avec boutons 3 états (N/A, OK, NOK)
 
 ### ⏱️ Gestion du Temps
 - **Déclaration Temps Perdu** : Motifs, durées, calculs automatiques
@@ -28,10 +30,11 @@ Système de gestion de production de feutre pour **Saint-Gobain Quartz SAS - Nem
 - **Validation** : Contrôle cohérence temps démarrage machine
 
 ### 💾 Sauvegarde Intelligente
-- **Auto-Save** : Sauvegarde continue de toutes les données saisies
+- **Auto-Save** : Sauvegarde continue de toutes les données saisies (y compris date)
 - **Persistance Session** : Restauration automatique après rechargement
 - **Données Préservées** : Maintien OF/rouleau après save de poste
 - **Rouleaux Sans Poste** : Possibilité de sauvegarder des rouleaux avant le poste (liaison automatique ultérieure)
+- **Protection Données** : Rouleaux préservés lors de la suppression d'un poste
 
 ## 🏗️ Architecture Technique
 
@@ -55,13 +58,16 @@ Système de gestion de production de feutre pour **Saint-Gobain Quartz SAS - Nem
 ```python
 - shift_id: str       # Auto-généré JJMMAA_PrenomNom_Vacation
 - date: date          # Date du poste
-- operator: FK        # Opérateur responsable
+- operator: FK        # Opérateur responsable (SET_NULL si supprimé)
 - vacation: str       # Matin/ApresMidi/Nuit/Journée
 - start_time: time    # Heure de début du poste
 - end_time: time      # Heure de fin du poste
 - opening_time: property # Durée calculée (end_time - start_time)
+- available_time: property # TO - TP (calculé automatiquement)
 - started_at_*: bool  # États machine début/fin
 - meter_reading_*: int # Métrages début/fin
+- signature: str      # Signature check-list
+- signature_time: datetime # Heure de signature
 ```
 
 #### CurrentProd (Auto-Save)
@@ -80,6 +86,34 @@ Système de gestion de production de feutre pour **Saint-Gobain Quartz SAS - Nem
 - terminated: bool    # OF terminé (masqué des listes)
 ```
 
+#### Roll (Rouleau)
+```python
+- roll_id: str        # Auto-généré OF_NumRouleau
+- fabrication_order: FK # Ordre de fabrication
+- shift: FK           # Poste (nullable, SET_NULL si supprimé)
+- length: decimal     # Longueur du rouleau
+- tube_mass: decimal  # Masse du tube
+- total_mass: decimal # Masse totale
+- net_mass: decimal   # Masse nette (auto-calculée)
+- avg_thickness_left: decimal  # Moyenne épaisseur gauche (auto-calculée)
+- avg_thickness_right: decimal # Moyenne épaisseur droite (auto-calculée)
+- status: str         # CONFORME/NON_CONFORME
+- destination: str    # PRODUCTION/DECOUPE/DECHETS
+```
+
+#### MachineParameters (Paramètres Machine)
+```python
+- name: str           # Nom du profil
+- oxygen_primary: decimal     # Débit oxygène primaire
+- oxygen_secondary: decimal   # Débit oxygène secondaire
+- propane_primary: decimal    # Débit propane primaire
+- propane_secondary: decimal  # Débit propane secondaire
+- speed_primary: decimal      # Vitesse primaire
+- speed_secondary: decimal    # Vitesse secondaire
+- belt_speed: decimal         # Vitesse tapis (m/h)
+- belt_speed_m_per_minute: property # Conversion m/min
+```
+
 ## 🎨 Interface Utilisateur
 
 ### Design System
@@ -90,8 +124,12 @@ Système de gestion de production de feutre pour **Saint-Gobain Quartz SAS - Nem
 
 ### Blocs Principaux
 1. **Fiche de Poste** (sidebar gauche) - Layout 3 colonnes avec durée calculée
-2. **Ordre de Fabrication & Fibrage** (top-right) - Bouton création OF intégré
-3. **Déclaration de Temps** (bottom-right) - Affichage conditionnel selon état machine
+2. **Ordre de Fabrication & Fibrage** (top) - Bouton création OF intégré
+3. **Productivité & Déclaration de Temps** (colonne gauche) - Disposés verticalement
+   - Productivité : 3 onglets (Temps, Production, Qualité) avec métriques 3×2
+   - Déclaration de temps : Affichage conditionnel avec total calculé
+4. **Check-list** (colonne droite) - 6 points de contrôle avec boutons 3 états
+5. **Sticky Bar** (bas fixe) - Actions rouleau avec boutons save/cut/waste
 
 ### Conventions UX
 - **Champs vides** : Affichage cohérent `--`
@@ -165,7 +203,7 @@ python manage.py runserver
 
 ### Phase 1 (Actuelle) ✅
 - [x] Gestion des postes de production avec horaires début/fin
-- [x] Auto-save et restauration données
+- [x] Auto-save et restauration données (incluant champs date)
 - [x] Gestion OF avec statuts
 - [x] Interface responsive et intuitive
 - [x] Module Qualité : modèles DefectType, RollDefect, ThicknessMeasurement
@@ -179,6 +217,13 @@ python manage.py runserver
 - [x] Sauvegarde rouleaux indépendante du poste
 - [x] Formatage automatique numéros rouleaux (001, 020, 100)
 - [x] Détection rouleaux existants avec indicateur visuel
+- [x] Protection des rouleaux lors suppression poste (SET_NULL)
+- [x] Gestion temps perdus avec calcul automatique TD = TO - TP
+- [x] Paramètres machine avec profils configurables
+- [x] Tableau de bord productivité avec onglets intégrés
+- [x] Check-list fin de poste avec boutons 3 états
+- [x] Calcul automatique moyennes épaisseur via signals
+- [x] Bouton cut pour forcer découpe rouleaux conformes
 
 ### Phase 2 (À venir)
 - [ ] Intégration complète mesures d'épaisseur
@@ -193,8 +238,6 @@ python manage.py runserver
 - [ ] API REST pour intégrations
 
 ## 📞 Support
-
-**Client** : Saint-Gobain Quartz SAS - Nemours 77140  
 **Conformité** : ISO 9001, ISO 14001, ISO 45001  
 **Support** : [Créer une issue](https://github.com/votre-repo/django_SGQ-LigneG/issues)
 

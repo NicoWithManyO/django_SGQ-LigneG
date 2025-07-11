@@ -40,6 +40,47 @@
     color: white !important;
 }
 
+/* Styles pour les boutons de la check-list */
+.checklist-btn {
+    padding: 0.2rem 0.4rem !important;
+    font-size: 0.75rem !important;
+    line-height: 1.2 !important;
+}
+
+/* Retirer les bordures entre les boutons */
+.checklist-btn:not(:first-child) {
+    border-left: none !important;
+}
+
+.checklist-btn:not(:last-child) {
+    border-right: none !important;
+}
+
+/* S'assurer que les boutons du milieu n'ont pas de bordures latérales */
+.checklist-btn:not(:first-child):not(:last-child) {
+    border-left: none !important;
+    border-right: none !important;
+}
+
+.checklist-item label {
+    font-size: 0.85rem !important;
+    font-weight: normal !important;
+    text-align: right;
+    padding-right: 10px;
+}
+
+/* Style pour le bloc check-list */
+.right-column .block-card {
+    min-width: 320px !important;
+    width: 320px !important;
+}
+
+/* Fixer la largeur du bloc check-list même quand il est collapsed */
+.right-column .block-card.collapsed {
+    width: 320px !important;
+    min-width: 320px !important;
+}
+
 /* Styles pour le bloc Productivité */
 .productivity-metric {
     text-align: center;
@@ -516,43 +557,56 @@
                 </div>
                 <div class="block-content" id="checklist-content">
                     <div class="checklist-items">
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="check-parametres">
-                            <label class="form-check-label" for="check-parametres">
-                                Paramètres machine vérifiés
-                            </label>
+                        <div class="checklist-item d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label mb-0 flex-grow-1">Paramètres machine vérifiés</label>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-success checklist-btn" data-item="parametres" data-value="ok">OK</button>
+                                <button type="button" class="btn btn-outline-secondary checklist-btn" data-item="parametres" data-value="na">N/A</button>
+                                <button type="button" class="btn btn-outline-danger checklist-btn" data-item="parametres" data-value="nok">NOK</button>
+                            </div>
                         </div>
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="check-qualite">
-                            <label class="form-check-label" for="check-qualite">
-                                Contrôles qualité effectués
-                            </label>
+                        <div class="checklist-item d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label mb-0 flex-grow-1">Contrôles qualité effectués</label>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-success checklist-btn" data-item="qualite" data-value="ok">OK</button>
+                                <button type="button" class="btn btn-outline-secondary checklist-btn" data-item="qualite" data-value="na">N/A</button>
+                                <button type="button" class="btn btn-outline-danger checklist-btn" data-item="qualite" data-value="nok">NOK</button>
+                            </div>
                         </div>
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="check-nettoyage">
-                            <label class="form-check-label" for="check-nettoyage">
-                                Nettoyage zone de travail
-                            </label>
+                        <div class="checklist-item d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label mb-0 flex-grow-1">Nettoyage zone de travail</label>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-success checklist-btn" data-item="nettoyage" data-value="ok">OK</button>
+                                <button type="button" class="btn btn-outline-secondary checklist-btn" data-item="nettoyage" data-value="na">N/A</button>
+                                <button type="button" class="btn btn-outline-danger checklist-btn" data-item="nettoyage" data-value="nok">NOK</button>
+                            </div>
                         </div>
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="check-consignes">
-                            <label class="form-check-label" for="check-consignes">
-                                Consignes de sécurité respectées
-                            </label>
+                        <div class="checklist-item d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label mb-0 flex-grow-1">Consignes de sécurité respectées</label>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-success checklist-btn" data-item="consignes" data-value="ok">OK</button>
+                                <button type="button" class="btn btn-outline-secondary checklist-btn" data-item="consignes" data-value="na">N/A</button>
+                                <button type="button" class="btn btn-outline-danger checklist-btn" data-item="consignes" data-value="nok">NOK</button>
+                            </div>
                         </div>
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="check-documentation">
-                            <label class="form-check-label" for="check-documentation">
-                                Documentation à jour
-                            </label>
+                        <div class="checklist-item d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label mb-0 flex-grow-1">Documentation à jour</label>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-success checklist-btn" data-item="documentation" data-value="ok">OK</button>
+                                <button type="button" class="btn btn-outline-secondary checklist-btn" data-item="documentation" data-value="na">N/A</button>
+                                <button type="button" class="btn btn-outline-danger checklist-btn" data-item="documentation" data-value="nok">NOK</button>
+                            </div>
                         </div>
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="check-anomalies">
-                            <label class="form-check-label" for="check-anomalies">
-                                Anomalies signalées
-                            </label>
+                        <div class="checklist-item d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label mb-0 flex-grow-1">Anomalies signalées</label>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-success checklist-btn" data-item="anomalies" data-value="ok">OK</button>
+                                <button type="button" class="btn btn-outline-secondary checklist-btn" data-item="anomalies" data-value="na">N/A</button>
+                                <button type="button" class="btn btn-outline-danger checklist-btn" data-item="anomalies" data-value="nok">NOK</button>
+                            </div>
                         </div>
-                        <div class="signature-field d-flex justify-content-end mt-3">
+                        <div class="signature-field d-flex justify-content-end align-items-center mt-3 gap-2">
+                            <small class="text-muted" id="signature-time">--</small>
                             <input type="text" class="form-control fw-bold" id="operator-signature" placeholder="Signature" maxlength="5" style="text-transform: uppercase; width: 80px; text-align: center;">
                         </div>
                     </div>
@@ -1086,7 +1140,7 @@ function addLostTime() {
         comment: commentInput.value || '',
         timeStr: timeSelect.value,
         minutes: addedMinutes,
-        timestamp: new Date().toLocaleTimeString()
+        timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
     };
     
     // Ajouter à la liste
@@ -1406,6 +1460,8 @@ function autoSaveFormData() {
         rollData: getRollData(),
         // Contrôles qualité
         qualityControls: getQualityControlsData(),
+        // Check-list
+        checklistData: getChecklistData(),
         // Statut de conformité
         conformityStatus: {
             status: document.getElementById('conformity-status')?.textContent || 'CONFORME',
@@ -1640,6 +1696,12 @@ function restoreSavedData() {
                         }, 1000);
                     } else {
                         console.log('Pas de données de contrôles qualité à restaurer');
+                    }
+                    
+                    // Restaurer les données de la check-list
+                    if (data.checklistData) {
+                        console.log('Restauration check-list avec données:', data.checklistData);
+                        restoreChecklistData(data.checklistData);
                     }
                     
                     // Vérifier l'état des contrôles après restauration
@@ -4770,6 +4832,45 @@ document.addEventListener('DOMContentLoaded', function() {
     enforceNumericQualityControls();
     enforceNumericStickyBar();
     
+    // Event listener pour le champ signature
+    const signatureInput = document.getElementById('operator-signature');
+    if (signatureInput) {
+        signatureInput.addEventListener('input', function() {
+            const signatureTime = document.getElementById('signature-time');
+            if (this.value.trim() !== '' && signatureTime) {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                signatureTime.textContent = `${hours}:${minutes}`;
+            } else if (signatureTime) {
+                signatureTime.textContent = '--';
+            }
+        });
+    }
+    
+    // Event listeners pour les boutons de la check-list
+    document.querySelectorAll('.checklist-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Si le bouton est déjà actif, le désélectionner
+            if (this.classList.contains('active')) {
+                this.classList.remove('active');
+            } else {
+                // Retirer active de tous les boutons du même groupe
+                const btnGroup = this.parentElement;
+                btnGroup.querySelectorAll('.checklist-btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                
+                // Ajouter active au bouton cliqué
+                this.classList.add('active');
+            }
+            
+            // Déclencher l'auto-save
+            clearTimeout(window.autoSaveTimeout);
+            window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+        });
+    });
+    
     setTimeout(restoreSavedData, 2000);
     setTimeout(updateRollId, 2500); // Générer l'ID après restauration
     setTimeout(generateRollVisualization, 3000); // Générer le rouleau après restauration
@@ -4988,6 +5089,58 @@ function getQualityControlsData() {
     }
     
     return data;
+}
+
+// Fonction pour récupérer les données de la check-list
+function getChecklistData() {
+    const checklistData = {};
+    const checklistItems = ['parametres', 'qualite', 'nettoyage', 'consignes', 'documentation', 'anomalies'];
+    
+    checklistItems.forEach(item => {
+        const activeBtn = document.querySelector(`.checklist-btn[data-item="${item}"].active`);
+        checklistData[item] = activeBtn ? activeBtn.getAttribute('data-value') : null;
+    });
+    
+    // Ajouter la signature
+    checklistData.signature = document.querySelector('#operator-signature')?.value || '';
+    checklistData.signatureTime = document.querySelector('#signature-time')?.textContent || '';
+    
+    return checklistData;
+}
+
+// Fonction pour restaurer les données de la check-list
+function restoreChecklistData(data) {
+    if (!data) return;
+    
+    // Restaurer chaque item de la check-list
+    const checklistItems = ['parametres', 'qualite', 'nettoyage', 'consignes', 'documentation', 'anomalies'];
+    
+    checklistItems.forEach(item => {
+        if (data[item]) {
+            // Désactiver tous les boutons du groupe d'abord
+            document.querySelectorAll(`.checklist-btn[data-item="${item}"]`).forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Activer le bouton correspondant à la valeur sauvegardée
+            const btnToActivate = document.querySelector(`.checklist-btn[data-item="${item}"][data-value="${data[item]}"]`);
+            if (btnToActivate) {
+                btnToActivate.classList.add('active');
+            }
+        }
+    });
+    
+    // Restaurer la signature
+    const signatureInput = document.querySelector('#operator-signature');
+    if (signatureInput && data.signature) {
+        signatureInput.value = data.signature;
+    }
+    
+    // Restaurer l'heure de signature
+    const signatureTime = document.querySelector('#signature-time');
+    if (signatureTime && data.signatureTime && data.signatureTime !== '--') {
+        signatureTime.textContent = data.signatureTime;
+    }
 }
 
 // Fonction pour restaurer les données des contrôles qualité
