@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness, LostTimeEntry
+from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness, LostTimeEntry, MachineParameters
 
 
 class LostTimeInline(admin.TabularInline):
@@ -338,3 +338,58 @@ class LostTimeEntryAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+@admin.register(MachineParameters)
+class MachineParametersAdmin(admin.ModelAdmin):
+    """Configuration admin pour le modèle MachineParameters."""
+    
+    list_display = ('name', 'is_active', 'oxygen_primary', 'oxygen_secondary', 
+                    'propane_primary', 'propane_secondary', 'belt_speed', 'get_belt_speed_m_min', 'updated_at')
+    list_filter = ('is_active', 'created_at', 'updated_at')
+    search_fields = ('name',)
+    readonly_fields = ('created_at', 'updated_at', 'get_belt_speed_m_min_detail')
+    
+    fieldsets = (
+        ('Identification', {
+            'fields': ('name', 'is_active')
+        }),
+        ('Paramètres FIBRAGE', {
+            'fields': (
+                ('oxygen_primary', 'oxygen_secondary'),
+                ('propane_primary', 'propane_secondary'),
+                ('speed_primary', 'speed_secondary'),
+            ),
+            'description': 'Paramètres de la machine de fibrage'
+        }),
+        ('Paramètres ENSIMEUSE', {
+            'fields': ('belt_speed', 'get_belt_speed_m_min_detail'),
+            'description': 'Paramètres de l\'ensimeuse'
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_belt_speed_m_min(self, obj):
+        """Affiche la vitesse du tapis en m/min."""
+        if obj.belt_speed_m_per_minute:
+            return f"{obj.belt_speed_m_per_minute} m/min"
+        return "-"
+    get_belt_speed_m_min.short_description = "Vitesse tapis (m/min)"
+    
+    def get_belt_speed_m_min_detail(self, obj):
+        """Affiche la conversion détaillée de la vitesse."""
+        if obj.belt_speed:
+            return f"{obj.belt_speed} m/h = {obj.belt_speed_m_per_minute} m/min"
+        return "-"
+    get_belt_speed_m_min_detail.short_description = "Conversion vitesse"
+    
+    def save_model(self, request, obj, form, change):
+        """Assurer qu'un seul profil est actif à la fois si nécessaire."""
+        if obj.is_active:
+            # Optionnel : désactiver les autres profils si on veut un seul actif
+            # MachineParameters.objects.exclude(pk=obj.pk).update(is_active=False)
+            pass
+        super().save_model(request, obj, form, change)

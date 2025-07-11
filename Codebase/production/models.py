@@ -451,3 +451,66 @@ class RollThickness(models.Model):
     def __str__(self):
         catchup_str = " (rattrapage)" if self.is_catchup else ""
         return f"{self.roll.roll_id} - {self.measurement_point} à {self.meter_position}m: {self.thickness_value}mm{catchup_str}"
+
+
+class MachineParameters(models.Model):
+    """Paramètres machine pour la production."""
+    
+    # Identification du profil
+    name = models.CharField(max_length=100, unique=True, 
+                           verbose_name="Nom du profil",
+                           help_text="Nom ou profil des paramètres machine")
+    
+    # Paramètres FIBRAGE
+    oxygen_primary = models.DecimalField(max_digits=6, decimal_places=2, 
+                                       null=True, blank=True,
+                                       verbose_name="Oxygène primaire",
+                                       help_text="Débit oxygène primaire")
+    oxygen_secondary = models.DecimalField(max_digits=6, decimal_places=2,
+                                         null=True, blank=True,
+                                         verbose_name="Oxygène secondaire", 
+                                         help_text="Débit oxygène secondaire")
+    propane_primary = models.DecimalField(max_digits=6, decimal_places=2,
+                                        null=True, blank=True,
+                                        verbose_name="Propane primaire",
+                                        help_text="Débit propane primaire")
+    propane_secondary = models.DecimalField(max_digits=6, decimal_places=2,
+                                          null=True, blank=True,
+                                          verbose_name="Propane secondaire",
+                                          help_text="Débit propane secondaire")
+    speed_primary = models.DecimalField(max_digits=6, decimal_places=2,
+                                      null=True, blank=True,
+                                      verbose_name="Vitesse primaire",
+                                      help_text="Vitesse primaire")
+    speed_secondary = models.DecimalField(max_digits=6, decimal_places=2,
+                                        null=True, blank=True,
+                                        verbose_name="Vitesse secondaire",
+                                        help_text="Vitesse secondaire")
+    
+    # Paramètres ENSIMEUSE
+    belt_speed = models.DecimalField(max_digits=6, decimal_places=2,
+                                   null=True, blank=True,
+                                   verbose_name="Vitesse tapis",
+                                   help_text="Vitesse du tapis en m/h")
+    
+    # Métadonnées
+    is_active = models.BooleanField(default=True,
+                                  verbose_name="Actif",
+                                  help_text="Profil actif")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Paramètres machine"
+        verbose_name_plural = "Paramètres machine"
+        ordering = ['name']
+    
+    def __str__(self):
+        return f"Profil: {self.name}"
+    
+    @property
+    def belt_speed_m_per_minute(self):
+        """Retourne la vitesse du tapis en m/min (conversion depuis m/h)."""
+        if self.belt_speed:
+            return round(float(self.belt_speed) / 60, 2)
+        return None
