@@ -1,3 +1,5 @@
 /venv
 .claude/
 CLAUDE.md
+*.sqlite3
+db.sqlite3
