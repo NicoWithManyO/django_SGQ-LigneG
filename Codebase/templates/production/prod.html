@@ -62,6 +62,13 @@
     border-right: none !important;
 }
 
+/* Style pour le champ signature */
+#operator-signature {
+    width: 100px !important;
+    max-width: 100px !important;
+    min-width: 100px !important;
+}
+
 .checklist-item label {
     font-size: 0.85rem !important;
     font-weight: normal !important;
@@ -607,7 +614,7 @@
                         </div>
                         <div class="signature-field d-flex justify-content-end align-items-center mt-3 gap-2">
                             <small class="text-muted" id="signature-time">--</small>
-                            <input type="text" class="form-control fw-bold" id="operator-signature" placeholder="Signature" maxlength="5" style="text-transform: uppercase; width: 80px; text-align: center;">
+                            <input type="text" class="form-control fw-bold" id="operator-signature" placeholder="Signature" maxlength="5" style="text-transform: uppercase; width: 100px !important; max-width: 100px !important; text-align: center;">
                         </div>
                     </div>
                 </div>
@@ -4868,8 +4875,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Déclencher l'auto-save
             clearTimeout(window.autoSaveTimeout);
             window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+            
+            // Vérifier si on peut activer le champ signature
+            checkChecklistCompletion();
         });
     });
+    
+    // Initialiser l'état du champ signature (désactivé par défaut)
+    checkChecklistCompletion();
     
     setTimeout(restoreSavedData, 2000);
     setTimeout(updateRollId, 2500); // Générer l'ID après restauration
@@ -5140,6 +5153,36 @@ function restoreChecklistData(data) {
     const signatureTime = document.querySelector('#signature-time');
     if (signatureTime && data.signatureTime && data.signatureTime !== '--') {
         signatureTime.textContent = data.signatureTime;
+    }
+    
+    // Vérifier si on peut activer le champ signature après restauration
+    checkChecklistCompletion();
+}
+
+// Fonction pour vérifier si tous les items de la check-list ont un état
+function checkChecklistCompletion() {
+    const checklistItems = ['parametres', 'qualite', 'nettoyage', 'consignes', 'documentation', 'anomalies'];
+    let allCompleted = true;
+    
+    // Vérifier que chaque item a un bouton actif
+    checklistItems.forEach(item => {
+        const activeBtn = document.querySelector(`.checklist-btn[data-item="${item}"].active`);
+        if (!activeBtn) {
+            allCompleted = false;
+        }
+    });
+    
+    // Activer ou désactiver le champ signature
+    const signatureInput = document.querySelector('#operator-signature');
+    if (signatureInput) {
+        signatureInput.disabled = !allCompleted;
+        if (!allCompleted) {
+            signatureInput.value = '';
+            const signatureTime = document.querySelector('#signature-time');
+            if (signatureTime) {
+                signatureTime.textContent = '--';
+            }
+        }
     }
 }
 

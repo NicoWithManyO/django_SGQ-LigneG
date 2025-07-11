@@ -48,6 +48,13 @@ class Shift(models.Model):
     started_at_end = models.BooleanField(default=False, verbose_name="Machine démarrée", help_text="Machine démarrée en fin de poste")
     meter_reading_end = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
                                           verbose_name="Lg enroulée (m)", help_text="Métrage en fin de poste (si démarrée)")
+    
+    # Check-list
+    checklist_signed = models.CharField(max_length=5, null=True, blank=True, 
+                                      verbose_name="Signature check-list", help_text="Initiales de l'opérateur")
+    checklist_signed_time = models.TimeField(null=True, blank=True,
+                                           verbose_name="Heure signature check-list")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

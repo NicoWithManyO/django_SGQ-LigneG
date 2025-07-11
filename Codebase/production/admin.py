@@ -21,7 +21,7 @@ class ShiftAdmin(admin.ModelAdmin):
     list_display = ('shift_id', 'operator', 'date', 'vacation', 'total_length', 'ok_length')
     list_filter = ('vacation', 'date', 'operator')
     search_fields = ('shift_id', 'operator__first_name', 'operator__last_name', 'operator_comments')
-    readonly_fields = ('shift_id', 'created_at', 'updated_at')
+    readonly_fields = ('shift_id', 'checklist_signed', 'checklist_signed_time', 'created_at', 'updated_at')
     inlines = [LostTimeInline]
     
     fieldsets = (
@@ -40,6 +40,10 @@ class ShiftAdmin(admin.ModelAdmin):
         }),
         ('Commentaires', {
             'fields': ('operator_comments',)
+        }),
+        ('Check-list', {
+            'fields': ('checklist_signed', 'checklist_signed_time'),
+            'classes': ('collapse',)
         }),
         ('Métadonnées', {
             'fields': ('created_at', 'updated_at'),
