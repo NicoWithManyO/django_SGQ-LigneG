@@ -27,7 +27,7 @@
             hx-swap="outerHTML settle:100ms"
             hx-indicator=".htmx-indicator"
             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-            hx-on::after-request="if(event.detail.xhr.status === 200) { setTimeout(function() { calculateAvailabilityTime(); toggleMeterReadingFields(); }, 100); }"
+            hx-on::after-request="if(event.detail.xhr.status === 200) { setTimeout(function() { calculateAvailabilityTime(); toggleMeterReadingFields(); if (typeof updateProductivityMetrics === 'function') { updateProductivityMetrics(); } }, 100); }"
         >
             {% csrf_token %}
             
@@ -507,6 +507,11 @@ document.body.addEventListener('htmx:afterSwap', function() {
         calculateAvailabilityTime();
         updateDurationDisplay();
         updateShiftButtonState();
+        
+        // Mettre à jour les métriques de productivité
+        if (typeof updateProductivityMetrics === 'function') {
+            updateProductivityMetrics();
+        }
         
         // Additional check with longer delay
         setTimeout(function() {

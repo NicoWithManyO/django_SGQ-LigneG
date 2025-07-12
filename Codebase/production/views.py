@@ -5,6 +5,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 from django_htmx.http import HttpResponseClientRedirect
 import json
 from datetime import datetime
+from django.db.models import Sum
 from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness, LostTimeEntry, MachineParameters
 from .forms import ShiftForm
 from core.models import Operator, FabricationOrder, Profile, Mode
@@ -1174,4 +1175,101 @@ def get_shift_lost_times(request, shift_id):
         return JsonResponse({
             'success': False,
             'error': f'Erreur lors de la récupération des temps d\'arrêt: {str(e)}'
+        }, status=500)
+
+
+def get_total_rolled_length(request):
+    """Récupère la longueur totale enroulée pour un shift."""
+    try:
+        shift_id = request.GET.get('shift_id')
+        
+        # Si pas de shift_id, essayer de trouver le shift existant
+        if not shift_id:
+            date = request.GET.get('date')
+            operator_id = request.GET.get('operator')
+            vacation = request.GET.get('vacation')
+            
+            if date and operator_id and vacation:
+                from datetime import datetime
+                try:
+                    date_obj = datetime.strptime(date, '%Y-%m-%d').date()
+                except ValueError:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Format de date invalide'
+                    }, status=400)
+                
+                # Chercher un shift existant avec ces critères
+                existing_shift = Shift.objects.filter(
+                    date=date_obj,
+                    operator_id=operator_id,
+                    vacation=vacation
+                ).first()
+                
+                if existing_shift:
+                    shift_id = existing_shift.id
+        
+        # Calculer les longueurs par statut
+        length_ok = 0
+        length_nok = 0
+        length_dechets = 0
+        meter_start_to_subtract = 0
+        
+        if shift_id:
+            # Récupérer les rouleaux du shift
+            rolls = Roll.objects.filter(shift_id=shift_id)
+            # Longueur OK (status CONFORME et destination PRODUCTION)
+            length_ok = float(rolls.filter(status='CONFORME', destination='PRODUCTION').aggregate(total=Sum('length'))['total'] or 0)
+            # Longueur NOK (destination DECOUPE)
+            length_nok = float(rolls.filter(destination='DECOUPE').aggregate(total=Sum('length'))['total'] or 0)
+            # Longueur Déchets (destination DECHETS)
+            length_dechets = float(rolls.filter(destination='DECHETS').aggregate(total=Sum('length'))['total'] or 0)
+            
+            # Récupérer le shift pour avoir le métrage de début
+            try:
+                shift = Shift.objects.get(id=shift_id)
+                if shift.meter_reading_start:
+                    meter_start_to_subtract = float(shift.meter_reading_start)
+                    
+                    # Trouver le premier rouleau du poste pour savoir où soustraire
+                    first_roll = rolls.order_by('created_at').first()
+                    if first_roll:
+                        if first_roll.status == 'CONFORME' and first_roll.destination == 'PRODUCTION':
+                            # Soustraire du OK
+                            length_ok = max(0, length_ok - meter_start_to_subtract)
+                        elif first_roll.destination == 'DECOUPE':
+                            # Soustraire du NOK
+                            length_nok = max(0, length_nok - meter_start_to_subtract)
+                        elif first_roll.destination == 'DECHETS':
+                            # Soustraire des déchets
+                            length_dechets = max(0, length_dechets - meter_start_to_subtract)
+            except Shift.DoesNotExist:
+                pass
+        else:
+            # Si pas de shift, chercher par session
+            session_key = request.session.session_key
+            if session_key:
+                rolls = Roll.objects.filter(session_key=session_key, shift__isnull=True)
+                length_ok = float(rolls.filter(status='CONFORME', destination='PRODUCTION').aggregate(total=Sum('length'))['total'] or 0)
+                length_nok = float(rolls.filter(destination='DECOUPE').aggregate(total=Sum('length'))['total'] or 0)
+                length_dechets = float(rolls.filter(destination='DECHETS').aggregate(total=Sum('length'))['total'] or 0)
+        
+        # Calculer le total
+        total_length = length_ok + length_nok + length_dechets
+        
+        return JsonResponse({
+            'success': True,
+            'total_length': float(total_length),
+            'length_ok': float(length_ok),
+            'length_nok': float(length_nok),
+            'length_dechets': float(length_dechets)
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"[{datetime.now().strftime('%d/%b/%Y %H:%M:%S')}] ERREUR get_total_rolled_length: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
         }, status=500)

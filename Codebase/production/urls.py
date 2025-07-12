@@ -40,4 +40,7 @@ urlpatterns = [
     
     # Paramètres du profil
     path('profile/<int:profile_id>/parameters/', views.get_profile_parameters, name='get_profile_parameters'),
+    
+    # Longueur enroulée totale
+    path('get-total-rolled-length/', views.get_total_rolled_length, name='get_total_rolled_length'),
 ]

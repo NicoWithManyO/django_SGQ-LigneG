@@ -502,51 +502,108 @@
                     <!-- Tab: Temps -->
                     <div class="tab-content" id="tab-temps" style="display: block;">
                         <div class="row g-2">
-                            <div class="col-4">
-                                <div class="productivity-metric">
-                                    <label class="text-muted small">Temps d'Ouverture</label>
-                                    <div class="metric-value">
-                                        <span id="temps-ouverture" class="h6 fw-bold text-primary">--</span>
+                            <div class="col-9">
+                                <div class="row g-2">
+                                    <!-- Première ligne -->
+                                    <div class="col-4">
+                                        <div class="productivity-metric">
+                                            <label class="text-muted small">TO | TD</label>
+                                            <div class="metric-value">
+                                                <span id="temps-ouverture" class="h6 fw-bold text-primary">--</span>
+                                                <span class="text-muted small">|</span>
+                                                <span id="temps-disponible" class="h6 fw-bold text-success">--</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="productivity-metric">
+                                            <label class="text-muted small">Tps Perdu | Lg Perdue</label>
+                                            <div class="metric-value">
+                                                <span id="temps-perdu-total" class="h6 fw-bold text-danger">--</span>
+                                                <span class="text-muted small">|</span>
+                                                <span id="lg-perdue" class="h6 fw-bold text-danger">--</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="productivity-metric">
+                                            <label class="text-muted small">Disponibilité</label>
+                                            <div class="metric-value">
+                                                <span id="disponibilite" class="h6 fw-bold">--%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Deuxième ligne -->
+                                    <div class="col-4">
+                                        <div class="productivity-metric">
+                                            <label class="text-muted small">Longueur Enroulable</label>
+                                            <div class="metric-value">
+                                                <span id="lg-enroulable" class="h6 fw-bold text-info">--</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="productivity-metric">
+                                            <label class="text-muted small">OK | NOK</label>
+                                            <div class="metric-value">
+                                                <span id="lg-enroulee-ok" class="h6 fw-bold text-success">--</span>
+                                                <span class="text-muted small">|</span>
+                                                <span id="lg-enroulee-nok" class="h6 fw-bold text-warning">--</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="productivity-metric">
+                                            <label class="text-muted small">Rendement</label>
+                                            <div class="metric-value">
+                                                <span id="temps-rendement" class="h6 fw-bold">--%</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-4">
-                                <div class="productivity-metric">
-                                    <label class="text-muted small">Temps Perdu</label>
-                                    <div class="metric-value">
-                                        <span id="temps-perdu-total" class="h6 fw-bold text-danger">--</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="productivity-metric">
-                                    <label class="text-muted small">Temps Disponible</label>
-                                    <div class="metric-value">
-                                        <span id="temps-disponible" class="h6 fw-bold text-success">--</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="productivity-metric">
-                                    <label class="text-muted small">Longueur Enroulable</label>
-                                    <div class="metric-value">
-                                        <span id="lg-enroulable" class="h6 fw-bold text-info">--</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="productivity-metric">
-                                    <label class="text-muted small">Longueur Enroulée</label>
-                                    <div class="metric-value">
-                                        <span id="lg-enroulee" class="h6 fw-bold text-info">--</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="productivity-metric">
-                                    <label class="text-muted small">Rendement</label>
-                                    <div class="metric-value">
-                                        <span id="temps-rendement" class="h6 fw-bold">--%</span>
+                            <div class="col-3">
+                                <div class="productivity-metric" style="padding: 8px; height: 100%; min-height: 140px; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+                                    <div class="gauge-container" style="height: 100%; display: flex; align-items: center; justify-content: center;">
+                                        <svg id="projete-gauge" width="100%" height="100%" viewBox="0 0 100 60" style="max-width: 180px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
+                                            <!-- Arc de fond -->
+                                            <path d="M 10 50 A 40 40 0 0 1 90 50" 
+                                                  stroke="#e9ecef" 
+                                                  stroke-width="8" 
+                                                  fill="none"
+                                                  stroke-linecap="round"/>
+                                            
+                                            <!-- Arc coloré (sera mis à jour dynamiquement) -->
+                                            <path id="gauge-arc" 
+                                                  d="M 10 50 A 40 40 0 0 1 90 50" 
+                                                  stroke="#dc3545" 
+                                                  stroke-width="8" 
+                                                  fill="none"
+                                                  stroke-dasharray="0 126"
+                                                  stroke-linecap="round"
+                                                  style="transition: stroke-dasharray 0.5s ease, stroke 0.3s ease"/>
+                                            
+                                            <!-- Graduations -->
+                                            <g id="gauge-ticks">
+                                                <!-- 0% -->
+                                                <text x="10" y="58" text-anchor="middle" font-size="8" fill="#666">0</text>
+                                                
+                                                <!-- 50% -->
+                                                <text x="50" y="12" text-anchor="middle" font-size="8" fill="#666">50</text>
+                                                
+                                                <!-- 100% -->
+                                                <text x="90" y="58" text-anchor="middle" font-size="8" fill="#666">100</text>
+                                            </g>
+                                            
+                                            <!-- Aiguille -->
+                                            <g id="gauge-needle" transform="rotate(-90 50 50)" style="transition: transform 0.5s ease">
+                                                <line id="needle-line" x1="50" y1="50" x2="50" y2="22" stroke="#333" stroke-width="3" stroke-linecap="round"/>
+                                                <circle id="needle-circle" cx="50" cy="50" r="5" fill="#333"/>
+                                            </g>
+                                            
+                                            <!-- Valeur au centre -->
+                                            <text id="gauge-value" x="50" y="45" text-anchor="middle" font-size="16" font-weight="bold" fill="#333">0%</text>
+                                        </svg>
                                     </div>
                                 </div>
                             </div>
@@ -3331,68 +3388,153 @@ function updateProductivityMetrics() {
     // Taux de disponibilité (TD/TO * 100)
     const tauxDisponibilite = totalMinutes > 0 ? Math.round((tdMinutes / totalMinutes) * 100) : 0;
     
-    // Calculer la longueur enroulable
+    // Calculer la longueur enroulable et perdue
     let lgEnroulable = 0;
+    let lgPerdue = 0;
     const profileSelector = document.getElementById('profile-selector');
-    if (profileSelector && profileSelector.selectedIndex > 0 && tdMinutes > 0) {
+    if (profileSelector && profileSelector.selectedIndex > 0) {
         // Récupérer la vitesse tapis du profil sélectionné depuis l'attribut data
         const selectedOption = profileSelector.options[profileSelector.selectedIndex];
         const beltSpeedStr = selectedOption.getAttribute('data-belt-speed') || '0';
         // Remplacer la virgule par un point pour parseFloat
         const beltSpeed = parseFloat(beltSpeedStr.replace(',', '.')) || 0;
-        console.log('Profile sélectionné:', selectedOption.text);
-        console.log('Attribut data-belt-speed:', selectedOption.getAttribute('data-belt-speed'));
-        console.log('Vitesse tapis (m/min):', beltSpeed);
-        console.log('Temps disponible (min):', tdMinutes);
         
-        // Déboguer toutes les options
-        console.log('Toutes les options du select:');
-        for (let i = 0; i < profileSelector.options.length; i++) {
-            const opt = profileSelector.options[i];
-            console.log(`  Option ${i}: ${opt.text} - belt-speed: ${opt.getAttribute('data-belt-speed')}`);
-        }
         if (beltSpeed > 0) {
             // Lg enroulable = Temps dispo (en min) * vitesse tapis (m/min)
             lgEnroulable = Math.round(tdMinutes * beltSpeed);
-            console.log('Longueur enroulable calculée:', lgEnroulable);
+            // Lg perdue = Temps perdu (en min) * vitesse tapis (m/min)
+            lgPerdue = Math.round(tpMinutes * beltSpeed);
         }
     }
     
-    // Calculer la longueur enroulée (différence entre métrage fin et début)
+    // Récupérer la longueur enroulée depuis l'API
     let lgEnroulee = 0;
-    const meterStart = document.querySelector('input[name="meter_reading_start"]');
-    const meterEnd = document.querySelector('input[name="meter_reading_end"]');
-    if (meterStart && meterEnd && meterStart.value && meterEnd.value) {
-        const startValue = parseFloat(meterStart.value) || 0;
-        const endValue = parseFloat(meterEnd.value) || 0;
-        lgEnroulee = Math.round(endValue - startValue);
-    }
+    let lgEnrouleeOk = 0;
+    let lgEnrouleeNok = 0;
+    let lgEnrouleeDechets = 0;
     
-    // Calculer le rendement (Lg enroulée / Lg enroulable * 100)
-    let rendement = 0;
-    if (lgEnroulable > 0 && lgEnroulee > 0) {
-        rendement = Math.round((lgEnroulee / lgEnroulable) * 100);
-    }
+    // Récupérer les données nécessaires
+    const shiftId = document.querySelector('#shift-form')?.getAttribute('data-shift-id') || '';
+    const dateField = document.querySelector('input[name="date"]');
+    const operatorField = document.querySelector('select[name="operator"]');
+    const vacationField = document.querySelector('select[name="vacation"]');
     
-    // Mettre à jour l'affichage
-    document.getElementById('temps-ouverture').textContent = toStr;
-    document.getElementById('temps-disponible').textContent = tdStr;
-    document.getElementById('temps-perdu-total').textContent = tpStr;
-    document.getElementById('lg-enroulable').textContent = lgEnroulable > 0 ? `${lgEnroulable} m` : '--';
-    document.getElementById('lg-enroulee').textContent = lgEnroulee > 0 ? `${lgEnroulee} m` : '--';
-    
-    // Afficher le rendement
-    const rendementElement = document.getElementById('temps-rendement');
-    rendementElement.textContent = `${rendement}%`;
-    
-    // Changer la couleur selon le rendement
-    rendementElement.classList.remove('text-success', 'text-warning', 'text-danger');
-    if (rendement >= 90) {
-        rendementElement.classList.add('text-success');
-    } else if (rendement >= 70) {
-        rendementElement.classList.add('text-warning');
+    if (shiftId || (dateField?.value && operatorField?.value && vacationField?.value)) {
+        const url = shiftId ? `/get-total-rolled-length/?shift_id=${shiftId}` : 
+                    `/get-total-rolled-length/?date=${dateField.value}&operator=${operatorField.value}&vacation=${vacationField.value}`;
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    lgEnroulee = Math.round(data.total_length);
+                    lgEnrouleeOk = Math.round(data.length_ok);
+                    lgEnrouleeNok = Math.round(data.length_nok);
+                    lgEnrouleeDechets = Math.round(data.length_dechets);
+                    updateMetricsDisplay();
+                } else {
+                    updateMetricsDisplay();
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors de la récupération de la longueur enroulée:', error);
+                updateMetricsDisplay();
+            });
     } else {
-        rendementElement.classList.add('text-danger');
+        updateMetricsDisplay();
+    }
+    
+    function updateMetricsDisplay() {
+        // Calculer le rendement (Lg enroulée OK / Lg enroulable * 100)
+        let rendement = 0;
+        if (lgEnroulable > 0 && lgEnrouleeOk > 0) {
+            rendement = Math.round((lgEnrouleeOk / lgEnroulable) * 100);
+        }
+        
+        // Mettre à jour l'affichage
+        document.getElementById('temps-ouverture').textContent = toStr;
+        document.getElementById('temps-disponible').textContent = tdStr;
+        document.getElementById('temps-perdu-total').textContent = tpMinutes > 0 ? tpStr : '--';
+        document.getElementById('lg-perdue').textContent = lgPerdue > 0 ? `${lgPerdue} m` : '--';
+        document.getElementById('disponibilite').textContent = `${tauxDisponibilite}%`;
+        document.getElementById('lg-enroulable').textContent = lgEnroulable > 0 ? `${lgEnroulable} m` : '--';
+        document.getElementById('lg-enroulee-ok').textContent = lgEnrouleeOk > 0 ? `${lgEnrouleeOk} m` : '--';
+        document.getElementById('lg-enroulee-nok').textContent = lgEnrouleeNok > 0 ? `${lgEnrouleeNok} m` : '--';
+        
+        // Afficher le rendement
+        const rendementElement = document.getElementById('temps-rendement');
+        rendementElement.textContent = `${rendement}%`;
+        
+        // Changer la couleur selon le rendement
+        rendementElement.classList.remove('text-success', 'text-warning', 'text-danger');
+        if (rendement >= 90) {
+            rendementElement.classList.add('text-success');
+        } else if (rendement >= 70) {
+            rendementElement.classList.add('text-warning');
+        } else {
+            rendementElement.classList.add('text-danger');
+        }
+        
+        // Mettre à jour la gauge avec le rendement
+        updateProjeteGauge(rendement);
+    }
+}
+
+// Fonction pour mettre à jour la gauge du projeté
+function updateProjeteGauge(percentage) {
+    const gauge = document.getElementById('projete-gauge');
+    if (!gauge) return;
+    
+    // Limiter le pourcentage entre 0 et 100
+    percentage = Math.max(0, Math.min(100, percentage));
+    
+    // Calculer l'angle de rotation pour l'aiguille (0% = -90°, 100% = 90°)
+    const angle = (percentage / 100) * 180 - 90;
+    
+    // Mettre à jour l'aiguille
+    const needle = gauge.querySelector('#gauge-needle');
+    if (needle) {
+        needle.setAttribute('transform', `rotate(${angle} 50 50)`);
+    }
+    
+    // Mettre à jour la valeur affichée
+    const valueText = gauge.querySelector('#gauge-value');
+    if (valueText) {
+        valueText.textContent = `${percentage}%`;
+    }
+    
+    // Mettre à jour l'arc coloré
+    const arcPath = gauge.querySelector('#gauge-arc');
+    if (arcPath) {
+        // La longueur totale de l'arc demi-cercle (rayon 40) est environ 126
+        const arcLength = 126;
+        const dashLength = (percentage / 100) * arcLength;
+        
+        // Mettre à jour le stroke-dasharray
+        arcPath.setAttribute('stroke-dasharray', `${dashLength} ${arcLength}`);
+        
+        // Changer la couleur selon le pourcentage
+        let color = '#dc3545'; // Rouge par défaut
+        if (percentage < 50) {
+            color = '#dc3545'; // Rouge
+        } else if (percentage < 80) {
+            color = '#ffc107'; // Jaune
+        } else {
+            color = '#28a745'; // Vert
+        }
+        
+        // Appliquer la couleur à l'arc
+        arcPath.setAttribute('stroke', color);
+        
+        // Appliquer la même couleur à l'aiguille
+        const needleLine = gauge.querySelector('#needle-line');
+        const needleCircle = gauge.querySelector('#needle-circle');
+        if (needleLine) {
+            needleLine.setAttribute('stroke', color);
+        }
+        if (needleCircle) {
+            needleCircle.setAttribute('fill', color);
+        }
     }
 }
 
