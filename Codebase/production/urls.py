@@ -35,6 +35,9 @@ urlpatterns = [
     # Récupérer le dernier métrage
     path('get-last-meter-reading/', views.get_last_meter_reading, name='get_last_meter_reading'),
     
+    # Récupérer les données du poste précédent
+    path('get-previous-shift/', views.get_previous_shift, name='get_previous_shift'),
+    
     # Paramètres du profil
     path('profile/<int:profile_id>/parameters/', views.get_profile_parameters, name='get_profile_parameters'),
 ]

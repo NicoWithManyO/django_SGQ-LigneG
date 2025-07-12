@@ -36,6 +36,103 @@ def get_last_meter_reading(request):
         })
 
 
+def get_previous_shift(request):
+    """Récupère les données complètes du dernier poste pour affichage."""
+    try:
+        # Récupérer l'offset depuis la requête (0 = dernier, 1 = avant-dernier, etc.)
+        offset = int(request.GET.get('offset', 0))
+        
+        # Récupérer le shift selon l'offset
+        shifts = Shift.objects.select_related('operator').order_by('-date', '-created_at')
+        
+        if offset >= shifts.count():
+            # Si l'offset dépasse le nombre de shifts, retourner None
+            return JsonResponse({
+                'success': True,
+                'shift': None,
+                'has_more': False
+            })
+        
+        last_shift = shifts[offset] if offset < shifts.count() else None
+        
+        if last_shift:
+            # Compter les rouleaux produits
+            roll_count = Roll.objects.filter(shift=last_shift).count()
+            
+            # Calculer la production totale
+            total_length = 0
+            if last_shift.meter_reading_start and last_shift.meter_reading_end:
+                total_length = last_shift.meter_reading_end - last_shift.meter_reading_start
+            
+            # Récupérer les réponses de la checklist
+            checklist_data = []
+            try:
+                checklist_responses = ChecklistResponse.objects.filter(
+                    shift=last_shift
+                ).select_related('item').order_by('item__order')
+                
+                for response in checklist_responses:
+                    checklist_data.append({
+                        'item_name': response.item.text,
+                        'response': response.response,
+                        'response_display': response.get_response_display()
+                    })
+            except Exception as e:
+                print(f"Erreur checklist: {str(e)}")
+            
+            # Récupérer les temps d'arrêt
+            lost_time_data = []
+            try:
+                lost_times = LostTimeEntry.objects.filter(shift=last_shift).order_by('created_at')
+                for lost_time in lost_times:
+                    lost_time_data.append({
+                        'motif': lost_time.motif,
+                        'duration': lost_time.duration,
+                        'comment': lost_time.comment or ''
+                    })
+            except Exception as e:
+                print(f"Erreur temps d'arrêt: {str(e)}")
+            
+            shift_data = {
+                'shift_id': last_shift.shift_id,
+                'operator_name': last_shift.operator.full_name if last_shift.operator else '--',
+                'date': last_shift.date.strftime('%d/%m/%Y') if last_shift.date else '--',
+                'vacation': last_shift.get_vacation_display() if last_shift.vacation else '--',
+                'start_time': last_shift.start_time.strftime('%H:%M') if last_shift.start_time else '--',
+                'end_time': last_shift.end_time.strftime('%H:%M') if last_shift.end_time else '--',
+                'operator_comments': last_shift.operator_comments or '',
+                'checklist': checklist_data,
+                'checklist_signed': last_shift.checklist_signed or '',
+                'checklist_signed_time': last_shift.checklist_signed_time.strftime('%H:%M') if last_shift.checklist_signed_time else '',
+                'lost_times': lost_time_data,
+                'total_lost_time': int(last_shift.lost_time.total_seconds() / 60) if last_shift.lost_time else 0
+            }
+            
+            # Vérifier s'il y a encore des postes après celui-ci
+            has_more = offset + 1 < shifts.count()
+            
+            return JsonResponse({
+                'success': True,
+                'shift': shift_data,
+                'has_more': has_more,
+                'offset': offset
+            })
+        else:
+            return JsonResponse({
+                'success': True,
+                'shift': None,
+                'has_more': False
+            })
+    except Exception as e:
+        print(f"Erreur get_previous_shift: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'message': f'Erreur: {str(e)}'
+        })
+
+
 def get_profile_parameters(request, profile_id):
     """Récupère les paramètres machine et spécifications d'un profil."""
     try:

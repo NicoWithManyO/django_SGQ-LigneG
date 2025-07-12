@@ -63,10 +63,34 @@
 }
 
 /* Style pour le champ signature */
+.signature-field {
+    background-color: #f8f9fa;
+    padding: 12px;
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+    margin-top: 15px;
+}
+
 #operator-signature {
     width: 100px !important;
     max-width: 100px !important;
     min-width: 100px !important;
+    background-color: #fff;
+    border: 2px solid #dee2e6;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
+#operator-signature:focus {
+    background-color: #fff;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+#operator-signature:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
 }
 
 .checklist-item label {
@@ -201,11 +225,90 @@
     font-size: 0.8rem;
     cursor: pointer;
 }
+
+/* Style pour le bloc Poste Précédent */
+.previous-shift-details {
+    font-size: 0.85rem;
+    padding: 10px;
+}
+
+.previous-shift-details .row {
+    margin-bottom: 0.5rem;
+}
+
+.previous-shift-details strong {
+    color: var(--primary-text);
+}
+
+/* Supprimé l'effet de transparence sur le bloc replié */
 </style>
 <script>
 // La fonction confirmSaveShift est maintenant définie dans shift_block.html
 
 </script>
+<!-- Blocs Poste Précédent et Temporaire - Au-dessus de tout -->
+<div class="container-fluid mb-3">
+    <div class="row">
+        <div class="col-12">
+            <div class="row gx-3">
+                <!-- Bloc Poste Précédent -->
+                <div class="col-6">
+                    <div class="block-card collapsed" id="previous-shift-block">
+                <div class="block-header" style="cursor: pointer;" onclick="togglePreviousShiftBlock(event)">
+                    <h5 class="block-title">
+                        <i class="bi bi-clock-history"></i> <span id="previous-shift-header" title="Poste précédent">Chargement...</span>
+                    </h5>
+                    <div class="block-actions d-flex align-items-center">
+                        <button class="btn btn-sm" onclick="navigateToLastShift(event)" title="Revenir au dernier poste" style="border: none; background: none; color: white;">
+                            <i class="bi bi-arrow-right"></i> Dernier
+                        </button>
+                        <button class="btn btn-sm" onclick="navigateToPreviousShift(event)" title="Poste précédent" style="border: none; background: none; color: white;">
+                            <i class="bi bi-arrow-up"></i> Précédent
+                        </button>
+                        <i class="bi bi-chevron-down" id="previous-shift-chevron"></i>
+                    </div>
+                </div>
+                <div class="block-content" id="previous-shift-content" style="display: none;">
+                    <div class="previous-shift-info">
+                        <div class="text-center text-muted py-3">
+                            <i class="bi bi-hourglass-split"></i> Chargement des données du poste précédent...
+                        </div>
+                    </div>
+                </div>
+                    </div>
+                </div>
+                
+                <!-- Bloc Temporaire -->
+                <div class="col-6">
+                    <div class="block-card collapsed" id="temporary-block">
+                        <div class="block-header" style="cursor: pointer;" onclick="toggleTemporaryBlock(event)">
+                            <h5 class="block-title">
+                                <i class="bi bi-clock-history"></i> Historique des Paramètres Machine
+                            </h5>
+                            <div class="block-actions d-flex align-items-center">
+                                <button class="btn btn-sm" onclick="event.stopPropagation()" title="Revenir au dernier" style="border: none; background: none; color: white;">
+                                    <i class="bi bi-arrow-right"></i> Dernier
+                                </button>
+                                <button class="btn btn-sm" onclick="event.stopPropagation()" title="Précédent" style="border: none; background: none; color: white;">
+                                    <i class="bi bi-arrow-up"></i> Précédent
+                                </button>
+                                <i class="bi bi-chevron-down" id="temporary-chevron"></i>
+                            </div>
+                        </div>
+                        <div class="block-content" id="temporary-content" style="display: none;">
+                            <div class="temporary-info">
+                                <div class="text-center text-muted py-3">
+                                    <i class="bi bi-hourglass-split"></i> Contenu temporaire...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="production-dashboard">
     
     <!-- Sidebar gauche - Tous les blocs -->
@@ -638,7 +741,7 @@
         <!-- Bloc Contrôles Qualité -->
         <div class="block-card">
             <div class="block-header" style="cursor: pointer;" onclick="toggleQualityControlsBlock()">
-                <h5 class="block-title"><i class="bi bi-clipboard-check"></i> Contrôles Qualité - Profil : 80gr/m²</h5>
+                <h5 class="block-title"><i class="bi bi-clipboard-check"></i> Contrôles Qualité</h5>
                 <div class="block-actions">
                     <i class="bi bi-chevron-up" id="quality-controls-chevron"></i>
                 </div>
@@ -939,7 +1042,7 @@
                 </div>
                 
                 <div class="fibrage-field mass-calc-field">
-                    <div class="mass-calc-info">
+                    <div class="mass-calc-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
                         <small class="fibrage-text" id="mass-net" style="font-size: 0.7rem;">--</small>
                         <small class="fibrage-text" id="grammage" style="font-size: 0.9rem; font-weight: bold;">--</small>
                     </div>
@@ -1127,9 +1230,9 @@ function clearDefectInput(button) {
         clearTimeout(window.autoSaveTimeout);
         window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
         
-        // Déclencher aussi la sauvegarde des défauts pour supprimer de la DB
-        clearTimeout(window.defectSaveTimeout);
-        window.defectSaveTimeout = setTimeout(saveRollDefects, 500);
+        // SUPPRIMÉ : Les défauts sont maintenant sauvegardés avec le rouleau
+        // clearTimeout(window.defectSaveTimeout);
+        // window.defectSaveTimeout = setTimeout(saveRollDefects, 500);
         
         input.focus();
     }
@@ -1188,7 +1291,7 @@ function addLostTime() {
     commentInput.value = '';
     timeSelect.value = '';
     
-    console.log(`Temps perdu ajouté: ${addedMinutes} min. Total: ${window.totalLostTimeMinutes} min`);
+    // console.log(`Temps perdu ajouté: ${addedMinutes} min. Total: ${window.totalLostTimeMinutes} min`);
 }
 
 // Afficher la liste des temps perdus
@@ -1285,7 +1388,7 @@ function removeLostTimeEntry(entryId) {
     clearTimeout(window.autoSaveTimeout);
     window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
     
-    console.log(`Temps perdu supprimé: ${entry.minutes} min. Total: ${window.totalLostTimeMinutes} min`);
+    // console.log(`Temps perdu supprimé: ${entry.minutes} min. Total: ${window.totalLostTimeMinutes} min`);
 }
 
 // Fonction pour charger les temps d'arrêt d'un shift existant
@@ -1311,7 +1414,7 @@ function loadShiftLostTimes(shiftId) {
                     window.totalLostTimeMinutes += lostTime.duration;
                 });
                 
-                console.log(`${data.lost_times.length} temps d'arrêt chargés depuis le shift`);
+                // console.log(`${data.lost_times.length} temps d'arrêt chargés depuis le shift`);
                 
                 // Mettre à jour l'affichage
                 renderLostTimeList();
@@ -1338,7 +1441,7 @@ function clearAllSavedData() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                console.log('Données serveur supprimées');
+                // console.log('Données serveur supprimées');
                 
                 // Réinitialiser les variables locales
                 window.totalLostTimeMinutes = 0;
@@ -1376,7 +1479,7 @@ function updateLostTimeDisplay() {
             if (boldSpan && minutesSpan) {
                 boldSpan.textContent = timeStr;
                 minutesSpan.textContent = `(${window.totalLostTimeMinutes} min)`;
-                console.log('Affichage temps perdu mis à jour:', timeStr);
+                // console.log('Affichage temps perdu mis à jour:', timeStr);
             }
         }
     });
@@ -1423,7 +1526,7 @@ function updateAvailabilityTime() {
             if (boldSpan && minutesSpan) {
                 boldSpan.textContent = availabilityTimeStr;
                 minutesSpan.textContent = `(${availabilityMinutes} min)`;
-                console.log('Availability time mis à jour:', availabilityTimeStr);
+                // console.log('Availability time mis à jour:', availabilityTimeStr);
             }
         }
     }
@@ -1438,12 +1541,12 @@ function toggleMeterReadingFields() {
     
     if (startedAtBeginning && meterStartField) {
         meterStartField.style.visibility = startedAtBeginning.checked ? 'visible' : 'hidden';
-        console.log('Champ début métrage:', startedAtBeginning.checked ? 'visible' : 'hidden');
+        // console.log('Champ début métrage:', startedAtBeginning.checked ? 'visible' : 'hidden');
     }
     
     if (startedAtEnd && meterEndField) {
         meterEndField.style.visibility = startedAtEnd.checked ? 'visible' : 'hidden';
-        console.log('Champ fin métrage:', startedAtEnd.checked ? 'visible' : 'hidden');
+        // console.log('Champ fin métrage:', startedAtEnd.checked ? 'visible' : 'hidden');
     }
 }
 
@@ -1496,8 +1599,8 @@ function autoSaveFormData() {
         }
     };
     
-    console.log('Sauvegarde des données:', formData);
-    console.log('Données qualité spécifiquement:', formData.qualityControls);
+    // console.log('Sauvegarde des données:', formData);
+    // console.log('Données qualité spécifiquement:', formData.qualityControls);
     
     fetch('{% url "production:auto_save_form" %}', {
         method: 'POST',
@@ -1510,7 +1613,7 @@ function autoSaveFormData() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            console.log('Auto-save réussi:', data.timestamp);
+            // console.log('Auto-save réussi:', data.timestamp);
         } else {
             console.error('Erreur auto-save:', data.error);
         }
@@ -1523,7 +1626,7 @@ function autoSaveFormData() {
 // Restaurer les données sauvegardées
 function restoreSavedData() {
     if (window.isRestoring) {
-        console.log('Restauration déjà en cours, ignoré');
+        // console.log('Restauration déjà en cours, ignoré');
         return;
     }
     
@@ -1534,12 +1637,12 @@ function restoreSavedData() {
     .then(result => {
         if (result.data && Object.keys(result.data).length > 0) {
             const data = result.data;
-            console.log('Restauration des données:', data);
+            // console.log('Restauration des données:', data);
             
             setTimeout(function() {
                 // Restaurer seulement si ce n'est pas juste après un swap HTMX de save de poste
                 if (window.skipNextRestore) {
-                    console.log('Restauration ignorée (juste après save de poste)');
+                    // console.log('Restauration ignorée (juste après save de poste)');
                     window.skipNextRestore = false;
                     return;
                 }
@@ -2532,6 +2635,282 @@ function toggleOFBlock() {
     }
 }
 
+// Variable pour tracker l'offset du poste affiché
+let currentShiftOffset = 0;
+
+// Fonction pour naviguer vers le poste précédent
+function navigateToPreviousShift(event) {
+    event.stopPropagation(); // Empêcher le toggle du bloc
+    
+    // Ne rien faire si le bouton est désactivé
+    if (event.currentTarget.disabled) return;
+    
+    currentShiftOffset++;
+    loadPreviousShiftData(currentShiftOffset);
+    loadPreviousShiftHeader(currentShiftOffset);
+}
+
+// Fonction pour revenir au dernier poste
+function navigateToLastShift(event) {
+    event.stopPropagation(); // Empêcher le toggle du bloc
+    
+    // Ne rien faire si on est déjà au dernier poste
+    if (currentShiftOffset === 0) return;
+    
+    currentShiftOffset = 0;
+    loadPreviousShiftData(0);
+    loadPreviousShiftHeader(0);
+}
+
+// Fonction pour toggle le bloc Temporaire
+function toggleTemporaryBlock(event) {
+    // Ne pas toggle si on clique sur un bouton ou sur les actions
+    if (event && event.target.closest('.block-actions')) {
+        return;
+    }
+    
+    const content = document.getElementById('temporary-content');
+    const chevron = document.getElementById('temporary-chevron');
+    const block = document.getElementById('temporary-block');
+    
+    if (!content || !chevron || !block) return;
+    
+    if (content.style.display === 'none') {
+        // Afficher le contenu
+        content.style.display = 'block';
+        chevron.className = 'bi bi-chevron-up';
+        block.classList.remove('collapsed');
+    } else {
+        // Masquer le contenu
+        content.style.display = 'none';
+        chevron.className = 'bi bi-chevron-down';
+        block.classList.add('collapsed');
+    }
+}
+
+// Fonction pour toggle le bloc Poste Précédent
+function togglePreviousShiftBlock(event) {
+    // Ne pas toggle si on clique sur un bouton ou sur les actions
+    if (event && event.target.closest('.block-actions')) {
+        return;
+    }
+    
+    const content = document.getElementById('previous-shift-content');
+    const chevron = document.getElementById('previous-shift-chevron');
+    const block = document.getElementById('previous-shift-block');
+    
+    if (!content || !chevron || !block) return;
+    
+    if (content.style.display === 'none') {
+        // Afficher le contenu
+        content.style.display = 'block';
+        chevron.className = 'bi bi-chevron-up';
+        block.classList.remove('collapsed');
+        
+        // Charger les données du poste précédent une seule fois
+        if (!content.dataset.loaded) {
+            currentShiftOffset = 0; // Réinitialiser l'offset
+            loadPreviousShiftData(0);
+            content.dataset.loaded = 'true';
+            
+            // Gérer l'état initial du bouton Dernier
+            const lastButton = document.querySelector('#previous-shift-block button[onclick*="navigateToLastShift"]');
+            if (lastButton) {
+                lastButton.disabled = true;
+                lastButton.style.opacity = '0.5';
+                lastButton.style.cursor = 'not-allowed';
+            }
+        }
+    } else {
+        // Masquer le contenu
+        content.style.display = 'none';
+        chevron.className = 'bi bi-chevron-down';
+        block.classList.add('collapsed');
+    }
+}
+
+// Fonction pour charger uniquement le header du poste précédent
+function loadPreviousShiftHeader(offset = 0) {
+    fetch(`/get-previous-shift/?offset=${offset}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.shift) {
+                const headerElement = document.getElementById('previous-shift-header');
+                if (headerElement) {
+                    // Convertir la date au format voulu
+                    const dateParts = data.shift.date.split('/');
+                    const date = new Date(dateParts[2], dateParts[1] - 1, dateParts[0]);
+                    const options = { weekday: 'short', day: 'numeric', month: 'short' };
+                    const formattedDate = date.toLocaleDateString('fr-FR', options).replace('.', '');
+                    
+                    headerElement.innerHTML = `<span style="font-size: 0.9rem; opacity: 0.7;">${formattedDate}</span> ${data.shift.operator_name} - ${data.shift.vacation} <span style="font-size: 0.9rem; opacity: 0.7;">(${data.shift.start_time} - ${data.shift.end_time})</span>`;
+                }
+                
+                // Gérer l'état initial du bouton Dernier quand on est au dernier poste (offset = 0)
+                const lastButton = document.querySelector('#previous-shift-block button[onclick*="navigateToLastShift"]');
+                if (lastButton && offset === 0) {
+                    lastButton.disabled = true;
+                    lastButton.style.opacity = '0.5';
+                    lastButton.style.cursor = 'not-allowed';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement du header du poste précédent:', error);
+        });
+}
+
+// Fonction pour charger les données du poste précédent
+function loadPreviousShiftData(offset = 0) {
+    const container = document.querySelector('#previous-shift-content .previous-shift-info');
+    
+    // Faire un appel AJAX pour récupérer les données du dernier poste
+    fetch(`/get-previous-shift/?offset=${offset}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Données reçues:', data);
+            console.log('Checklist data:', data.shift ? data.shift.checklist : 'No shift');
+            if (data.shift) {
+                // Mettre à jour le header avec les infos du poste
+                const headerElement = document.getElementById('previous-shift-header');
+                if (headerElement) {
+                    // Convertir la date au format voulu
+                    const dateParts = data.shift.date.split('/');
+                    const date = new Date(dateParts[2], dateParts[1] - 1, dateParts[0]);
+                    const options = { weekday: 'short', day: 'numeric', month: 'short' };
+                    const formattedDate = date.toLocaleDateString('fr-FR', options).replace('.', '');
+                    
+                    headerElement.innerHTML = `<span style="font-size: 0.9rem; opacity: 0.7;">${formattedDate}</span> ${data.shift.operator_name} - ${data.shift.vacation} <span style="font-size: 0.9rem; opacity: 0.7;">(${data.shift.start_time} - ${data.shift.end_time})</span>`;
+                }
+                let html = `
+                    <div class="previous-shift-details">
+                        <div class="row">
+                            <div class="col-8">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="mb-2">
+                                            <strong>Opérateur:</strong> ${data.shift.operator_name || '--'}
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="mb-2">
+                                            <strong>Durée:</strong> ${data.shift.start_time || '--'} - ${data.shift.end_time || '--'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="mb-2">
+                                            <strong>Date:</strong> ${data.shift.date || '--'}
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="mb-2">
+                                            <strong>Vacation:</strong> ${data.shift.vacation || '--'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <strong>Commentaires:</strong><br>
+                                        <small>${data.shift.operator_comments || '--'}</small>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <strong>Temps déclarés:</strong><br>
+                                        ${data.shift.lost_times && data.shift.lost_times.length > 0 ? `
+                                            <small>
+                                                ${data.shift.lost_times.map(lt => `
+                                                    ${lt.motif}: ${lt.duration} min ${lt.comment ? `(${lt.comment})` : ''}
+                                                `).join('<br>')}
+                                                <br><strong>Total: ${data.shift.total_lost_time} min</strong>
+                                            </small>
+                                        ` : '<small>--</small>'}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <strong>Check-list:</strong>
+                                ${data.shift.checklist && data.shift.checklist.length > 0 ? `
+                                    <div class="checklist-summary" style="font-size: 0.85rem;">
+                                        ${data.shift.checklist.map(item => `
+                                            <div class="d-flex justify-content-between align-items-center" style="margin-bottom: 2px;">
+                                                <span style="font-size: 0.8rem; text-align: right; flex-grow: 1; padding-right: 10px;">${item.item_name}:</span>
+                                                <span class="badge ${
+                                                    item.response === 'ok' ? 'bg-success' : 
+                                                    item.response === 'nok' ? 'bg-danger' : 
+                                                    'bg-secondary'
+                                                }" style="font-size: 0.7rem; padding: 2px 6px; line-height: 1;">${item.response_display || item.response.toUpperCase()}</span>
+                                            </div>
+                                        `).join('')}
+                                        ${data.shift.checklist_signed ? `
+                                            <div class="mt-2 text-end">
+                                                <small><strong>Signature:</strong> ${data.shift.checklist_signed} ${data.shift.checklist_signed_time ? `(${data.shift.checklist_signed_time})` : ''}</small>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                ` : '<small class="text-muted">Aucune donnée</small>'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML = html;
+                
+                // Gérer l'état des boutons de navigation
+                const prevButton = document.querySelector('button[onclick*="navigateToPreviousShift"]');
+                const lastButton = document.querySelector('button[onclick*="navigateToLastShift"]');
+                
+                if (prevButton) {
+                    prevButton.disabled = !data.has_more;
+                    if (!data.has_more) {
+                        prevButton.style.opacity = '0.5';
+                        prevButton.style.cursor = 'not-allowed';
+                    } else {
+                        prevButton.style.opacity = '1';
+                        prevButton.style.cursor = 'pointer';
+                    }
+                }
+                
+                if (lastButton) {
+                    lastButton.disabled = currentShiftOffset === 0;
+                    if (currentShiftOffset === 0) {
+                        lastButton.style.opacity = '0.5';
+                        lastButton.style.cursor = 'not-allowed';
+                    } else {
+                        lastButton.style.opacity = '1';
+                        lastButton.style.cursor = 'pointer';
+                    }
+                }
+            } else {
+                // Réinitialiser le header si aucun poste
+                const headerElement = document.getElementById('previous-shift-header');
+                if (headerElement) {
+                    headerElement.textContent = 'Aucun poste trouvé';
+                }
+                container.innerHTML = `
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-info-circle"></i> Aucun poste précédent trouvé
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement du poste précédent:', error);
+            container.innerHTML = `
+                <div class="text-center text-danger py-3">
+                    <i class="bi bi-exclamation-triangle"></i> Erreur de chargement<br>
+                    <small>${error.message}</small>
+                </div>
+            `;
+        });
+}
+
 // Fonction pour toggle le bloc Contrôles Qualité
 function toggleQualityControlsBlock() {
     const content = document.getElementById('quality-controls-content');
@@ -2609,7 +2988,7 @@ function handleProfileChange(profileId) {
                     html += `
                         <div class="card mb-3">
                             <div class="card-body py-2 px-3">
-                                <div class="row g-3 align-items-center justify-content-center">
+                                <div class="row g-3 align-items-center">
                                     <div class="col-md-10">
                                         <div class="row g-2">
                                             <div class="col-md-3">
@@ -2678,8 +3057,8 @@ function handleProfileChange(profileId) {
                     html += `
                         <div class="card">
                             <div class="card-body py-2 px-3">
-                                <div class="row g-3 align-items-center justify-content-center">
-                                    <div class="col-md-10">
+                                <div class="row g-3 align-items-center">
+                                    <div class="col-12">
                                         <div class="row g-2">
                                             <div class="col-md-4">
                                                 <div class="small">
@@ -3160,7 +3539,7 @@ function loadThicknessSpecifications() {
         window.thicknessSpecs = data;
         thicknessSpecsLoaded = true;
         console.log('Spécifications d\'épaisseur chargées:', data);
-        console.log('Seuils: Rouge < ' + data.ep_mini + ', Orange: ' + data.ep_mini + ' à ' + data.ep_mini_alerte + ', Vert > ' + data.ep_mini_alerte);
+        // console.log('Seuils: Rouge < ' + data.ep_mini + ', Orange: ' + data.ep_mini + ' à ' + data.ep_mini_alerte + ', Vert > ' + data.ep_mini_alerte);
         
         // Afficher le nom des spécifications
         const specNameElement = document.getElementById('thickness-spec-name');
@@ -3247,11 +3626,11 @@ function updateThicknessCounter() {
     // Mettre à jour l'affichage
     thicknessProgressElement.textContent = `Epaisseurs : ${filledMeasurements}/${requiredMeasurements}`;
     
-    console.log('Compteur d\'épaisseur mis à jour:', {
-        targetLength: targetLength,
-        requiredMeasurements: requiredMeasurements,
-        filledMeasurements: filledMeasurements
-    });
+    // console.log('Compteur d\'épaisseur mis à jour:', {
+    //     targetLength: targetLength,
+    //     requiredMeasurements: requiredMeasurements,
+    //     filledMeasurements: filledMeasurements
+    // });
 }
 
 // Fonction pour mettre à jour le compteur NOK
@@ -3285,9 +3664,9 @@ function updateNokCounter() {
     // Mettre à jour l'affichage
     nokCountElement.textContent = `${totalNokCount} NOK`;
     
-    console.log('Compteur NOK mis à jour:', {
-        totalNokCount: totalNokCount
-    });
+    // console.log('Compteur NOK mis à jour:', {
+    //     totalNokCount: totalNokCount
+    // });
 }
 
 // Fonction pour valider les valeurs d'épaisseur selon les spécifications
@@ -3295,13 +3674,13 @@ function validateThickness(input) {
     const value = parseFloat(input.value);
     const isCatchup = input.getAttribute('data-catchup') === 'true';
     
-    console.log('validateThickness:', {
-        value: value,
-        isCatchup: isCatchup,
-        meter: input.getAttribute('data-meter'),
-        point: input.getAttribute('data-point'),
-        specs: window.thicknessSpecs
-    });
+    // console.log('validateThickness:', {
+    //     value: value,
+    //     isCatchup: isCatchup,
+    //     meter: input.getAttribute('data-meter'),
+    //     point: input.getAttribute('data-point'),
+    //     specs: window.thicknessSpecs
+    // });
     
     // Retirer toutes les classes de coloration
     input.classList.remove('thickness-ok', 'thickness-warning', 'thickness-critical', 'valid');
@@ -3323,11 +3702,11 @@ function validateThickness(input) {
         return;
     }
     
-    console.log('=== VALIDATION ÉPAISSEUR ===');
-    console.log('Valeur entrée:', value);
-    console.log('Profil utilisé:', specs.name);
-    console.log('Seuils: Rouge<' + specs.ep_mini + ' | Orange: ' + specs.ep_mini + '-' + specs.ep_mini_alerte + ' | Vert: ' + specs.ep_mini_alerte + '-' + specs.ep_max_alerte + ' | Orange>' + specs.ep_max_alerte);
-    console.log('Tests: value<ep_mini=' + (value < specs.ep_mini) + ' | value<ep_mini_alerte=' + (value < specs.ep_mini_alerte) + ' | value>ep_max_alerte=' + (value > specs.ep_max_alerte));
+    // console.log('=== VALIDATION ÉPAISSEUR ===');
+    // console.log('Valeur entrée:', value);
+    // console.log('Profil utilisé:', specs.name);
+    // console.log('Seuils: Rouge<' + specs.ep_mini + ' | Orange: ' + specs.ep_mini + '-' + specs.ep_mini_alerte + ' | Vert: ' + specs.ep_mini_alerte + '-' + specs.ep_max_alerte + ' | Orange>' + specs.ep_max_alerte);
+    // console.log('Tests: value<ep_mini=' + (value < specs.ep_mini) + ' | value<ep_mini_alerte=' + (value < specs.ep_mini_alerte) + ' | value>ep_max_alerte=' + (value > specs.ep_max_alerte));
     
     if (value < specs.ep_mini) {
         // Rouge : en dessous du minimum critique (NOK)
@@ -3347,12 +3726,12 @@ function validateThickness(input) {
     
     // Gérer l'affichage du champ de rattrapage
     if (!isCatchup) {
-        console.log('Champ principal, status:', status);
+        // console.log('Champ principal, status:', status);
         if (status === 'nok') {
             console.log('Affichage du rattrapage...');
             showCatchupField(input);
         } else {
-            console.log('Masquage du rattrapage...');
+            // console.log('Masquage du rattrapage...');
             hideCatchupField(input);
         }
     } else {
@@ -3442,26 +3821,26 @@ function areAllThicknessMeasurementsFilled() {
         }
     });
     
-    console.log('Vérification complétude épaisseur:', {
-        requiredMeasurements: requiredMeasurements,
-        filledMeasurements: filledMeasurements,
-        isComplete: filledMeasurements >= requiredMeasurements
-    });
+    // console.log('Vérification complétude épaisseur:', {
+    //     requiredMeasurements: requiredMeasurements,
+    //     filledMeasurements: filledMeasurements,
+    //     isComplete: filledMeasurements >= requiredMeasurements
+    // });
     
     return filledMeasurements >= requiredMeasurements;
 }
 
 function updateRollConformity() {
-    console.log('updateRollConformity appelée');
+    // console.log('updateRollConformity appelée');
     
     if (!window.thicknessSpecs) {
-        console.log('Specs non chargées');
+        // console.log('Specs non chargées');
         return;
     }
     
     let conformityDisplay = document.getElementById('conformity-status');
     if (!conformityDisplay) {
-        console.log('Element conformity-status non trouvé, création...');
+        // console.log('Element conformity-status non trouvé, création...');
         // Créer l'élément s'il n'existe pas
         const rollStatusDiv = document.querySelector('.roll-status-display');
         if (rollStatusDiv) {
@@ -3470,16 +3849,16 @@ function updateRollConformity() {
             conformityDisplay.className = 'badge bg-secondary';
             conformityDisplay.textContent = '--';
             rollStatusDiv.appendChild(conformityDisplay);
-            console.log('Element conformity-status créé');
+            // console.log('Element conformity-status créé');
         } else {
-            console.log('Conteneur .roll-status-display non trouvé');
+            // console.log('Conteneur .roll-status-display non trouvé');
             return;
         }
     }
     
-    console.log('Element conformity-status trouvé:', conformityDisplay);
-    console.log('Classes actuelles:', conformityDisplay.className);
-    console.log('Styles actuels:', conformityDisplay.style.cssText);
+    // console.log('Element conformity-status trouvé:', conformityDisplay);
+    // console.log('Classes actuelles:', conformityDisplay.className);
+    // console.log('Styles actuels:', conformityDisplay.style.cssText);
     
     const allThicknessInputs = document.querySelectorAll('.thickness-input[data-point]:not([data-catchup])');
     let totalNokCount = 0; // Compte TOUTES les NOK (même rattrapées)
@@ -3534,7 +3913,7 @@ function updateRollConformity() {
         const defectType = defectTypes.find(defect => defect.name === defectName);
         
         if (defectType) {
-            console.log(`Défaut ${defectName}: ${count} occurrence(s) - severity: ${defectType.severity}`);
+            // console.log(`Défaut ${defectName}: ${count} occurrence(s) - severity: ${defectType.severity}`);
             
             if (defectType.severity === 'blocking') {
                 // Défaut directement bloquant
@@ -3542,16 +3921,32 @@ function updateRollConformity() {
             } else if (defectType.severity === 'threshold') {
                 // Défaut bloquant selon seuil
                 if (count >= defectType.threshold_value) {
-                    console.log(`Seuil dépassé pour ${defectName}: ${count} >= ${defectType.threshold_value}`);
+                    // console.log(`Seuil dépassé pour ${defectName}: ${count} >= ${defectType.threshold_value}`);
                     blockingDefectsCount += count;
                 }
             }
             // non_blocking = ne compte pas
         } else {
-            console.log(`Défaut inconnu: ${defectName}`);
+            // console.log(`Défaut inconnu: ${defectName}`);
         }
     });
     
+    // Vérifier le grammage (masse surfacique)
+    let grammageNonConforme = false;
+    const grammageElement = document.getElementById('grammage');
+    if (grammageElement && grammageElement.textContent !== '--') {
+        const grammageText = grammageElement.textContent.replace(' g/m²', '');
+        const grammageValue = parseFloat(grammageText);
+        
+        if (!isNaN(grammageValue)) {
+            // Valeurs en dur pour 80g/m² (on s'en fout du profil pour l'instant)
+            // min: 72, min_alert: 76, max_alert: 84, max: 88
+            if (grammageValue < 72 || grammageValue > 88) {
+                grammageNonConforme = true;
+                // console.log(`Grammage NON CONFORME: ${grammageValue} g/m²`);
+            }
+        }
+    }
     
     // Vérifier si toutes les mesures d'épaisseur sont remplies
     const allThicknessMeasurementsFilled = areAllThicknessMeasurementsFilled();
@@ -3565,10 +3960,11 @@ function updateRollConformity() {
     let conformityClass = '';
     let isCompliant = false;
     
-    // NON CONFORME si : trop de NOK au total OU une seule NOK non résolue OU défauts bloquants
+    // NON CONFORME si : trop de NOK au total OU une seule NOK non résolue OU défauts bloquants OU grammage hors specs
     if (totalNokCount >= window.thicknessSpecs.max_nok || 
         unresolvedNokCount > 0 || 
-        blockingDefectsCount > 0) {
+        blockingDefectsCount > 0 ||
+        grammageNonConforme) {
         conformityText = 'NON CONFORME';
         conformityClass = 'badge bg-danger';
         isCompliant = false;
@@ -3626,10 +4022,10 @@ function updateRollConformity() {
         conformityDisplay.style.setProperty('font-weight', 'bold', 'important');
     }
     
-    console.log(`État rouleau: ${totalNokCount} NOK total, ${unresolvedNokCount} NOK non résolues, ${blockingDefectsCount} défauts bloquants - ${conformityText}`);
-    console.log(`Mesures d'épaisseur complètes: ${allThicknessMeasurementsFilled ? 'OUI' : 'NON'}`);
-    console.log(`Présence de mesures d'épaisseur: ${hasAnyThicknessMeasurements ? 'OUI' : 'NON'}`);
-    console.log('Affichage mis à jour:', conformityDisplay.textContent, conformityDisplay.className);
+    // console.log(`État rouleau: ${totalNokCount} NOK total, ${unresolvedNokCount} NOK non résolues, ${blockingDefectsCount} défauts bloquants - ${conformityText}`);
+    // console.log(`Mesures d'épaisseur complètes: ${allThicknessMeasurementsFilled ? 'OUI' : 'NON'}`);
+    // console.log(`Présence de mesures d'épaisseur: ${hasAnyThicknessMeasurements ? 'OUI' : 'NON'}`);
+    // console.log('Affichage mis à jour:', conformityDisplay.textContent, conformityDisplay.className);
     
     // Mettre à jour le panneau de validation quand le statut de conformité change
     updateValidationInfoPanel();
@@ -4048,12 +4444,12 @@ function restoreRollData(rollData) {
 
 // Fonction pour synchroniser les valeurs avec la sticky bar
 function syncStickyBarValues() {
-    console.log('syncStickyBarValues appelé');
+    // console.log('syncStickyBarValues appelé');
     // Synchroniser le numéro de rouleau
     const rollNumber = document.getElementById('roll-number')?.value || '--';
     const stickyRollNumber = document.getElementById('sticky-roll-number');
     if (stickyRollNumber) {
-        console.log('Sync roll number:', rollNumber);
+        // console.log('Sync roll number:', rollNumber);
         stickyRollNumber.textContent = rollNumber;
     }
     
@@ -4128,20 +4524,20 @@ function calculateMassNetAndGrammage() {
         const tubeMassValue = parseFloat(document.getElementById('tube-mass')?.value) || 0;
         const rollLengthValue = parseFloat(document.getElementById('roll-length')?.value) || 0;
         
-        console.log('calculateMassNetAndGrammage - valeurs:', {
-            totalMassValue,
-            tubeMassValue,
-            rollLengthValue
-        });
+        // console.log('calculateMassNetAndGrammage - valeurs:', {
+        //     totalMassValue,
+        //     tubeMassValue,
+        //     rollLengthValue
+        // });
     
     // Récupérer les éléments d'affichage
     const massNetElement = document.getElementById('mass-net');
     const grammageElement = document.getElementById('grammage');
     
-    console.log('Éléments trouvés:', {
-        massNetElement: !!massNetElement,
-        grammageElement: !!grammageElement
-    });
+    // console.log('Éléments trouvés:', {
+    //     massNetElement: !!massNetElement,
+    //     grammageElement: !!grammageElement
+    // });
     
     // Calculer la masse nette (g) = masse totale - masse tube
     let massNet = '--';
@@ -4156,10 +4552,10 @@ function calculateMassNetAndGrammage() {
         grammage = (massNetValue / rollLengthValue).toFixed(2);
     }
     
-    console.log('Valeurs calculées:', {
-        massNet,
-        grammage
-    });
+    // console.log('Valeurs calculées:', {
+    //     massNet,
+    //     grammage
+    // });
     
     // Mettre à jour les éléments d'affichage avec validation des couleurs
     if (massNetElement) {
@@ -4189,6 +4585,11 @@ function calculateMassNetAndGrammage() {
             grammageElement.style.color = color;
         }
     }
+    
+    // Mettre à jour la conformité après changement du grammage
+    setTimeout(() => {
+        updateRollConformity();
+    }, 100);
     
     // Mettre à jour le panneau de validation après calcul des masses
     updateValidationInfoPanel();
@@ -5273,6 +5674,9 @@ document.addEventListener('DOMContentLoaded', function() {
     loadFabricationOrders();
     // Ne pas charger les specs ici, attendre que le profil soit chargé
     loadAllSpecifications(); // Charger toutes les spécifications pour les contrôles qualité
+    
+    // Charger le header du poste précédent
+    loadPreviousShiftHeader();
     
     // Appliquer la validation numérique
     enforceNumericQualityControls();

@@ -81,3 +81,66 @@ class ChecklistResponse(models.Model):
     
     def __str__(self):
         return f"{self.shift} - {self.item.text}: {self.get_response_display()}"
+
+
+class MachineParametersHistory(models.Model):
+    """Historique des modifications des paramètres machine."""
+    
+    # Référence au shift en cours au moment de la modification
+    shift = models.ForeignKey('production.Shift', on_delete=models.SET_NULL, 
+                            null=True, blank=True,
+                            related_name='machine_parameters_history',
+                            verbose_name="Poste en cours")
+    
+    # Horodatage de la modification
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Date/heure de modification")
+    
+    # Opérateur qui a fait la modification
+    modified_by = models.ForeignKey('core.Operator', on_delete=models.SET_NULL,
+                                  null=True, blank=True,
+                                  verbose_name="Modifié par")
+    
+    # Nom du paramètre pour identification
+    parameter_name = models.CharField(max_length=100, verbose_name="Nom du paramètre")
+    
+    # Valeurs avant/après
+    old_value = models.DecimalField(max_digits=10, decimal_places=2, 
+                                   null=True, blank=True,
+                                   verbose_name="Ancienne valeur")
+    new_value = models.DecimalField(max_digits=10, decimal_places=2,
+                                   verbose_name="Nouvelle valeur")
+    
+    # Type de paramètre pour faciliter les requêtes
+    PARAMETER_TYPE_CHOICES = [
+        ('oxygen_primary', 'Oxygène primaire'),
+        ('oxygen_secondary', 'Oxygène secondaire'),
+        ('propane_primary', 'Propane primaire'),
+        ('propane_secondary', 'Propane secondaire'),
+        ('speed_primary', 'Vitesse primaire'),
+        ('speed_secondary', 'Vitesse secondaire'),
+        ('belt_speed', 'Vitesse bande'),
+    ]
+    parameter_type = models.CharField(max_length=50, choices=PARAMETER_TYPE_CHOICES,
+                                    verbose_name="Type de paramètre")
+    
+    # Commentaire optionnel
+    comment = models.TextField(blank=True, verbose_name="Commentaire")
+    
+    # Référence aux paramètres machine complets au moment du changement
+    machine_parameters = models.ForeignKey('production.MachineParameters',
+                                         on_delete=models.SET_NULL,
+                                         null=True, blank=True,
+                                         verbose_name="Paramètres machine")
+    
+    class Meta:
+        verbose_name = "Historique des paramètres machine"
+        verbose_name_plural = "Historiques des paramètres machine"
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['-timestamp']),
+            models.Index(fields=['shift', '-timestamp']),
+            models.Index(fields=['parameter_type', '-timestamp']),
+        ]
+    
+    def __str__(self):
+        return f"{self.parameter_name}: {self.old_value} → {self.new_value} ({self.timestamp.strftime('%d/%m/%Y %H:%M')})"

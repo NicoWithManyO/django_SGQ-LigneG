@@ -773,6 +773,8 @@ window.forceUpdateShiftButtonState = function() {
 window.updateShiftButtonState = updateShiftButtonState;
 
 // Forcer une mise à jour toutes les 2 secondes pour tester
+// Commenté pour éviter le spam de console
+/*
 setInterval(function() {
     const saveBtn = document.getElementById('save-shift-btn');
     if (saveBtn) {
@@ -780,6 +782,7 @@ setInterval(function() {
         updateShiftButtonState();
     }
 }, 2000);
+*/
 
 // Event listener global pour HTMX swap (clear automatique)
 document.body.addEventListener('htmx:afterSwap', function(e) {

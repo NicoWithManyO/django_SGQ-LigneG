@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ChecklistTemplate, ChecklistItem, ChecklistResponse
+from .models import ChecklistTemplate, ChecklistItem, ChecklistResponse, MachineParametersHistory
 
 
 class ChecklistItemInline(admin.TabularInline):
@@ -81,4 +81,40 @@ class ChecklistResponseAdmin(admin.ModelAdmin):
     
     def has_change_permission(self, request, obj=None):
         """Les réponses sont en lecture seule."""
+        return False
+
+
+@admin.register(MachineParametersHistory)
+class MachineParametersHistoryAdmin(admin.ModelAdmin):
+    """Admin pour l'historique des paramètres machine."""
+    list_display = ('timestamp', 'parameter_name', 'old_value', 'new_value', 'shift', 'modified_by')
+    list_filter = ('parameter_type', 'timestamp', 'modified_by')
+    search_fields = ('parameter_name', 'shift__shift_id', 'comment')
+    readonly_fields = ('timestamp', 'shift', 'modified_by', 'parameter_name', 'parameter_type',
+                      'old_value', 'new_value', 'machine_parameters', 'comment')
+    date_hierarchy = 'timestamp'
+    ordering = ['-timestamp']
+    
+    fieldsets = (
+        ('Informations de modification', {
+            'fields': ('timestamp', 'shift', 'modified_by')
+        }),
+        ('Paramètre modifié', {
+            'fields': ('parameter_name', 'parameter_type', 'old_value', 'new_value')
+        }),
+        ('Contexte', {
+            'fields': ('machine_parameters', 'comment')
+        })
+    )
+    
+    def has_add_permission(self, request):
+        """L'historique est créé automatiquement."""
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        """L'historique est en lecture seule."""
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        """Empêcher la suppression de l'historique."""
         return False

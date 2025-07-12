@@ -363,6 +363,11 @@ class Roll(models.Model):
                                   verbose_name="Masse nette (g)",
                                   help_text="Masse totale - Masse tube")
     
+    # Commentaire
+    comment = models.TextField(blank=True, null=True,
+                             verbose_name="Commentaire",
+                             help_text="Commentaire libre sur le rouleau")
+    
     # Métadonnées
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
