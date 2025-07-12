@@ -1103,6 +1103,13 @@ function confirmSaveShift() {
         return;
     }
     
+    // Vérifier si la check-list est signée
+    const signatureInput = document.getElementById('operator-signature');
+    if (!signatureInput || !signatureInput.value.trim()) {
+        alert('La check-list doit être complétée et signée avant de sauvegarder le poste.');
+        return;
+    }
+    
     // Vérifier si machine démarrée en fin de poste et métrage renseigné
     const startedAtEnd = document.querySelector('input[name="started_at_end"]');
     const meterReadingEnd = document.querySelector('input[name="meter_reading_end"]');

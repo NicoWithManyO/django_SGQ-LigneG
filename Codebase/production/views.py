@@ -5,10 +5,11 @@ from django.views.decorators.http import require_http_methods, require_POST
 from django_htmx.http import HttpResponseClientRedirect
 import json
 from datetime import datetime
-from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness, LostTimeEntry
+from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness, LostTimeEntry, MachineParameters
 from .forms import ShiftForm
-from core.models import Operator, FabricationOrder
+from core.models import Operator, FabricationOrder, Profile, Mode
 from quality.models import DefectType
+from wcm.models import ChecklistTemplate, ChecklistItem, ChecklistResponse
 
 
 def get_last_meter_reading(request):
@@ -35,14 +36,89 @@ def get_last_meter_reading(request):
         })
 
 
+def get_profile_parameters(request, profile_id):
+    """Récupère les paramètres machine et spécifications d'un profil."""
+    try:
+        profile = Profile.objects.prefetch_related('specifications').get(pk=profile_id)
+        
+        response_data = {'success': True}
+        
+        # Paramètres machine
+        if profile.machine_parameters:
+            params = profile.machine_parameters
+            response_data['parameters'] = {
+                'name': params.name,
+                'oxygen_primary': float(params.oxygen_primary) if params.oxygen_primary else None,
+                'oxygen_secondary': float(params.oxygen_secondary) if params.oxygen_secondary else None,
+                'propane_primary': float(params.propane_primary) if params.propane_primary else None,
+                'propane_secondary': float(params.propane_secondary) if params.propane_secondary else None,
+                'speed_primary': float(params.speed_primary) if params.speed_primary else None,
+                'speed_secondary': float(params.speed_secondary) if params.speed_secondary else None,
+                'belt_speed': float(params.belt_speed) if params.belt_speed else None,
+                'belt_speed_m_per_minute': params.belt_speed_m_per_minute,
+            }
+        else:
+            response_data['parameters'] = None
+            
+        # Spécifications
+        specifications = {}
+        for spec in profile.specifications.filter(is_active=True):
+            specifications[spec.spec_type] = {
+                'name': spec.name,
+                'type': spec.get_spec_type_display(),
+                'value_min': float(spec.value_min) if spec.value_min else None,
+                'value_min_alert': float(spec.value_min_alert) if spec.value_min_alert else None,
+                'value_nominal': float(spec.value_nominal) if spec.value_nominal else None,
+                'value_max_alert': float(spec.value_max_alert) if spec.value_max_alert else None,
+                'value_max': float(spec.value_max) if spec.value_max else None,
+                'unit': spec.unit,
+                'max_nok': spec.max_nok,
+            }
+        response_data['specifications'] = specifications
+        
+        return JsonResponse(response_data)
+        
+    except Profile.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Profil non trouvé'
+        })
+
+
 def prod(request):
     """Vue principale de production."""
     shifts = Shift.objects.select_related('operator').order_by('-date', '-created_at')[:10]
     defect_types = DefectType.objects.filter(is_active=True).order_by('name')
     
+    # Récupérer le template de check-list par défaut ou le premier actif
+    checklist_template = ChecklistTemplate.objects.filter(
+        is_active=True
+    ).order_by('-is_default', 'name').first()
+    
+    # Récupérer les items de la check-list
+    checklist_items = []
+    if checklist_template:
+        checklist_items = checklist_template.items.filter(
+            is_active=True
+        ).order_by('order')
+    
+    # Récupérer les paramètres machine actifs
+    machine_parameters = MachineParameters.objects.filter(is_active=True).order_by('name')
+    
+    # Récupérer les profils actifs
+    profiles = Profile.objects.filter(is_active=True).order_by('name')
+    
+    # Récupérer les modes actifs
+    modes = Mode.objects.filter(is_active=True).order_by('name')
+    
     context = {
         'shifts': shifts,
         'defect_types': defect_types,
+        'checklist_template': checklist_template,
+        'checklist_items': checklist_items,
+        'machine_parameters': machine_parameters,
+        'profiles': profiles,
+        'modes': modes,
     }
     return render(request, 'production/prod.html', context)
 
@@ -58,9 +134,10 @@ def shift_block(request, shift_id=None):
         form = ShiftForm(request.POST, instance=shift)
         if form.is_valid():
             
-            # VÉRIFIER LES CONTRÔLES QUALITÉ AVANT DE SAUVEGARDER LE SHIFT
+            # VÉRIFIER LES CONTRÔLES QUALITÉ ET LA CHECK-LIST AVANT DE SAUVEGARDER LE SHIFT
             session_key = request.session.session_key
             all_quality_filled = False
+            checklist_signed = False
             
             if session_key:
                 try:
@@ -83,12 +160,34 @@ def shift_block(request, shift_id=None):
                     # Vérifier si TOUS les contrôles sont remplis
                     all_quality_filled = micrometers_filled and sizing_bath_filled and mass_filled and loi_filled
                     
+                    # VÉRIFIER LA CHECK-LIST
+                    checklist_data = current_prod.form_data.get('checklistData', {})
+                    checklist_signature = checklist_data.get('signature', '').strip()
+                    checklist_signed = bool(checklist_signature)
+                    
                 except CurrentProd.DoesNotExist:
                     all_quality_filled = False
+                    checklist_signed = False
             
             # BLOQUER LA SAUVEGARDE SI LES CONTRÔLES NE SONT PAS COMPLETS
             if not all_quality_filled:
                 error_message = "Tous les contrôles qualité doivent être remplis avant de sauvegarder le poste."
+                if request.htmx:
+                    # Retourner le formulaire avec une alerte JavaScript
+                    context = {
+                        'form': form, 
+                        'shift': shift, 
+                        'is_edit': shift is not None,
+                        'show_alert': error_message
+                    }
+                    return render(request, 'production/blocks/shift_block.html', context)
+                else:
+                    messages.error(request, error_message)
+                    return redirect('production:prod')
+            
+            # BLOQUER LA SAUVEGARDE SI LA CHECK-LIST N'EST PAS SIGNÉE
+            if not checklist_signed:
+                error_message = "La check-list doit être complétée et signée avant de sauvegarder le poste."
                 if request.htmx:
                     # Retourner le formulaire avec une alerte JavaScript
                     context = {
@@ -211,6 +310,48 @@ def shift_block(request, shift_id=None):
                     
                     except CurrentProd.DoesNotExist:
                         pass
+                    
+                    # Sauvegarder la check-list
+                    if session_key:
+                        try:
+                            current_prod = CurrentProd.objects.get(session_key=session_key)
+                            checklist_data = current_prod.form_data.get('checklistData', {})
+                            
+                            if checklist_data:
+                                # Sauvegarder la signature et l'heure dans le shift
+                                signature = checklist_data.get('signature', '').strip()
+                                signature_time = checklist_data.get('signatureTime', '')
+                                
+                                if signature:
+                                    shift.checklist_signed = signature
+                                    # Parser l'heure si elle est au format HH:MM
+                                    if signature_time and signature_time != '--':
+                                        try:
+                                            shift.checklist_signed_time = datetime.strptime(signature_time, '%H:%M').time()
+                                        except:
+                                            pass
+                                    shift.save(update_fields=['checklist_signed', 'checklist_signed_time'])
+                                
+                                # Sauvegarder les réponses de la check-list
+                                for item_key, response_value in checklist_data.items():
+                                    if item_key.startswith('item-') and response_value:
+                                        try:
+                                            item_id = int(item_key.replace('item-', ''))
+                                            item = ChecklistItem.objects.get(id=item_id)
+                                            
+                                            # Créer ou mettre à jour la réponse
+                                            ChecklistResponse.objects.update_or_create(
+                                                shift=shift,
+                                                item=item,
+                                                defaults={'response': response_value}
+                                            )
+                                        except (ValueError, ChecklistItem.DoesNotExist):
+                                            pass
+                                
+                                print(f"Check-list sauvegardée pour le shift {shift.shift_id}")
+                        
+                        except CurrentProd.DoesNotExist:
+                            pass
                     
                     # Sauvegarder les temps d'arrêt
                     if session_key:

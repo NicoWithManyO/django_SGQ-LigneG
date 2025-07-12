@@ -2,11 +2,114 @@ from django.db import models
 from django.core.exceptions import ValidationError
 
 
+class Profile(models.Model):
+    """Profil de production définissant les paramètres et spécifications."""
+    
+    # Identification
+    name = models.CharField(max_length=50, unique=True, 
+                           verbose_name="Nom du profil",
+                           help_text="Ex: 80g/m², 40g/m²")
+    
+    # Paramètres machine associés
+    machine_parameters = models.ForeignKey(
+        'production.MachineParameters',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='profiles',
+        verbose_name="Paramètres machine",
+        help_text="Paramètres machine associés à ce profil"
+    )
+    
+    # Spécifications qualité associées
+    specifications = models.ManyToManyField(
+        'quality.Specification',
+        blank=True,
+        related_name='profiles',
+        verbose_name="Spécifications",
+        help_text="Spécifications qualité associées à ce profil"
+    )
+    
+    # État
+    is_active = models.BooleanField(default=True, verbose_name="Actif")
+    is_default = models.BooleanField(default=False, verbose_name="Profil par défaut")
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Profil de production"
+        verbose_name_plural = "Profils de production"
+        ordering = ['name']
+    
+    def save(self, *args, **kwargs):
+        # S'assurer qu'il n'y a qu'un seul profil par défaut
+        if self.is_default:
+            Profile.objects.filter(is_default=True).exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return self.name
+
+
+class Mode(models.Model):
+    """Mode de fonctionnement individuel du système."""
+    
+    # Identification
+    name = models.CharField(max_length=50, unique=True,
+                           verbose_name="Nom du mode",
+                           help_text="Ex: Permissif, Dégradé, Maintenance")
+    
+    code = models.SlugField(max_length=50, unique=True,
+                           verbose_name="Code",
+                           help_text="Code technique du mode (ex: permissive, degraded)",
+                           default="mode")
+    
+    description = models.TextField(
+        blank=True,
+        verbose_name="Description",
+        help_text="Description détaillée du mode et de ses implications"
+    )
+    
+    # État du mode
+    is_enabled = models.BooleanField(
+        default=False,
+        verbose_name="Activé",
+        help_text="Indique si ce mode est actuellement activé"
+    )
+    
+    # Configuration
+    is_active = models.BooleanField(default=True, verbose_name="Actif",
+                                   help_text="Mode disponible dans le système")
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Mode de fonctionnement"
+        verbose_name_plural = "Modes de fonctionnement"
+        ordering = ['name']
+    
+    def __str__(self):
+        return f"{self.name} ({'Activé' if self.is_enabled else 'Désactivé'})"
+
+
 class FabricationOrder(models.Model):
     """Modèle représentant un ordre de fabrication."""
     
     # Identifiants
     order_number = models.CharField(max_length=50, unique=True, help_text="Numéro d'ordre de fabrication saisi manuellement")
+    
+    # Profil de production
+    profile = models.ForeignKey(
+        Profile,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='fabrication_orders',
+        verbose_name="Profil de production",
+        help_text="Profil définissant les paramètres et spécifications"
+    )
     
     # Quantités et dimensions
     required_length = models.DecimalField(

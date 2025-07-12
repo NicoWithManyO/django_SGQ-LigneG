@@ -123,7 +123,7 @@
 .productivity-title-tabs {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 15px;
 }
 
 .productivity-tabs {
@@ -135,14 +135,16 @@
 .tab-btn {
     background: rgba(255, 255, 255, 0.1);
     border: none;
-    padding: 4px 10px;
-    font-size: 0.75rem;
+    padding: 2px 8px;
+    font-size: 0.7rem;
     color: rgba(255, 255, 255, 0.7);
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
     border-radius: 3px;
+    line-height: 1.3;
 }
+
 
 .tab-btn:hover {
     background: rgba(255, 255, 255, 0.2);
@@ -150,9 +152,12 @@
 }
 
 .tab-btn.active {
-    background: rgba(255, 255, 255, 0.9);
-    color: var(--primary-text);
-    font-weight: 600;
+    background: white !important;
+    color: #212529 !important;
+}
+
+.tab-btn.active i {
+    color: #212529 !important;
 }
 
 .tab-btn i {
@@ -365,7 +370,7 @@
                 <div class="block-header" style="cursor: pointer;" onclick="event.target.closest('.block-actions') || event.target.tagName === 'BUTTON' ? null : toggleProductiviteBlock()">
                     <div class="productivity-header">
                         <div class="productivity-title-tabs">
-                            <h5 class="block-title mb-0"><i class="bi bi-graph-up"></i> Productivité</h5>
+                            <h5 class="block-title mb-0" id="productivity-block-title"><i class="bi bi-graph-up"></i> Profil : <span id="selected-profile-name">--</span><span id="active-modes-display"></span></h5>
                             <!-- Tabs navigation dans le header -->
                             <div class="productivity-tabs">
                                 <button class="tab-btn active" onclick="showProductivityTab('temps'); event.stopPropagation();" data-tab="temps">
@@ -380,6 +385,7 @@
                             </div>
                         </div>
                         <div class="block-actions">
+                            <button class="tab-btn me-2" onclick="showProductivityTab('parametres'); event.stopPropagation();" data-tab="parametres" style="margin-right: 10px;"><i class="bi bi-gear"></i> Paramètres</button>
                             <i class="bi bi-chevron-up" id="productivite-chevron"></i>
                         </div>
                     </div>
@@ -547,6 +553,42 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Tab: Paramètres Machine -->
+                    <div class="tab-content" id="tab-parametres" style="display: none;">
+                        <!-- Sélecteur de profil et modes -->
+                        <div class="mb-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="profile-selector" class="form-label fw-bold">Profil de production</label>
+                                    <select id="profile-selector" class="form-select" onchange="handleProfileChange(this.value)">
+                                        <option value="">-- Sélectionner un profil --</option>
+                                        {% for profile in profiles %}
+                                        <option value="{{ profile.id }}" {% if profile.name == "80g/m²" %}selected{% endif %}>{{ profile.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6 d-flex flex-column justify-content-center">
+                                    <label class="form-label fw-bold mb-1">Modes</label>
+                                    <div class="modes-toggles d-flex gap-3">
+                                        {% for mode in modes %}
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="mode-{{ mode.code }}" onchange="handleModeToggle('{{ mode.code }}', this.checked)" {% if mode.is_enabled %}checked{% endif %}>
+                                            <label class="form-check-label" for="mode-{{ mode.code }}">
+                                                {{ mode.name }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Affichage des paramètres machine du profil sélectionné -->
+                        <div id="machine-parameters-display" class="mt-4">
+                            <!-- Les paramètres seront affichés ici dynamiquement -->
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -564,58 +606,26 @@
                 </div>
                 <div class="block-content" id="checklist-content">
                     <div class="checklist-items">
+                        {% for item in checklist_items %}
                         <div class="checklist-item d-flex justify-content-between align-items-center mb-3">
-                            <label class="form-label mb-0 flex-grow-1">Paramètres machine vérifiés</label>
+                            <label class="form-label mb-0 flex-grow-1">{{ item.text }}</label>
                             <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-success checklist-btn" data-item="parametres" data-value="ok">OK</button>
-                                <button type="button" class="btn btn-outline-secondary checklist-btn" data-item="parametres" data-value="na">N/A</button>
-                                <button type="button" class="btn btn-outline-danger checklist-btn" data-item="parametres" data-value="nok">NOK</button>
+                                <button type="button" class="btn btn-outline-success checklist-btn" data-item="item-{{ item.id }}" data-value="ok">OK</button>
+                                <button type="button" class="btn btn-outline-secondary checklist-btn" data-item="item-{{ item.id }}" data-value="na">N/A</button>
+                                <button type="button" class="btn btn-outline-danger checklist-btn" data-item="item-{{ item.id }}" data-value="nok">NOK</button>
                             </div>
                         </div>
-                        <div class="checklist-item d-flex justify-content-between align-items-center mb-3">
-                            <label class="form-label mb-0 flex-grow-1">Contrôles qualité effectués</label>
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-success checklist-btn" data-item="qualite" data-value="ok">OK</button>
-                                <button type="button" class="btn btn-outline-secondary checklist-btn" data-item="qualite" data-value="na">N/A</button>
-                                <button type="button" class="btn btn-outline-danger checklist-btn" data-item="qualite" data-value="nok">NOK</button>
-                            </div>
+                        {% empty %}
+                        <div class="alert alert-warning">
+                            Aucun item de check-list configuré. Veuillez configurer un template de check-list dans l'administration.
                         </div>
-                        <div class="checklist-item d-flex justify-content-between align-items-center mb-3">
-                            <label class="form-label mb-0 flex-grow-1">Nettoyage zone de travail</label>
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-success checklist-btn" data-item="nettoyage" data-value="ok">OK</button>
-                                <button type="button" class="btn btn-outline-secondary checklist-btn" data-item="nettoyage" data-value="na">N/A</button>
-                                <button type="button" class="btn btn-outline-danger checklist-btn" data-item="nettoyage" data-value="nok">NOK</button>
-                            </div>
-                        </div>
-                        <div class="checklist-item d-flex justify-content-between align-items-center mb-3">
-                            <label class="form-label mb-0 flex-grow-1">Consignes de sécurité respectées</label>
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-success checklist-btn" data-item="consignes" data-value="ok">OK</button>
-                                <button type="button" class="btn btn-outline-secondary checklist-btn" data-item="consignes" data-value="na">N/A</button>
-                                <button type="button" class="btn btn-outline-danger checklist-btn" data-item="consignes" data-value="nok">NOK</button>
-                            </div>
-                        </div>
-                        <div class="checklist-item d-flex justify-content-between align-items-center mb-3">
-                            <label class="form-label mb-0 flex-grow-1">Documentation à jour</label>
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-success checklist-btn" data-item="documentation" data-value="ok">OK</button>
-                                <button type="button" class="btn btn-outline-secondary checklist-btn" data-item="documentation" data-value="na">N/A</button>
-                                <button type="button" class="btn btn-outline-danger checklist-btn" data-item="documentation" data-value="nok">NOK</button>
-                            </div>
-                        </div>
-                        <div class="checklist-item d-flex justify-content-between align-items-center mb-3">
-                            <label class="form-label mb-0 flex-grow-1">Anomalies signalées</label>
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-success checklist-btn" data-item="anomalies" data-value="ok">OK</button>
-                                <button type="button" class="btn btn-outline-secondary checklist-btn" data-item="anomalies" data-value="na">N/A</button>
-                                <button type="button" class="btn btn-outline-danger checklist-btn" data-item="anomalies" data-value="nok">NOK</button>
-                            </div>
-                        </div>
+                        {% endfor %}
+                        {% if checklist_items %}
                         <div class="signature-field d-flex justify-content-end align-items-center mt-3 gap-2">
                             <small class="text-muted" id="signature-time">--</small>
                             <input type="text" class="form-control fw-bold" id="operator-signature" placeholder="Signature" maxlength="5" style="text-transform: uppercase; width: 100px !important; max-width: 100px !important; text-align: center;">
                         </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -1845,6 +1855,9 @@ document.addEventListener('shiftSaveSuccess', function(e) {
     // Effacer les contrôles qualité APRÈS la sauvegarde réussie
     clearQualityControlsAfterSave();
     
+    // Effacer la check-list APRÈS la sauvegarde réussie
+    clearChecklistAfterSave();
+    
     // Nettoyer les défauts et épaisseurs du rouleau actuel
     // 1. Vider tous les défauts
     document.querySelectorAll('.defect-input-side, .defect-input-center').forEach(input => {
@@ -2503,6 +2516,197 @@ function toggleTempsBlock() {
     }
 }
 
+// Variable pour stocker l'onglet actif
+let lastActiveProductivityTab = 'temps';
+
+// Fonction pour gérer le changement de profil
+function handleProfileChange(profileId) {
+    const parametersDisplay = document.getElementById('machine-parameters-display');
+    const profileSelector = document.getElementById('profile-selector');
+    const selectedProfileName = document.getElementById('selected-profile-name');
+    
+    if (!profileId) {
+        console.log('Aucun profil sélectionné');
+        parametersDisplay.innerHTML = '';
+        selectedProfileName.textContent = '--';
+        updateActiveModeDisplay();
+        return;
+    }
+    
+    // Mettre à jour le nom du profil dans le titre
+    const selectedOption = profileSelector.options[profileSelector.selectedIndex];
+    selectedProfileName.textContent = selectedOption.text;
+    updateActiveModeDisplay();
+    
+    console.log('Profil sélectionné:', profileId);
+    
+    // Charger les paramètres du profil
+    fetch(`/profile/${profileId}/parameters/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let html = '';
+                
+                // Afficher les paramètres machine si disponibles
+                if (data.parameters) {
+                    const params = data.parameters;
+                    html += `
+                        <div class="card mb-3">
+                            <div class="card-body py-2 px-3">
+                                <div class="row g-3 align-items-center justify-content-center">
+                                    <div class="col-md-10">
+                                        <div class="row g-2">
+                                            <div class="col-md-3">
+                                                <strong class="text-muted small">PRIM</strong>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="small">
+                                                    <strong>Oxygène:</strong> ${params.oxygen_primary || '--'}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="small">
+                                                    <strong>Propane:</strong> ${params.propane_primary || '--'}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="small">
+                                                    <strong>Vitesse:</strong> ${params.speed_primary || '--'} m/h
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <strong class="text-muted small">SEC</strong>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="small">
+                                                    <strong>Oxygène:</strong> ${params.oxygen_secondary || '--'}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="small">
+                                                    <strong>Propane:</strong> ${params.propane_secondary || '--'}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="small">
+                                                    <strong>Vitesse:</strong> ${params.speed_secondary || '--'} m/h
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2 d-flex align-items-center justify-content-center">
+                                        <div class="text-center">
+                                            <strong class="text-muted small d-block mb-1">VITESSE TAPIS</strong>
+                                            <div class="small">
+                                                <strong>${params.belt_speed || '--'}</strong> m/h
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Afficher les spécifications si disponibles
+                if (data.specifications && Object.keys(data.specifications).length > 0) {
+                    const specs = data.specifications;
+                    html += `
+                        <div class="card">
+                            <div class="card-body py-2 px-3">
+                                <div class="row g-3 align-items-center justify-content-center">
+                                    <div class="col-md-10">
+                                        <div class="row g-2">
+                                            <div class="col-md-6">
+                                                <div class="small">
+                                                    <strong>Épaisseur:</strong> ${specs.thickness ? `${specs.thickness.value_min || '--'} | ${specs.thickness.value_nominal || '--'} | ${specs.thickness.value_max || '--'} mm` : '-- | -- | -- mm'}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="small">
+                                                    <strong>Micronnaire:</strong> ${specs.micrometer ? `${specs.micrometer.value_min || '--'} | ${specs.micrometer.value_nominal || '--'} | ${specs.micrometer.value_max || '--'} mg/min` : '-- | -- | -- mg/min'}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="small">
+                                                    <strong>Masse surfacique globale:</strong> ${specs.global_surface_mass ? `${specs.global_surface_mass.value_min || '--'} | ${specs.global_surface_mass.value_nominal || '--'} | ${specs.global_surface_mass.value_max || '--'} g/m²` : '-- | -- | -- g/m²'}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="small">
+                                                    <strong>Masse surfacique:</strong> ${specs.surface_mass ? `${specs.surface_mass.value_min || '--'} | ${specs.surface_mass.value_nominal || '--'} | ${specs.surface_mass.value_max || '--'} g/25cm²` : '-- | -- | -- g/25cm²'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2 d-flex align-items-center justify-content-center">
+                                        <div class="text-center">
+                                            <strong class="text-muted small d-block mb-1">EXTRAIT SEC</strong>
+                                            <div class="small">
+                                                <strong>${specs.dry_extract ? `${specs.dry_extract.value_min || '--'} | ${specs.dry_extract.value_nominal || '--'} | ${specs.dry_extract.value_max || '--'} %` : '-- | -- | -- %'}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                parametersDisplay.innerHTML = html || '<div class="alert alert-info">Aucune donnée disponible pour ce profil</div>';
+            } else {
+                parametersDisplay.innerHTML = '<div class="alert alert-warning">Erreur lors du chargement des données</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des paramètres:', error);
+            parametersDisplay.innerHTML = '<div class="alert alert-danger">Erreur lors du chargement des paramètres</div>';
+        });
+    
+    // Déclencher l'auto-save
+    clearTimeout(window.autoSaveTimeout);
+    window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+}
+
+// Fonction pour gérer le toggle des modes
+function handleModeToggle(modeCode, isEnabled) {
+    const checkbox = document.getElementById(`mode-${modeCode}`);
+    const modeName = checkbox.nextElementSibling.textContent.trim();
+    
+    // Demander confirmation
+    const action = isEnabled ? 'activer' : 'désactiver';
+    if (!confirm(`Êtes-vous sûr de vouloir ${action} le mode "${modeName}" ?`)) {
+        // Annuler le changement
+        checkbox.checked = !isEnabled;
+        return;
+    }
+    
+    console.log(`Mode ${modeCode}: ${isEnabled ? 'Activé' : 'Désactivé'}`);
+    
+    // Mettre à jour l'affichage des modes actifs
+    updateActiveModeDisplay();
+    
+    // TODO: Envoyer une requête pour mettre à jour l'état du mode
+    // ou simplement sauvegarder dans la session
+}
+
+// Fonction pour mettre à jour l'affichage des modes actifs dans le titre
+function updateActiveModeDisplay() {
+    const activeModesDisplay = document.getElementById('active-modes-display');
+    const modeCheckboxes = document.querySelectorAll('.modes-toggles input[type="checkbox"]:checked');
+    
+    if (modeCheckboxes.length === 0) {
+        activeModesDisplay.textContent = '';
+        return;
+    }
+    
+    const activeModes = Array.from(modeCheckboxes).map(checkbox => {
+        return checkbox.nextElementSibling.textContent.trim();
+    });
+    
+    activeModesDisplay.textContent = ' (' + activeModes.join(', ') + ')';
+}
+
 // Fonction pour toggle le bloc Productivité
 function toggleProductiviteBlock() {
     const content = document.getElementById('productivite-content');
@@ -2511,10 +2715,22 @@ function toggleProductiviteBlock() {
     if (content.style.display === 'none') {
         content.style.display = 'block';
         chevron.className = 'bi bi-chevron-up';
+        // Restaurer l'onglet actif
+        showProductivityTab(lastActiveProductivityTab);
         updateProductivityMetrics(); // Mettre à jour les métriques à l'ouverture
     } else {
+        // Sauvegarder l'onglet actif avant d'enrouler
+        const activeButton = document.querySelector('.tab-btn.active');
+        if (activeButton) {
+            lastActiveProductivityTab = activeButton.getAttribute('data-tab');
+        }
         content.style.display = 'none';
         chevron.className = 'bi bi-chevron-down';
+        // Retirer la classe active de tous les onglets quand on enroule
+        const allButtons = document.querySelectorAll('.tab-btn');
+        allButtons.forEach(btn => {
+            btn.classList.remove('active');
+        });
     }
 }
 
@@ -2534,13 +2750,23 @@ function toggleChecklistBlock() {
 
 // Fonction pour changer d'onglet dans le bloc Productivité
 function showProductivityTab(tabName) {
+    // D'abord, s'assurer que le bloc est déroulé
+    const content = document.getElementById('productivite-content');
+    const chevron = document.getElementById('productivite-chevron');
+    
+    if (content.style.display === 'none') {
+        // Dérouler le bloc si nécessaire
+        content.style.display = 'block';
+        chevron.className = 'bi bi-chevron-up';
+    }
+    
     // Cacher tous les contenus d'onglets
     const allTabs = document.querySelectorAll('.tab-content');
     allTabs.forEach(tab => {
         tab.style.display = 'none';
     });
     
-    // Retirer la classe active de tous les boutons
+    // Retirer la classe active de tous les boutons (incluant celui dans block-actions)
     const allButtons = document.querySelectorAll('.tab-btn');
     allButtons.forEach(btn => {
         btn.classList.remove('active');
@@ -2556,6 +2782,9 @@ function showProductivityTab(tabName) {
     const selectedButton = document.querySelector(`[data-tab="${tabName}"]`);
     if (selectedButton) {
         selectedButton.classList.add('active');
+        console.log('Bouton activé:', tabName, selectedButton);
+    } else {
+        console.log('Bouton non trouvé pour:', tabName);
     }
     
     // Mettre à jour les données selon l'onglet
@@ -2565,6 +2794,9 @@ function showProductivityTab(tabName) {
         updateProductionMetrics();
     } else if (tabName === 'qualite') {
         updateQualityMetrics();
+    } else if (tabName === 'parametres') {
+        // Pas de mise à jour nécessaire pour les paramètres machine
+        // Les données sont déjà chargées depuis la vue Django
     }
 }
 
@@ -4889,6 +5121,14 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(generateRollVisualization, 3000); // Générer le rouleau après restauration
     setTimeout(updateValidationInfoPanel, 3500); // Mettre à jour le panneau de validation après restauration
     
+    // Charger les paramètres du profil sélectionné par défaut
+    setTimeout(() => {
+        const profileSelector = document.getElementById('profile-selector');
+        if (profileSelector && profileSelector.value) {
+            handleProfileChange(profileSelector.value);
+        }
+    }, 1000);
+    
     // Debug check after everything has loaded
     setTimeout(() => {
         console.log('=== Final debug check ===');
@@ -5107,11 +5347,14 @@ function getQualityControlsData() {
 // Fonction pour récupérer les données de la check-list
 function getChecklistData() {
     const checklistData = {};
-    const checklistItems = ['parametres', 'qualite', 'nettoyage', 'consignes', 'documentation', 'anomalies'];
     
-    checklistItems.forEach(item => {
-        const activeBtn = document.querySelector(`.checklist-btn[data-item="${item}"].active`);
-        checklistData[item] = activeBtn ? activeBtn.getAttribute('data-value') : null;
+    // Récupérer tous les boutons actifs de la check-list
+    document.querySelectorAll('.checklist-btn.active').forEach(btn => {
+        const itemId = btn.getAttribute('data-item');
+        const value = btn.getAttribute('data-value');
+        if (itemId) {
+            checklistData[itemId] = value;
+        }
     });
     
     // Ajouter la signature
@@ -5126,17 +5369,17 @@ function restoreChecklistData(data) {
     if (!data) return;
     
     // Restaurer chaque item de la check-list
-    const checklistItems = ['parametres', 'qualite', 'nettoyage', 'consignes', 'documentation', 'anomalies'];
-    
-    checklistItems.forEach(item => {
-        if (data[item]) {
+    Object.keys(data).forEach(itemId => {
+        if (itemId !== 'signature' && itemId !== 'signatureTime') {
+            const value = data[itemId];
+            
             // Désactiver tous les boutons du groupe d'abord
-            document.querySelectorAll(`.checklist-btn[data-item="${item}"]`).forEach(btn => {
+            document.querySelectorAll(`.checklist-btn[data-item="${itemId}"]`).forEach(btn => {
                 btn.classList.remove('active');
             });
             
             // Activer le bouton correspondant à la valeur sauvegardée
-            const btnToActivate = document.querySelector(`.checklist-btn[data-item="${item}"][data-value="${data[item]}"]`);
+            const btnToActivate = document.querySelector(`.checklist-btn[data-item="${itemId}"][data-value="${value}"]`);
             if (btnToActivate) {
                 btnToActivate.classList.add('active');
             }
@@ -5161,16 +5404,16 @@ function restoreChecklistData(data) {
 
 // Fonction pour vérifier si tous les items de la check-list ont un état
 function checkChecklistCompletion() {
-    const checklistItems = ['parametres', 'qualite', 'nettoyage', 'consignes', 'documentation', 'anomalies'];
     let allCompleted = true;
     
-    // Vérifier que chaque item a un bouton actif
-    checklistItems.forEach(item => {
-        const activeBtn = document.querySelector(`.checklist-btn[data-item="${item}"].active`);
-        if (!activeBtn) {
-            allCompleted = false;
-        }
-    });
+    // Compter le nombre total d'items et le nombre d'items avec un bouton actif
+    const allItems = document.querySelectorAll('.checklist-item');
+    const itemsWithActiveButtons = document.querySelectorAll('.checklist-item:has(.checklist-btn.active)');
+    
+    // Vérifier que tous les items ont un bouton actif
+    if (allItems.length === 0 || itemsWithActiveButtons.length < allItems.length) {
+        allCompleted = false;
+    }
     
     // Activer ou désactiver le champ signature
     const signatureInput = document.querySelector('#operator-signature');
@@ -5370,22 +5613,34 @@ function clearQualityControlsAfterSave() {
         loiSwitch.checked = false;
         document.getElementById('loi-time').textContent = '--';
     }
+}
+// Fonction pour effacer la check-list APRÈS sauvegarde du poste (sans confirmation)
+function clearChecklistAfterSave() {
+    console.log('Effacement de la check-list après sauvegarde du poste');
     
-    // Recalculer les moyennes (toutes à 0)
-    document.querySelectorAll('.average-display small').forEach(avg => {
-        avg.textContent = 'Moy: --';
+    // Effacer tous les états des boutons de la check-list
+    document.querySelectorAll('.checklist-btn').forEach(btn => {
+        btn.classList.remove('active');
     });
     
-    // Mettre à jour l'état après effacement
-    updateQualityControlsMessage();
-    
-    // Mettre à jour l'état du bouton shift après effacement
-    if (typeof updateShiftButtonState === 'function') {
-        updateShiftButtonState();
+    // Effacer le champ signature
+    const signatureInput = document.getElementById('operator-signature');
+    if (signatureInput) {
+        signatureInput.value = '';
+        signatureInput.disabled = true;  // Désactiver car plus aucun item n'est sélectionné
     }
     
-    // Déclencher l'autosave pour sauvegarder l'état effacé
-    setTimeout(autoSaveFormData, 100);
+    // Effacer l'heure de signature
+    const signatureTime = document.getElementById('signature-time');
+    if (signatureTime) {
+        signatureTime.textContent = '--';
+    }
+    
+    // Déclencher l'auto-save pour sauvegarder l'état effacé
+    clearTimeout(window.autoSaveTimeout);
+    window.autoSaveTimeout = setTimeout(autoSaveFormData, 500);
+    
+    console.log('Check-list vidée après sauvegarde');
 }
 
 // Fonction pour effacer les contrôles qualité (avec confirmation pour bouton Clear)

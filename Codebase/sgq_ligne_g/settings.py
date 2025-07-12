@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-!97)ou^)4_9zi9)%(!kt4%cfy3yxq6km&a#c7olis=kab!hck_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'quality',
     'reports',
     'reporting',
+    'wcm',
 ]
 
 MIDDLEWARE = [

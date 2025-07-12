@@ -34,4 +34,7 @@ urlpatterns = [
     
     # Récupérer le dernier métrage
     path('get-last-meter-reading/', views.get_last_meter_reading, name='get_last_meter_reading'),
+    
+    # Paramètres du profil
+    path('profile/<int:profile_id>/parameters/', views.get_profile_parameters, name='get_profile_parameters'),
 ]
