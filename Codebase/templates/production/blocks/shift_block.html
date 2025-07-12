@@ -438,6 +438,11 @@ function setDefaultTimesForVacation(vacation) {
     // Mettre à jour l'affichage de la durée
     updateDurationDisplay();
     
+    // Mettre à jour les métriques de productivité
+    if (typeof updateProductivityMetrics === 'function') {
+        updateProductivityMetrics();
+    }
+    
     console.log(`Heures définies pour ${vacation}: ${defaultStartTime} - ${defaultEndTime}`);
 }
 
@@ -447,12 +452,25 @@ document.body.addEventListener('change', function(e) {
         console.log('Time field changed:', e.target.name);
         calculateAvailabilityTime();
         updateDurationDisplay();
+        // Mettre à jour les métriques de productivité
+        if (typeof updateProductivityMetrics === 'function') {
+            updateProductivityMetrics();
+        }
     }
     
     // Si la vacation change, définir les heures par défaut
     if (e.target && e.target.name === 'vacation') {
         console.log('Vacation changed:', e.target.value);
         setDefaultTimesForVacation(e.target.value);
+    }
+    
+    // Si les métrages changent, mettre à jour les métriques
+    if (e.target && (e.target.name === 'meter_reading_start' || e.target.name === 'meter_reading_end')) {
+        console.log('Meter reading changed:', e.target.name);
+        // Mettre à jour les métriques de productivité
+        if (typeof updateProductivityMetrics === 'function') {
+            updateProductivityMetrics();
+        }
     }
     
     // Vérifier si c'est un champ requis pour le bouton

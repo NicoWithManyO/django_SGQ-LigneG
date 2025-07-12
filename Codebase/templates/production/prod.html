@@ -259,11 +259,14 @@
                         <i class="bi bi-clock-history"></i> <span id="previous-shift-header" title="Poste précédent">Chargement...</span>
                     </h5>
                     <div class="block-actions d-flex align-items-center">
-                        <button class="btn btn-sm" onclick="navigateToLastShift(event)" title="Revenir au dernier poste" style="border: none; background: none; color: white;">
-                            <i class="bi bi-arrow-right"></i> Dernier
+                        <button class="btn btn-sm" onclick="navigateToNextShift(event)" title="Poste suivant" style="border: none; background: none; color: white; padding: 0.25rem 0.5rem;">
+                            <i class="bi bi-arrow-down"></i>
                         </button>
-                        <button class="btn btn-sm" onclick="navigateToPreviousShift(event)" title="Poste précédent" style="border: none; background: none; color: white;">
-                            <i class="bi bi-arrow-up"></i> Précédent
+                        <button class="btn btn-sm" onclick="navigateToLastShift(event)" title="Revenir au dernier poste" style="border: none; background: none; color: white; padding: 0.25rem 0.5rem;">
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                        <button class="btn btn-sm" onclick="navigateToPreviousShift(event)" title="Poste précédent" style="border: none; background: none; color: white; padding: 0.25rem 0.5rem;">
+                            <i class="bi bi-arrow-up"></i>
                         </button>
                         <i class="bi bi-chevron-down" id="previous-shift-chevron"></i>
                     </div>
@@ -286,11 +289,14 @@
                                 <i class="bi bi-clock-history"></i> Historique des Paramètres Machine
                             </h5>
                             <div class="block-actions d-flex align-items-center">
-                                <button class="btn btn-sm" onclick="event.stopPropagation()" title="Revenir au dernier" style="border: none; background: none; color: white;">
-                                    <i class="bi bi-arrow-right"></i> Dernier
+                                <button class="btn btn-sm" onclick="event.stopPropagation()" title="Suivant" style="border: none; background: none; color: white; padding: 0.25rem 0.5rem;">
+                                    <i class="bi bi-arrow-down"></i>
                                 </button>
-                                <button class="btn btn-sm" onclick="event.stopPropagation()" title="Précédent" style="border: none; background: none; color: white;">
-                                    <i class="bi bi-arrow-up"></i> Précédent
+                                <button class="btn btn-sm" onclick="event.stopPropagation()" title="Revenir au dernier" style="border: none; background: none; color: white; padding: 0.25rem 0.5rem;">
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
+                                <button class="btn btn-sm" onclick="event.stopPropagation()" title="Précédent" style="border: none; background: none; color: white; padding: 0.25rem 0.5rem;">
+                                    <i class="bi bi-arrow-up"></i>
                                 </button>
                                 <i class="bi bi-chevron-down" id="temporary-chevron"></i>
                             </div>
@@ -475,7 +481,7 @@
                             <!-- Tabs navigation dans le header -->
                             <div class="productivity-tabs">
                                 <button class="tab-btn active" onclick="showProductivityTab('temps'); event.stopPropagation();" data-tab="temps">
-                                    <i class="bi bi-clock"></i> Temps
+                                    <i class="bi bi-clock"></i> TRS
                                 </button>
                                 <button class="tab-btn" onclick="showProductivityTab('production'); event.stopPropagation();" data-tab="production">
                                     <i class="bi bi-speedometer2"></i> Production
@@ -506,14 +512,6 @@
                             </div>
                             <div class="col-4">
                                 <div class="productivity-metric">
-                                    <label class="text-muted small">Temps Disponible</label>
-                                    <div class="metric-value">
-                                        <span id="temps-disponible" class="h6 fw-bold text-success">--</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="productivity-metric">
                                     <label class="text-muted small">Temps Perdu</label>
                                     <div class="metric-value">
                                         <span id="temps-perdu-total" class="h6 fw-bold text-danger">--</span>
@@ -522,17 +520,25 @@
                             </div>
                             <div class="col-4">
                                 <div class="productivity-metric">
-                                    <label class="text-muted small">Taux Disponibilité</label>
+                                    <label class="text-muted small">Temps Disponible</label>
                                     <div class="metric-value">
-                                        <span id="taux-disponibilite" class="h6 fw-bold">--%</span>
+                                        <span id="temps-disponible" class="h6 fw-bold text-success">--</span>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-4">
                                 <div class="productivity-metric">
-                                    <label class="text-muted small">Temps Fonctionnement</label>
+                                    <label class="text-muted small">Longueur Enroulable</label>
                                     <div class="metric-value">
-                                        <span id="temps-fonctionnement" class="h6 fw-bold text-info">--</span>
+                                        <span id="lg-enroulable" class="h6 fw-bold text-info">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="productivity-metric">
+                                    <label class="text-muted small">Longueur Enroulée</label>
+                                    <div class="metric-value">
+                                        <span id="lg-enroulee" class="h6 fw-bold text-info">--</span>
                                     </div>
                                 </div>
                             </div>
@@ -665,7 +671,10 @@
                                     <select id="profile-selector" class="form-select" onchange="handleProfileChange(this.value)">
                                         <option value="">-- Sélectionner un profil --</option>
                                         {% for profile in profiles %}
-                                        <option value="{{ profile.id }}" {% if profile.name == "80g/m²" %}selected{% endif %}>{{ profile.name }}</option>
+                                        <!-- Debug: {{ profile.name }} - machine_parameters: {{ profile.machine_parameters }} - belt_speed: {{ profile.machine_parameters.belt_speed }} -->
+                                        <option value="{{ profile.id }}" 
+                                                data-belt-speed="{% if profile.machine_parameters and profile.machine_parameters.belt_speed_m_per_minute %}{{ profile.machine_parameters.belt_speed_m_per_minute }}{% else %}0{% endif %}"
+                                                {% if profile.name == "80g/m²" %}selected{% endif %}>{{ profile.name }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -2662,6 +2671,18 @@ function navigateToLastShift(event) {
     loadPreviousShiftHeader(0);
 }
 
+// Fonction pour naviguer vers le poste suivant (plus récent)
+function navigateToNextShift(event) {
+    event.stopPropagation(); // Empêcher le toggle du bloc
+    
+    // Ne rien faire si on est déjà au dernier poste
+    if (currentShiftOffset === 0) return;
+    
+    currentShiftOffset--;
+    loadPreviousShiftData(currentShiftOffset);
+    loadPreviousShiftHeader(currentShiftOffset);
+}
+
 // Fonction pour toggle le bloc Temporaire
 function toggleTemporaryBlock(event) {
     // Ne pas toggle si on clique sur un bouton ou sur les actions
@@ -2713,12 +2734,18 @@ function togglePreviousShiftBlock(event) {
             loadPreviousShiftData(0);
             content.dataset.loaded = 'true';
             
-            // Gérer l'état initial du bouton Dernier
+            // Gérer l'état initial des boutons de navigation
             const lastButton = document.querySelector('#previous-shift-block button[onclick*="navigateToLastShift"]');
+            const nextButton = document.querySelector('#previous-shift-block button[onclick*="navigateToNextShift"]');
             if (lastButton) {
                 lastButton.disabled = true;
                 lastButton.style.opacity = '0.5';
                 lastButton.style.cursor = 'not-allowed';
+            }
+            if (nextButton) {
+                nextButton.disabled = true;
+                nextButton.style.opacity = '0.5';
+                nextButton.style.cursor = 'not-allowed';
             }
         }
     } else {
@@ -2746,12 +2773,18 @@ function loadPreviousShiftHeader(offset = 0) {
                     headerElement.innerHTML = `<span style="font-size: 0.9rem; opacity: 0.7;">${formattedDate}</span> ${data.shift.operator_name} - ${data.shift.vacation} <span style="font-size: 0.9rem; opacity: 0.7;">(${data.shift.start_time} - ${data.shift.end_time})</span>`;
                 }
                 
-                // Gérer l'état initial du bouton Dernier quand on est au dernier poste (offset = 0)
+                // Gérer l'état initial des boutons quand on est au dernier poste (offset = 0)
                 const lastButton = document.querySelector('#previous-shift-block button[onclick*="navigateToLastShift"]');
+                const nextButton = document.querySelector('#previous-shift-block button[onclick*="navigateToNextShift"]');
                 if (lastButton && offset === 0) {
                     lastButton.disabled = true;
                     lastButton.style.opacity = '0.5';
                     lastButton.style.cursor = 'not-allowed';
+                }
+                if (nextButton && offset === 0) {
+                    nextButton.disabled = true;
+                    nextButton.style.opacity = '0.5';
+                    nextButton.style.cursor = 'not-allowed';
                 }
             }
         })
@@ -2864,6 +2897,7 @@ function loadPreviousShiftData(offset = 0) {
                 
                 // Gérer l'état des boutons de navigation
                 const prevButton = document.querySelector('button[onclick*="navigateToPreviousShift"]');
+                const nextButton = document.querySelector('button[onclick*="navigateToNextShift"]');
                 const lastButton = document.querySelector('button[onclick*="navigateToLastShift"]');
                 
                 if (prevButton) {
@@ -2874,6 +2908,17 @@ function loadPreviousShiftData(offset = 0) {
                     } else {
                         prevButton.style.opacity = '1';
                         prevButton.style.cursor = 'pointer';
+                    }
+                }
+                
+                if (nextButton) {
+                    nextButton.disabled = currentShiftOffset === 0;
+                    if (currentShiftOffset === 0) {
+                        nextButton.style.opacity = '0.5';
+                        nextButton.style.cursor = 'not-allowed';
+                    } else {
+                        nextButton.style.opacity = '1';
+                        nextButton.style.cursor = 'pointer';
                     }
                 }
                 
@@ -2964,6 +3009,9 @@ function handleProfileChange(profileId) {
     const selectedOption = profileSelector.options[profileSelector.selectedIndex];
     selectedProfileName.textContent = selectedOption.text;
     updateActiveModeDisplay();
+    
+    // Mettre à jour les métriques de productivité (pour recalculer la longueur enroulable)
+    updateProductivityMetrics();
     
     console.log('Profil sélectionné:', profileId);
     
@@ -3283,22 +3331,68 @@ function updateProductivityMetrics() {
     // Taux de disponibilité (TD/TO * 100)
     const tauxDisponibilite = totalMinutes > 0 ? Math.round((tdMinutes / totalMinutes) * 100) : 0;
     
+    // Calculer la longueur enroulable
+    let lgEnroulable = 0;
+    const profileSelector = document.getElementById('profile-selector');
+    if (profileSelector && profileSelector.selectedIndex > 0 && tdMinutes > 0) {
+        // Récupérer la vitesse tapis du profil sélectionné depuis l'attribut data
+        const selectedOption = profileSelector.options[profileSelector.selectedIndex];
+        const beltSpeedStr = selectedOption.getAttribute('data-belt-speed') || '0';
+        // Remplacer la virgule par un point pour parseFloat
+        const beltSpeed = parseFloat(beltSpeedStr.replace(',', '.')) || 0;
+        console.log('Profile sélectionné:', selectedOption.text);
+        console.log('Attribut data-belt-speed:', selectedOption.getAttribute('data-belt-speed'));
+        console.log('Vitesse tapis (m/min):', beltSpeed);
+        console.log('Temps disponible (min):', tdMinutes);
+        
+        // Déboguer toutes les options
+        console.log('Toutes les options du select:');
+        for (let i = 0; i < profileSelector.options.length; i++) {
+            const opt = profileSelector.options[i];
+            console.log(`  Option ${i}: ${opt.text} - belt-speed: ${opt.getAttribute('data-belt-speed')}`);
+        }
+        if (beltSpeed > 0) {
+            // Lg enroulable = Temps dispo (en min) * vitesse tapis (m/min)
+            lgEnroulable = Math.round(tdMinutes * beltSpeed);
+            console.log('Longueur enroulable calculée:', lgEnroulable);
+        }
+    }
+    
+    // Calculer la longueur enroulée (différence entre métrage fin et début)
+    let lgEnroulee = 0;
+    const meterStart = document.querySelector('input[name="meter_reading_start"]');
+    const meterEnd = document.querySelector('input[name="meter_reading_end"]');
+    if (meterStart && meterEnd && meterStart.value && meterEnd.value) {
+        const startValue = parseFloat(meterStart.value) || 0;
+        const endValue = parseFloat(meterEnd.value) || 0;
+        lgEnroulee = Math.round(endValue - startValue);
+    }
+    
+    // Calculer le rendement (Lg enroulée / Lg enroulable * 100)
+    let rendement = 0;
+    if (lgEnroulable > 0 && lgEnroulee > 0) {
+        rendement = Math.round((lgEnroulee / lgEnroulable) * 100);
+    }
+    
     // Mettre à jour l'affichage
     document.getElementById('temps-ouverture').textContent = toStr;
     document.getElementById('temps-disponible').textContent = tdStr;
     document.getElementById('temps-perdu-total').textContent = tpStr;
+    document.getElementById('lg-enroulable').textContent = lgEnroulable > 0 ? `${lgEnroulable} m` : '--';
+    document.getElementById('lg-enroulee').textContent = lgEnroulee > 0 ? `${lgEnroulee} m` : '--';
     
-    const tauxElement = document.getElementById('taux-disponibilite');
-    tauxElement.textContent = `${tauxDisponibilite}%`;
+    // Afficher le rendement
+    const rendementElement = document.getElementById('temps-rendement');
+    rendementElement.textContent = `${rendement}%`;
     
-    // Changer la couleur selon le taux
-    tauxElement.classList.remove('text-success', 'text-warning', 'text-danger');
-    if (tauxDisponibilite >= 90) {
-        tauxElement.classList.add('text-success');
-    } else if (tauxDisponibilite >= 70) {
-        tauxElement.classList.add('text-warning');
+    // Changer la couleur selon le rendement
+    rendementElement.classList.remove('text-success', 'text-warning', 'text-danger');
+    if (rendement >= 90) {
+        rendementElement.classList.add('text-success');
+    } else if (rendement >= 70) {
+        rendementElement.classList.add('text-warning');
     } else {
-        tauxElement.classList.add('text-danger');
+        rendementElement.classList.add('text-danger');
     }
 }
 
@@ -5686,6 +5780,23 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof restoreSavedData === 'function') {
         restoreSavedData();
     }
+    
+    // Mettre à jour les métriques de productivité au chargement
+    // Attendre un peu pour que le profil par défaut soit sélectionné
+    setTimeout(function() {
+        updateProductivityMetrics();
+        
+        // Vérifier l'état du profil sélectionné
+        const profileSelector = document.getElementById('profile-selector');
+        if (profileSelector) {
+            console.log('Profil sélectionné au chargement:', profileSelector.value);
+            if (profileSelector.selectedIndex > 0) {
+                const selectedOption = profileSelector.options[profileSelector.selectedIndex];
+                console.log('Option sélectionnée:', selectedOption.text);
+                console.log('Belt speed attribute:', selectedOption.getAttribute('data-belt-speed'));
+            }
+        }
+    }, 500);
     
     // Initialiser les fonctions du shift block
     if (typeof calculateAvailabilityTime === 'function') {

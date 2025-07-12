@@ -202,8 +202,8 @@ def prod(request):
     # Récupérer les paramètres machine actifs
     machine_parameters = MachineParameters.objects.filter(is_active=True).order_by('name')
     
-    # Récupérer les profils actifs
-    profiles = Profile.objects.filter(is_active=True).order_by('name')
+    # Récupérer les profils actifs avec leurs paramètres machine
+    profiles = Profile.objects.filter(is_active=True).select_related('machine_parameters').order_by('name')
     
     # Récupérer les modes actifs (Permissif en premier)
     modes = Mode.objects.filter(is_active=True).order_by('-name')  # Ordre inverse pour avoir Permissif avant Restrictif
