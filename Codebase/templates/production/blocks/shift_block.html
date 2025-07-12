@@ -466,10 +466,20 @@ document.body.addEventListener('change', function(e) {
     
     // Si les métrages changent, mettre à jour les métriques
     if (e.target && (e.target.name === 'meter_reading_start' || e.target.name === 'meter_reading_end')) {
-        console.log('Meter reading changed:', e.target.name);
+        console.log('Meter reading changed:', e.target.name, 'value:', e.target.value);
         // Mettre à jour les métriques de productivité
         if (typeof updateProductivityMetrics === 'function') {
             updateProductivityMetrics();
+        }
+        
+        // Si c'est meter_reading_end, forcer une mise à jour immédiate de l'affichage
+        if (e.target.name === 'meter_reading_end') {
+            setTimeout(() => {
+                const lgOkElement = document.getElementById('lg-enroulee-ok');
+                if (lgOkElement) {
+                    console.log('Force update lg-enroulee-ok, current text:', lgOkElement.textContent);
+                }
+            }, 100);
         }
     }
     

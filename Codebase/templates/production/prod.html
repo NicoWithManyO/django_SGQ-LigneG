@@ -557,9 +557,9 @@
                                 </div>
                             </div>
                             <div class="col-3">
-                                <div class="productivity-metric" style="padding: 8px; height: 100%; min-height: 140px; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+                                <div class="productivity-metric" style="padding: 8px; height: 100%; min-height: 140px; background: none; box-shadow: none;">
                                     <div class="gauge-container" style="height: 100%; display: flex; align-items: center; justify-content: center;">
-                                        <svg id="projete-gauge" width="100%" height="100%" viewBox="0 0 100 60" style="max-width: 180px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
+                                        <svg id="projete-gauge" width="100%" height="100%" viewBox="0 0 100 80" style="max-width: 200px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
                                             <!-- Arc de fond -->
                                             <path d="M 10 50 A 40 40 0 0 1 90 50" 
                                                   stroke="#e9ecef" 
@@ -596,7 +596,7 @@
                                             </g>
                                             
                                             <!-- Valeur au centre -->
-                                            <text id="gauge-value" x="50" y="45" text-anchor="middle" font-size="16" font-weight="bold" fill="#333">0%</text>
+                                            <text id="gauge-value" x="50" y="70" text-anchor="middle" font-size="18" font-weight="bold" fill="#333">0%</text>
                                         </svg>
                                     </div>
                                 </div>
@@ -2020,6 +2020,14 @@ document.body.addEventListener('change', function(e) {
             toggleMeterReadingFields();
         }
         
+        // Si c'est le champ opérateur, mettre à jour les métriques de productivité
+        if (e.target.id === 'id_operator') {
+            console.log('Opérateur changé (global change), mise à jour des métriques...');
+            if (typeof updateProductivityMetrics === 'function') {
+                updateProductivityMetrics();
+            }
+        }
+        
         // Si c'est le champ date, forcer l'auto-save immédiatement
         if (e.target.type === 'date' || e.target.name === 'date') {
             console.log('Date changed, triggering auto-save');
@@ -2054,6 +2062,19 @@ document.body.addEventListener('htmx:afterSwap', function() {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     }, 500);
+    
+    // Ajouter l'event listener pour le changement d'opérateur après le chargement HTMX
+    setTimeout(function() {
+        const operatorSelect = document.getElementById('id_operator');
+        if (operatorSelect) {
+            operatorSelect.addEventListener('change', function() {
+                console.log('Opérateur changé (HTMX), mise à jour des métriques...');
+                if (typeof updateProductivityMetrics === 'function') {
+                    updateProductivityMetrics();
+                }
+            });
+        }
+    }, 100);
 });
 
 // Écouter l'événement de restauration forcée après save de poste
@@ -3477,10 +3498,24 @@ function updateProductivityMetrics() {
     }
     
     function updateMetricsDisplay() {
+        // Calculer la longueur additionnelle depuis les métrages
+        let lgEnrouleeOkTotal = lgEnrouleeOk;
+        const meterStartField = document.querySelector('input[name="meter_reading_start"]');
+        const meterEndField = document.querySelector('input[name="meter_reading_end"]');
+        
+        if (meterEndField?.value) {
+            const meterEnd = parseFloat(meterEndField.value) || 0;
+            
+            if (meterEnd > 0) {
+                // Ajouter directement la longueur enroulée en fin de poste à lgEnrouleeOk
+                lgEnrouleeOkTotal = lgEnrouleeOk + Math.round(meterEnd);
+            }
+        }
+        
         // Calculer le rendement (Lg enroulée OK / Lg enroulable * 100)
         let rendement = 0;
-        if (lgEnroulable > 0 && lgEnrouleeOk > 0) {
-            rendement = Math.round((lgEnrouleeOk / lgEnroulable) * 100);
+        if (lgEnroulable > 0 && lgEnrouleeOkTotal > 0) {
+            rendement = Math.round((lgEnrouleeOkTotal / lgEnroulable) * 100);
         }
         
         // Mettre à jour l'affichage
@@ -3490,7 +3525,8 @@ function updateProductivityMetrics() {
         document.getElementById('lg-perdue').textContent = lgPerdue > 0 ? `${lgPerdue} m` : '--';
         document.getElementById('disponibilite').textContent = `${tauxDisponibilite}%`;
         document.getElementById('lg-enroulable').textContent = lgEnroulable > 0 ? `${lgEnroulable} m` : '--';
-        document.getElementById('lg-enroulee-ok').textContent = lgEnrouleeOk > 0 ? `${lgEnrouleeOk} m` : '--';
+        
+        document.getElementById('lg-enroulee-ok').textContent = lgEnrouleeOkTotal > 0 ? `${lgEnrouleeOkTotal} m` : '--';
         document.getElementById('lg-enroulee-nok').textContent = lgEnrouleeNok > 0 ? `${lgEnrouleeNok} m` : '--';
         
         // Afficher le rendement
@@ -3546,11 +3582,11 @@ function updateProjeteGauge(percentage) {
         arcPath.setAttribute('stroke-dasharray', `${dashLength} ${arcLength}`);
         
         // Changer la couleur selon le pourcentage
-        let color = '#dc3545'; // Rouge par défaut
-        if (percentage < 50) {
-            color = '#dc3545'; // Rouge
-        } else if (percentage < 80) {
-            color = '#ffc107'; // Jaune
+        let color = '#333'; // Noir par défaut
+        if (percentage < 80) {
+            color = '#333'; // Noir
+        } else if (percentage < 90) {
+            color = '#fd7e14'; // Orange
         } else {
             color = '#28a745'; // Vert
         }
@@ -7139,6 +7175,17 @@ document.addEventListener('DOMContentLoaded', function() {
             // Mettre à jour l'état du bouton shift
             if (typeof updateShiftButtonState === 'function') {
                 updateShiftButtonState();
+            }
+        });
+    }
+    
+    // Event listener pour le changement d'opérateur
+    const operatorSelect = document.getElementById('id_operator');
+    if (operatorSelect) {
+        operatorSelect.addEventListener('change', function() {
+            console.log('Opérateur changé, mise à jour des métriques...');
+            if (typeof updateProductivityMetrics === 'function') {
+                updateProductivityMetrics();
             }
         });
     }
