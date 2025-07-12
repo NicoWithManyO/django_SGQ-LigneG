@@ -188,6 +188,9 @@ def prod(request):
     shifts = Shift.objects.select_related('operator').order_by('-date', '-created_at')[:10]
     defect_types = DefectType.objects.filter(is_active=True).order_by('name')
     
+    # Récupérer les rouleaux récents
+    recent_rolls = Roll.objects.select_related('fabrication_order', 'shift').order_by('-created_at')[:10]
+    
     # Récupérer le template de check-list par défaut ou le premier actif
     checklist_template = ChecklistTemplate.objects.filter(
         is_active=True
@@ -212,6 +215,7 @@ def prod(request):
     context = {
         'shifts': shifts,
         'defect_types': defect_types,
+        'recent_rolls': recent_rolls,
         'checklist_template': checklist_template,
         'checklist_items': checklist_items,
         'machine_parameters': machine_parameters,
