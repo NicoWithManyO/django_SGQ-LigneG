@@ -108,8 +108,8 @@ def prod(request):
     # Récupérer les profils actifs
     profiles = Profile.objects.filter(is_active=True).order_by('name')
     
-    # Récupérer les modes actifs
-    modes = Mode.objects.filter(is_active=True).order_by('name')
+    # Récupérer les modes actifs (Permissif en premier)
+    modes = Mode.objects.filter(is_active=True).order_by('-name')  # Ordre inverse pour avoir Permissif avant Restrictif
     
     context = {
         'shifts': shifts,

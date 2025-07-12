@@ -762,24 +762,24 @@ body {
 
 /* Classes pour la coloration des épaisseurs selon spécifications */
 .thickness-input.thickness-ok {
-    background: #28a745;
-    color: white;
-    border-color: #28a745;
+    background: #28a745 !important;
+    color: white !important;
+    border-color: #28a745 !important;
 }
 
 .thickness-input.thickness-warning {
-    background: #28a745;
-    color: white;
-    border-color: #28a745;
-    text-decoration: underline;
-    text-decoration-color: #fd7e14;
-    text-decoration-thickness: 2px;
+    background: #28a745 !important;
+    color: white !important;
+    border-color: #28a745 !important;
+    text-decoration: underline !important;
+    text-decoration-color: #fd7e14 !important;
+    text-decoration-thickness: 2px !important;
 }
 
 .thickness-input.thickness-critical {
-    background: #dc3545;
-    color: white;
-    border-color: #dc3545;
+    background: #dc3545 !important;
+    color: white !important;
+    border-color: #dc3545 !important;
 }
 
 /* Styles pour les champs de rattrapage */

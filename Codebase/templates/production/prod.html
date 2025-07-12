@@ -215,17 +215,15 @@
         <div hx-get="{% url 'production:shift_create' %}" 
              hx-trigger="load" 
              hx-target="this" 
-             hx-swap="innerHTML">
+             hx-swap="innerHTML settle:0ms">
             <!-- Le bloc sera chargé ici via HTMX -->
             <div class="block-card">
                 <div class="block-header">
-                    <h5 class="block-title">Fiche de Poste</h5>
+                    <h5 class="block-title"><i class="bi bi-clipboard-data"></i> Fiche de Poste</h5>
                 </div>
-                <div class="block-content">
-                    <div class="d-flex justify-content-center">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Chargement...</span>
-                        </div>
+                <div class="block-content" style="min-height: 350px;">
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-hourglass-split"></i> Chargement...
                     </div>
                 </div>
             </div>
@@ -385,7 +383,7 @@
                             </div>
                         </div>
                         <div class="block-actions">
-                            <button class="tab-btn me-2" onclick="showProductivityTab('parametres'); event.stopPropagation();" data-tab="parametres" style="margin-right: 10px;"><i class="bi bi-gear"></i> Paramètres</button>
+                            <button class="tab-btn me-2" onclick="showProductivityTab('parametres'); event.stopPropagation();" data-tab="parametres" style="margin-right: 10px;"><i class="bi bi-gear"></i> Params & Specs</button>
                             <i class="bi bi-chevron-up" id="productivite-chevron"></i>
                         </div>
                     </div>
@@ -574,7 +572,11 @@
                                         {% for mode in modes %}
                                         <div class="form-check form-switch">
                                             <input class="form-check-input" type="checkbox" id="mode-{{ mode.code }}" onchange="handleModeToggle('{{ mode.code }}', this.checked)" {% if mode.is_enabled %}checked{% endif %}>
-                                            <label class="form-check-label" for="mode-{{ mode.code }}">
+                                            <label class="form-check-label" for="mode-{{ mode.code }}" 
+                                                   data-bs-toggle="tooltip" 
+                                                   data-bs-placement="top" 
+                                                   title="{{ mode.description|default:'Aucune description disponible' }}"
+                                                   style="cursor: help;">
                                                 {{ mode.name }}
                                             </label>
                                         </div>
@@ -938,8 +940,8 @@
                 
                 <div class="fibrage-field mass-calc-field">
                     <div class="mass-calc-info">
-                        <small class="fibrage-text" id="mass-net">--</small>
-                        <small class="fibrage-text" id="grammage">--</small>
+                        <small class="fibrage-text" id="mass-net" style="font-size: 0.7rem;">--</small>
+                        <small class="fibrage-text" id="grammage" style="font-size: 0.9rem; font-weight: bold;">--</small>
                     </div>
                 </div>
                 
@@ -1477,6 +1479,14 @@ function autoSaveFormData() {
         rollData: getRollData(),
         // Contrôles qualité
         qualityControls: getQualityControlsData(),
+        // Profil et modes
+        selectedProfile: document.querySelector('#profile-selector')?.value || '',
+        activeModes: {
+            morecontrols: document.querySelector('#mode-morecontrols')?.checked || false,
+            degraded: document.querySelector('#mode-degraded')?.checked || false,
+            maintenance: document.querySelector('#mode-maintenance')?.checked || false,
+            permissive: document.querySelector('#mode-permissive')?.checked || false
+        },
         // Check-list
         checklistData: getChecklistData(),
         // Statut de conformité
@@ -1560,6 +1570,35 @@ function restoreSavedData() {
                 // Mettre à jour l'affichage de la durée après restauration des heures
                 if (typeof updateDurationDisplay === 'function') {
                     updateDurationDisplay();
+                }
+                
+                // Restaurer le profil sélectionné
+                const profileSelector = document.querySelector('#profile-selector');
+                if (profileSelector && data.selectedProfile) {
+                    profileSelector.value = data.selectedProfile;
+                    // Déclencher le changement de profil
+                    handleProfileChange(data.selectedProfile);
+                }
+                
+                // Restaurer les modes actifs avec un délai pour écraser les valeurs du template
+                if (data.activeModes) {
+                    setTimeout(() => {
+                        console.log('Restauration des modes avec données:', data.activeModes);
+                        
+                        // Restaurer chaque mode
+                        Object.keys(data.activeModes).forEach(modeCode => {
+                            const modeCheckbox = document.querySelector(`#mode-${modeCode}`);
+                            if (modeCheckbox) {
+                                console.log(`Mode ${modeCode} - Avant: ${modeCheckbox.checked}, Après: ${data.activeModes[modeCode]}`);
+                                modeCheckbox.checked = data.activeModes[modeCode];
+                            } else {
+                                console.warn(`Checkbox non trouvée pour le mode: ${modeCode}`);
+                            }
+                        });
+                        
+                        // Mettre à jour l'affichage des modes actifs
+                        updateActiveModeDisplay();
+                    }, 100); // Petit délai pour s'assurer que le DOM est prêt
                 }
                 
                 const startedBeginningField = document.querySelector('input[name="started_at_beginning"]');
@@ -1773,7 +1812,8 @@ document.body.addEventListener('input', function(e) {
 });
 
 document.body.addEventListener('change', function(e) {
-    if ((e.target.closest('#shift-form') || e.target.closest('.block-content') || e.target.closest('.quality-controls-container')) && !window.isRestoring) {
+    if ((e.target.closest('#shift-form') || e.target.closest('.block-content') || e.target.closest('.quality-controls-container') || 
+         e.target.id === 'profile-selector' || e.target.id.startsWith('mode-')) && !window.isRestoring) {
         // Si c'est une checkbox de machine, mettre à jour la visibilité
         if (e.target.name === 'started_at_beginning' || e.target.name === 'started_at_end') {
             toggleMeterReadingFields();
@@ -1805,6 +1845,14 @@ document.body.addEventListener('change', function(e) {
 // Restaurer après chargement HTMX
 document.body.addEventListener('htmx:afterSwap', function() {
     setTimeout(restoreSavedData, 300);
+    
+    // Réinitialiser les tooltips après le chargement HTMX
+    setTimeout(function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }, 500);
 });
 
 // Écouter l'événement de restauration forcée après save de poste
@@ -2540,6 +2588,14 @@ function handleProfileChange(profileId) {
     
     console.log('Profil sélectionné:', profileId);
     
+    // Recharger les spécifications d'épaisseur avec le nouveau profil
+    loadThicknessSpecifications();
+    
+    // Réappliquer la validation des contrôles qualité avec le nouveau profil
+    setTimeout(() => {
+        applyQualityControlValidation();
+    }, 500);
+    
     // Charger les paramètres du profil
     fetch(`/profile/${profileId}/parameters/`)
         .then(response => response.json())
@@ -2557,7 +2613,7 @@ function handleProfileChange(profileId) {
                                     <div class="col-md-10">
                                         <div class="row g-2">
                                             <div class="col-md-3">
-                                                <strong class="text-muted small">PRIM</strong>
+                                                <strong class="text-muted small">PRIMAIRE</strong>
                                             </div>
                                             <div class="col-md-3">
                                                 <div class="small">
@@ -2575,7 +2631,7 @@ function handleProfileChange(profileId) {
                                                 </div>
                                             </div>
                                             <div class="col-md-3">
-                                                <strong class="text-muted small">SEC</strong>
+                                                <strong class="text-muted small">SECONDAIRE</strong>
                                             </div>
                                             <div class="col-md-3">
                                                 <div class="small">
@@ -2594,12 +2650,20 @@ function handleProfileChange(profileId) {
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-2 d-flex align-items-center justify-content-center">
+                                    <div class="col-md-2 d-flex flex-column align-items-center justify-content-between">
                                         <div class="text-center">
                                             <strong class="text-muted small d-block mb-1">VITESSE TAPIS</strong>
                                             <div class="small">
                                                 <strong>${params.belt_speed || '--'}</strong> m/h
                                             </div>
+                                        </div>
+                                        <div class="text-end w-100 mt-2">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary p-1" 
+                                                    onclick="editMachineParameters()" 
+                                                    title="Modifier les paramètres machine"
+                                                    style="font-size: 0.7rem; line-height: 1;">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -2617,33 +2681,30 @@ function handleProfileChange(profileId) {
                                 <div class="row g-3 align-items-center justify-content-center">
                                     <div class="col-md-10">
                                         <div class="row g-2">
-                                            <div class="col-md-6">
+                                            <div class="col-md-4">
                                                 <div class="small">
-                                                    <strong>Épaisseur:</strong> ${specs.thickness ? `${specs.thickness.value_min || '--'} | ${specs.thickness.value_nominal || '--'} | ${specs.thickness.value_max || '--'} mm` : '-- | -- | -- mm'}
+                                                    <strong>Épaisseur:</strong> ${specs.thickness ? `<span style="color: #dc3545;">${specs.thickness.value_min || '--'}</span> | <span style="color: #28a745;">${specs.thickness.value_nominal || '--'}</span> | <span style="color: #dc3545;">${specs.thickness.value_max || '--'}</span> mm` : '-- | -- | -- mm'}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="small">
+                                                    <strong>Micronnaire:</strong> ${specs.micrometer ? `<span style="color: #dc3545;">${specs.micrometer.value_min || '--'}</span> | <span style="color: #28a745;">${specs.micrometer.value_nominal || '--'}</span> | <span style="color: #dc3545;">${specs.micrometer.value_max || '--'}</span> mg/min` : '-- | -- | -- mg/min'}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="small">
+                                                    <strong>Extrait sec:</strong> ${specs.dry_extract ? `<span style="color: #dc3545;">${specs.dry_extract.value_min ? parseFloat(specs.dry_extract.value_min).toFixed(2) : '--'}</span> | <span style="color: #28a745;">${specs.dry_extract.value_nominal ? parseFloat(specs.dry_extract.value_nominal).toFixed(2) : '--'}</span> | <span style="color: #dc3545;">${specs.dry_extract.value_max ? parseFloat(specs.dry_extract.value_max).toFixed(2) : '--'}</span>` : '-- | -- | --'}
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="small">
-                                                    <strong>Micronnaire:</strong> ${specs.micrometer ? `${specs.micrometer.value_min || '--'} | ${specs.micrometer.value_nominal || '--'} | ${specs.micrometer.value_max || '--'} mg/min` : '-- | -- | -- mg/min'}
+                                                    <strong>Masse surfacique globale:</strong> ${specs.global_surface_mass ? `<span style="color: #dc3545;">${specs.global_surface_mass.value_min || '--'}</span> | <span style="color: #28a745;">${specs.global_surface_mass.value_nominal || '--'}</span> | <span style="color: #dc3545;">${specs.global_surface_mass.value_max || '--'}</span> g/m²` : '-- | -- | -- g/m²'}
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="small">
-                                                    <strong>Masse surfacique globale:</strong> ${specs.global_surface_mass ? `${specs.global_surface_mass.value_min || '--'} | ${specs.global_surface_mass.value_nominal || '--'} | ${specs.global_surface_mass.value_max || '--'} g/m²` : '-- | -- | -- g/m²'}
+                                                    <strong>Masse surfacique:</strong> ${specs.surface_mass ? `<span style="color: #dc3545;">${specs.surface_mass.value_min || '--'}</span> | <span style="color: #28a745;">${specs.surface_mass.value_nominal || '--'}</span> | <span style="color: #dc3545;">${specs.surface_mass.value_max || '--'}</span> g/25cm²` : '-- | -- | -- g/25cm²'}
                                                 </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="small">
-                                                    <strong>Masse surfacique:</strong> ${specs.surface_mass ? `${specs.surface_mass.value_min || '--'} | ${specs.surface_mass.value_nominal || '--'} | ${specs.surface_mass.value_max || '--'} g/25cm²` : '-- | -- | -- g/25cm²'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2 d-flex align-items-center justify-content-center">
-                                        <div class="text-center">
-                                            <strong class="text-muted small d-block mb-1">EXTRAIT SEC</strong>
-                                            <div class="small">
-                                                <strong>${specs.dry_extract ? `${specs.dry_extract.value_min || '--'} | ${specs.dry_extract.value_nominal || '--'} | ${specs.dry_extract.value_max || '--'} %` : '-- | -- | -- %'}</strong>
                                             </div>
                                         </div>
                                     </div>
@@ -3078,13 +3139,28 @@ function generateRightThicknessInputs(meter) {
 // Fonction pour charger les spécifications d'épaisseur
 let thicknessSpecsLoaded = false;
 function loadThicknessSpecifications() {
-    fetch('/quality/get-thickness-specs/')
+    // Récupérer le profil sélectionné
+    const profileSelector = document.getElementById('profile-selector');
+    let profileName = '';
+    
+    if (profileSelector && profileSelector.options[profileSelector.selectedIndex]) {
+        const selectedOption = profileSelector.options[profileSelector.selectedIndex];
+        if (selectedOption.value) {
+            profileName = selectedOption.text;
+        }
+    }
+    
+    // Créer l'URL avec le paramètre profile
+    const url = profileName ? `/quality/get-thickness-specs/?profile=${encodeURIComponent(profileName)}` : '/quality/get-thickness-specs/';
+    
+    fetch(url)
     .then(response => response.json())
     .then(data => {
         const firstLoad = !thicknessSpecsLoaded;
         window.thicknessSpecs = data;
         thicknessSpecsLoaded = true;
         console.log('Spécifications d\'épaisseur chargées:', data);
+        console.log('Seuils: Rouge < ' + data.ep_mini + ', Orange: ' + data.ep_mini + ' à ' + data.ep_mini_alerte + ', Vert > ' + data.ep_mini_alerte);
         
         // Afficher le nom des spécifications
         const specNameElement = document.getElementById('thickness-spec-name');
@@ -3241,6 +3317,18 @@ function validateThickness(input) {
     const specs = window.thicknessSpecs;
     let status = 'ok';
     
+    // Vérifier si les specs sont les bonnes
+    if (!specs || !specs.name) {
+        console.error('ERREUR: Spécifications non chargées ou invalides!', specs);
+        return;
+    }
+    
+    console.log('=== VALIDATION ÉPAISSEUR ===');
+    console.log('Valeur entrée:', value);
+    console.log('Profil utilisé:', specs.name);
+    console.log('Seuils: Rouge<' + specs.ep_mini + ' | Orange: ' + specs.ep_mini + '-' + specs.ep_mini_alerte + ' | Vert: ' + specs.ep_mini_alerte + '-' + specs.ep_max_alerte + ' | Orange>' + specs.ep_max_alerte);
+    console.log('Tests: value<ep_mini=' + (value < specs.ep_mini) + ' | value<ep_mini_alerte=' + (value < specs.ep_mini_alerte) + ' | value>ep_max_alerte=' + (value > specs.ep_max_alerte));
+    
     if (value < specs.ep_mini) {
         // Rouge : en dessous du minimum critique (NOK)
         input.classList.add('thickness-critical');
@@ -3250,6 +3338,7 @@ function validateThickness(input) {
         // Orange : en zone d'alerte
         input.classList.add('thickness-warning');
         status = 'warning';
+        console.log('WARNING détecté:', value, 'hors limites [', specs.ep_mini_alerte, '-', specs.ep_max_alerte, ']');
     } else if (value >= specs.ep_mini_alerte && value <= specs.ep_max_alerte) {
         // Vert : dans la zone optimale
         input.classList.add('thickness-ok');
@@ -4038,15 +4127,26 @@ function calculateMassNetAndGrammage() {
         const totalMassValue = parseFloat(document.getElementById('total-mass')?.value) || 0;
         const tubeMassValue = parseFloat(document.getElementById('tube-mass')?.value) || 0;
         const rollLengthValue = parseFloat(document.getElementById('roll-length')?.value) || 0;
+        
+        console.log('calculateMassNetAndGrammage - valeurs:', {
+            totalMassValue,
+            tubeMassValue,
+            rollLengthValue
+        });
     
     // Récupérer les éléments d'affichage
     const massNetElement = document.getElementById('mass-net');
     const grammageElement = document.getElementById('grammage');
     
+    console.log('Éléments trouvés:', {
+        massNetElement: !!massNetElement,
+        grammageElement: !!grammageElement
+    });
+    
     // Calculer la masse nette (g) = masse totale - masse tube
     let massNet = '--';
     if (totalMassValue > 0 && tubeMassValue > 0) {
-        massNet = (totalMassValue - tubeMassValue).toFixed(1);
+        massNet = Math.round(totalMassValue - tubeMassValue).toString();
     }
     
     // Calculer le grammage (g/m²) = masse nette / longueur
@@ -4056,16 +4156,42 @@ function calculateMassNetAndGrammage() {
         grammage = (massNetValue / rollLengthValue).toFixed(2);
     }
     
-    // Mettre à jour les éléments d'affichage
+    console.log('Valeurs calculées:', {
+        massNet,
+        grammage
+    });
+    
+    // Mettre à jour les éléments d'affichage avec validation des couleurs
     if (massNetElement) {
-        massNetElement.textContent = massNet === '--' ? '--' : `${massNet} g`;
+        massNetElement.textContent = massNet === '--' ? '--' : `${massNet} g net`;
     }
     if (grammageElement) {
         grammageElement.textContent = grammage === '--' ? '--' : `${grammage} g/m²`;
+        
+        // Code simple pour les couleurs du grammage
+        if (grammage !== '--') {
+            const grammageValue = parseFloat(grammage);
+            
+            // Valeurs en dur pour 80g/m² (on s'en fout du profil pour l'instant)
+            // min: 72, min_alert: 76, max_alert: 84, max: 88
+            let color = '#28a745'; // Vert par défaut
+            
+            if (grammageValue < 72) {
+                color = '#dc3545'; // Rouge
+            } else if (grammageValue < 76) {
+                color = '#fd7e14'; // Orange
+            } else if (grammageValue > 88) {
+                color = '#dc3545'; // Rouge
+            } else if (grammageValue > 84) {
+                color = '#fd7e14'; // Orange
+            }
+            
+            grammageElement.style.color = color;
+        }
     }
     
-        // Mettre à jour le panneau de validation après calcul des masses
-        updateValidationInfoPanel();
+    // Mettre à jour le panneau de validation après calcul des masses
+    updateValidationInfoPanel();
     }, 50);
 }
 
@@ -4491,14 +4617,36 @@ function fillRandomThickness() {
         return;
     }
     
-    thicknessInputs.forEach(input => {
-        // Générer une valeur aléatoire entre 3.8 et 11
-        const randomValue = (Math.random() * (11 - 3.8) + 3.8).toFixed(2);
+    // Obtenir les specs
+    const specs = window.thicknessSpecs || {
+        ep_mini: 3.0,
+        ep_mini_alerte: 3.5,
+        ep_nominale: 4.0,
+        ep_max_alerte: 4.5
+    };
+    
+    thicknessInputs.forEach((input, index) => {
+        let randomValue;
+        
+        // 20% de chance d'avoir une valeur sous le seuil d'alerte minimum
+        if (Math.random() < 0.2) {
+            // Valeur entre ep_mini et ep_mini_alerte (zone orange)
+            const range = specs.ep_mini_alerte - specs.ep_mini;
+            randomValue = (specs.ep_mini + Math.random() * range).toFixed(2);
+        } else {
+            // 80% de chance d'avoir une valeur proche du nominal
+            const variation = (Math.random() * 0.6) - 0.3; // Entre -0.3 et +0.3
+            randomValue = (specs.ep_nominale + variation).toFixed(2);
+        }
+        
         input.value = randomValue;
         
         // Appliquer la validation pour la couleur
         validateThickness(input);
     });
+    
+    // Remplir aussi masse tube et masse totale
+    fillRandomMasses();
     
     // Déclencher l'auto-save
     clearTimeout(window.autoSaveTimeout);
@@ -4514,14 +4662,55 @@ function fillRandomThickness() {
     setTimeout(updateNokCounter, 650);
 }
 
-// Fonction pour effacer toutes les épaisseurs
+// Fonction pour remplir les masses aléatoirement
+function fillRandomMasses() {
+    // D'abord remplir les valeurs de base
+    
+    // Masse tube : environ 900g (± 30g)
+    const tubeMassInput = document.getElementById('tube-mass');
+    let tubeMassValue = 900; // Valeur par défaut
+    if (tubeMassInput) {
+        tubeMassValue = 900 + (Math.random() * 60 - 30); // Entre 870 et 930
+        tubeMassInput.value = tubeMassValue.toFixed(0);
+    }
+    
+    // Masse prochain tube : environ 900g (± 30g) aussi
+    const nextTubeMassInput = document.getElementById('next-tube-mass');
+    if (nextTubeMassInput) {
+        const nextTubeMass = 900 + (Math.random() * 60 - 30); // Entre 870 et 930
+        nextTubeMassInput.value = nextTubeMass.toFixed(0);
+    }
+    
+    // Longueur du rouleau = longueur cible
+    const targetLengthInput = document.getElementById('target-length');
+    const rollLengthInput = document.getElementById('roll-length');
+    let targetLengthValue = 0;
+    
+    if (targetLengthInput && targetLengthInput.value) {
+        targetLengthValue = parseFloat(targetLengthInput.value);
+        if (rollLengthInput) {
+            rollLengthInput.value = targetLengthInput.value;
+        }
+    }
+    
+    // Masse totale : valeur random entre 3400 et 3600
+    const totalMassInput = document.getElementById('total-mass');
+    if (totalMassInput) {
+        const totalMass = 3400 + Math.random() * 200; // Entre 3400 et 3600
+        totalMassInput.value = Math.round(totalMass).toString();
+        
+        // Mettre à jour les calculs
+        setTimeout(() => {
+            calculateMassNetAndGrammage();
+            updateValidationInfoPanel();
+        }, 100);
+    }
+}
+
+// Fonction pour effacer toutes les épaisseurs et les masses
 function clearAllThickness() {
     // Trouver tous les champs d'épaisseur (principaux ET rattrapages)
     const allThicknessInputs = document.querySelectorAll('.thickness-input, .thickness-catchup-input');
-    
-    if (allThicknessInputs.length === 0) {
-        return;
-    }
     
     allThicknessInputs.forEach(input => {
         input.value = '';
@@ -4534,6 +4723,18 @@ function clearAllThickness() {
             input.style.display = 'none';
         }
     });
+    
+    // Effacer aussi les masses et longueur
+    const massFields = ['tube-mass', 'total-mass', 'roll-length', 'next-tube-mass'];
+    massFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.value = '';
+        }
+    });
+    
+    // Mettre à jour les calculs
+    calculateMassNetAndGrammage();
     
     // Déclencher l'auto-save
     clearTimeout(window.autoSaveTimeout);
@@ -5062,14 +5263,33 @@ function enforceNumericStickyBar() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialiser les tooltips Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
     populateTimeOptions();
     loadFabricationOrders();
-    loadThicknessSpecifications(); // Charger les spécifications d'épaisseur
+    // Ne pas charger les specs ici, attendre que le profil soit chargé
     loadAllSpecifications(); // Charger toutes les spécifications pour les contrôles qualité
     
     // Appliquer la validation numérique
     enforceNumericQualityControls();
     enforceNumericStickyBar();
+    
+    // Restaurer les données sauvegardées du shift
+    if (typeof restoreSavedData === 'function') {
+        restoreSavedData();
+    }
+    
+    // Initialiser les fonctions du shift block
+    if (typeof calculateAvailabilityTime === 'function') {
+        calculateAvailabilityTime();
+    }
+    if (typeof toggleMeterReadingFields === 'function') {
+        toggleMeterReadingFields();
+    }
     
     // Event listener pour le champ signature
     const signatureInput = document.getElementById('operator-signature');
@@ -5126,6 +5346,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const profileSelector = document.getElementById('profile-selector');
         if (profileSelector && profileSelector.value) {
             handleProfileChange(profileSelector.value);
+        } else {
+            // Si aucun profil n'est sélectionné, charger quand même les specs d'épaisseur
+            loadThicknessSpecifications();
         }
     }, 1000);
     
@@ -5148,10 +5371,80 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialiser la synchronisation de la sticky bar
     setTimeout(syncStickyBarValues, 500);
+});
+
+// Fonction de test pour vérifier les validations d'épaisseur
+function testThicknessValidation() {
+    console.log('=== TEST DE VALIDATION DES ÉPAISSEURS ===');
     
-    // Ces fonctions sont déjà appelées par generateRollVisualization et restoreRollData
-    // Pas besoin de les rappeler pour éviter le double clignotement
+    // Vérifier que les specs sont chargées
+    if (!window.thicknessSpecs) {
+        console.error('ERREUR: Les spécifications ne sont pas chargées!');
+        console.log('Tentative de chargement...');
+        loadThicknessSpecifications();
+        setTimeout(testThicknessValidation, 1000);
+        return;
+    }
     
+    console.log('Spécifications actuelles:', window.thicknessSpecs);
+    
+    // Test avec différentes valeurs
+    const testValues = [2.5, 3.0, 3.2, 4.0, 5.0, 6.5, 9.0, 10.0];
+    const firstInput = document.querySelector('.thickness-input[data-point]:not([data-catchup])');
+    
+    if (!firstInput) {
+        console.error('Aucun champ d\'épaisseur trouvé!');
+        return;
+    }
+    
+    testValues.forEach(val => {
+        firstInput.value = val;
+        validateThickness(firstInput);
+        
+        const classes = [];
+        if (firstInput.classList.contains('thickness-critical')) classes.push('ROUGE');
+        if (firstInput.classList.contains('thickness-warning')) classes.push('ORANGE');
+        if (firstInput.classList.contains('thickness-ok')) classes.push('VERT');
+        
+        console.log(`Valeur ${val}: ${classes.join(' + ') || 'AUCUNE CLASSE'}`);
+    });
+    
+    console.log('=== FIN DU TEST ===');
+}
+
+// Fonction pour éditer les paramètres machine (placeholder)
+function editMachineParameters() {
+    console.log('Édition des paramètres machine - Fonctionnalité à implémenter');
+    // TODO: Implémenter la modification des paramètres machine
+}
+
+// Fonction pour enrouler/dérouler tous les blocs
+function toggleAllBlocks() {
+    // Trouver tous les blocs avec un chevron (enroulables)
+    const allChevrons = document.querySelectorAll('.block-header .bi-chevron-up, .block-header .bi-chevron-down');
+    
+    // Déterminer si on doit tous les enrouler ou tous les dérouler
+    // Si au moins un bloc est déroulé (chevron-up), on enroule tout
+    const hasExpandedBlocks = Array.from(allChevrons).some(chevron => chevron.classList.contains('bi-chevron-up'));
+    
+    allChevrons.forEach(chevron => {
+        const blockHeader = chevron.closest('.block-header');
+        if (!blockHeader) return;
+        
+        // Trouver la fonction onclick du header
+        const onclickAttr = blockHeader.getAttribute('onclick');
+        if (!onclickAttr) return;
+        
+        // Si on veut enrouler tout et que le bloc est déroulé, ou si on veut dérouler tout et que le bloc est enroulé
+        if ((hasExpandedBlocks && chevron.classList.contains('bi-chevron-up')) || 
+            (!hasExpandedBlocks && chevron.classList.contains('bi-chevron-down'))) {
+            // Simuler un clic sur le header
+            blockHeader.click();
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
     // // Initialiser le statut de conformité
     // setTimeout(updateRollConformity, 5000);
     
@@ -5205,8 +5498,53 @@ function calculateMicrometerAverage(side) {
     if (count > 0) {
         const average = (sum / count).toFixed(2);
         averageDisplay.textContent = average;
+        
+        // Appliquer la validation de couleur à la moyenne
+        const profileSelector = document.getElementById('profile-selector');
+        let profileName = '80g/m²';
+        
+        if (profileSelector && profileSelector.options[profileSelector.selectedIndex]) {
+            const selectedOption = profileSelector.options[profileSelector.selectedIndex];
+            if (selectedOption.value) {
+                profileName = selectedOption.text;
+            }
+        }
+        
+        const spec = allSpecifications[`micrometer_${profileName}`];
+        console.log('Validation moyenne micronnaire:', {
+            average: average,
+            profileName: profileName,
+            spec: spec,
+            allSpecs: allSpecifications
+        });
+        
+        if (spec) {
+            const status = getValueStatus(average, spec);
+            
+            // Appliquer les styles directement
+            averageDisplay.style.textDecoration = 'none';
+            
+            switch(status) {
+                case 'ok':
+                    averageDisplay.style.setProperty('color', '#28a745', 'important');
+                    averageDisplay.style.fontWeight = 'bold';
+                    break;
+                case 'warning':
+                    averageDisplay.style.setProperty('color', '#fd7e14', 'important');
+                    averageDisplay.style.fontWeight = 'bold';
+                    averageDisplay.style.textDecoration = 'none';
+                    break;
+                case 'critical':
+                    averageDisplay.style.setProperty('color', '#dc3545', 'important');
+                    averageDisplay.style.fontWeight = 'bold';
+                    break;
+            }
+        }
     } else {
         averageDisplay.textContent = '--';
+        averageDisplay.style.color = '';
+        averageDisplay.style.fontWeight = '';
+        averageDisplay.style.textDecoration = 'none';
     }
 }
 
@@ -5276,8 +5614,46 @@ function calculateSurfaceMassAverage(side) {
         const average = (sum / count).toFixed(4);
         // Remplacer le point par une virgule pour l'affichage
         averageDisplay.textContent = average.replace('.', ',');
+        
+        // Appliquer la validation de couleur à la moyenne
+        const profileSelector = document.getElementById('profile-selector');
+        let profileName = '80g/m²';
+        
+        if (profileSelector && profileSelector.options[profileSelector.selectedIndex]) {
+            const selectedOption = profileSelector.options[profileSelector.selectedIndex];
+            if (selectedOption.value) {
+                profileName = selectedOption.text;
+            }
+        }
+        
+        const spec = allSpecifications[`surface_mass_${profileName}`];
+        if (spec) {
+            const status = getValueStatus(average, spec);
+            
+            // Appliquer les styles directement
+            averageDisplay.style.textDecoration = 'none';
+            
+            switch(status) {
+                case 'ok':
+                    averageDisplay.style.setProperty('color', '#28a745', 'important');
+                    averageDisplay.style.fontWeight = 'bold';
+                    break;
+                case 'warning':
+                    averageDisplay.style.setProperty('color', '#fd7e14', 'important');
+                    averageDisplay.style.fontWeight = 'bold';
+                    averageDisplay.style.textDecoration = 'none';
+                    break;
+                case 'critical':
+                    averageDisplay.style.setProperty('color', '#dc3545', 'important');
+                    averageDisplay.style.fontWeight = 'bold';
+                    break;
+            }
+        }
     } else {
         averageDisplay.textContent = '--';
+        averageDisplay.style.color = '';
+        averageDisplay.style.fontWeight = '';
+        averageDisplay.style.textDecoration = 'none';
     }
 }
 
@@ -5833,8 +6209,19 @@ function validateQualityControl(input, specType) {
         return;
     }
     
-    // Trouver la spécification correspondante (pour l'instant on prend 80gr/m²)
-    const specKey = `${specType}_80gr/m²`;
+    // Récupérer le profil sélectionné dans le bloc productivité
+    const profileSelector = document.getElementById('profile-selector');
+    let profileName = '80g/m²'; // Valeur par défaut
+    
+    if (profileSelector && profileSelector.options[profileSelector.selectedIndex]) {
+        const selectedOption = profileSelector.options[profileSelector.selectedIndex];
+        if (selectedOption.value) {
+            profileName = selectedOption.text;
+        }
+    }
+    
+    // Trouver la spécification correspondante au profil sélectionné
+    const specKey = `${specType}_${profileName}`;
     const spec = allSpecifications[specKey];
     
     if (!spec) {
@@ -5850,30 +6237,72 @@ function validateQualityControl(input, specType) {
 function fillRandomQualityControls() {
     console.log('Remplissage aléatoire des contrôles qualité...');
     
-    // Micronnaire - valeurs autour de 22-26 ml/min (2 chiffres après la virgule)
-    document.querySelectorAll('.micrometer-readings input').forEach(input => {
-        const randomValue = (22 + Math.random() * 4).toFixed(2);
-        input.value = randomValue;
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        input.dispatchEvent(new Event('blur', { bubbles: true }));
-    });
+    // Récupérer le profil sélectionné
+    const profileSelector = document.getElementById('profile-selector');
+    let profileName = '80g/m²'; // Valeur par défaut
     
-    // Extrait sec - valeurs autour de 7.5-8.5% (2 chiffres après la virgule)
+    if (profileSelector && profileSelector.options[profileSelector.selectedIndex]) {
+        const selectedOption = profileSelector.options[profileSelector.selectedIndex];
+        if (selectedOption.value) {
+            profileName = selectedOption.text;
+        }
+    }
+    
+    // Micronnaire - utiliser la valeur nominale du profil
+    const micrometerSpec = allSpecifications[`micrometer_${profileName}`];
+    if (micrometerSpec && micrometerSpec.value_nominal) {
+        const nominal = parseFloat(micrometerSpec.value_nominal);
+        const variation = nominal * 0.05; // ±5% de variation
+        document.querySelectorAll('.micrometer-readings input').forEach(input => {
+            const randomValue = (nominal + (Math.random() * 2 - 1) * variation).toFixed(2);
+            input.value = randomValue;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('blur', { bubbles: true }));
+        });
+    } else {
+        // Valeurs par défaut si pas de spec
+        document.querySelectorAll('.micrometer-readings input').forEach(input => {
+            const randomValue = (30 + Math.random() * 4).toFixed(2);
+            input.value = randomValue;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('blur', { bubbles: true }));
+        });
+    }
+    
+    // Extrait sec - utiliser la valeur nominale du profil (garder en décimal)
+    const dryExtractSpec = allSpecifications[`dry_extract_${profileName}`];
     const sizingBathInput = document.getElementById('sizing-bath-input');
     if (sizingBathInput) {
-        const randomValue = (7.5 + Math.random() * 1).toFixed(2);
-        sizingBathInput.value = randomValue;
+        if (dryExtractSpec && dryExtractSpec.value_nominal) {
+            const nominal = parseFloat(dryExtractSpec.value_nominal); // Garder en décimal (0.22)
+            const variation = nominal * 0.05; // ±5% de variation
+            const randomValue = (nominal + (Math.random() * 2 - 1) * variation).toFixed(2);
+            sizingBathInput.value = randomValue;
+        } else {
+            // Valeur par défaut en décimal
+            const randomValue = (0.22 + Math.random() * 0.02).toFixed(2);
+            sizingBathInput.value = randomValue;
+        }
         sizingBathInput.dispatchEvent(new Event('input', { bubbles: true }));
         sizingBathInput.dispatchEvent(new Event('blur', { bubbles: true }));
     }
     
-    // Masses surfaciques - valeurs autour de 0.08-0.10 g/25cm² (4 chiffres après la virgule)
+    // Masses surfaciques - utiliser la valeur nominale du profil
+    const surfaceMassSpec = allSpecifications[`surface_mass_${profileName}`];
     const massInputs = ['gg-input', 'gc-input', 'dc-input', 'dd-input'];
     massInputs.forEach(id => {
         const input = document.getElementById(id);
         if (input) {
-            const randomValue = (0.08 + Math.random() * 0.02).toFixed(4);
-            input.value = randomValue;
+            if (surfaceMassSpec && surfaceMassSpec.value_nominal) {
+                const nominal = parseFloat(surfaceMassSpec.value_nominal);
+                const variation = nominal * 0.05; // ±5% de variation
+                const randomValue = (nominal + (Math.random() * 2 - 1) * variation).toFixed(4);
+                input.value = randomValue;
+            } else {
+                // Valeur par défaut
+                const randomValue = (0.011 + Math.random() * 0.001).toFixed(4);
+                input.value = randomValue;
+            }
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('blur', { bubbles: true }));
         }
@@ -5889,7 +6318,7 @@ function fillRandomQualityControls() {
     // Sauvegarder automatiquement
     autoSaveFormData();
     
-    console.log('Contrôles qualité remplis aléatoirement');
+    console.log('Contrôles qualité remplis aléatoirement avec valeurs proches du nominal');
 }
 
 // Fonction pour appliquer la validation à tous les champs de contrôle qualité

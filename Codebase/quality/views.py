@@ -10,8 +10,21 @@ from production.models import RollDefect
 def get_thickness_specifications(request):
     """Retourne les spécifications d'épaisseur actives."""
     try:
+        # Récupérer le nom du profil depuis les paramètres de la requête
+        profile_name = request.GET.get('profile', None)
+        
         # Chercher d'abord dans le nouveau modèle Specification
-        spec = Specification.objects.filter(spec_type='thickness', is_active=True).first()
+        if profile_name:
+            # Chercher la spécification pour le profil demandé
+            spec = Specification.objects.filter(
+                spec_type='thickness', 
+                name=profile_name,
+                is_active=True
+            ).first()
+        else:
+            # Si pas de profil spécifié, prendre la première active
+            spec = Specification.objects.filter(spec_type='thickness', is_active=True).first()
+            
         if spec:
             return JsonResponse({
                 'name': spec.name,
