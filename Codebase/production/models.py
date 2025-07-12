@@ -39,6 +39,17 @@ class Shift(models.Model):
     raw_waste_length = models.DecimalField(max_digits=10, decimal_places=2, default=0,
                                          help_text="Longueur déchet brut en mètres")
     
+    # Moyennes des rouleaux du poste
+    avg_thickness_left_shift = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
+                                                  verbose_name="Moyenne épaisseur gauche",
+                                                  help_text="Moyenne des moyennes gauches de tous les rouleaux")
+    avg_thickness_right_shift = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True,
+                                                   verbose_name="Moyenne épaisseur droite", 
+                                                   help_text="Moyenne des moyennes droites de tous les rouleaux")
+    avg_grammage_shift = models.DecimalField(max_digits=6, decimal_places=1, null=True, blank=True,
+                                            verbose_name="Grammage moyen",
+                                            help_text="Moyenne des grammages de tous les rouleaux (g/m)")
+    
     # Attributs techniques - Début de poste
     started_at_beginning = models.BooleanField(default=False, verbose_name="Machine démarrée", help_text="Machine démarrée en début de poste")
     meter_reading_start = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
@@ -82,6 +93,13 @@ class Shift(models.Model):
         
         return end_datetime - start_datetime
     
+    @property
+    def trs(self):
+        """Calcule le TRS (Taux de Rendement Synthétique) = (Longueur OK / Longueur Totale) * 100."""
+        if self.total_length and self.total_length > 0:
+            return round((self.ok_length / self.total_length) * 100, 1)
+        return 0
+    
     def clean(self):
         """Validation du modèle."""
         super().clean()
@@ -101,6 +119,40 @@ class Shift(models.Model):
             total=Sum('duration')
         )['total'] or 0
         return timedelta(minutes=total_minutes)
+    
+    def calculate_roll_averages(self):
+        """Calcule les moyennes d'épaisseur et de grammage de tous les rouleaux du poste."""
+        from django.db.models import Avg
+        
+        # Récupérer uniquement les rouleaux avec des données d'épaisseur
+        rolls_with_thickness = self.rolls.exclude(
+            avg_thickness_left__isnull=True,
+            avg_thickness_right__isnull=True
+        )
+        
+        if rolls_with_thickness.exists():
+            # Moyenne des moyennes gauches
+            avg_left = rolls_with_thickness.aggregate(
+                avg=Avg('avg_thickness_left')
+            )['avg']
+            if avg_left is not None:
+                self.avg_thickness_left_shift = round(avg_left, 2)
+            
+            # Moyenne des moyennes droites
+            avg_right = rolls_with_thickness.aggregate(
+                avg=Avg('avg_thickness_right')
+            )['avg']
+            if avg_right is not None:
+                self.avg_thickness_right_shift = round(avg_right, 2)
+        
+        # Moyenne des grammages (pour tous les rouleaux avec masse et longueur)
+        rolls_with_grammage = []
+        for roll in self.rolls.all():
+            if roll.net_mass and roll.length and roll.length > 0:
+                rolls_with_grammage.append(roll.grammage)
+        
+        if rolls_with_grammage:
+            self.avg_grammage_shift = round(sum(rolls_with_grammage) / len(rolls_with_grammage), 1)
     
     def save(self, *args, **kwargs):
         """Génère automatiquement le shift_id et calcule les valeurs dérivées."""
@@ -130,8 +182,16 @@ class Shift(models.Model):
             self.raw_waste_length = self.total_length - (self.ok_length + self.nok_length)
         else:
             self.raw_waste_length = 0
-            
+        
+        # D'abord sauvegarder pour avoir un ID
         super().save(*args, **kwargs)
+        
+        # Calculer les moyennes des rouleaux si on a un ID
+        if self.pk:
+            self.calculate_roll_averages()
+            # Sauvegarder à nouveau si les moyennes ont changé
+            if 'update_fields' not in kwargs:
+                super().save(update_fields=['avg_thickness_left_shift', 'avg_thickness_right_shift', 'avg_grammage_shift'])
 
 
 class CurrentProd(models.Model):
@@ -403,6 +463,15 @@ class Roll(models.Model):
             self.avg_thickness_left = round(left_avg, 2)
         if right_avg:
             self.avg_thickness_right = round(right_avg, 2)
+    
+    @property
+    def grammage(self):
+        """Calcule le grammage (g/m) du rouleau."""
+        if self.net_mass and self.length and self.length > 0:
+            # net_mass est en grammes, length en mètres
+            # donc net_mass / length donne des g/m
+            return round(float(self.net_mass) / float(self.length), 1)
+        return 0
     
     def save(self, *args, **kwargs):
         """Génère automatiquement le roll_id selon le statut si non fourni et calcule la masse nette."""

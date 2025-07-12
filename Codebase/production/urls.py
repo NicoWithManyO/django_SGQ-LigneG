@@ -43,4 +43,7 @@ urlpatterns = [
     
     # Longueur enroulée totale
     path('get-total-rolled-length/', views.get_total_rolled_length, name='get_total_rolled_length'),
+    
+    # Métrage du poste précédent
+    path('get-previous-shift-meter/', views.get_previous_shift_meter, name='get_previous_shift_meter'),
 ]

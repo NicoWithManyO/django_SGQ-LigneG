@@ -71,6 +71,20 @@
     margin-top: 15px;
 }
 
+/* Style pour les sections Postes récents et Rouleaux récents */
+#recent-shifts-section .table, #recent-rolls-section .table {
+    color: white !important;
+}
+
+#recent-shifts-section .table td, #recent-rolls-section .table td {
+    color: white !important;
+    border: none !important;
+}
+
+#recent-shifts-section .text-muted, #recent-rolls-section .text-muted {
+    color: white !important;
+}
+
 #operator-signature {
     width: 100px !important;
     max-width: 100px !important;
@@ -521,18 +535,18 @@
                                     </div>
                                     <div class="col-4">
                                         <div class="productivity-metric">
-                                            <label class="text-muted small">Disponibilité</label>
+                                            <label class="text-muted small">Longueur Enroulable</label>
                                             <div class="metric-value">
-                                                <span id="disponibilite" class="h6 fw-bold">--%</span>
+                                                <span id="lg-enroulable" class="h6 fw-bold text-info">--</span>
                                             </div>
                                         </div>
                                     </div>
                                     <!-- Deuxième ligne -->
                                     <div class="col-4">
                                         <div class="productivity-metric">
-                                            <label class="text-muted small">Longueur Enroulable</label>
+                                            <label class="text-muted small">Longueur Totale</label>
                                             <div class="metric-value">
-                                                <span id="lg-enroulable" class="h6 fw-bold text-info">--</span>
+                                                <span id="longueur-totale" class="h6 fw-bold">--</span>
                                             </div>
                                         </div>
                                     </div>
@@ -589,7 +603,19 @@
                                                 <text x="90" y="58" text-anchor="middle" font-size="8" fill="#666">100</text>
                                             </g>
                                             
-                                            <!-- Aiguille -->
+                                            <!-- Aiguille secondaire (longueur enroulable / longueur totale) -->
+                                            <g id="gauge-needle-secondary" transform="rotate(-90 50 50)" style="transition: transform 0.5s ease; opacity: 0.4">
+                                                <line x1="50" y1="50" x2="50" y2="14" stroke="#666" stroke-width="1" stroke-linecap="round"/>
+                                                <circle cx="50" cy="50" r="2" fill="#666"/>
+                                            </g>
+                                            
+                                            <!-- Aiguille tertiaire (rendement projeté avec un rouleau de plus) -->
+                                            <g id="gauge-needle-tertiary" transform="rotate(-90 50 50)" style="transition: transform 0.5s ease; opacity: 0.3">
+                                                <line x1="50" y1="50" x2="50" y2="18" stroke="#666" stroke-width="1" stroke-linecap="round" stroke-dasharray="3,2"/>
+                                                <circle cx="50" cy="50" r="2" fill="#666"/>
+                                            </g>
+                                            
+                                            <!-- Aiguille principale (rendement) -->
                                             <g id="gauge-needle" transform="rotate(-90 50 50)" style="transition: transform 0.5s ease">
                                                 <line id="needle-line" x1="50" y1="50" x2="50" y2="22" stroke="#333" stroke-width="3" stroke-linecap="round"/>
                                                 <circle id="needle-circle" cx="50" cy="50" r="5" fill="#333"/>
@@ -1135,33 +1161,47 @@
 </div>
 
 <!-- Historique -->
-<div class="row mt-4">
+<div class="row mt-4" id="historique-section" 
+     hx-get="{% url 'production:prod' %}"
+     hx-trigger="refreshHistorique from:body"
+     hx-select="#historique-section"
+     hx-target="#historique-section"
+     hx-swap="outerHTML">
     <!-- Postes récents -->
-    <div class="col-12 col-md-6">
-        <h5>Postes récents</h5>
+    <div class="col-12 col-md-6" id="recent-shifts-section">
+        <div class="d-flex align-items-center mb-3">
+            <h5 class="mb-0 me-3">Postes récents</h5>
+        </div>
         <div class="table-responsive">
-            <table class="table table-striped table-sm">
-                <thead>
-                    <tr>
-                        <th>ID Poste</th>
-                        <th>Opérateur</th>
-                        <th>Date</th>
-                        <th>Vacation</th>
-                        <th>Longueur</th>
-                    </tr>
-                </thead>
+            <table class="table table-striped table-sm" id="recent-shifts-table" style="font-size: 0.85rem;">
                 <tbody>
+                    <tr class="summary-row">
+                        <td class="text-center"><small class="text-muted"><span id="shifts-line-count">0</span></small></td>
+                        <td class="text-end"><strong>Totaux/Moyennes</strong></td>
+                        <td class="text-center"><strong id="shifts-total-length">--</strong></td>
+                        <td class="text-center"><strong id="shifts-avg-thickness-left">--</strong></td>
+                        <td class="text-center"><strong id="shifts-avg-thickness-right">--</strong></td>
+                        <td class="text-center"><strong id="shifts-avg-grammage">--</strong></td>
+                        <td class="text-center"><strong id="shifts-avg-trs">--</strong></td>
+                    </tr>
                     {% for shift in shifts %}
                     <tr>
-                        <td>{{ shift.shift_id }}</td>
-                        <td>{{ shift.operator.full_name }}</td>
-                        <td>{{ shift.date|date:"d/m/Y" }}</td>
-                        <td>{{ shift.get_vacation_display }}</td>
-                        <td>{{ shift.total_length }} m</td>
+                        <td class="text-center"><small class="text-muted">{{ forloop.counter }}</small></td>
+                        <td>
+                            {{ shift.shift_id }}
+                            <span class="text-muted" style="font-size: 0.75rem;">
+                                ({{ shift.meter_reading_start|floatformat:0|default:"0" }}m | {{ shift.meter_reading_end|floatformat:0|default:"0" }}m)
+                            </span>
+                        </td>
+                        <td class="text-center">{{ shift.total_length }} m</td>
+                        <td class="text-center">{{ shift.avg_thickness_left_shift|floatformat:2|default:"--" }}</td>
+                        <td class="text-center">{{ shift.avg_thickness_right_shift|floatformat:2|default:"--" }}</td>
+                        <td class="text-center">{{ shift.avg_grammage_shift|floatformat:1|default:"--" }} g/m</td>
+                        <td class="text-center">{{ shift.trs }}%</td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center text-muted">
+                        <td colspan="6" class="text-center text-muted">
                             Aucun poste enregistré
                         </td>
                     </tr>
@@ -1172,37 +1212,48 @@
     </div>
     
     <!-- Rouleaux récents -->
-    <div class="col-12 col-md-6">
-        <h5>Rouleaux récents</h5>
+    <div class="col-12 col-md-6" id="recent-rolls-section">
+        <div class="d-flex align-items-center mb-3">
+            <h5 class="mb-0 me-3">Rouleaux récents</h5>
+        </div>
         <div class="table-responsive">
-            <table class="table table-striped table-sm">
-                <thead>
-                    <tr>
-                        <th>ID Rouleau</th>
-                        <th>OF</th>
-                        <th>Poste</th>
-                        <th>Longueur</th>
-                        <th>Statut</th>
-                    </tr>
-                </thead>
+            <table class="table table-striped table-sm" id="recent-rolls-table" style="font-size: 0.85rem;">
                 <tbody>
+                    <tr class="summary-row">
+                        <td class="text-center"><small class="text-muted"><span id="rolls-line-count">0</span></small></td>
+                        <td colspan="2" class="text-end"><strong>Totaux/Moyennes</strong></td>
+                        <td class="text-center"><strong id="rolls-total-length">--</strong></td>
+                        <td class="text-center"><strong id="rolls-avg-thickness-left">--</strong></td>
+                        <td class="text-center"><strong id="rolls-avg-thickness-right">--</strong></td>
+                        <td class="text-center"><strong id="rolls-avg-grammage">--</strong></td>
+                        <td class="text-center">
+                            <strong>
+                                <span id="rolls-count-ok" class="text-success">0</span>
+                                <span class="text-white">|</span>
+                                <span id="rolls-count-nok" class="text-danger">0</span>
+                            </strong>
+                        </td>
+                    </tr>
                     {% for roll in recent_rolls %}
                     <tr>
+                        <td class="text-center"><small class="text-muted">{{ forloop.counter }}</small></td>
                         <td>{{ roll.roll_id }}</td>
-                        <td>{{ roll.fabrication_order.order_number|default:"N/A" }}</td>
-                        <td>{{ roll.shift.shift_id|default:"N/A" }}</td>
-                        <td>{{ roll.length }} m</td>
-                        <td>
+                        <td>{{ roll.shift.shift_id|default:"Poste Courant" }}</td>
+                        <td class="text-center">{{ roll.length }} m</td>
+                        <td class="text-center">{{ roll.avg_thickness_left|floatformat:2|default:"--" }}</td>
+                        <td class="text-center">{{ roll.avg_thickness_right|floatformat:2|default:"--" }}</td>
+                        <td class="text-center">{{ roll.grammage|floatformat:1 }} g/m</td>
+                        <td class="text-center">
                             {% if roll.status == 'CONFORME' %}
-                                <span class="badge bg-success">Conforme</span>
+                                <span class="badge bg-success">C</span>
                             {% else %}
-                                <span class="badge bg-danger">Non conforme</span>
+                                <span class="badge bg-danger">NC</span>
                             {% endif %}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center text-muted">
+                        <td colspan="7" class="text-center text-muted">
                             Aucun rouleau enregistré
                         </td>
                     </tr>
@@ -1650,6 +1701,7 @@ function toggleMeterReadingFields() {
 
 // Auto-sauvegarde côté serveur
 function autoSaveFormData() {
+    console.log('Auto-save déclenché');
     const startedBeginningField = document.querySelector('input[name="started_at_beginning"]');
     const startedEndField = document.querySelector('input[name="started_at_end"]');
     
@@ -1996,6 +2048,7 @@ function restoreSavedData() {
 // Event listeners pour auto-save
 document.body.addEventListener('input', function(e) {
     if ((e.target.closest('#shift-form') || e.target.closest('.block-content') || e.target.closest('.quality-controls-container')) && !window.isRestoring) {
+        console.log('Input détecté dans shift-form:', e.target.name || e.target.id);
         clearTimeout(window.autoSaveTimeout);
         window.autoSaveTimeout = setTimeout(autoSaveFormData, 1000);
         
@@ -2017,7 +2070,27 @@ document.body.addEventListener('change', function(e) {
          e.target.id === 'profile-selector' || e.target.id.startsWith('mode-')) && !window.isRestoring) {
         // Si c'est une checkbox de machine, mettre à jour la visibilité
         if (e.target.name === 'started_at_beginning' || e.target.name === 'started_at_end') {
+            // Si on décoche, vider le champ de métrage correspondant
+            if (!e.target.checked) {
+                if (e.target.name === 'started_at_beginning') {
+                    const meterStartField = document.querySelector('input[name="meter_reading_start"]');
+                    if (meterStartField) {
+                        meterStartField.value = '';
+                    }
+                } else if (e.target.name === 'started_at_end') {
+                    const meterEndField = document.querySelector('input[name="meter_reading_end"]');
+                    if (meterEndField) {
+                        meterEndField.value = '';
+                    }
+                }
+            }
+            
             toggleMeterReadingFields();
+            
+            // Mettre à jour les métriques de productivité car la longueur OK dépend de l'état de la machine
+            if (typeof updateProductivityMetrics === 'function') {
+                updateProductivityMetrics();
+            }
         }
         
         // Si c'est le champ opérateur, mettre à jour les métriques de productivité
@@ -2675,9 +2748,10 @@ function updateRollId() {
                 month: '2-digit',
                 year: '2-digit'
             }).replace(/\//g, '');
+            const timeStr = now.toTimeString().slice(0, 5).replace(':', ''); // HHMM
             // Utiliser l'OF de découpe pour les non conformes
             const ofToUse = cuttingOrderNumber || 'OFDecoupe';
-            rollId = `${ofToUse}_${dateStr}`;
+            rollId = `${ofToUse}_${dateStr}_${timeStr}`;
         } else {
             // Format normal pour CONFORME
             rollId = `${orderNumber}_${rollNumber}`;
@@ -3472,11 +3546,10 @@ function updateProductivityMetrics() {
     const operatorField = document.querySelector('select[name="operator"]');
     const vacationField = document.querySelector('select[name="vacation"]');
     
-    if (shiftId || (dateField?.value && operatorField?.value && vacationField?.value)) {
-        const url = shiftId ? `/get-total-rolled-length/?shift_id=${shiftId}` : 
-                    `/get-total-rolled-length/?date=${dateField.value}&operator=${operatorField.value}&vacation=${vacationField.value}`;
-        
-        fetch(url)
+    // Toujours appeler l'API même sans shift_id pour obtenir les longueurs de la session
+    const url = shiftId ? `/get-total-rolled-length/?shift_id=${shiftId}` : `/get-total-rolled-length/`;
+    
+    fetch(url)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -3493,9 +3566,6 @@ function updateProductivityMetrics() {
                 console.error('Erreur lors de la récupération de la longueur enroulée:', error);
                 updateMetricsDisplay();
             });
-    } else {
-        updateMetricsDisplay();
-    }
     
     function updateMetricsDisplay() {
         // Calculer la longueur additionnelle depuis les métrages
@@ -3523,7 +3593,11 @@ function updateProductivityMetrics() {
         document.getElementById('temps-disponible').textContent = tdStr;
         document.getElementById('temps-perdu-total').textContent = tpMinutes > 0 ? tpStr : '--';
         document.getElementById('lg-perdue').textContent = lgPerdue > 0 ? `${lgPerdue} m` : '--';
-        document.getElementById('disponibilite').textContent = `${tauxDisponibilite}%`;
+        
+        // Calculer la longueur totale (OK + NOK + futur déchet)
+        const longueurTotale = lgEnrouleeOkTotal + lgEnrouleeNok;  // + déchet sera ajouté plus tard
+        document.getElementById('longueur-totale').textContent = longueurTotale > 0 ? `${longueurTotale} m` : '--';
+        
         document.getElementById('lg-enroulable').textContent = lgEnroulable > 0 ? `${lgEnroulable} m` : '--';
         
         document.getElementById('lg-enroulee-ok').textContent = lgEnrouleeOkTotal > 0 ? `${lgEnrouleeOkTotal} m` : '--';
@@ -3543,26 +3617,68 @@ function updateProductivityMetrics() {
             rendementElement.classList.add('text-danger');
         }
         
-        // Mettre à jour la gauge avec le rendement
-        updateProjeteGauge(rendement);
+        // Calculer le ratio longueur enroulable / longueur totale
+        let ratioEnroulableTotal = 0;
+        const lgTotale = lgEnrouleeOk + lgEnrouleeNok + lgEnrouleeDechets;
+        if (lgTotale > 0) {
+            ratioEnroulableTotal = Math.round((lgEnroulable / lgTotale) * 100);
+        }
+        
+        // Calculer le rendement projeté si on ajoute un rouleau de longueur cible
+        let rendementProjete = 0;
+        const targetLengthValue = parseFloat(document.getElementById('target-length')?.value) || 0;
+        if (lgEnroulable > 0 && targetLengthValue > 0) {
+            const lgEnrouleeOkProjete = lgEnrouleeOkTotal + targetLengthValue;
+            rendementProjete = Math.round((lgEnrouleeOkProjete / lgEnroulable) * 100);
+        }
+        
+        // Mettre à jour la gauge avec le rendement, le ratio et le rendement projeté
+        updateProjeteGauge(rendement, ratioEnroulableTotal, rendementProjete);
     }
 }
 
 // Fonction pour mettre à jour la gauge du projeté
-function updateProjeteGauge(percentage) {
+function updateProjeteGauge(percentage, ratioPercentage, projectedPercentage) {
     const gauge = document.getElementById('projete-gauge');
     if (!gauge) return;
     
     // Limiter le pourcentage entre 0 et 100
     percentage = Math.max(0, Math.min(100, percentage));
     
-    // Calculer l'angle de rotation pour l'aiguille (0% = -90°, 100% = 90°)
+    // Calculer l'angle de rotation pour l'aiguille principale (0% = -90°, 100% = 90°)
     const angle = (percentage / 100) * 180 - 90;
     
-    // Mettre à jour l'aiguille
+    // Mettre à jour l'aiguille principale
     const needle = gauge.querySelector('#gauge-needle');
     if (needle) {
         needle.setAttribute('transform', `rotate(${angle} 50 50)`);
+    }
+    
+    // Mettre à jour l'aiguille secondaire si le ratio est fourni
+    if (ratioPercentage !== undefined) {
+        ratioPercentage = Math.max(0, Math.min(100, ratioPercentage));
+        const ratioAngle = (ratioPercentage / 100) * 180 - 90;
+        const needleSecondary = gauge.querySelector('#gauge-needle-secondary');
+        if (needleSecondary) {
+            needleSecondary.setAttribute('transform', `rotate(${ratioAngle} 50 50)`);
+        }
+    }
+    
+    // Mettre à jour l'aiguille tertiaire si le rendement projeté est fourni
+    if (projectedPercentage !== undefined && projectedPercentage > 0) {
+        projectedPercentage = Math.max(0, Math.min(100, projectedPercentage));
+        const projectedAngle = (projectedPercentage / 100) * 180 - 90;
+        const needleTertiary = gauge.querySelector('#gauge-needle-tertiary');
+        if (needleTertiary) {
+            needleTertiary.setAttribute('transform', `rotate(${projectedAngle} 50 50)`);
+            needleTertiary.style.display = 'block';
+        }
+    } else {
+        // Cacher l'aiguille tertiaire si pas de projection
+        const needleTertiary = gauge.querySelector('#gauge-needle-tertiary');
+        if (needleTertiary) {
+            needleTertiary.style.display = 'none';
+        }
     }
     
     // Mettre à jour la valeur affichée
@@ -3625,6 +3741,7 @@ function updateQualityMetrics() {
     document.getElementById('qual-defauts-bloquants').textContent = '--';
     document.getElementById('qual-controles-ok').textContent = '--';
 }
+
 
 // Fonction pour générer la visualisation du rouleau
 function generateRollVisualization(preserveData = true) {
@@ -4474,11 +4591,12 @@ function handleActionButton() {
                         }
                     }
                     
-                    // Nettoyer les champs du rouleau
-                    document.getElementById('roll-length').value = '';
+                    // Nettoyer les champs du rouleau MAIS remettre la longueur cible
+                    const targetLength = document.getElementById('target-length')?.value || '';
+                    document.getElementById('roll-length').value = targetLength;  // Remettre la longueur cible
                     document.getElementById('tube-mass').value = '';
                     document.getElementById('total-mass').value = '';
-                    document.getElementById('sticky-roll-length').textContent = '--';
+                    document.getElementById('sticky-roll-length').textContent = targetLength || '--';  // Afficher aussi dans la sticky bar
                     document.getElementById('sticky-tube-mass').textContent = '--';
                     document.getElementById('sticky-total-mass').textContent = '--';
                     
@@ -4511,6 +4629,19 @@ function handleActionButton() {
                     setTimeout(() => {
                         updateRollId();
                         updateValidationInfoPanel();
+                        
+                        // Mettre à jour les métriques de productivité pour refléter la nouvelle longueur OK
+                        if (typeof updateProductivityMetrics === 'function') {
+                            updateProductivityMetrics();
+                        }
+                        
+                        // Déclencher le rafraîchissement de l'historique via HTMX
+                        document.body.dispatchEvent(new Event('refreshHistorique'));
+                        
+                        // Recalculer les totaux/moyennes après un petit délai
+                        setTimeout(() => {
+                            calculateTableSummaries();
+                        }, 300);
                     }, 100);
                 } else {
                     alert(`Erreur: ${data.error}`);
@@ -7190,6 +7321,343 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Attacher l'écouteur pour le changement de date
+    const dateField = document.querySelector('input[name="date"]');
+    if (dateField) {
+        dateField.addEventListener('change', handleDateChange);
+    }
+    
+    // Attacher l'écouteur pour le changement de vacation
+    const vacationField = document.querySelector('select[name="vacation"]');
+    if (vacationField) {
+        vacationField.addEventListener('change', handleDateChange);
+    }
+    
+    // Calculer les totaux/moyennes au chargement
+    calculateTableSummaries();
+    
+    // Observer les changements dans les sections pour recalculer
+    const observer = new MutationObserver(() => {
+        calculateTableSummaries();
+    });
+    
+    // Observer les deux sections
+    const shiftsSection = document.getElementById('historique-section');
+    if (shiftsSection) {
+        observer.observe(shiftsSection, { childList: true, subtree: true });
+    }
+    
+    // Recalculer après les mises à jour HTMX
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target.id === 'historique-section') {
+            setTimeout(calculateTableSummaries, 100);
+        }
+    });
 });
+
+// Fonction pour calculer les totaux/moyennes des tableaux
+function calculateTableSummaries() {
+    // Calculer pour les postes
+    const shiftRows = document.querySelectorAll('#recent-shifts-table tbody tr:not(.summary-row)');
+    let totalLength = 0;
+    let sumThicknessLeft = 0, countThicknessLeft = 0;
+    let sumThicknessRight = 0, countThicknessRight = 0;
+    let sumGrammage = 0, countGrammage = 0;
+    let sumTRS = 0, countTRS = 0;
+    
+    // Renuméroter les lignes des postes
+    shiftRows.forEach((row, index) => {
+        // Mettre à jour le numéro de ligne
+        const lineNumberCell = row.cells[0];
+        if (lineNumberCell) {
+            lineNumberCell.innerHTML = `<small class="text-muted">${index + 1}</small>`;
+        }
+        // Longueur totale (colonne 3 maintenant à cause de la nouvelle colonne)
+        const lengthText = row.cells[2]?.textContent.replace(/[^\d.,]/g, '').replace(',', '.');
+        if (lengthText) totalLength += parseFloat(lengthText) || 0;
+        
+        // Épaisseur gauche (colonne 4)
+        const thickLeftText = row.cells[3]?.textContent.replace(/[^\d.,]/g, '').replace(',', '.');
+        if (thickLeftText && thickLeftText !== '--') {
+            sumThicknessLeft += parseFloat(thickLeftText) || 0;
+            countThicknessLeft++;
+        }
+        
+        // Épaisseur droite (colonne 5)
+        const thickRightText = row.cells[4]?.textContent.replace(/[^\d.,]/g, '').replace(',', '.');
+        if (thickRightText && thickRightText !== '--') {
+            sumThicknessRight += parseFloat(thickRightText) || 0;
+            countThicknessRight++;
+        }
+        
+        // Grammage (colonne 6)
+        const grammageText = row.cells[5]?.textContent.replace(/[^\d.,]/g, '').replace(',', '.');
+        if (grammageText && grammageText !== '--') {
+            sumGrammage += parseFloat(grammageText) || 0;
+            countGrammage++;
+        }
+        
+        // TRS (colonne 7)
+        const trsText = row.cells[6]?.textContent.replace(/[^\d.,]/g, '').replace(',', '.');
+        if (trsText) {
+            sumTRS += parseFloat(trsText) || 0;
+            countTRS++;
+        }
+    });
+    
+    // Mettre à jour les valeurs
+    document.getElementById('shifts-total-length').textContent = totalLength.toFixed(0) + ' m';
+    document.getElementById('shifts-avg-thickness-left').textContent = countThicknessLeft > 0 ? (sumThicknessLeft / countThicknessLeft).toFixed(2) : '--';
+    document.getElementById('shifts-avg-thickness-right').textContent = countThicknessRight > 0 ? (sumThicknessRight / countThicknessRight).toFixed(2) : '--';
+    document.getElementById('shifts-avg-grammage').textContent = countGrammage > 0 ? (sumGrammage / countGrammage).toFixed(1) + ' g/m' : '--';
+    document.getElementById('shifts-avg-trs').textContent = countTRS > 0 ? (sumTRS / countTRS).toFixed(1) + '%' : '--';
+    
+    // Mettre à jour le nombre de lignes pour les postes
+    const shiftsLineCount = document.getElementById('shifts-line-count');
+    if (shiftsLineCount) {
+        shiftsLineCount.textContent = shiftRows.length;
+    }
+    
+    // Calculer pour les rouleaux
+    const rollRows = document.querySelectorAll('#recent-rolls-table tbody tr:not(.summary-row)');
+    totalLength = 0;
+    sumThicknessLeft = 0; countThicknessLeft = 0;
+    sumThicknessRight = 0; countThicknessRight = 0;
+    sumGrammage = 0; countGrammage = 0;
+    let countOK = 0, countNOK = 0;
+    
+    // Renuméroter les lignes des rouleaux
+    rollRows.forEach((row, index) => {
+        // Mettre à jour le numéro de ligne
+        const lineNumberCell = row.cells[0];
+        if (lineNumberCell) {
+            lineNumberCell.innerHTML = `<small class="text-muted">${index + 1}</small>`;
+        }
+        // Longueur (colonne 4 maintenant à cause de la nouvelle colonne)
+        const lengthText = row.cells[3]?.textContent.replace(/[^\d.,]/g, '').replace(',', '.');
+        if (lengthText) totalLength += parseFloat(lengthText) || 0;
+        
+        // Épaisseur gauche (colonne 5)
+        const thickLeftText = row.cells[4]?.textContent.replace(/[^\d.,]/g, '').replace(',', '.');
+        if (thickLeftText && thickLeftText !== '--') {
+            sumThicknessLeft += parseFloat(thickLeftText) || 0;
+            countThicknessLeft++;
+        }
+        
+        // Épaisseur droite (colonne 6)
+        const thickRightText = row.cells[5]?.textContent.replace(/[^\d.,]/g, '').replace(',', '.');
+        if (thickRightText && thickRightText !== '--') {
+            sumThicknessRight += parseFloat(thickRightText) || 0;
+            countThicknessRight++;
+        }
+        
+        // Grammage (colonne 7)
+        const grammageText = row.cells[6]?.textContent.replace(/[^\d.,]/g, '').replace(',', '.');
+        if (grammageText) {
+            sumGrammage += parseFloat(grammageText) || 0;
+            countGrammage++;
+        }
+        
+        // Statut (colonne 8) - Compter OK et NOK
+        const statusBadge = row.cells[7]?.querySelector('.badge');
+        if (statusBadge) {
+            if (statusBadge.textContent.trim() === 'C') {
+                countOK++;
+            } else if (statusBadge.textContent.trim() === 'NC') {
+                countNOK++;
+            }
+        }
+    });
+    
+    // Mettre à jour les valeurs
+    document.getElementById('rolls-total-length').textContent = totalLength.toFixed(0) + ' m';
+    document.getElementById('rolls-avg-thickness-left').textContent = countThicknessLeft > 0 ? (sumThicknessLeft / countThicknessLeft).toFixed(2) : '--';
+    document.getElementById('rolls-avg-thickness-right').textContent = countThicknessRight > 0 ? (sumThicknessRight / countThicknessRight).toFixed(2) : '--';
+    document.getElementById('rolls-avg-grammage').textContent = countGrammage > 0 ? (sumGrammage / countGrammage).toFixed(1) + ' g/m' : '--';
+    
+    // Mettre à jour les compteurs OK/NOK
+    document.getElementById('rolls-count-ok').textContent = countOK;
+    document.getElementById('rolls-count-nok').textContent = countNOK;
+    
+    // Mettre à jour le nombre de lignes pour les rouleaux
+    const rollsLineCount = document.getElementById('rolls-line-count');
+    if (rollsLineCount) {
+        rollsLineCount.textContent = rollRows.length;
+    }
+}
+
+// Fonction pour filtrer les postes récents
+function filterShifts(period, button) {
+    // Mettre à jour les boutons actifs
+    document.querySelectorAll('#recent-shifts-section .btn-group button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    button.classList.add('active');
+    
+    // Faire la requête pour obtenir les données filtrées
+    fetch(`/production/?filter_shifts=${period}`, {
+        headers: {
+            'HX-Request': 'true',
+            'HX-Target': 'recent-shifts-section'
+        }
+    })
+    .then(response => response.text())
+    .then(html => {
+        // Parser et extraire uniquement la section des postes
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newSection = doc.querySelector('#recent-shifts-section');
+        if (newSection) {
+            document.querySelector('#recent-shifts-section').innerHTML = newSection.innerHTML;
+            // Recalculer les totaux/moyennes
+            calculateTableSummaries();
+        }
+    });
+}
+
+// Fonction pour filtrer les rouleaux récents
+function filterRolls(period, button) {
+    // Mettre à jour les boutons actifs
+    document.querySelectorAll('#recent-rolls-section .btn-group button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    button.classList.add('active');
+    
+    // Si c'est OF en cours, récupérer l'OF sélectionné
+    let url = `/production/?filter_rolls=${period}`;
+    if (period === 'current-of') {
+        const currentOF = document.getElementById('current-order')?.value;
+        if (!currentOF) {
+            alert('Aucun OF sélectionné');
+            return;
+        }
+        url += `&of_id=${currentOF}`;
+    }
+    
+    fetch(url, {
+        headers: {
+            'HX-Request': 'true',
+            'HX-Target': 'recent-rolls-section'
+        }
+    })
+    .then(response => response.text())
+    .then(html => {
+        // Parser et extraire uniquement la section des rouleaux
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newSection = doc.querySelector('#recent-rolls-section');
+        if (newSection) {
+            document.querySelector('#recent-rolls-section').innerHTML = newSection.innerHTML;
+            // Recalculer les totaux/moyennes
+            calculateTableSummaries();
+        }
+    });
+}
+
+// Fonction simple pour filtrer par OF en cours
+function filterRollsCurrentOF(button) {
+    // Essayer plusieurs façons de récupérer l'OF
+    let currentOF = document.getElementById('current-order')?.value;
+    
+    // Si le select est vide, essayer de récupérer depuis les données sauvegardées
+    if (!currentOF || currentOF === '') {
+        // Essayer depuis le champ caché ou les données de session
+        const savedData = window.currentFormData || {};
+        currentOF = savedData.currentOrderId || savedData.current_order;
+    }
+    
+    // Si toujours pas d'OF, essayer de voir si une option est sélectionnée dans le HTML
+    if (!currentOF || currentOF === '') {
+        const selectedOption = document.querySelector('#current-order option[selected]');
+        currentOF = selectedOption?.value;
+    }
+    
+    console.log('Current OF found:', currentOF);
+    
+    if (!currentOF || currentOF === '') {
+        alert('Aucun OF sélectionné');
+        return;
+    }
+    
+    // Récupérer le filtre actuel des shifts
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentShiftFilter = urlParams.get('filter_shifts') || 'week';
+    
+    // Utiliser HTMX pour la requête
+    const url = `{% url 'production:prod' %}?filter_rolls=current-of&of_id=${currentOF}&filter_shifts=${currentShiftFilter}`;
+    console.log('Filter URL:', url);
+    
+    htmx.ajax('GET', url, {
+        target: '#historique-section',
+        select: '#historique-section',
+        swap: 'outerHTML'
+    }).then(() => {
+        // Recalculer les totaux après le swap
+        setTimeout(calculateTableSummaries, 100);
+    });
+}
+
+// Fonction pour gérer le changement de date ou vacation
+function handleDateChange(e) {
+    const dateField = document.querySelector('input[name="date"]');
+    const vacationField = document.querySelector('select[name="vacation"]');
+    
+    const currentDate = dateField?.value;
+    const currentVacation = vacationField?.value;
+    
+    if (!currentDate || !currentVacation) {
+        return;
+    }
+    
+    // Déterminer la vacation précédente
+    let previousVacation = '';
+    let previousDate = currentDate;
+    
+    switch (currentVacation) {
+        case 'Matin':
+            // Le poste précédent est Nuit de la veille
+            previousVacation = 'Nuit';
+            const date = new Date(currentDate);
+            date.setDate(date.getDate() - 1);
+            previousDate = date.toISOString().split('T')[0];
+            break;
+        case 'ApresMidi':
+            previousVacation = 'Matin';
+            break;
+        case 'Nuit':
+            previousVacation = 'ApresMidi';
+            break;
+    }
+    
+    if (previousVacation) {
+        // Faire une requête pour récupérer le métrage du poste précédent
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        
+        fetch(`/production/get-previous-shift-meter/?date=${previousDate}&vacation=${previousVacation}`, {
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.meter_reading_end) {
+                const meterStartField = document.querySelector('input[name="meter_reading_start"]');
+                const startedBeginningField = document.querySelector('input[name="started_at_beginning"]');
+                
+                if (meterStartField && startedBeginningField) {
+                    // Mettre à jour le métrage de début avec celui de fin du poste précédent
+                    meterStartField.value = data.meter_reading_end;
+                    startedBeginningField.checked = true;
+                    
+                    // Sauvegarder automatiquement
+                    autoSaveFormData();
+                    
+                    console.log(`Métrage du poste précédent (${previousDate} ${previousVacation}): ${data.meter_reading_end}m`);
+                }
+            }
+        })
+        .catch(error => console.error('Erreur lors de la récupération du métrage précédent:', error));
+    }
+}
 </script>
 {% endblock %}

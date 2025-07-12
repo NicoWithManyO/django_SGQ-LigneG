@@ -5,7 +5,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 from django_htmx.http import HttpResponseClientRedirect
 import json
 from datetime import datetime
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness, LostTimeEntry, MachineParameters
 from .forms import ShiftForm
 from core.models import Operator, FabricationOrder, Profile, Mode
@@ -185,11 +185,21 @@ def get_profile_parameters(request, profile_id):
 
 def prod(request):
     """Vue principale de production."""
-    shifts = Shift.objects.select_related('operator').order_by('-date', '-created_at')[:10]
+    from datetime import datetime, timedelta
+    
+    # Afficher tous les postes
+    shifts = Shift.objects.select_related('operator').order_by('-date', '-created_at')
+    
+    # Forcer le recalcul des moyennes pour les shifts qui n'en ont pas
+    for shift in shifts:
+        if shift.avg_thickness_left_shift is None or shift.avg_thickness_right_shift is None or shift.avg_grammage_shift is None:
+            shift.calculate_roll_averages()
+            shift.save(update_fields=['avg_thickness_left_shift', 'avg_thickness_right_shift', 'avg_grammage_shift'])
+    
     defect_types = DefectType.objects.filter(is_active=True).order_by('name')
     
-    # Récupérer les rouleaux récents
-    recent_rolls = Roll.objects.select_related('fabrication_order', 'shift').order_by('-created_at')[:10]
+    # Afficher tous les rouleaux
+    recent_rolls = Roll.objects.select_related('fabrication_order', 'shift').order_by('-created_at')
     
     # Récupérer le template de check-list par défaut ou le premier actif
     checklist_template = ChecklistTemplate.objects.filter(
@@ -332,7 +342,31 @@ def shift_block(request, shift_id=None):
             
             # SAUVEGARDER LE SHIFT SEULEMENT SI LES CONTRÔLES SONT COMPLETS ET LE POSTE N'EXISTE PAS
             try:
-                shift = form.save()
+                # D'abord, récupérer les longueurs calculées des rouleaux actuels
+                # On utilise la session pour récupérer les rouleaux non encore liés au shift
+                total_length = 0
+                ok_length = 0
+                nok_length = 0
+                
+                if session_key:
+                    # Rouleaux de la session actuelle (pas encore liés au shift)
+                    session_rolls = Roll.objects.filter(session_key=session_key, shift__isnull=True)
+                    
+                    for roll in session_rolls:
+                        total_length += float(roll.length or 0)
+                        if roll.status == 'CONFORME':
+                            ok_length += float(roll.length or 0)
+                        elif roll.status == 'NON_CONFORME':
+                            nok_length += float(roll.length or 0)
+                
+                # Ne PAS ajouter le métrage de fin - c'est une lecture de compteur, pas une longueur produite!
+                
+                # Mettre à jour les valeurs dans le formulaire avant de sauvegarder
+                shift = form.save(commit=False)
+                shift.total_length = total_length
+                shift.ok_length = ok_length
+                shift.nok_length = nok_length
+                shift.save()
                 print(f"DEBUG: Shift saved successfully with ID: {shift.id}, shift_id: {shift.shift_id}")
                 
                 # Lier les rouleaux orphelins (créés sans shift) à ce shift
@@ -344,6 +378,29 @@ def shift_block(request, shift_id=None):
                     if orphan_rolls.exists():
                         orphan_rolls.update(shift=shift, shift_id_str=shift.shift_id, session_key=None)
                         print(f"DEBUG: {orphan_rolls.count()} rouleaux orphelins liés au shift {shift.shift_id}")
+                        
+                        # Recalculer les moyennes du shift maintenant qu'on a lié les rouleaux
+                        shift.calculate_roll_averages()
+                        
+                        # Recalculer aussi les longueurs totales maintenant que les rouleaux sont liés
+                        linked_rolls = Roll.objects.filter(shift=shift)
+                        total_length = 0
+                        ok_length = 0
+                        nok_length = 0
+                        
+                        for roll in linked_rolls:
+                            total_length += float(roll.length or 0)
+                            if roll.status == 'CONFORME':
+                                ok_length += float(roll.length or 0)
+                            elif roll.status == 'NON_CONFORME':
+                                nok_length += float(roll.length or 0)
+                        
+                        shift.total_length = total_length
+                        shift.ok_length = ok_length
+                        shift.nok_length = nok_length
+                        
+                        shift.save(update_fields=['avg_thickness_left_shift', 'avg_thickness_right_shift', 'avg_grammage_shift', 
+                                                'total_length', 'ok_length', 'nok_length'])
                 
                 # Maintenant sauvegarder les contrôles qualité
                 if session_key:
@@ -564,30 +621,30 @@ def shift_block(request, shift_id=None):
                         from datetime import date
                         preserved_data['date'] = date.today().strftime('%Y-%m-%d')
                         
+                        # Préserver l'opérateur
+                        preserved_data['operator'] = form.cleaned_data.get('operator').id if form.cleaned_data.get('operator') else ''
+                        
                         # Machine toujours démarrée en fin par défaut
                         preserved_data['started_at_end'] = True
-                        # NE PAS vider le métrage de fin car il sera utilisé comme métrage de début du prochain poste
-                        # preserved_data['meter_reading_end'] = ''
+                        # Préserver le métrage de fin pour le prochain formulaire
+                        preserved_data['meter_reading_end'] = str(meter_reading_end) if meter_reading_end else ''
                         
-                        # Reporter la longueur enroulée en fin vers le début du prochain poste
-                        # Si on a un shift qui vient d'être sauvegardé, prendre sa longueur totale
-                        if shift and shift.total_length:
-                            preserved_data['meter_reading_start'] = str(float(shift.total_length))
-                            print(f"DEBUG: Longueur totale du poste reportée: {shift.total_length} m")
+                        # NE PAS reporter la longueur totale dans meter_reading_start !
+                        # meter_reading_start est déjà correctement reporté depuis meter_reading_end plus haut
                         
                         # IMPORTANT: Vider TOUTES les données de production après sauvegarde du poste
                         preserved_data['lostTimeEntries'] = []
                         preserved_data['totalLostTimeMinutes'] = 0
                         
-                        # Vider les données du rouleau
-                        preserved_data['currentOrderId'] = ''
-                        preserved_data['cuttingOrderId'] = ''
-                        preserved_data['targetLength'] = ''
-                        preserved_data['rollNumber'] = ''
+                        # Vider seulement certaines données du rouleau (garder OF et longueur cible)
+                        # preserved_data['currentOrderId'] est déjà préservé
+                        # preserved_data['cuttingOrderId'] est déjà préservé
+                        # preserved_data['targetLength'] est déjà préservé
+                        # preserved_data['rollNumber'] est déjà préservé
                         preserved_data['tubeMass'] = ''
                         preserved_data['totalMass'] = ''
                         preserved_data['rollLength'] = ''
-                        preserved_data['nextTubeMass'] = ''
+                        # preserved_data['nextTubeMass'] est déjà préservé
                         preserved_data['rollData'] = {}
                         
                         # Vider les contrôles qualité
@@ -1054,11 +1111,12 @@ def save_roll(request):
             else:
                 cutting_order_number = 'OFDecoupe'
             
-            # Format pour non conforme: OFDecoupe_JJMMAA
+            # Format pour non conforme: OFDecoupe_JJMMAA_HHMM
             from datetime import datetime
             now = datetime.now()
             date_str = now.strftime('%d%m%y')
-            roll_id = f"{cutting_order_number}_{date_str}"
+            time_str = now.strftime('%H%M')
+            roll_id = f"{cutting_order_number}_{date_str}_{time_str}"
         else:
             # Format pour conforme: OF_NumRouleau
             roll_id = f"{fabrication_order.order_number}_{int(roll_number):03d}"
@@ -1142,6 +1200,11 @@ def save_roll(request):
         # Sauvegarder les changements
         current_prod.save()
         
+        # Recalculer les moyennes du shift si le rouleau a un shift associé
+        if roll.shift:
+            roll.shift.calculate_roll_averages()
+            roll.shift.save(update_fields=['avg_thickness_left_shift', 'avg_thickness_right_shift', 'avg_grammage_shift'])
+        
         return JsonResponse({
             'success': True,
             'roll_id': roll.roll_id,
@@ -1182,36 +1245,57 @@ def get_shift_lost_times(request, shift_id):
         }, status=500)
 
 
+def get_previous_shift_meter(request):
+    """Récupérer le métrage de fin du poste précédent."""
+    try:
+        date_str = request.GET.get('date')
+        vacation = request.GET.get('vacation')
+        
+        if not date_str or not vacation:
+            return JsonResponse({
+                'success': False,
+                'error': 'Date et vacation requises'
+            }, status=400)
+        
+        # Convertir la date string en objet date
+        from datetime import datetime
+        date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Chercher le shift correspondant
+        shift = Shift.objects.filter(
+            date=date,
+            vacation=vacation,
+            started_at_end=True,  # Machine démarrée en fin de poste
+            meter_reading_end__isnull=False  # Avec un métrage de fin
+        ).first()
+        
+        if shift:
+            return JsonResponse({
+                'success': True,
+                'meter_reading_end': float(shift.meter_reading_end),
+                'shift_id': shift.shift_id
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': 'Pas de poste précédent trouvé avec métrage'
+            })
+            
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
 def get_total_rolled_length(request):
     """Récupère la longueur totale enroulée pour un shift."""
     try:
         shift_id = request.GET.get('shift_id')
         
-        # Si pas de shift_id, essayer de trouver le shift existant
-        if not shift_id:
-            date = request.GET.get('date')
-            operator_id = request.GET.get('operator')
-            vacation = request.GET.get('vacation')
-            
-            if date and operator_id and vacation:
-                from datetime import datetime
-                try:
-                    date_obj = datetime.strptime(date, '%Y-%m-%d').date()
-                except ValueError:
-                    return JsonResponse({
-                        'success': False,
-                        'error': 'Format de date invalide'
-                    }, status=400)
-                
-                # Chercher un shift existant avec ces critères
-                existing_shift = Shift.objects.filter(
-                    date=date_obj,
-                    operator_id=operator_id,
-                    vacation=vacation
-                ).first()
-                
-                if existing_shift:
-                    shift_id = existing_shift.id
+        # Si pas de shift_id explicite, on est en création de nouveau poste
+        # Ne PAS chercher un shift existant car on veut les longueurs de la session actuelle seulement
+        # Ignorer les paramètres date/operator/vacation même s'ils sont envoyés
         
         # Calculer les longueurs par statut
         length_ok = 0
