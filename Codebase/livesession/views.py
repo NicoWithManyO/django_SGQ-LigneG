@@ -65,6 +65,16 @@ def update_field(request):
         state.save()
         return JsonResponse({'status': 'ok', 'message': f'Modes mis à jour'})
     
+    elif field_name == 'active_productivity_tab':
+        state.active_productivity_tab = value if value else 'temps'
+        state.save()
+        return JsonResponse({'status': 'ok', 'message': f'Onglet actif mis à jour'})
+    
+    elif field_name == 'roll_number':
+        state.roll_number = int(value) if value and value.isdigit() else None
+        state.save()
+        return JsonResponse({'status': 'ok', 'message': f'Numéro de rouleau mis à jour'})
+    
     # Pour les champs de la sticky bar (rouleaux), on pourrait les mettre dans LiveShift
     elif field_name.startswith('sticky-'):
         # Obtenir ou créer le brouillon

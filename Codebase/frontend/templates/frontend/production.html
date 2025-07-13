@@ -31,6 +31,141 @@
     border-color: #86b7fe !important;
 }
 
+/* Forcer aussi pour les champs éditables inline */
+.fibrage-value-center input.form-control,
+.fibrage-value-center input.form-control:focus {
+    height: 28px !important;
+    max-height: 28px !important;
+    min-height: 28px !important;
+}
+
+/* FORCER pour TOUS les inputs dans la sticky bar sans exception */
+.fibrage-sticky-bar input {
+    height: 28px !important;
+    max-height: 28px !important;
+    min-height: 28px !important;
+    line-height: 1 !important;
+    padding: 2px 8px !important;
+    font-size: 14px !important;
+}
+
+.fibrage-sticky-bar input:focus {
+    height: 28px !important;
+    max-height: 28px !important;
+    min-height: 28px !important;
+}
+
+/* Classe custom pour éviter Bootstrap */
+.sticky-bar-input {
+    width: 60px;
+    height: 28px;
+    max-height: 28px;
+    padding: 2px 8px;
+    font-size: 14px;
+    text-align: center;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: white;
+}
+
+.sticky-bar-input:focus {
+    outline: none;
+    border-color: #86b7fe;
+}
+
+/* Forcer la hauteur des divs éditables dans la sticky bar */
+.fibrage-sticky-bar .fibrage-value-center {
+    height: 28px !important;
+    max-height: 28px !important;
+    line-height: 28px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Style pour la classe of-input utilisée partout */
+.of-input {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 28px !important;
+    max-height: 28px !important;
+    min-height: 28px !important;
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.875rem !important;
+    line-height: 1.2 !important;
+}
+
+/* Dans la sticky bar, limiter la largeur */
+.fibrage-field .of-input {
+    width: 60px !important;
+    max-width: 60px !important;
+    text-align: center !important;
+}
+
+/* Curseur main sur les champs modifiables de la sticky bar */
+.fibrage-field .of-input:not(:disabled):hover {
+    cursor: pointer !important;
+}
+
+/* Style spécifique pour le crayon dans la sticky bar */
+.fibrage-field .input-group .btn {
+    border: none !important;
+    background-color: transparent !important;
+    color: #ff6600 !important;
+    padding: 0.25rem 0.4rem !important;
+}
+
+.fibrage-field .input-group .btn:hover {
+    color: #ff3300 !important;
+}
+
+/* Style pour les champs d'ordre de fabrication */
+.of-container {
+    display: flex;
+    width: 100%;
+    gap: 5px;
+}
+
+.of-left-col {
+    flex: 0 0 40%;
+    max-width: 40%;
+}
+
+.of-right-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding-bottom: 5px;
+}
+
+/* Fix pour les input-group dans les OF et sticky bar */
+.input-group {
+    display: flex !important;
+    align-items: stretch !important;
+    flex-wrap: nowrap !important;
+}
+
+.input-group .form-control {
+    flex: 1 1 auto !important;
+    border-radius: 0.25rem 0 0 0.25rem !important;
+}
+
+.input-group .btn {
+    flex: 0 0 auto !important;
+    height: 28px !important;
+    padding: 0.25rem 0.5rem !important;
+    border-radius: 0 0.25rem 0.25rem 0 !important;
+    border-left: 0 !important;
+}
+
+
+/* S'assurer que les input-group dans of-field-row sont bien alignés */
+.of-field-row .input-group {
+    width: 100%;
+}
+
+
 /* Style pour le bouton poubelle */
 .waste-button {
     background-color: transparent !important;
@@ -183,12 +318,6 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-}
-
-.productivity-title-tabs {
-    display: flex;
-    align-items: center;
-    gap: 15px;
 }
 
 .productivity-tabs {
@@ -413,7 +542,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="of-right-col" style="flex-direction: column; justify-content: space-between; height: 100%;">
+                    <div class="of-right-col">
                         <div class="of-info-display">
                             <small id="of-required-length-local" class="text-muted">--</small>
                             <small id="of-roll-count-local" class="text-muted">--</small>
@@ -423,7 +552,7 @@
                             <small id="of-remaining-local" class="text-muted">--</small>
                             <small id="of-days-remaining-local" class="text-muted">--</small>
                         </div>
-                        <div style="display: flex; justify-content: flex-end; align-items: flex-end; width: 100%;">
+                        <div style="align-self: flex-end; margin-bottom: 5px;">
                             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addFabricationOrder()" title="Créer un OF" style="opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
                                 <i class="bi bi-plus"></i> OF
                             </button>
@@ -431,16 +560,6 @@
                     </div>
                 </div>
                 
-                <!-- Champs cachés pour maintenir la fonctionnalité auto-save -->
-                <div style="display: none;">
-                    <input type="text" id="roll-number" value="" autocomplete="off">
-                    <div id="roll-id">--</div>
-                    <span id="roll-status" class="badge"></span>
-                    <input type="number" id="next-tube-mass" value="" autocomplete="off">
-                    <input type="number" id="roll-length" value="" autocomplete="off">
-                    <input type="number" id="tube-mass" value="" autocomplete="off">
-                    <input type="number" id="total-mass" value="" autocomplete="off">
-                </div>
                 
             </div>
         </div>
@@ -505,8 +624,8 @@
                 <div class="block-card">
                     <div class="block-header" style="cursor: pointer;" onclick="event.target.closest('.block-actions') || event.target.tagName === 'BUTTON' ? null : toggleProductiviteBlock()">
                         <div class="productivity-header">
-                            <div class="productivity-title-tabs">
-                                <h5 class="block-title mb-0" id="productivity-block-title"><i class="bi bi-graph-up"></i> Profil : <span id="selected-profile-name">--</span><span id="active-modes-display"></span></h5>
+                            <h5 class="block-title mb-0" id="productivity-block-title"><i class="bi bi-graph-up"></i> Profil : <span id="selected-profile-name">--</span><span id="active-modes-display"></span></h5>
+                            <div class="block-actions d-flex align-items-center gap-2">
                                 <!-- Tabs navigation dans le header -->
                                 <div class="productivity-tabs">
                                     <button class="tab-btn active" onclick="showProductivityTab('temps'); event.stopPropagation();" data-tab="temps">
@@ -516,8 +635,6 @@
                                         <i class="bi bi-gear"></i> Params & Specs
                                     </button>
                                 </div>
-                            </div>
-                            <div class="block-actions">
                                 <i class="bi bi-chevron-up" id="productivite-chevron"></i>
                             </div>
                         </div>
@@ -946,9 +1063,10 @@
                     <div class="fibrage-center">
                         <div class="fibrage-field">
                             <label class="fibrage-label">N° Rouleau</label>
-                            <div class="fibrage-value-with-edit">
-                                <div class="fibrage-value-readonly" id="sticky-roll-number">--</div>
-                                <button type="button" class="fibrage-edit-btn" onclick="makeEditable('sticky-roll-number')" title="Modifier">
+                            <div class="input-group">
+                                <input type="text" id="sticky-roll-number" class="form-control fw-bold of-input" value="" placeholder="--" disabled>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                        onclick="editStickyField('sticky-roll-number')" title="Modifier">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                             </div>
@@ -964,17 +1082,20 @@
                         
                         <div class="fibrage-field">
                             <label class="fibrage-label">Masse tube (g)</label>
-                            <div class="fibrage-value-center" id="sticky-tube-mass" onclick="makeEditable('sticky-tube-mass')">--</div>
+                            <input type="number" id="sticky-tube-mass" class="form-control fw-bold of-input" value="" placeholder="--" 
+                                   onchange="saveStickValue('tube_mass', this.value)">
                         </div>
                         
                         <div class="fibrage-field">
                             <label class="fibrage-label">Lg (m)</label>
-                            <div class="fibrage-value-center" id="sticky-roll-length" onclick="makeEditable('sticky-roll-length')">--</div>
+                            <input type="number" id="sticky-roll-length" class="form-control fw-bold of-input" value="" placeholder="--" 
+                                   onchange="saveStickValue('length', this.value)">
                         </div>
                         
                         <div class="fibrage-field">
                             <label class="fibrage-label">Masse totale (g)</label>
-                            <div class="fibrage-value-center" id="sticky-total-mass" onclick="makeEditable('sticky-total-mass')">--</div>
+                            <input type="number" id="sticky-total-mass" class="form-control fw-bold of-input" value="" placeholder="--" 
+                                   onchange="saveStickValue('total_mass', this.value)">
                         </div>
                         
                         <div class="fibrage-field mass-calc-field">
@@ -1001,7 +1122,8 @@
                     <div class="fibrage-right">
                         <div class="fibrage-field">
                             <label class="fibrage-label">Masse prochain tube (g)</label>
-                            <div class="fibrage-value-center" id="sticky-next-tube-mass" onclick="makeEditable('sticky-next-tube-mass')">--</div>
+                            <input type="number" id="sticky-next-tube-mass" class="form-control fw-bold of-input" value="" placeholder="--" 
+                                   onchange="saveStickValue('next_tube_mass', this.value)">
                         </div>
                     </div>
                     
@@ -1142,6 +1264,76 @@ window.editCuttingOrder = function() {
     }
 }
 
+window.editStickyField = function(fieldId) {
+    const input = document.getElementById(fieldId);
+    if (input) {
+        input.disabled = false;
+        input.focus();
+        input.select();
+        
+        function save() {
+            // Retirer les event listeners pour éviter les doublons
+            input.removeEventListener('blur', save);
+            input.removeEventListener('keypress', keypressHandler);
+            
+            // Mapper les IDs vers les noms de champs pour saveStickValue
+            const fieldMap = {
+                'sticky-roll-number': 'roll_number',
+                'sticky-tube-mass': 'tube_mass',
+                'sticky-roll-length': 'length',
+                'sticky-total-mass': 'total_mass',
+                'sticky-next-tube-mass': 'next_tube_mass'
+            };
+            
+            const fieldName = fieldMap[fieldId];
+            if (fieldName) {
+                // Le numéro de rouleau nécessite une confirmation
+                if (fieldName === 'roll_number') {
+                    const oldValue = input.defaultValue || '';
+                    const newValue = input.value;
+                    
+                    // Si la valeur a changé, demander confirmation
+                    if (oldValue && oldValue !== newValue) {
+                        if (!confirm(`Êtes-vous sûr de vouloir changer le numéro de rouleau de ${oldValue} à ${newValue} ?`)) {
+                            input.value = oldValue;
+                            input.disabled = true;
+                            return;
+                        }
+                    }
+                    
+                    // Sauvegarder directement sans le préfixe sticky-
+                    const formData = new FormData();
+                    formData.append('field', 'roll_number');
+                    formData.append('value', input.value);
+                    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+                    
+                    fetch('/livesession/update-field/', {
+                        method: 'POST',
+                        body: formData
+                    }).then(() => {
+                        // Mettre à jour defaultValue après sauvegarde réussie
+                        input.defaultValue = input.value;
+                    });
+                } else {
+                    saveStickValue(fieldName, input.value);
+                }
+            }
+            
+            input.disabled = true;
+        }
+        
+        function keypressHandler(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                save();
+            }
+        }
+        
+        input.addEventListener('blur', save);
+        input.addEventListener('keypress', keypressHandler);
+    }
+}
+
 // Fonction pour rendre un champ éditable
 window.makeEditable = function(fieldId) {
     console.log('makeEditable called for:', fieldId);
@@ -1161,27 +1353,51 @@ window.makeEditable = function(fieldId) {
     const input = document.createElement('input');
     input.type = 'text';
     input.value = currentValue;
-    input.className = 'form-control form-control-sm';
-    
-    // Adapter la largeur selon le champ
+    // Pas de classe Bootstrap pour la sticky bar
     if (fieldId.includes('sticky-')) {
-        // Pour la sticky bar, garder une petite largeur
+        input.className = 'sticky-bar-input';
+    } else {
+        input.className = 'form-control form-control-sm';
+    }
+    
+    // Adapter la largeur et hauteur selon le champ
+    if (fieldId.includes('sticky-')) {
+        // Pour la sticky bar, garder une petite largeur et hauteur fixe
         input.style.width = '60px';
+        input.style.height = '28px';
+        input.style.maxHeight = '28px';
         input.style.textAlign = 'center';
+        input.style.padding = '0.25rem 0.5rem';
+        input.style.lineHeight = '1.2';
     } else {
         input.style.width = '100px';
     }
     
-    // Vider le contenu et ajouter l'input
-    field.innerHTML = '';
-    field.appendChild(input);
+    // Pour la sticky bar, remplacer le texte sans toucher au conteneur
+    if (fieldId.includes('sticky-')) {
+        // Garder le style du conteneur
+        field.style.backgroundColor = 'white';
+        field.textContent = '';
+        field.appendChild(input);
+    } else {
+        // Comportement normal pour les autres champs
+        field.innerHTML = '';
+        field.appendChild(input);
+    }
+    
     input.focus();
     input.select();
     
     // Fonction pour sauvegarder
     function saveValue() {
         const newValue = input.value || '--';
-        field.innerHTML = newValue;
+        if (fieldId.includes('sticky-')) {
+            // Restaurer le style original du conteneur
+            field.style.backgroundColor = '';
+            field.textContent = newValue;
+        } else {
+            field.innerHTML = newValue;
+        }
         console.log(`Valeur sauvegardée pour ${fieldId}: ${newValue}`);
     }
     
@@ -1201,6 +1417,162 @@ window.makeEditable = function(fieldId) {
             cancelEdit();
         }
     });
+}
+
+// Fonction pour charger les paramètres machine d'un profil
+function loadMachineParameters(profileId) {
+    fetch(`/production/profile/${profileId}/parameters/`)
+        .then(response => response.json())
+        .then(data => {
+            const display = document.getElementById('machine-parameters-display');
+            if (display && data.parameters) {
+                let html = '<h6 class="mb-3">Paramètres machine</h6>';
+                html += '<div class="row">';
+                
+                // Colonne 1 : Primaire et Secondaire
+                html += '<div class="col-md-8">';
+                html += '<table class="table table-sm table-borderless">';
+                html += '<thead>';
+                html += '<tr>';
+                html += '<th style="font-size: 0.75rem;"></th>';
+                html += '<th class="text-center" style="font-size: 0.75rem;">Oxygène</th>';
+                html += '<th class="text-center" style="font-size: 0.75rem;">Propane</th>';
+                html += '<th class="text-center" style="font-size: 0.75rem;">Vitesse</th>';
+                html += '</tr>';
+                html += '</thead>';
+                html += '<tbody>';
+                // Ligne Primaire
+                html += '<tr>';
+                html += '<td class="fw-bold" style="font-size: 0.75rem;">PRIMAIRE</td>';
+                html += `<td class="text-center">${data.parameters.oxygen_primary !== null ? data.parameters.oxygen_primary : '--'}</td>`;
+                html += `<td class="text-center">${data.parameters.propane_primary !== null ? data.parameters.propane_primary : '--'}</td>`;
+                html += `<td class="text-center">${data.parameters.speed_primary !== null ? data.parameters.speed_primary + ' m/h' : '--'}</td>`;
+                html += '</tr>';
+                // Ligne Secondaire
+                html += '<tr>';
+                html += '<td class="fw-bold" style="font-size: 0.75rem;">SECONDAIRE</td>';
+                html += `<td class="text-center">${data.parameters.oxygen_secondary !== null ? data.parameters.oxygen_secondary : '--'}</td>`;
+                html += `<td class="text-center">${data.parameters.propane_secondary !== null ? data.parameters.propane_secondary : '--'}</td>`;
+                html += `<td class="text-center">${data.parameters.speed_secondary !== null ? data.parameters.speed_secondary + ' m/h' : '--'}</td>`;
+                html += '</tr>';
+                html += '</tbody>';
+                html += '</table>';
+                html += '</div>';
+                
+                // Colonne 2 : Vitesse tapis + bouton
+                html += '<div class="col-md-4 d-flex flex-column justify-content-between">';
+                html += '<div class="text-center">';
+                html += '<div style="font-size: 0.75rem;" class="fw-bold">Vitesse tapis</div>';
+                html += `<div class="mt-2">${data.parameters.belt_speed_m_per_minute !== null ? data.parameters.belt_speed_m_per_minute + ' m/h' : '--'}</div>`;
+                html += '</div>';
+                html += '<div class="d-flex justify-content-end">';
+                html += '<button type="button" class="btn btn-outline-secondary btn-sm" onclick="editMachineParameters()" title="Modifier les paramètres" style="opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.6\'">';
+                html += '<i class="bi bi-pencil"></i> Params';
+                html += '</button>';
+                html += '</div>';
+                html += '</div>';
+                
+                html += '</div>';
+                
+                display.innerHTML = html;
+                
+                // Afficher les spécifications
+                if (data.specifications && Object.keys(data.specifications).length > 0) {
+                    html = '<h6 class="mb-3 mt-4">Spécifications qualité</h6>';
+                    html += '<div class="row">';
+                    
+                    // Colonne gauche : Épaisseur, Extrait sec, Micronnaire
+                    html += '<div class="col-md-6">';
+                    html += '<div class="row g-1">';
+                    const leftSpecs = ['thickness', 'dry_extract', 'micrometer'];
+                    leftSpecs.forEach(key => {
+                        if (data.specifications[key]) {
+                            const spec = data.specifications[key];
+                            // Déterminer l'unité
+                            let unit = spec.unit || '';
+                            if (!unit && key === 'thickness') unit = 'mm';
+                            if (!unit && key === 'dry_extract') unit = '%';
+                            
+                            html += '<div class="col-12 d-flex align-items-center mb-1">';
+                            html += `<div class="col-5" style="font-size: 0.75rem; font-weight: bold;">${spec.type}${unit ? ' (' + unit + ')' : ''}</div>`;
+                            html += '<div class="col-7 d-flex justify-content-around" style="font-size: 0.75rem;">';
+                            html += `<span>${spec.value_min !== null ? spec.value_min : '--'}</span>`;
+                            html += `<span class="fw-bold text-success">${spec.value_nominal !== null ? spec.value_nominal : '--'}</span>`;
+                            html += `<span>${spec.value_max !== null ? spec.value_max : '--'}</span>`;
+                            html += '</div>';
+                            html += '</div>';
+                        }
+                    });
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    // Colonne droite : Masses surfaciques
+                    html += '<div class="col-md-6">';
+                    html += '<div class="row g-1">';
+                    const rightSpecs = ['global_surface_mass', 'surface_mass'];
+                    rightSpecs.forEach(key => {
+                        if (data.specifications[key]) {
+                            const spec = data.specifications[key];
+                            // Déterminer l'unité
+                            let unit = spec.unit || '';
+                            if (!unit && key === 'global_surface_mass') unit = 'g/m²';
+                            if (!unit && key === 'surface_mass') unit = 'g/25cm²';
+                            
+                            html += '<div class="col-12 d-flex align-items-center mb-1">';
+                            html += `<div class="col-5" style="font-size: 0.75rem; font-weight: bold;">${spec.type}${unit ? ' (' + unit + ')' : ''}</div>`;
+                            html += '<div class="col-7 d-flex justify-content-around" style="font-size: 0.75rem;">';
+                            html += `<span>${spec.value_min !== null ? spec.value_min : '--'}</span>`;
+                            html += `<span class="fw-bold text-success">${spec.value_nominal !== null ? spec.value_nominal : '--'}</span>`;
+                            html += `<span>${spec.value_max !== null ? spec.value_max : '--'}</span>`;
+                            html += '</div>';
+                            html += '</div>';
+                        }
+                    });
+                    html += '</div>';
+                    html += '</div>';
+                    
+                    html += '</div>';
+                    
+                    display.innerHTML += html;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des paramètres:', error);
+        });
+}
+
+// Fonction pour mettre à jour l'affichage du profil et des modes
+function updateProfileDisplay() {
+    // Mettre à jour le nom du profil
+    const profileSelector = document.getElementById('profile-selector');
+    const profileNameSpan = document.getElementById('selected-profile-name');
+    if (profileSelector && profileNameSpan) {
+        if (profileSelector.value) {
+            const selectedOption = profileSelector.options[profileSelector.selectedIndex];
+            profileNameSpan.textContent = selectedOption.text;
+        } else {
+            profileNameSpan.textContent = '--';
+        }
+    }
+    
+    // Mettre à jour l'affichage des modes actifs
+    const modesDisplay = document.getElementById('active-modes-display');
+    if (modesDisplay) {
+        const activeModes = [];
+        document.querySelectorAll('.modes-toggles input[type="checkbox"]:checked').forEach(checkbox => {
+            const label = document.querySelector(`label[for="${checkbox.id}"]`);
+            if (label) {
+                activeModes.push(label.textContent.trim());
+            }
+        });
+        
+        if (activeModes.length > 0) {
+            modesDisplay.textContent = ` (${activeModes.join(', ')})`;
+        } else {
+            modesDisplay.textContent = '';
+        }
+    }
 }
 
 // Fonctions de toggle basiques pour les blocs
@@ -1296,10 +1668,22 @@ function showProductivityTab(tabName) {
     if (activeButton) {
         activeButton.classList.add('active');
     }
+    
+    // Sauvegarder l'onglet actif
+    const formData = new FormData();
+    formData.append('field', 'active_productivity_tab');
+    formData.append('value', tabName);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch('/livesession/update-field/', {
+        method: 'POST',
+        body: formData
+    });
 }
 
 // Fonctions vides pour les boutons d'édition (pour éviter les erreurs)
 function addFabricationOrder() {}
+function editMachineParameters() {}
 
 // Fonction pour sauvegarder le profil sélectionné
 function saveProfile(profileId) {
@@ -1314,9 +1698,46 @@ function saveProfile(profileId) {
     })
     .then(response => response.json())
     .then(data => {
+        updateProfileDisplay();
+        // Charger les paramètres machine du profil
+        if (profileId) {
+            loadMachineParameters(profileId);
+        } else {
+            document.getElementById('machine-parameters-display').innerHTML = '';
+        }
     })
     .catch(error => {
         console.error('Erreur:', error);
+    });
+}
+
+// Fonction pour sauvegarder les valeurs de la sticky bar
+function saveStickValue(fieldName, value) {
+    const formData = new FormData();
+    formData.append('field', 'sticky-' + fieldName);
+    formData.append('value', value);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch('/livesession/update-field/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Sauvegarde silencieuse
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+    });
+}
+
+// Fonction pour activer/désactiver les champs de la sticky bar
+function toggleStickyInputs(enable) {
+    document.querySelectorAll('.sticky-input').forEach(input => {
+        input.disabled = !enable;
+        if (enable) {
+            input.focus();
+        }
     });
 }
 
@@ -1339,6 +1760,7 @@ function saveModes() {
     })
     .then(response => response.json())
     .then(data => {
+        updateProfileDisplay();
     })
     .catch(error => {
         console.error('Erreur:', error);
@@ -1382,12 +1804,34 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Restaurer les modes sauvegardés
     const savedModes = JSON.parse('{{ active_modes_json|escapejs }}');
+    
+    // Restaurer le numéro de rouleau persistant
+    {% if roll_number %}
+    const rollNumberInput = document.getElementById('sticky-roll-number');
+    rollNumberInput.value = '{{ roll_number }}';
+    rollNumberInput.defaultValue = '{{ roll_number }}';  // Pour la comparaison lors de la modification
+    {% endif %}
     Object.keys(savedModes).forEach(modeCode => {
         const checkbox = document.getElementById('mode-' + modeCode);
         if (checkbox) {
             checkbox.checked = savedModes[modeCode];
         }
     });
+    
+    // Mettre à jour l'affichage du profil et des modes
+    updateProfileDisplay();
+    
+    // Charger les paramètres machine du profil sélectionné
+    const profileSelector = document.getElementById('profile-selector');
+    if (profileSelector && profileSelector.value) {
+        loadMachineParameters(profileSelector.value);
+    }
+    
+    // Restaurer l'onglet actif
+    const activeTab = '{{ active_productivity_tab }}';
+    if (activeTab && activeTab !== 'temps') {
+        showProductivityTab(activeTab);
+    }
 });
 
 </script>

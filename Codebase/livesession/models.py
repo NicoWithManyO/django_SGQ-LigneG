@@ -16,6 +16,21 @@ class CurrentProductionState(models.Model):
     selected_profile = models.ForeignKey('core.Profile', null=True, blank=True, on_delete=models.SET_NULL)
     active_modes = models.JSONField(default=dict)  # {"maintenance": true, "permissive": false}
     
+    # Onglet actif dans le bloc productivité
+    active_productivity_tab = models.CharField(
+        max_length=20,
+        default='temps',
+        choices=[('temps', 'TRS'), ('parametres', 'Params & Specs')],
+        verbose_name="Onglet actif productivité"
+    )
+    
+    # Numéro de rouleau persistant
+    roll_number = models.PositiveIntegerField(
+        null=True, 
+        blank=True,
+        verbose_name="Numéro de rouleau actuel"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -56,6 +71,65 @@ class LiveShift(models.Model):
         verbose_name_plural = 'Brouillons de postes'
     
     def __str__(self):
-        operator = self.shift_data.get('operator_name', 'Sans opérateur')
+        # Le champ est stocké comme 'operator' (pas 'operator_name')
+        # Si c'est un ID, essayer de récupérer le nom de l'opérateur
+        operator_value = self.shift_data.get('operator', 'Sans opérateur')
+        
+        # Si la valeur ressemble à un ID (nombre), essayer de récupérer le nom
+        if operator_value and str(operator_value).isdigit():
+            try:
+                from core.models import Operator
+                operator_obj = Operator.objects.get(pk=int(operator_value))
+                operator_name = operator_obj.full_name
+            except:
+                operator_name = f"Opérateur #{operator_value}"
+        else:
+            operator_name = operator_value or 'Sans opérateur'
+            
         date = self.shift_data.get('date', 'Sans date')
-        return f"Draft: {operator} - {date}"
+        return f"Draft: {operator_name} - {date}"
+
+
+class LiveRoll(models.Model):
+    """Brouillon de rouleau en cours de saisie - données temporaires"""
+    session_key = models.CharField(max_length=40, db_index=True)
+    
+    # Tout ce qui concerne le rouleau actuel en JSON
+    roll_data = models.JSONField(default=dict)
+    # Structure attendue:
+    # {
+    #     "roll_id": "OF123_001",
+    #     "fabrication_order_id": 1,
+    #     "is_compliant": true,
+    #     "avg_thickness_left": 2.5,
+    #     "avg_thickness_right": 2.6,
+    #     "net_mass": 450.5,
+    #     "comment": "RAS",
+    #     "defects": [
+    #         {"type_id": 1, "position_m": 150, "position_side": "G"}
+    #     ],
+    #     "thickness_measurements": [
+    #         {"position_m": 100, "thickness_left": 2.5, "thickness_right": 2.6}
+    #     ]
+    # }
+    
+    # Flag pour savoir si c'est le rouleau actif (en cours de saisie dans la sticky bar)
+    is_active = models.BooleanField(default=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'livesession_live_roll'
+        verbose_name = 'Brouillon de rouleau'
+        verbose_name_plural = 'Brouillons de rouleaux'
+        # Une seule session peut avoir un rouleau actif à la fois
+        unique_together = [['session_key', 'is_active']]
+        indexes = [
+            models.Index(fields=['session_key', 'is_active']),
+        ]
+    
+    def __str__(self):
+        roll_id = self.roll_data.get('roll_id', 'Sans ID')
+        status = "Actif" if self.is_active else "Archivé"
+        return f"Draft rouleau: {roll_id} - {status}"

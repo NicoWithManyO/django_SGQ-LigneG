@@ -274,7 +274,7 @@ function saveShiftField(fieldName, value) {
     })
     .then(response => response.json())
     .then(data => {
-        console.log(`${fieldName} sauvegardé:`, data);
+        // Sauvegarde silencieuse
     })
     .catch(error => {
         console.error('Erreur:', error);

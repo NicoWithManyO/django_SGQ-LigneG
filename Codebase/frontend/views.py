@@ -68,6 +68,8 @@ def production_page(request):
         'active_modes_json': active_modes_json,
         'live_shift': live_shift,
         'shift_data_json': shift_data_json,
+        'active_productivity_tab': production_state.active_productivity_tab if production_state else 'temps',
+        'roll_number': production_state.roll_number if production_state else None,
     }
     
     return render(request, 'frontend/production.html', context)
