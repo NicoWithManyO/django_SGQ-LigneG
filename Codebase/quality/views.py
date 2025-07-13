@@ -59,9 +59,12 @@ def get_all_specifications(request):
         specs = Specification.objects.filter(is_active=True)
         specs_data = {}
         
+        # Créer aussi un objet simplifié avec juste le premier de chaque type
+        specs_by_type = {}
+        
         for spec in specs:
             spec_key = f"{spec.spec_type}_{spec.name}"
-            specs_data[spec_key] = {
+            spec_dict = {
                 'spec_type': spec.spec_type,
                 'name': spec.name,
                 'unit': spec.unit,
@@ -73,8 +76,16 @@ def get_all_specifications(request):
                 'is_blocking': spec.is_blocking,
                 'max_nok': spec.max_nok,
             }
+            specs_data[spec_key] = spec_dict
+            
+            # Prendre le premier de chaque type pour l'objet simplifié
+            if spec.spec_type not in specs_by_type:
+                specs_by_type[spec.spec_type] = spec_dict
         
-        return JsonResponse(specs_data)
+        return JsonResponse({
+            'all_specs': specs_data,
+            'specifications': specs_by_type  # Format attendu par le JS
+        })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 

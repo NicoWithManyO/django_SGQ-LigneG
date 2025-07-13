@@ -903,18 +903,21 @@
                             <div class="micrometer-readings">
                                 <div class="reading-group">
                                     <label>#1</label>
-                                    <input type="number" step="0.01" class="form-control" placeholder="--" autocomplete="off">
+                                    <input type="number" step="0.01" class="form-control micronnaire-left" placeholder="--" autocomplete="off" oninput="calculateMicronnaireAverage()">
                                 </div>
                                 <div class="reading-group">
                                     <label>#2</label>
-                                    <input type="number" step="0.01" class="form-control" placeholder="--" autocomplete="off">
+                                    <input type="number" step="0.01" class="form-control micronnaire-left" placeholder="--" autocomplete="off" oninput="calculateMicronnaireAverage()">
                                 </div>
                                 <div class="reading-group">
                                     <label>#3</label>
-                                    <input type="number" step="0.01" class="form-control" placeholder="--" autocomplete="off">
+                                    <input type="number" step="0.01" class="form-control micronnaire-left" placeholder="--" autocomplete="off" oninput="calculateMicronnaireAverage()">
                                 </div>
-                                <div class="average-display mt-0">
-                                    <small class="text-muted">--</small>
+                                <div class="text-center mt-2">
+                                    <div class="fw-bold" style="font-size: 1rem;">
+                                        <span id="micronnaire-left-avg" style="color: #4caf50;">--</span>
+                                    </div>
+                                    <small class="text-muted">Moyenne Gauche</small>
                                 </div>
                             </div>
                         </div>
@@ -929,7 +932,7 @@
                         <div class="control-content">
                             <div class="sizing-bath">
                                 <div class="sizing-bath-field">
-                                    <input type="number" step="0.01" class="form-control" placeholder="--" id="sizing-bath-input" autocomplete="off" oninput="formatDecimalInput(this)">
+                                    <input type="number" step="0.01" class="form-control" placeholder="--" id="sizing-bath-input" autocomplete="off" oninput="formatDecimalInput(this); applyDryExtractColor(this, this.value); saveQualityControl('extrait_sec', this.value)">
                                     <small class="text-muted" id="sizing-bath-time">--</small>
                                 </div>
                                 <hr style="width: 80%; margin: 0.5rem 0; border-color: var(--border-color);">
@@ -938,7 +941,7 @@
                                         <div class="d-flex align-items-center justify-content-center gap-1">
                                             <label style="font-size: 0.75rem; font-weight: 500; color: var(--primary-text); margin: 0;">Échantillon LOI</label>
                                             <label class="custom-toggle">
-                                                <input type="checkbox" id="loiSwitch">
+                                                <input type="checkbox" id="loiSwitch" onchange="saveQualityControl('loi_given', this.checked)">
                                                 <span class="toggle-slider"></span>
                                             </label>
                                         </div>
@@ -959,18 +962,21 @@
                             <div class="micrometer-readings">
                                 <div class="reading-group">
                                     <label>#1</label>
-                                    <input type="number" step="0.01" class="form-control" placeholder="--" autocomplete="off">
+                                    <input type="number" step="0.01" class="form-control micronnaire-right" placeholder="--" autocomplete="off" oninput="calculateMicronnaireAverage()">
                                 </div>
                                 <div class="reading-group">
                                     <label>#2</label>
-                                    <input type="number" step="0.01" class="form-control" placeholder="--" autocomplete="off">
+                                    <input type="number" step="0.01" class="form-control micronnaire-right" placeholder="--" autocomplete="off" oninput="calculateMicronnaireAverage()">
                                 </div>
                                 <div class="reading-group">
                                     <label>#3</label>
-                                    <input type="number" step="0.01" class="form-control" placeholder="--" autocomplete="off">
+                                    <input type="number" step="0.01" class="form-control micronnaire-right" placeholder="--" autocomplete="off" oninput="calculateMicronnaireAverage()">
                                 </div>
-                                <div class="average-display mt-0">
-                                    <small class="text-muted">--</small>
+                                <div class="text-center mt-2">
+                                    <div class="fw-bold" style="font-size: 1rem;">
+                                        <span id="micronnaire-right-avg" style="color: #4caf50;">--</span>
+                                    </div>
+                                    <small class="text-muted">Moyenne Droite</small>
                                 </div>
                             </div>
                         </div>
@@ -991,16 +997,19 @@
                                     <small class="text-muted" style="margin-bottom: 0;" id="gg-conversion">--</small>
                                     <div class="reading-group">
                                         <label>GG</label>
-                                        <input type="number" step="0.01" class="form-control" placeholder="--" id="gg-input" autocomplete="off" oninput="formatDecimalInput(this)">
+                                        <input type="number" step="0.01" class="form-control surface-mass-left" placeholder="--" id="gg-input" autocomplete="off" oninput="formatDecimalInput(this); calculateSurfaceMassAverage()">
                                     </div>
                                     <div class="reading-group">
                                         <label>GC</label>
-                                        <input type="number" step="0.01" class="form-control" placeholder="--" id="gc-input" autocomplete="off" oninput="formatDecimalInput(this)">
+                                        <input type="number" step="0.01" class="form-control surface-mass-left" placeholder="--" id="gc-input" autocomplete="off" oninput="formatDecimalInput(this); calculateSurfaceMassAverage()">
                                     </div>
                                     <small class="text-muted" style="margin-bottom: 0;" id="gc-conversion">--</small>
                                 </div>
-                                <div class="text-center mt-0">
-                                    <small class="text-muted">--</small>
+                                <div class="text-center mt-2">
+                                    <div class="fw-bold" style="font-size: 1rem;">
+                                        <span id="surface-mass-left-avg" style="color: #4caf50;">--</span>
+                                    </div>
+                                    <small class="text-muted">Moyenne Gauche</small>
                                 </div>
                             </div>
                         </div>
@@ -1009,7 +1018,7 @@
                     <!-- Bouton Clear au centre -->
                     <div class="d-flex flex-column align-items-center justify-content-center gap-2" style="padding: 0 10px;">
                         <small id="quality-controls-status" class="text-muted text-center" style="font-size: 0.65rem; max-width: 150px; font-style: italic;">Renseignez les contrôles pour pouvoir sauvegarder le poste</small>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" style="opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearQualityControls()" style="opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
                             <i class="bi bi-x-circle"></i> Clear
                         </button>
                     </div>
@@ -1026,16 +1035,19 @@
                                     <small class="text-muted" style="margin-bottom: 0;" id="dc-conversion">--</small>
                                     <div class="reading-group">
                                         <label>DC</label>
-                                        <input type="number" step="0.01" class="form-control" placeholder="--" id="dc-input" autocomplete="off" oninput="formatDecimalInput(this)">
+                                        <input type="number" step="0.01" class="form-control surface-mass-right" placeholder="--" id="dc-input" autocomplete="off" oninput="formatDecimalInput(this); calculateSurfaceMassAverage()">
                                     </div>
                                     <div class="reading-group">
                                         <label>DD</label>
-                                        <input type="number" step="0.01" class="form-control" placeholder="--" id="dd-input" autocomplete="off" oninput="formatDecimalInput(this)">
+                                        <input type="number" step="0.01" class="form-control surface-mass-right" placeholder="--" id="dd-input" autocomplete="off" oninput="formatDecimalInput(this); calculateSurfaceMassAverage()">
                                     </div>
                                     <small class="text-muted" style="margin-bottom: 0;" id="dd-conversion">--</small>
                                 </div>
-                                <div class="text-center mt-0">
-                                    <small class="text-muted">--</small>
+                                <div class="text-center mt-2">
+                                    <div class="fw-bold" style="font-size: 1rem;">
+                                        <span id="surface-mass-right-avg" style="color: #4caf50;">--</span>
+                                    </div>
+                                    <small class="text-muted">Moyenne Droite</small>
                                 </div>
                             </div>
                         </div>
@@ -1136,8 +1148,8 @@
                         
                         <div class="fibrage-field mass-calc-field">
                             <div class="mass-calc-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
-                                <small class="fibrage-text" id="mass-net" style="font-size: 0.7rem;">--</small>
-                                <small class="fibrage-text" id="grammage" style="font-size: 0.9rem; font-weight: bold;">--</small>
+                                <small class="fibrage-text" id="mass-net" style="font-size: 0.85rem; font-weight: 500;">--</small>
+                                <small class="fibrage-text" id="grammage" style="font-size: 1.05rem; font-weight: bold;">--</small>
                             </div>
                         </div>
                         
@@ -2083,6 +2095,15 @@ function updateRollStatus() {
 // Variable globale pour stocker les specs d'épaisseur
 let thicknessSpecs = null;
 
+// Variable globale pour stocker les specs de masse surfacique
+let surfaceMassSpecs = null;
+
+// Variable globale pour stocker les specs de micronnaire
+let micrometerSpecs = null;
+
+// Variable globale pour stocker les specs d'extrait sec
+let dryExtractSpecs = null;
+
 // Fonction pour charger les specs d'épaisseur
 function loadThicknessSpecs() {
     fetch('/quality/get-thickness-specs/')
@@ -2099,6 +2120,147 @@ function loadThicknessSpecs() {
         .catch(error => {
             console.error('Erreur lors du chargement des specs d\'épaisseur:', error);
         });
+}
+
+// Fonction pour charger toutes les specs incluant les masses surfaciques
+function loadAllSpecs() {
+    fetch('/quality/specifications/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.specifications) {
+                if (data.specifications.surface_mass) {
+                    surfaceMassSpecs = data.specifications.surface_mass;
+                }
+                if (data.specifications.micrometer) {
+                    micrometerSpecs = data.specifications.micrometer;
+                }
+                if (data.specifications.dry_extract) {
+                    dryExtractSpecs = data.specifications.dry_extract;
+                }
+                // Appliquer les couleurs aux moyennes existantes
+                updateSurfaceMassAveragesColors();
+                updateMicrometerAveragesColors();
+                updateDryExtractColor();
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des specs:', error);
+        });
+}
+
+// Fonction pour appliquer le code couleur aux masses surfaciques
+function applySurfaceMassColor(element, value) {
+    if (!surfaceMassSpecs || !value) {
+        element.style.color = '#6c757d';
+        return;
+    }
+    
+    const numValue = parseFloat(value);
+    
+    // Vérifier les limites critiques
+    if (surfaceMassSpecs.value_min && numValue < surfaceMassSpecs.value_min) {
+        element.style.color = '#ff1744'; // Rouge vif
+    } else if (surfaceMassSpecs.value_max && numValue > surfaceMassSpecs.value_max) {
+        element.style.color = '#ff1744'; // Rouge vif
+    }
+    // Vérifier les limites d'alerte
+    else if (surfaceMassSpecs.value_min_alert && numValue < surfaceMassSpecs.value_min_alert) {
+        element.style.color = '#ff9800'; // Orange
+    } else if (surfaceMassSpecs.value_max_alert && numValue > surfaceMassSpecs.value_max_alert) {
+        element.style.color = '#ff9800'; // Orange
+    }
+    // Dans les limites nominales
+    else {
+        element.style.color = '#4caf50'; // Vert
+    }
+}
+
+// Fonction pour mettre à jour les couleurs des moyennes existantes
+function updateSurfaceMassAveragesColors() {
+    const leftAvg = document.getElementById('surface-mass-left-avg');
+    const rightAvg = document.getElementById('surface-mass-right-avg');
+    
+    if (leftAvg && leftAvg.textContent !== '--') {
+        applySurfaceMassColor(leftAvg, leftAvg.textContent);
+    }
+    if (rightAvg && rightAvg.textContent !== '--') {
+        applySurfaceMassColor(rightAvg, rightAvg.textContent);
+    }
+}
+
+// Fonction pour appliquer le code couleur aux micronnaires
+function applyMicrometerColor(element, value) {
+    if (!micrometerSpecs || !value) {
+        element.style.color = '#6c757d';
+        return;
+    }
+    
+    const numValue = parseFloat(value);
+    
+    // Vérifier les limites critiques
+    if (micrometerSpecs.value_min && numValue < micrometerSpecs.value_min) {
+        element.style.color = '#ff1744'; // Rouge vif
+    } else if (micrometerSpecs.value_max && numValue > micrometerSpecs.value_max) {
+        element.style.color = '#ff1744'; // Rouge vif
+    }
+    // Vérifier les limites d'alerte
+    else if (micrometerSpecs.value_min_alert && numValue < micrometerSpecs.value_min_alert) {
+        element.style.color = '#ff9800'; // Orange
+    } else if (micrometerSpecs.value_max_alert && numValue > micrometerSpecs.value_max_alert) {
+        element.style.color = '#ff9800'; // Orange
+    }
+    // Dans les limites nominales
+    else {
+        element.style.color = '#4caf50'; // Vert
+    }
+}
+
+// Fonction pour mettre à jour les couleurs des moyennes micronnaire existantes
+function updateMicrometerAveragesColors() {
+    const leftAvg = document.getElementById('micronnaire-left-avg');
+    const rightAvg = document.getElementById('micronnaire-right-avg');
+    
+    if (leftAvg && leftAvg.textContent !== '--') {
+        applyMicrometerColor(leftAvg, leftAvg.textContent);
+    }
+    if (rightAvg && rightAvg.textContent !== '--') {
+        applyMicrometerColor(rightAvg, rightAvg.textContent);
+    }
+}
+
+// Fonction pour appliquer le code couleur à l'extrait sec
+function applyDryExtractColor(element, value) {
+    if (!dryExtractSpecs || !value) {
+        element.style.color = '';
+        return;
+    }
+    
+    const numValue = parseFloat(value);
+    
+    // Vérifier les limites critiques
+    if (dryExtractSpecs.value_min && numValue < dryExtractSpecs.value_min) {
+        element.style.color = '#ff1744'; // Rouge vif
+    } else if (dryExtractSpecs.value_max && numValue > dryExtractSpecs.value_max) {
+        element.style.color = '#ff1744'; // Rouge vif
+    }
+    // Vérifier les limites d'alerte
+    else if (dryExtractSpecs.value_min_alert && numValue < dryExtractSpecs.value_min_alert) {
+        element.style.color = '#ff9800'; // Orange
+    } else if (dryExtractSpecs.value_max_alert && numValue > dryExtractSpecs.value_max_alert) {
+        element.style.color = '#ff9800'; // Orange
+    }
+    // Dans les limites nominales
+    else {
+        element.style.color = '#4caf50'; // Vert
+    }
+}
+
+// Fonction pour mettre à jour la couleur de l'extrait sec existant
+function updateDryExtractColor() {
+    const input = document.getElementById('sizing-bath-input');
+    if (input && input.value) {
+        applyDryExtractColor(input, input.value);
+    }
 }
 
 // Fonction pour colorer un input d'épaisseur selon sa valeur
@@ -2675,6 +2837,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadLostTimeReasons();
     loadLostTimesFromDraft();
     loadThicknessSpecs();
+    loadAllSpecs();
     loadDefectTypes();
     
     // Initialiser les tooltips Bootstrap
@@ -2725,7 +2888,70 @@ document.addEventListener('DOMContentLoaded', function() {
             updateSummaries();
         }, 500);
     });
+    
+    // Charger les contrôles qualité sauvegardés
+    loadQualityControls();
 });
+
+// Fonction pour charger les contrôles qualité sauvegardés
+function loadQualityControls() {
+    fetch('/livesession/get-quality-control/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.quality_data) {
+                // Restaurer les valeurs des micronnaires
+                if (data.quality_data.micronnaire_left) {
+                    const leftInputs = document.querySelectorAll('.micronnaire-left');
+                    data.quality_data.micronnaire_left.forEach((value, index) => {
+                        if (leftInputs[index] && value !== null) {
+                            leftInputs[index].value = value;
+                        }
+                    });
+                }
+                
+                if (data.quality_data.micronnaire_right) {
+                    const rightInputs = document.querySelectorAll('.micronnaire-right');
+                    data.quality_data.micronnaire_right.forEach((value, index) => {
+                        if (rightInputs[index] && value !== null) {
+                            rightInputs[index].value = value;
+                        }
+                    });
+                }
+                
+                // Restaurer les masses surfaciques
+                const fieldsToRestore = {
+                    'surface_mass_gg': 'gg-input',
+                    'surface_mass_gc': 'gc-input',
+                    'surface_mass_dc': 'dc-input',
+                    'surface_mass_dd': 'dd-input',
+                    'extrait_sec': 'sizing-bath-input'
+                };
+                
+                Object.entries(fieldsToRestore).forEach(([dataKey, inputId]) => {
+                    if (data.quality_data[dataKey] !== undefined && data.quality_data[dataKey] !== null) {
+                        const input = document.getElementById(inputId);
+                        if (input) {
+                            input.value = data.quality_data[dataKey];
+                        }
+                    }
+                });
+                
+                // Restaurer le switch LOI
+                if (data.quality_data.loi_given !== undefined) {
+                    const loiSwitch = document.getElementById('loiSwitch');
+                    if (loiSwitch) {
+                        loiSwitch.checked = data.quality_data.loi_given;
+                    }
+                }
+                
+                // Mettre à jour les moyennes et heures
+                updateQualityAverages(data.quality_data);
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des contrôles qualité:', error);
+        });
+}
 
 // Fonction pour formater les inputs décimaux (ajouter 0 devant la virgule)
 function formatDecimalInput(input) {
@@ -2742,6 +2968,553 @@ function formatDecimalInput(input) {
     if (value.includes(',')) {
         input.value = value.replace(',', '.');
     }
+}
+
+// Variable pour le debounce des contrôles qualité
+let qualityControlTimeout = null;
+
+// Fonction pour sauvegarder un contrôle qualité et récupérer les moyennes calculées
+function saveQualityControl(fieldName, value) {
+    // Si on est en batch update (Random CTRL ou Clear), on ignore
+    if (isBatchUpdate) {
+        return;
+    }
+    
+    // Si on efface un champ d'extrait sec ou qu'on décoche LOI, effacer l'heure immédiatement
+    if (fieldName === 'extrait_sec' && !value) {
+        document.getElementById('sizing-bath-time').textContent = '--';
+    }
+    if (fieldName === 'loi_given' && (value === false || value === 'false')) {
+        document.getElementById('loi-time').textContent = '--';
+    }
+    
+    // Annuler le timeout précédent
+    if (qualityControlTimeout) {
+        clearTimeout(qualityControlTimeout);
+    }
+    
+    // Debounce de 500ms
+    qualityControlTimeout = setTimeout(() => {
+        fetch('/livesession/save-quality-control/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                field: fieldName,
+                value: value
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.quality_data) {
+                // Mettre à jour les moyennes affichées
+                updateQualityAverages(data.quality_data);
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors de la sauvegarde du contrôle qualité:', error);
+        });
+    }, 500);
+}
+
+// Fonction pour mettre à jour l'affichage des moyennes
+function updateQualityAverages(data) {
+    // Moyennes micronnaire avec code couleur
+    if (data.micronnaire_left_avg !== undefined) {
+        const avgElement = document.getElementById('micronnaire-left-avg');
+        if (data.micronnaire_left_avg !== null) {
+            avgElement.textContent = data.micronnaire_left_avg;
+            // Appliquer le code couleur
+            applyMicrometerColor(avgElement, data.micronnaire_left_avg);
+        } else {
+            avgElement.textContent = '--';
+            avgElement.style.color = '#6c757d'; // Couleur grise par défaut
+        }
+    }
+    if (data.micronnaire_right_avg !== undefined) {
+        const avgElement = document.getElementById('micronnaire-right-avg');
+        if (data.micronnaire_right_avg !== null) {
+            avgElement.textContent = data.micronnaire_right_avg;
+            // Appliquer le code couleur
+            applyMicrometerColor(avgElement, data.micronnaire_right_avg);
+        } else {
+            avgElement.textContent = '--';
+            avgElement.style.color = '#6c757d'; // Couleur grise par défaut
+        }
+    }
+    
+    // Moyennes masses surfaciques avec code couleur
+    if (data.surface_mass_left_avg !== undefined) {
+        const avgElement = document.getElementById('surface-mass-left-avg');
+        if (data.surface_mass_left_avg !== null) {
+            avgElement.textContent = data.surface_mass_left_avg;
+            // Appliquer le code couleur
+            applySurfaceMassColor(avgElement, data.surface_mass_left_avg);
+        } else {
+            avgElement.textContent = '--';
+            avgElement.style.color = '#6c757d'; // Couleur grise par défaut
+        }
+    }
+    if (data.surface_mass_right_avg !== undefined) {
+        const avgElement = document.getElementById('surface-mass-right-avg');
+        if (data.surface_mass_right_avg !== null) {
+            avgElement.textContent = data.surface_mass_right_avg;
+            // Appliquer le code couleur
+            applySurfaceMassColor(avgElement, data.surface_mass_right_avg);
+        } else {
+            avgElement.textContent = '--';
+            avgElement.style.color = '#6c757d'; // Couleur grise par défaut
+        }
+    }
+    
+    // Heures
+    if (data.extrait_sec_time !== undefined) {
+        document.getElementById('sizing-bath-time').textContent = 
+            data.extrait_sec_time !== null ? data.extrait_sec_time : '--';
+    }
+    if (data.loi_time !== undefined) {
+        document.getElementById('loi-time').textContent = 
+            data.loi_time !== null ? data.loi_time : '--';
+    }
+}
+
+// Fonction appelée quand on change un micronnaire
+function calculateMicronnaireAverage() {
+    // Récupérer les inputs et sauvegarder
+    const leftInputs = document.querySelectorAll('.micronnaire-left');
+    leftInputs.forEach((input, index) => {
+        if (document.activeElement === input) {
+            saveQualityControl(`micronnaire_left_${index + 1}`, input.value);
+            
+            // Vérifier immédiatement si tous les champs gauche sont vides
+            const hasLeftValues = Array.from(leftInputs).some(inp => inp.value.trim() !== '');
+            const leftAvgElement = document.getElementById('micronnaire-left-avg');
+            if (!hasLeftValues) {
+                leftAvgElement.textContent = '--';
+                leftAvgElement.style.color = '#6c757d';
+            }
+        }
+    });
+    
+    const rightInputs = document.querySelectorAll('.micronnaire-right');
+    rightInputs.forEach((input, index) => {
+        if (document.activeElement === input) {
+            saveQualityControl(`micronnaire_right_${index + 1}`, input.value);
+            
+            // Vérifier immédiatement si tous les champs droite sont vides
+            const hasRightValues = Array.from(rightInputs).some(inp => inp.value.trim() !== '');
+            const rightAvgElement = document.getElementById('micronnaire-right-avg');
+            if (!hasRightValues) {
+                rightAvgElement.textContent = '--';
+                rightAvgElement.style.color = '#6c757d';
+            }
+        }
+    });
+}
+
+// Fonction appelée quand on change une masse surfacique
+function calculateSurfaceMassAverage() {
+    const activeElement = document.activeElement;
+    if (activeElement.id) {
+        const fieldMap = {
+            'gg-input': 'surface_mass_gg',
+            'gc-input': 'surface_mass_gc',
+            'dc-input': 'surface_mass_dc',
+            'dd-input': 'surface_mass_dd'
+        };
+        
+        const fieldName = fieldMap[activeElement.id];
+        if (fieldName) {
+            saveQualityControl(fieldName, activeElement.value);
+            
+            // Vérifier immédiatement les moyennes
+            const ggInput = document.getElementById('gg-input');
+            const gcInput = document.getElementById('gc-input');
+            const hasLeftValues = (ggInput && ggInput.value.trim() !== '') || (gcInput && gcInput.value.trim() !== '');
+            if (!hasLeftValues) {
+                document.getElementById('surface-mass-left-avg').textContent = '--';
+            }
+            
+            const dcInput = document.getElementById('dc-input');
+            const ddInput = document.getElementById('dd-input');
+            const hasRightValues = (dcInput && dcInput.value.trim() !== '') || (ddInput && ddInput.value.trim() !== '');
+            if (!hasRightValues) {
+                document.getElementById('surface-mass-right-avg').textContent = '--';
+            }
+        }
+    }
+}
+
+// Fonction pour remplir les contrôles qualité avec des valeurs aléatoires basées sur les specs
+window.fillRandomQualityControls = function() {
+    console.log('fillRandomQualityControls appelée');
+    
+    // Activer le flag batch update
+    isBatchUpdate = true;
+    
+    // Charger d'abord les spécifications si pas déjà fait
+    fetch('/quality/specifications/')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Spécifications reçues:', data);
+            
+            if (!data.specifications) {
+                console.log('Pas de spécifications trouvées, utilisation des valeurs par défaut');
+                fillRandomQualityControlsDefault();
+                return;
+            }
+            
+            const specs = data.specifications;
+            
+            // Helper pour générer une valeur aléatoire dans les limites d'alerte
+            const getRandomValue = (spec) => {
+                if (!spec) return null;
+                const min = spec.value_min_alert || spec.value_min || 0;
+                const max = spec.value_max_alert || spec.value_max || 100;
+                const nominal = spec.value_nominal || (min + max) / 2;
+                
+                // Générer une valeur autour du nominal avec ±15% de variation
+                const variation = (Math.random() - 0.5) * 0.3 * (max - min);
+                let value = nominal + variation;
+                
+                // S'assurer qu'on reste dans les limites d'alerte
+                value = Math.max(min, Math.min(max, value));
+                return value.toFixed(2);
+            };
+            
+            // Helper spécifique pour les masses surfaciques (4 décimales)
+            const getRandomValueSurfaceMass = (spec) => {
+                if (!spec) return null;
+                const min = spec.value_min_alert || spec.value_min || 0;
+                const max = spec.value_max_alert || spec.value_max || 100;
+                const nominal = spec.value_nominal || (min + max) / 2;
+                
+                // Générer une valeur autour du nominal avec ±15% de variation
+                const variation = (Math.random() - 0.5) * 0.3 * (max - min);
+                let value = nominal + variation;
+                
+                // S'assurer qu'on reste dans les limites d'alerte
+                value = Math.max(min, Math.min(max, value));
+                return value.toFixed(4);
+            };
+            
+            // Micronnaire
+            console.log('Specs micronnaire:', specs.micrometer);
+            if (specs.micrometer) {
+                const micrometerValue = getRandomValue(specs.micrometer);
+                console.log('Valeur micronnaire générée:', micrometerValue);
+                if (micrometerValue) {
+                    // Micronnaire gauche
+                    const leftInputs = document.querySelectorAll('.micronnaire-left');
+                    console.log('Inputs micronnaire gauche trouvés:', leftInputs.length);
+                    leftInputs.forEach((input, index) => {
+                        // Petite variation entre les 3 mesures (±5%)
+                        const variation = 1 + (Math.random() - 0.5) * 0.1;
+                        const value = (parseFloat(micrometerValue) * variation).toFixed(2);
+                        console.log(`Setting micronnaire_left_${index + 1} = ${value}`);
+                        input.value = value;
+                        saveQualityControl(`micronnaire_left_${index + 1}`, value);
+                    });
+                    
+                    // Micronnaire droite
+                    const rightInputs = document.querySelectorAll('.micronnaire-right');
+                    console.log('Inputs micronnaire droite trouvés:', rightInputs.length);
+                    rightInputs.forEach((input, index) => {
+                        // Petite variation entre les 3 mesures (±5%)
+                        const variation = 1 + (Math.random() - 0.5) * 0.1;
+                        const value = (parseFloat(micrometerValue) * variation).toFixed(2);
+                        console.log(`Setting micronnaire_right_${index + 1} = ${value}`);
+                        input.value = value;
+                        saveQualityControl(`micronnaire_right_${index + 1}`, value);
+                    });
+                }
+            } else {
+                console.log('Pas de specs micronnaire trouvées');
+            }
+            
+            // Extrait sec
+            if (specs.dry_extract) {
+                const extraitSec = getRandomValue(specs.dry_extract);
+                if (extraitSec) {
+                    const extraitSecInput = document.getElementById('sizing-bath-input');
+                    if (extraitSecInput) {
+                        extraitSecInput.value = extraitSec;
+                        applyDryExtractColor(extraitSecInput, extraitSec);
+                        saveQualityControl('extrait_sec', extraitSec);
+                    }
+                }
+            }
+            
+            // Masses surfaciques
+            if (specs.surface_mass) {
+                const surfaceMassValue = getRandomValueSurfaceMass(specs.surface_mass);
+                if (surfaceMassValue) {
+                    const massFields = {
+                        'gg-input': 'surface_mass_gg',
+                        'gc-input': 'surface_mass_gc',
+                        'dc-input': 'surface_mass_dc',
+                        'dd-input': 'surface_mass_dd'
+                    };
+                    
+                    Object.entries(massFields).forEach(([inputId, fieldName]) => {
+                        // Petite variation entre les 4 mesures (±5%)
+                        const variation = 1 + (Math.random() - 0.5) * 0.1;
+                        const value = (parseFloat(surfaceMassValue) * variation).toFixed(4);
+                        const input = document.getElementById(inputId);
+                        if (input) {
+                            input.value = value;
+                            saveQualityControl(fieldName, value);
+                        }
+                    });
+                }
+            } else {
+                // Si pas de specs, utiliser la valeur par défaut 0.0109 g/25cm²
+                const massFields = {
+                    'gg-input': 'surface_mass_gg',
+                    'gc-input': 'surface_mass_gc',
+                    'dc-input': 'surface_mass_dc',
+                    'dd-input': 'surface_mass_dd'
+                };
+                
+                Object.entries(massFields).forEach(([inputId, fieldName]) => {
+                    // Valeur autour de 0.0109 avec variation de ±5%
+                    const value = (0.0109 + (Math.random() - 0.5) * 0.0010).toFixed(4);
+                    const input = document.getElementById(inputId);
+                    if (input) {
+                        input.value = value;
+                        saveQualityControl(fieldName, value);
+                    }
+                });
+            }
+            
+            // LOI aléatoire (50% de chance)
+            const loiSwitch = document.getElementById('loiSwitch');
+            console.log('LOI Switch trouvé:', !!loiSwitch);
+            if (loiSwitch) {
+                const loiValue = Math.random() > 0.5;
+                console.log('Setting LOI =', loiValue);
+                loiSwitch.checked = loiValue;
+                // Forcer le changement visuel
+                if (loiValue) {
+                    loiSwitch.setAttribute('checked', 'checked');
+                } else {
+                    loiSwitch.removeAttribute('checked');
+                }
+                // Déclencher l'événement change pour activer le handler
+                loiSwitch.dispatchEvent(new Event('change', { bubbles: true }));
+                saveQualityControl('loi_given', loiValue);
+            }
+            
+            // Désactiver le flag batch et forcer une sauvegarde
+            setTimeout(() => {
+                isBatchUpdate = false;
+                // Forcer la sauvegarde de toutes les données
+                saveAllQualityControls();
+            }, 100);
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des spécifications:', error);
+            // Fallback avec des valeurs par défaut si erreur
+            fillRandomQualityControlsDefault();
+        });
+}
+
+// Fonction fallback avec des valeurs par défaut
+function fillRandomQualityControlsDefault() {
+    // Valeurs par défaut si pas de specs
+    document.querySelectorAll('.micronnaire-left, .micronnaire-right').forEach((input, index) => {
+        const value = (3 + Math.random() * 2).toFixed(2);
+        input.value = value;
+        const isLeft = input.classList.contains('micronnaire-left');
+        const idx = Array.from(document.querySelectorAll(isLeft ? '.micronnaire-left' : '.micronnaire-right')).indexOf(input);
+        saveQualityControl(`micronnaire_${isLeft ? 'left' : 'right'}_${idx + 1}`, value);
+    });
+    
+    const extraitSec = (9 + Math.random() * 2).toFixed(2);
+    const extraitSecInput = document.getElementById('sizing-bath-input');
+    if (extraitSecInput) {
+        extraitSecInput.value = extraitSec;
+        applyDryExtractColor(extraitSecInput, extraitSec);
+        saveQualityControl('extrait_sec', extraitSec);
+    }
+    
+    ['gg-input', 'gc-input', 'dc-input', 'dd-input'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            // Masses surfaciques autour de 0.0109 avec 4 décimales
+            const value = (0.0109 + (Math.random() - 0.5) * 0.0010).toFixed(4);
+            input.value = value;
+            saveQualityControl(`surface_mass_${id.split('-')[0]}`, value);
+        }
+    });
+    
+    // LOI aléatoire (50% de chance)
+    const loiSwitch = document.getElementById('loiSwitch');
+    console.log('LOI Switch trouvé (fallback):', !!loiSwitch);
+    if (loiSwitch) {
+        const loiValue = Math.random() > 0.5;
+        console.log('Setting LOI (fallback) =', loiValue);
+        loiSwitch.checked = loiValue;
+        // Forcer le changement visuel
+        if (loiValue) {
+            loiSwitch.setAttribute('checked', 'checked');
+        } else {
+            loiSwitch.removeAttribute('checked');
+        }
+        // Déclencher l'événement change
+        loiSwitch.dispatchEvent(new Event('change', { bubbles: true }));
+        saveQualityControl('loi_given', loiValue);
+    }
+    
+    // Désactiver le flag batch et forcer une sauvegarde
+    setTimeout(() => {
+        isBatchUpdate = false;
+        saveAllQualityControls();
+    }, 100);
+}
+
+// Fonction pour sauvegarder tous les contrôles qualité d'un coup
+function saveAllQualityControls() {
+    const qualityData = {};
+    
+    // Collecter tous les micronnaires
+    document.querySelectorAll('.micronnaire-left').forEach((input, index) => {
+        if (input.value) {
+            qualityData[`micronnaire_left_${index + 1}`] = input.value;
+        }
+    });
+    
+    document.querySelectorAll('.micronnaire-right').forEach((input, index) => {
+        if (input.value) {
+            qualityData[`micronnaire_right_${index + 1}`] = input.value;
+        }
+    });
+    
+    // Extrait sec
+    const extraitSecInput = document.getElementById('sizing-bath-input');
+    if (extraitSecInput && extraitSecInput.value) {
+        qualityData['extrait_sec'] = extraitSecInput.value;
+    }
+    
+    // Masses surfaciques
+    const massFields = {
+        'gg-input': 'surface_mass_gg',
+        'gc-input': 'surface_mass_gc',
+        'dc-input': 'surface_mass_dc',
+        'dd-input': 'surface_mass_dd'
+    };
+    
+    Object.entries(massFields).forEach(([inputId, fieldName]) => {
+        const input = document.getElementById(inputId);
+        if (input && input.value) {
+            qualityData[fieldName] = input.value;
+        }
+    });
+    
+    // LOI
+    const loiSwitch = document.getElementById('loiSwitch');
+    if (loiSwitch) {
+        qualityData['loi_given'] = loiSwitch.checked;
+        
+        // Mettre à jour l'heure de LOI immédiatement si cochée
+        if (loiSwitch.checked) {
+            const now = new Date();
+            const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('loi-time').textContent = time;
+        }
+    }
+    
+    // Mettre à jour l'heure d'extrait sec immédiatement si rempli
+    if (qualityData['extrait_sec']) {
+        const now = new Date();
+        const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('sizing-bath-time').textContent = time;
+    }
+    
+    // Envoyer toutes les données d'un coup
+    fetch('/livesession/save-quality-control/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            field: 'batch_update',
+            value: qualityData
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.quality_data) {
+            updateQualityAverages(data.quality_data);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur lors de la sauvegarde batch:', error);
+    });
+}
+
+// Fonction pour effacer tous les contrôles qualité
+function clearQualityControls() {
+    // Activer le flag batch update
+    isBatchUpdate = true;
+    
+    // Effacer tous les micronnaires
+    document.querySelectorAll('.micronnaire-left, .micronnaire-right').forEach((input, index) => {
+        input.value = '';
+    });
+    
+    // Effacer l'extrait sec
+    const extraitSecInput = document.getElementById('sizing-bath-input');
+    if (extraitSecInput) {
+        extraitSecInput.value = '';
+    }
+    
+    // Effacer les masses surfaciques
+    ['gg-input', 'gc-input', 'dc-input', 'dd-input'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.value = '';
+        }
+    });
+    
+    // Réinitialiser LOI
+    const loiSwitch = document.getElementById('loiSwitch');
+    if (loiSwitch) {
+        loiSwitch.checked = false;
+    }
+    
+    // Réinitialiser les affichages immédiatement
+    document.querySelectorAll('#micronnaire-left-avg, #micronnaire-right-avg, #surface-mass-left-avg, #surface-mass-right-avg').forEach(span => {
+        span.textContent = '--';
+    });
+    document.getElementById('sizing-bath-time').textContent = '--';
+    document.getElementById('loi-time').textContent = '--';
+    
+    // Supprimer complètement le draft côté serveur
+    fetch('/livesession/save-quality-control/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            field: 'clear_all',
+            value: true
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Désactiver le flag batch
+        isBatchUpdate = false;
+        console.log('Contrôles qualité effacés');
+    })
+    .catch(error => {
+        isBatchUpdate = false;
+        console.error('Erreur lors de l\'effacement:', error);
+    });
 }
 
 // Fonction pour enrouler/dérouler tous les blocs

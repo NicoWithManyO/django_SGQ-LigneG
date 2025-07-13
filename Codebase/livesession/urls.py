@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, views_quality
 
 app_name = 'livesession'
 
@@ -10,4 +10,8 @@ urlpatterns = [
     path('auto-save/', views.auto_save_shift, name='auto_save_shift'),
     path('get-saved-data/', views.get_saved_data, name='get_saved_data'),
     path('clear-saved-data/', views.clear_saved_data, name='clear_saved_data'),
+    
+    # Contrôles qualité
+    path('save-quality-control/', views_quality.save_quality_control, name='save_quality_control'),
+    path('get-quality-control/', views_quality.get_quality_control, name='get_quality_control'),
 ]

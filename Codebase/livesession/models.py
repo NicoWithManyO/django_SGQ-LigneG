@@ -133,3 +133,42 @@ class LiveRoll(models.Model):
         roll_id = self.roll_data.get('roll_id', 'Sans ID')
         status = "Actif" if self.is_active else "Archivé"
         return f"Draft rouleau: {roll_id} - {status}"
+
+
+class LiveQualityControl(models.Model):
+    """Brouillon des contrôles qualité - calculs des moyennes côté serveur"""
+    session_key = models.CharField(max_length=40, unique=True, db_index=True)
+    
+    # Données des contrôles qualité en JSON
+    quality_data = models.JSONField(default=dict)
+    # Structure attendue:
+    # {
+    #     "micronnaire_left": [valeur1, valeur2, valeur3],
+    #     "micronnaire_right": [valeur1, valeur2, valeur3],
+    #     "micronnaire_left_avg": moyenne_calculée,
+    #     "micronnaire_right_avg": moyenne_calculée,
+    #     "extrait_sec": valeur,
+    #     "extrait_sec_time": "HH:MM",
+    #     "surface_mass_gg": valeur,
+    #     "surface_mass_gc": valeur,
+    #     "surface_mass_dc": valeur,
+    #     "surface_mass_dd": valeur,
+    #     "surface_mass_left_avg": moyenne_calculée,
+    #     "surface_mass_right_avg": moyenne_calculée,
+    #     "loi_given": true/false,
+    #     "loi_time": "HH:MM"
+    # }
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'livesession_live_quality'
+        verbose_name = 'Brouillon contrôles qualité'
+        verbose_name_plural = 'Brouillons contrôles qualité'
+    
+    def __str__(self):
+        data = self.quality_data
+        micronnaire_count = len([v for v in data.get('micronnaire_left', []) + data.get('micronnaire_right', []) if v])
+        surface_mass_count = len([v for k, v in data.items() if k.startswith('surface_mass_') and not k.endswith('_avg') and v])
+        return f"Draft qualité: {micronnaire_count} micronnaires, {surface_mass_count} masses surfaciques"

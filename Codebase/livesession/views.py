@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
-from .models import CurrentProductionState, LiveShift
+from .models import CurrentProductionState, LiveShift, LiveQualityControl
 from core.models import FabricationOrder
 
 
@@ -438,6 +438,9 @@ def clear_saved_data(request):
     try:
         # Supprimer le brouillon de poste
         LiveShift.objects.filter(session_key=session_key).delete()
+        
+        # Supprimer le brouillon de contrôles qualité
+        LiveQualityControl.objects.filter(session_key=session_key).delete()
         
         # Garder certaines données dans CurrentProductionState
         # (OF, profils, etc. restent persistants)

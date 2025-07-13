@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CurrentProductionState, LiveShift, LiveRoll
+from .models import CurrentProductionState, LiveShift, LiveRoll, LiveQualityControl
 
 
 @admin.register(CurrentProductionState)
@@ -115,3 +115,60 @@ class LiveRollAdmin(admin.ModelAdmin):
         import json
         return json.dumps(obj.roll_data, indent=2, ensure_ascii=False)
     formatted_roll_data.short_description = 'Données formatées'
+
+
+@admin.register(LiveQualityControl)
+class LiveQualityControlAdmin(admin.ModelAdmin):
+    list_display = ('session_key', 'get_micronnaire_count', 'get_surface_mass_count', 'get_extrait_sec', 'get_loi_status', 'updated_at')
+    list_filter = ('updated_at', 'created_at')
+    search_fields = ('session_key',)
+    date_hierarchy = 'updated_at'
+    readonly_fields = ('created_at', 'updated_at', 'formatted_quality_data')
+    
+    fieldsets = (
+        ('Session', {
+            'fields': ('session_key',)
+        }),
+        ('Données qualité', {
+            'fields': ('quality_data', 'formatted_quality_data')
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at', 'updated_at')
+        }),
+    )
+    
+    def get_micronnaire_count(self, obj):
+        data = obj.quality_data
+        left = data.get('micronnaire_left', [])
+        right = data.get('micronnaire_right', [])
+        count = len([v for v in left + right if v is not None])
+        return f"{count}/6"
+    get_micronnaire_count.short_description = 'Micronnaires'
+    
+    def get_surface_mass_count(self, obj):
+        data = obj.quality_data
+        fields = ['surface_mass_gg', 'surface_mass_gc', 'surface_mass_dc', 'surface_mass_dd']
+        count = len([f for f in fields if data.get(f) is not None])
+        return f"{count}/4"
+    get_surface_mass_count.short_description = 'Masses surf.'
+    
+    def get_extrait_sec(self, obj):
+        value = obj.quality_data.get('extrait_sec')
+        time = obj.quality_data.get('extrait_sec_time', '')
+        if value is not None:
+            return f"{value}% à {time}" if time else f"{value}%"
+        return '-'
+    get_extrait_sec.short_description = 'Extrait sec'
+    
+    def get_loi_status(self, obj):
+        loi_given = obj.quality_data.get('loi_given', False)
+        time = obj.quality_data.get('loi_time', '')
+        if loi_given:
+            return f"✓ Donné à {time}" if time else "✓ Donné"
+        return '-'
+    get_loi_status.short_description = 'LOI'
+    
+    def formatted_quality_data(self, obj):
+        import json
+        return json.dumps(obj.quality_data, indent=2, ensure_ascii=False)
+    formatted_quality_data.short_description = 'Données formatées'
