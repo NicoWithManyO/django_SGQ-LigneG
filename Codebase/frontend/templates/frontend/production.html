@@ -95,11 +95,26 @@
     line-height: 1.2 !important;
 }
 
-/* Dans la sticky bar, limiter la largeur */
+/* Dans la sticky bar, adapter la largeur */
 .fibrage-field .of-input {
-    width: 60px !important;
-    max-width: 60px !important;
+    width: 100% !important;
+    max-width: 100% !important;
     text-align: center !important;
+    min-width: 80px !important;
+}
+
+/* Centrer tous les éléments dans les fibrage-field */
+.fibrage-field {
+    align-items: center !important;
+}
+
+.fibrage-field .fibrage-label {
+    text-align: center !important;
+    width: 100% !important;
+}
+
+.fibrage-field .input-group {
+    justify-content: center !important;
 }
 
 /* Curseur main sur les champs modifiables de la sticky bar */
@@ -118,6 +133,30 @@
 .fibrage-field .input-group .btn:hover {
     color: #ff3300 !important;
 }
+
+/* Style minimal pour les selects de défauts */
+.defect-select {
+    transition: all 0.2s;
+}
+
+.defect-select:hover {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.2rem center;
+    background-size: 12px 12px;
+    padding-right: 1.5rem;
+}
+
+.defect-select:focus {
+    outline: none !important;
+}
+
+/* Retirer la bordure du dropdown */
+.defect-select option {
+    border: none !important;
+}
+
+
 
 /* Style pour les champs d'ordre de fabrication */
 .of-container {
@@ -588,18 +627,13 @@
                             <div class="row align-items-end mb-2">
                                 <div class="col-3">
                                     <label class="form-label">Motif</label>
-                                    <select class="form-select fw-bold">
+                                    <select class="form-select fw-bold" id="lost-time-reason-select">
                                         <option value="">--</option>
-                                        <option value="demarrage">Démarrage</option>
-                                        <option value="panne_maintenance">Panne/Maintenance</option>
-                                        <option value="menage">Ménage sans fibrage</option>
-                                        <option value="arret">Arrêt</option>
-                                        <option value="autre">Autre</option>
                                     </select>
                                 </div>
                                 <div class="col-4">
                                     <label class="form-label">Commentaire</label>
-                                    <input type="text" class="form-control" placeholder="Détails..." autocomplete="off">
+                                    <input type="text" class="form-control" id="lost-time-comment" placeholder="Détails..." autocomplete="off">
                                 </div>
                                 <div class="col-3">
                                     <label class="form-label">Temps</label>
@@ -608,7 +642,7 @@
                                     </select>
                                 </div>
                                 <div class="col-2">
-                                    <button type="button" class="btn btn-primary btn-sm w-100">Ajouter</button>
+                                    <button type="button" class="btn btn-primary btn-sm w-100" onclick="addLostTimeEntry()">Ajouter</button>
                                 </div>
                             </div>
                         </form>
@@ -869,15 +903,15 @@
                             <div class="micrometer-readings">
                                 <div class="reading-group">
                                     <label>#1</label>
-                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
+                                    <input type="number" step="0.01" class="form-control" placeholder="--" autocomplete="off">
                                 </div>
                                 <div class="reading-group">
                                     <label>#2</label>
-                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
+                                    <input type="number" step="0.01" class="form-control" placeholder="--" autocomplete="off">
                                 </div>
                                 <div class="reading-group">
                                     <label>#3</label>
-                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
+                                    <input type="number" step="0.01" class="form-control" placeholder="--" autocomplete="off">
                                 </div>
                                 <div class="average-display mt-0">
                                     <small class="text-muted">--</small>
@@ -895,7 +929,7 @@
                         <div class="control-content">
                             <div class="sizing-bath">
                                 <div class="sizing-bath-field">
-                                    <input type="text" class="form-control" placeholder="--" id="sizing-bath-input" autocomplete="off" inputmode="decimal">
+                                    <input type="number" step="0.01" class="form-control" placeholder="--" id="sizing-bath-input" autocomplete="off" oninput="formatDecimalInput(this)">
                                     <small class="text-muted" id="sizing-bath-time">--</small>
                                 </div>
                                 <hr style="width: 80%; margin: 0.5rem 0; border-color: var(--border-color);">
@@ -925,15 +959,15 @@
                             <div class="micrometer-readings">
                                 <div class="reading-group">
                                     <label>#1</label>
-                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
+                                    <input type="number" step="0.01" class="form-control" placeholder="--" autocomplete="off">
                                 </div>
                                 <div class="reading-group">
                                     <label>#2</label>
-                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
+                                    <input type="number" step="0.01" class="form-control" placeholder="--" autocomplete="off">
                                 </div>
                                 <div class="reading-group">
                                     <label>#3</label>
-                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
+                                    <input type="number" step="0.01" class="form-control" placeholder="--" autocomplete="off">
                                 </div>
                                 <div class="average-display mt-0">
                                     <small class="text-muted">--</small>
@@ -957,11 +991,11 @@
                                     <small class="text-muted" style="margin-bottom: 0;" id="gg-conversion">--</small>
                                     <div class="reading-group">
                                         <label>GG</label>
-                                        <input type="text" class="form-control" placeholder="--" id="gg-input" autocomplete="off" inputmode="decimal">
+                                        <input type="number" step="0.01" class="form-control" placeholder="--" id="gg-input" autocomplete="off" oninput="formatDecimalInput(this)">
                                     </div>
                                     <div class="reading-group">
                                         <label>GC</label>
-                                        <input type="text" class="form-control" placeholder="--" id="gc-input" autocomplete="off" inputmode="decimal">
+                                        <input type="number" step="0.01" class="form-control" placeholder="--" id="gc-input" autocomplete="off" oninput="formatDecimalInput(this)">
                                     </div>
                                     <small class="text-muted" style="margin-bottom: 0;" id="gc-conversion">--</small>
                                 </div>
@@ -992,11 +1026,11 @@
                                     <small class="text-muted" style="margin-bottom: 0;" id="dc-conversion">--</small>
                                     <div class="reading-group">
                                         <label>DC</label>
-                                        <input type="text" class="form-control" placeholder="--" id="dc-input" autocomplete="off" inputmode="decimal">
+                                        <input type="number" step="0.01" class="form-control" placeholder="--" id="dc-input" autocomplete="off" oninput="formatDecimalInput(this)">
                                     </div>
                                     <div class="reading-group">
                                         <label>DD</label>
-                                        <input type="text" class="form-control" placeholder="--" id="dd-input" autocomplete="off" inputmode="decimal">
+                                        <input type="number" step="0.01" class="form-control" placeholder="--" id="dd-input" autocomplete="off" oninput="formatDecimalInput(this)">
                                     </div>
                                     <small class="text-muted" style="margin-bottom: 0;" id="dd-conversion">--</small>
                                 </div>
@@ -1019,7 +1053,7 @@
                                     <small class="text-muted"><span id="thickness-progress">Epaisseurs : 0/0</span> | <span id="nok-count">0 NOK</span></small>
                                 </div>
                                 <div class="bottom-line">
-                                    <small id="defects-summary" class="text-muted">Défauts : 0 | </small>
+                                    <small id="defects-summary" class="text-muted">Défauts : 0</small>
                                 </div>
                             </div>
                             <div id="conformity-status" class="badge bg-secondary">--</div>
@@ -1064,7 +1098,7 @@
                         <div class="fibrage-field">
                             <label class="fibrage-label">N° Rouleau</label>
                             <div class="input-group">
-                                <input type="text" id="sticky-roll-number" class="form-control fw-bold of-input" value="" placeholder="--" disabled>
+                                <input type="number" id="sticky-roll-number" class="form-control fw-bold of-input" value="" placeholder="--" disabled>
                                 <button type="button" class="btn btn-outline-secondary btn-sm" 
                                         onclick="editStickyField('sticky-roll-number')" title="Modifier">
                                     <i class="bi bi-pencil"></i>
@@ -1074,27 +1108,29 @@
                         
                         <div class="fibrage-field">
                             <label class="fibrage-label">ID Rouleau</label>
-                            <div class="fibrage-id-group">
+                            <div class="fibrage-id-group" style="text-align: center;">
                                 <span class="fibrage-text" id="sticky-roll-id">--</span>
-                                <span class="fibrage-status-text" id="sticky-roll-status"></span>
                             </div>
                         </div>
                         
                         <div class="fibrage-field">
                             <label class="fibrage-label">Masse tube (g)</label>
                             <input type="number" id="sticky-tube-mass" class="form-control fw-bold of-input" value="" placeholder="--" 
+                                   onclick="this.select()"
                                    onchange="saveStickValue('tube_mass', this.value)">
                         </div>
                         
                         <div class="fibrage-field">
                             <label class="fibrage-label">Lg (m)</label>
                             <input type="number" id="sticky-roll-length" class="form-control fw-bold of-input" value="" placeholder="--" 
+                                   onclick="this.select()"
                                    onchange="saveStickValue('length', this.value); generateRollVisualization();">
                         </div>
                         
                         <div class="fibrage-field">
                             <label class="fibrage-label">Masse totale (g)</label>
                             <input type="number" id="sticky-total-mass" class="form-control fw-bold of-input" value="" placeholder="--" 
+                                   onclick="this.select()"
                                    onchange="saveStickValue('total_mass', this.value)">
                         </div>
                         
@@ -1123,6 +1159,7 @@
                         <div class="fibrage-field">
                             <label class="fibrage-label">Tube suivant (g)</label>
                             <input type="number" id="sticky-next-tube-mass" class="form-control fw-bold of-input" value="" placeholder="--" 
+                                   onclick="this.select()"
                                    onchange="saveStickValue('next_tube_mass', this.value)">
                         </div>
                     </div>
@@ -1137,6 +1174,22 @@
 
 {% block extra_js %}
 <script>
+// Fonction pour récupérer un cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 // Définir les fonctions globalement
 window.editCurrentOrder = function() {
     console.log('editCurrentOrder called');
@@ -1480,7 +1533,7 @@ function loadMachineParameters(profileId) {
                 
                 // Afficher les spécifications
                 if (data.specifications && Object.keys(data.specifications).length > 0) {
-                    html = '<h6 class="mb-3 mt-4">Spécifications qualité</h6>';
+                    html = '<h6 class="mb-3 mt-4">Spécifications qualité <span style="font-size: 0.75rem; font-weight: normal;">(Min Nominal Max)</span></h6>';
                     html += '<div class="row">';
                     
                     // Colonne gauche : Épaisseur, Extrait sec, Micronnaire
@@ -1497,10 +1550,10 @@ function loadMachineParameters(profileId) {
                             
                             html += '<div class="col-12 d-flex align-items-center mb-1">';
                             html += `<div class="col-5" style="font-size: 0.75rem; font-weight: bold;">${spec.type}${unit ? ' (' + unit + ')' : ''}</div>`;
-                            html += '<div class="col-7 d-flex justify-content-around" style="font-size: 0.75rem;">';
-                            html += `<span>${spec.value_min !== null ? spec.value_min : '--'}</span>`;
-                            html += `<span class="fw-bold text-success">${spec.value_nominal !== null ? spec.value_nominal : '--'}</span>`;
-                            html += `<span>${spec.value_max !== null ? spec.value_max : '--'}</span>`;
+                            html += '<div class="col-7 d-flex justify-content-around align-items-center" style="font-size: 0.75rem;">';
+                            html += `<span style="min-width: 25px; text-align: center;">${spec.value_min !== null ? spec.value_min : '--'}</span>`;
+                            html += `<span class="badge" style="background-color: #28a745; color: white; font-size: 0.7rem; line-height: 1.2; min-width: 30px;">${spec.value_nominal !== null ? spec.value_nominal : '--'}</span>`;
+                            html += `<span style="min-width: 25px; text-align: center;">${spec.value_max !== null ? spec.value_max : '--'}</span>`;
                             html += '</div>';
                             html += '</div>';
                         }
@@ -1516,16 +1569,12 @@ function loadMachineParameters(profileId) {
                         if (data.specifications[key]) {
                             const spec = data.specifications[key];
                             // Déterminer l'unité
-                            let unit = spec.unit || '';
-                            if (!unit && key === 'global_surface_mass') unit = 'g/m²';
-                            if (!unit && key === 'surface_mass') unit = 'g/25cm²';
-                            
                             html += '<div class="col-12 d-flex align-items-center mb-1">';
-                            html += `<div class="col-5" style="font-size: 0.75rem; font-weight: bold;">${spec.type}${unit ? ' (' + unit + ')' : ''}</div>`;
-                            html += '<div class="col-7 d-flex justify-content-around" style="font-size: 0.75rem;">';
-                            html += `<span>${spec.value_min !== null ? spec.value_min : '--'}</span>`;
-                            html += `<span class="fw-bold text-success">${spec.value_nominal !== null ? spec.value_nominal : '--'}</span>`;
-                            html += `<span>${spec.value_max !== null ? spec.value_max : '--'}</span>`;
+                            html += `<div class="col-5" style="font-size: 0.75rem; font-weight: bold;">${spec.type}</div>`;
+                            html += '<div class="col-7 d-flex justify-content-around align-items-center" style="font-size: 0.75rem;">';
+                            html += `<span style="min-width: 25px; text-align: center;">${spec.value_min !== null ? spec.value_min : '--'}</span>`;
+                            html += `<span class="badge" style="background-color: #28a745; color: white; font-size: 0.7rem; line-height: 1.2; min-width: 30px;">${spec.value_nominal !== null ? spec.value_nominal : '--'}</span>`;
+                            html += `<span style="min-width: 25px; text-align: center;">${spec.value_max !== null ? spec.value_max : '--'}</span>`;
                             html += '</div>';
                             html += '</div>';
                         }
@@ -1715,22 +1764,8 @@ function saveProfile(profileId) {
 
 // Fonction pour sauvegarder les valeurs de la sticky bar
 function saveStickValue(fieldName, value) {
-    const formData = new FormData();
-    formData.append('field', 'sticky-' + fieldName);
-    formData.append('value', value);
-    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-    
-    fetch('/livesession/update-field/', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Sauvegarde silencieuse
-    })
-    .catch(error => {
-        console.error('Erreur:', error);
-    });
+    // Déclencher l'auto-save du rouleau
+    autoSaveRollData();
 }
 
 // Fonction pour activer/désactiver les champs de la sticky bar
@@ -1743,6 +1778,23 @@ function toggleStickyInputs(enable) {
     });
 }
 
+// Variable pour stocker les types de défauts
+let defectTypes = [];
+
+// Charger les types de défauts au démarrage
+function loadDefectTypes() {
+    return fetch('/quality/defect-types/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                defectTypes = data.defect_types;
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des types de défauts:', error);
+        });
+}
+
 // Fonction pour générer la visualisation du rouleau
 function generateRollVisualization() {
     const container = document.getElementById('roll-content-viz');
@@ -1750,8 +1802,12 @@ function generateRollVisualization() {
     
     // Récupérer les données
     const targetLength = parseFloat(document.getElementById('target-length')?.value) || 0;
+    const stickyLength = parseFloat(document.getElementById('sticky-roll-length')?.value) || 0;
     
-    if (targetLength <= 0) {
+    // Utiliser la longueur de la sticky bar si elle est remplie ET supérieure à la longueur cible
+    const displayLength = (stickyLength > targetLength) ? stickyLength : targetLength;
+    
+    if (displayLength <= 0) {
         container.innerHTML = `
             <div class="roll-empty-state">
                 <p>Renseignez une longueur cible pour visualiser le rouleau</p>
@@ -1760,66 +1816,99 @@ function generateRollVisualization() {
         return;
     }
     
+    // Calculer la largeur nécessaire pour les colonnes de défauts
+    let maxDefectLength = 0;
+    if (defectTypes && defectTypes.length > 0) {
+        maxDefectLength = Math.max(...defectTypes.map(d => d.name.length));
+    }
+    // Ajuster la largeur en fonction du nombre de caractères (min 10%, max 20%)
+    const defectColWidth = Math.min(20, Math.max(10, maxDefectLength * 0.8));
+    
     // Créer la structure de base
-    let html = '<div style="overflow-x: auto; margin: 0 10px;">';
+    let html = '<div style="overflow-x: auto; margin: 0;">';
     html += '<table class="table table-sm" style="width: 100%; border: none; table-layout: fixed; border-top: none !important; margin-bottom: 0 !important;">';
     
     // Définir les largeurs des colonnes
     html += '<colgroup>';
-    html += '<col style="width: 4%;">'; // Défaut G
+    html += `<col style="width: ${defectColWidth}%;">`; // Défaut G
     html += '<col style="width: 4%;">'; // Métrage
-    html += '<col style="width: 15%;">'; // G1
-    html += '<col style="width: 15%;">'; // G2
-    html += '<col style="width: 15%;">'; // G3
-    html += '<col style="width: 4%;">'; // Défaut C
-    html += '<col style="width: 15%;">'; // D1
-    html += '<col style="width: 15%;">'; // D2
-    html += '<col style="width: 15%;">'; // D3
+    html += '<col style="width: 10%;">'; // G1
+    html += '<col style="width: 10%;">'; // G2
+    html += '<col style="width: 10%;">'; // G3
+    html += `<col style="width: ${defectColWidth}%;">`; // Défaut C
+    html += '<col style="width: 10%;">'; // D1
+    html += '<col style="width: 10%;">'; // D2
+    html += '<col style="width: 10%;">'; // D3
     html += '<col style="width: 4%;">'; // Métrage
-    html += '<col style="width: 4%;">'; // Défaut D
+    html += `<col style="width: ${defectColWidth}%;">`; // Défaut D
     html += '</colgroup>';
     
     // Corps de la table
     html += '<tbody style="border-top: none !important;">';
     
     // Générer les lignes (1 ligne = 1m)
-    for (let m = 1; m <= targetLength; m++) {
-        html += '<tr style="border: none;">';
+    for (let m = 1; m <= displayLength; m++) {
+        html += '<tr style="border: none; height: 30px;">';
         
-        // Colonne défaut gauche (vide pour l'instant)
-        html += '<td style="border: none; padding: 2px;"></td>';
+        // Colonne défaut gauche
+        html += `<td style="border: none; padding: 0; position: relative; text-align: center; vertical-align: middle;">
+            <div style="display: flex; align-items: center; justify-content: center;">
+                <select class="defect-select defect-g" data-meter="${m}" data-side="G" style="width: 100%; border: none; border-radius: 4px; font-size: 0.85rem; padding: 1px; appearance: none; cursor: pointer; background-color: transparent; text-align: right;">
+                    <option value=""></option>
+                    ${defectTypes.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}
+                </select>
+                <i class="bi bi-x-circle-fill text-danger" onclick="removeDefect(this)" style="visibility: hidden; cursor: pointer; font-size: 16px;"></i>
+            </div>
+        </td>`;
         
         // Colonne métrage
-        html += `<td class="text-center" style="border: none; padding: 2px; font-size: 0.75rem; color: #215C98; vertical-align: middle;">${m}</td>`;
+        html += `<td class="text-center" style="border: none; padding: 2px; font-size: 0.85rem; color: #215C98; vertical-align: middle; background-color: #f5f5f5;">${m}</td>`;
         
-        // Colonnes épaisseur gauche (G1, G2, G3)
+        // Colonnes épaisseur gauche (GG, GC, GD)
         // Mesures tous les 5m à partir de 3m
         const hasThickness = (m === 3 || (m > 3 && (m - 3) % 5 === 0));
+        const pointLabels = ['G', 'C', 'D'];
         for (let i = 0; i < 3; i++) {
             if (hasThickness) {
-                html += '<td style="border: none; padding: 2px; text-align: center;"><input type="text" class="thickness-input" style="background-color: #e3f2fd; border: 1px solid #90caf9; width: 40px; height: 22px; text-align: center; font-size: 0.75rem; padding: 2px; border-radius: 12px; cursor: pointer;" onclick="this.select()" /></td>';
+                html += `<td style="border: none; padding: 2px; text-align: center; vertical-align: middle;"><input type="number" step="0.01" class="thickness-input" data-meter="${m}" data-point="G${pointLabels[i]}" style="background-color: #e3f2fd; border: 1px solid #90caf9; width: 60px; height: 24px; text-align: center; font-size: 0.9rem; padding: 2px; border-radius: 12px; cursor: pointer;" onclick="this.select()" oninput="colorThicknessInput(this)" onchange="saveRollThickness()" /></td>`;
             } else {
-                html += '<td style="border: none; padding: 2px;"></td>';
+                html += '<td style="border: none; padding: 2px; vertical-align: middle;"></td>';
             }
         }
         
-        // Colonne défaut centre (vide pour l'instant)
-        html += '<td style="border: none; padding: 2px;"></td>';
+        // Colonne défaut centre
+        html += `<td style="border: none; padding: 0; position: relative; text-align: center; vertical-align: middle;">
+            <div style="display: flex; align-items: center; justify-content: center;">
+                <select class="defect-select defect-c" data-meter="${m}" data-side="C" style="width: 100%; border: none; border-radius: 4px; font-size: 0.85rem; padding: 1px; appearance: none; cursor: pointer; background-color: transparent; text-align: center;">
+                    <option value=""></option>
+                    ${defectTypes.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}
+                </select>
+                <i class="bi bi-x-circle-fill text-danger" onclick="removeDefect(this)" style="visibility: hidden; cursor: pointer; font-size: 16px;"></i>
+            </div>
+        </td>`;
         
-        // Colonnes épaisseur droite (D1, D2, D3)
+        // Colonnes épaisseur droite (DG, DC, DD)
         for (let i = 0; i < 3; i++) {
             if (hasThickness) {
-                html += '<td style="border: none; padding: 2px; text-align: center;"><input type="text" class="thickness-input" style="background-color: #e3f2fd; border: 1px solid #90caf9; width: 40px; height: 22px; text-align: center; font-size: 0.75rem; padding: 2px; border-radius: 12px; cursor: pointer;" onclick="this.select()" /></td>';
+                html += `<td style="border: none; padding: 2px; text-align: center; vertical-align: middle;"><input type="number" step="0.01" class="thickness-input" data-meter="${m}" data-point="D${pointLabels[i]}" style="background-color: #e3f2fd; border: 1px solid #90caf9; width: 60px; height: 24px; text-align: center; font-size: 0.9rem; padding: 2px; border-radius: 12px; cursor: pointer;" onclick="this.select()" oninput="colorThicknessInput(this)" onchange="saveRollThickness()" /></td>`;
             } else {
-                html += '<td style="border: none; padding: 2px;"></td>';
+                html += '<td style="border: none; padding: 2px; vertical-align: middle;"></td>';
             }
         }
         
         // Colonne métrage droite
-        html += `<td class="text-center" style="border: none; padding: 2px; font-size: 0.75rem; color: #215C98; vertical-align: middle;">${m}</td>`;
+        html += `<td class="text-center" style="border: none; padding: 2px; font-size: 0.85rem; color: #215C98; vertical-align: middle; background-color: #f5f5f5;">${m}</td>`;
         
-        // Colonne défaut droite (vide pour l'instant)
-        html += '<td style="border: none; padding: 2px;"></td>';
+        // Colonne défaut droite
+        html += `<td style="border: none; padding: 0; position: relative; text-align: center; vertical-align: middle;">
+            <div style="display: flex; align-items: center; justify-content: center;">
+                <i class="bi bi-x-circle-fill text-danger" onclick="removeDefect(this)" style="visibility: hidden; cursor: pointer; font-size: 16px;"></i>
+                <select class="defect-select defect-d" data-meter="${m}" data-side="D" style="width: 100%; border: none; border-radius: 4px; font-size: 0.85rem; padding: 1px; appearance: none; cursor: pointer; background-color: transparent; text-align: left;">
+                    <option value=""></option>
+                    ${defectTypes.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}
+                </select>
+            </div>
+        </td>`;
         
         html += '</tr>';
     }
@@ -1830,6 +1919,455 @@ function generateRollVisualization() {
     html += '</div>';
     
     container.innerHTML = html;
+    
+    // Restaurer les données sauvegardées
+    restoreRollData();
+    
+    // Mettre à jour le statut initial
+    updateRollStatus();
+    
+    // Mettre à jour les résumés
+    updateSummaries();
+    
+    // Ajouter les événements pour les selects de défauts
+    container.querySelectorAll('.defect-select').forEach(select => {
+        select.addEventListener('change', function() {
+            // Pour la colonne droite, le bouton est avant le select
+            const isRightColumn = this.classList.contains('defect-d');
+            const removeBtn = isRightColumn ? this.previousElementSibling : this.nextElementSibling;
+            if (this.value) {
+                removeBtn.style.visibility = 'visible';
+                // Colorer selon la sévérité
+                colorDefectSelect(this);
+            } else {
+                removeBtn.style.visibility = 'hidden';
+                // Remettre transparent et couleur par défaut
+                this.style.backgroundColor = 'transparent';
+                this.style.color = 'black';
+            }
+            
+            // Sauvegarder le défaut dans le draft
+            saveRollDefects();
+        });
+        
+        // Gérer le hover sur le parent
+        const parent = select.parentElement;
+        parent.addEventListener('mouseenter', function() {
+            const removeBtn = this.querySelector('.bi-x-circle-fill');
+            if (removeBtn && select.value) {
+                removeBtn.style.visibility = 'visible';
+            }
+        });
+        parent.addEventListener('mouseleave', function() {
+            const removeBtn = this.querySelector('.bi-x-circle-fill');
+            if (removeBtn) {
+                removeBtn.style.visibility = 'hidden';
+            }
+        });
+    });
+}
+
+// Fonction pour supprimer un défaut
+function removeDefect(btn) {
+    // Pour la colonne droite, le select est après le bouton
+    const div = btn.parentElement;
+    const select = div.querySelector('.defect-select');
+    select.value = '';
+    select.style.backgroundColor = 'transparent';
+    select.style.color = 'black';
+    btn.style.visibility = 'hidden';
+    
+    // Sauvegarder après suppression
+    saveRollDefects();
+}
+
+// Fonction pour colorer un select de défaut selon la sévérité
+function colorDefectSelect(select) {
+    if (!select.value) {
+        select.style.backgroundColor = 'transparent';
+        select.style.color = 'black';
+        return;
+    }
+    
+    // Trouver le défaut sélectionné
+    const selectedDefect = defectTypes.find(d => d.id == select.value);
+    if (!selectedDefect) return;
+    
+    // Colorer selon la sévérité
+    switch(selectedDefect.severity) {
+        case 'blocking':
+            // Rouge vif pour les défauts bloquants (même que épaisseur critique)
+            select.style.backgroundColor = '#ff1744';
+            select.style.color = 'white';
+            break;
+        case 'non_blocking':
+            // Orange pour les défauts non bloquants
+            select.style.backgroundColor = '#ffe0b2';
+            break;
+        default:
+            select.style.backgroundColor = 'transparent';
+    }
+}
+
+// Fonction pour sauvegarder les défauts du rouleau
+function saveRollDefects() {
+    // Mettre à jour le statut
+    updateRollStatus();
+    // Mettre à jour les résumés
+    updateSummaries();
+    // Déclencher l'auto-save global
+    autoSaveRollData();
+}
+
+// Fonction pour déterminer et afficher le statut du rouleau
+function updateRollStatus() {
+    let isCompliant = true;
+    let hasBlockingDefect = false;
+    let hasNonBlockingDefect = false;
+    let hasCriticalThickness = false;
+    let hasAlertThickness = false;
+    
+    // Vérifier les défauts
+    document.querySelectorAll('.defect-select').forEach(select => {
+        if (select.value) {
+            const selectedDefect = defectTypes.find(d => d.id == select.value);
+            if (selectedDefect) {
+                if (selectedDefect.severity === 'blocking') {
+                    hasBlockingDefect = true;
+                    isCompliant = false;
+                } else if (selectedDefect.severity === 'non_blocking') {
+                    hasNonBlockingDefect = true;
+                }
+            }
+        }
+    });
+    
+    // Vérifier les épaisseurs
+    if (thicknessSpecs) {
+        document.querySelectorAll('.thickness-input').forEach(input => {
+            if (input.value) {
+                const value = parseFloat(input.value);
+                if (value < thicknessSpecs.ep_mini) {
+                    hasCriticalThickness = true;
+                    isCompliant = false;
+                } else if (value < thicknessSpecs.ep_mini_alerte || value > thicknessSpecs.ep_max_alerte) {
+                    hasAlertThickness = true;
+                }
+            }
+        });
+    }
+    
+    // Mettre à jour l'affichage du statut
+    const statusElement = document.getElementById('sticky-roll-status');
+    if (statusElement) {
+        if (hasBlockingDefect || hasCriticalThickness) {
+            statusElement.textContent = 'NON CONFORME';
+            statusElement.style.color = '#ff1744';
+            statusElement.style.fontWeight = 'bold';
+        } else if (hasNonBlockingDefect || hasAlertThickness) {
+            statusElement.textContent = 'CONFORME AVEC RÉSERVE';
+            statusElement.style.color = '#ef6c00';
+            statusElement.style.fontWeight = 'bold';
+        } else {
+            statusElement.textContent = 'CONFORME';
+            statusElement.style.color = '#4caf50';
+            statusElement.style.fontWeight = 'bold';
+        }
+    }
+    
+    // Retourner le statut pour utilisation future
+    return isCompliant;
+}
+
+// Fonction pour sauvegarder les épaisseurs du rouleau
+// Variable globale pour stocker les specs d'épaisseur
+let thicknessSpecs = null;
+
+// Fonction pour charger les specs d'épaisseur
+function loadThicknessSpecs() {
+    fetch('/quality/get-thickness-specs/')
+        .then(response => response.json())
+        .then(data => {
+            thicknessSpecs = data;
+            // Colorer tous les inputs existants
+            document.querySelectorAll('.thickness-input').forEach(input => {
+                if (input.value) {
+                    colorThicknessInput(input);
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des specs d\'épaisseur:', error);
+        });
+}
+
+// Fonction pour colorer un input d'épaisseur selon sa valeur
+function colorThicknessInput(input) {
+    if (!thicknessSpecs || !input.value) {
+        // Réinitialiser tous les styles
+        input.style.backgroundColor = '#e3f2fd'; // Bleu clair par défaut
+        input.style.borderColor = '#90caf9';
+        input.style.color = 'black';
+        input.style.fontWeight = 'normal';
+        return;
+    }
+    
+    const value = parseFloat(input.value);
+    const specs = thicknessSpecs;
+    
+    // Code couleur selon les specs
+    if (value < specs.ep_mini) {
+        // En dessous du minimum critique - rouge vif
+        input.style.backgroundColor = '#ff1744';
+        input.style.borderColor = '#d50000';
+        input.style.color = 'white';
+        input.style.fontWeight = 'bold';
+    } else if (value < specs.ep_mini_alerte || value > specs.ep_max_alerte) {
+        // Zone d'alerte - fond vert avec texte orange plus doux
+        input.style.backgroundColor = '#a5d6a7';
+        input.style.borderColor = '#4caf50';
+        input.style.color = '#ef6c00';
+        input.style.fontWeight = 'bold';
+    } else if (value >= specs.ep_mini_alerte && value <= specs.ep_max_alerte) {
+        // Dans la plage nominale - vert pétant
+        input.style.backgroundColor = '#4caf50';
+        input.style.borderColor = '#388e3c';
+        input.style.color = 'white';
+        input.style.fontWeight = 'bold';
+    }
+}
+
+function saveRollThickness() {
+    // Colorer l'input qui vient d'être modifié
+    const activeElement = document.activeElement;
+    if (activeElement && activeElement.classList.contains('thickness-input')) {
+        colorThicknessInput(activeElement);
+    }
+    
+    // Mettre à jour le statut
+    updateRollStatus();
+    
+    // Mettre à jour les résumés
+    updateSummaries();
+    
+    // Déclencher l'auto-save global
+    autoSaveRollData();
+}
+
+// Variable pour le debounce
+let rollSaveTimeout = null;
+let isBatchUpdate = false;  // Flag pour éviter les saves multiples
+
+// Fonction d'auto-save pour le rouleau (comme pour le poste)
+function autoSaveRollData() {
+    // Si on est en batch update, on ignore
+    if (isBatchUpdate) {
+        return;
+    }
+    
+    // Annuler le timeout précédent
+    if (rollSaveTimeout) {
+        clearTimeout(rollSaveTimeout);
+    }
+    
+    // Debounce de 1 seconde
+    rollSaveTimeout = setTimeout(() => {
+        // Collecter toutes les données du rouleau
+        const rollData = collectRollData();
+        console.log('Données à sauvegarder:', rollData);
+        
+        // Sauvegarder via l'API
+        fetch('/livesession/save-active-roll/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(rollData)
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (!data.success) {
+                console.error('Erreur lors de la sauvegarde du rouleau:', data.message);
+            } else if (data.status) {
+                // Mettre à jour le badge de conformité avec le statut retourné par le serveur
+                const conformityBadge = document.getElementById('conformity-status');
+                if (conformityBadge) {
+                    conformityBadge.textContent = data.status.label;
+                    conformityBadge.className = 'badge';
+                    conformityBadge.style.backgroundColor = data.status.color;
+                    conformityBadge.style.color = 'white';
+                }
+                
+                // Mettre à jour l'ID du rouleau depuis le serveur
+                const rollIdElement = document.getElementById('sticky-roll-id');
+                if (rollIdElement && data.status.roll_id) {
+                    rollIdElement.textContent = data.status.roll_id;
+                }
+                
+                // Mettre à jour la masse nette et le grammage
+                updateMassDisplay(data);
+                
+                // Mettre à jour les résumés
+                updateSummaries();
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors de la sauvegarde LiveRoll:', error);
+        });
+    }, 1000);
+}
+
+// Fonction pour collecter toutes les données du rouleau
+function collectRollData() {
+    const data = {};
+    
+    // Données de la sticky bar - toujours inclure pour permettre la suppression
+    // Tous les champs sont inclus, même vides, pour permettre leur suppression
+    data.roll_number = document.getElementById('sticky-roll-number')?.value || '';
+    data.tube_mass = document.getElementById('sticky-tube-mass')?.value || '';
+    data.length = document.getElementById('sticky-roll-length')?.value || '';
+    data.total_mass = document.getElementById('sticky-total-mass')?.value || '';
+    data.next_tube_mass = document.getElementById('sticky-next-tube-mass')?.value || '';
+    
+    // Défauts (seulement ceux qui ont une valeur)
+    const defects = [];
+    document.querySelectorAll('.defect-select').forEach(select => {
+        if (select.value && select.value !== '') {
+            defects.push({
+                type_id: parseInt(select.value),
+                position_m: parseInt(select.dataset.meter),
+                position_side: select.dataset.side
+            });
+        }
+    });
+    // Toujours inclure defects, même vide, pour écraser les anciennes valeurs
+    data.defects = defects;
+    
+    // Épaisseurs (seulement celles qui ont une valeur)
+    const thicknesses = [];
+    document.querySelectorAll('.thickness-input').forEach(input => {
+        // Seulement si l'input a une valeur non vide
+        if (input.value && input.value.trim() !== '') {
+            thicknesses.push({
+                position_m: parseInt(input.dataset.meter),
+                measurement_point: input.dataset.point,
+                thickness_value: parseFloat(input.value),
+                is_catchup: false
+            });
+        }
+    });
+    // Toujours inclure thickness_measurements, même vide, pour écraser les anciennes valeurs
+    data.thickness_measurements = thicknesses;
+    
+    return data;
+}
+
+// Fonction pour restaurer les données du rouleau depuis LiveRoll
+function restoreRollData() {
+    // Récupérer les données depuis LiveRoll
+    fetch('/livesession/get-active-roll/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.roll_data) {
+                // Restaurer les défauts
+                if (data.roll_data.defects) {
+                    data.roll_data.defects.forEach(defect => {
+                        const select = document.querySelector(`.defect-select[data-meter="${defect.position_m}"][data-side="${defect.position_side}"]`);
+                        if (select) {
+                            select.value = defect.type_id;
+                            // Colorer selon la sévérité
+                            colorDefectSelect(select);
+                            // Afficher le bouton de suppression
+                            const isRightColumn = select.classList.contains('defect-d');
+                            const removeBtn = isRightColumn ? select.previousElementSibling : select.nextElementSibling;
+                            if (removeBtn) {
+                                removeBtn.style.visibility = 'visible';
+                            }
+                        }
+                    });
+                }
+                
+                // Restaurer les épaisseurs
+                if (data.roll_data.thickness_measurements) {
+                    data.roll_data.thickness_measurements.forEach(thickness => {
+                        const input = document.querySelector(`.thickness-input[data-meter="${thickness.position_m}"][data-point="${thickness.measurement_point}"]`);
+                        if (input) {
+                            input.value = thickness.thickness_value;
+                            // Colorer selon la valeur
+                            colorThicknessInput(input);
+                        }
+                    });
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors de la restauration LiveRoll:', error);
+            // Fallback sur sessionStorage si disponible
+            const backup = sessionStorage.getItem('roll_draft_backup');
+            if (backup) {
+                console.log('Utilisation du backup sessionStorage');
+                // Restaurer depuis le backup si nécessaire
+            }
+        });
+}
+
+// Fonction pour charger les données du rouleau actif depuis LiveRoll
+function loadActiveRollData() {
+    fetch('/livesession/get-active-roll/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.roll_data) {
+                // Restaurer les champs de la sticky bar
+                if (data.roll_data.roll_number) {
+                    document.getElementById('sticky-roll-number').value = data.roll_data.roll_number;
+                }
+                if (data.roll_data.tube_mass) {
+                    document.getElementById('sticky-tube-mass').value = data.roll_data.tube_mass;
+                }
+                if (data.roll_data.length) {
+                    document.getElementById('sticky-roll-length').value = data.roll_data.length;
+                    // Régénérer la visualisation
+                    generateRollVisualization();
+                }
+                if (data.roll_data.total_mass) {
+                    document.getElementById('sticky-total-mass').value = data.roll_data.total_mass;
+                }
+                if (data.roll_data.next_tube_mass) {
+                    document.getElementById('sticky-next-tube-mass').value = data.roll_data.next_tube_mass;
+                }
+                
+                // Les défauts et épaisseurs seront restaurés par restoreRollData() 
+                // après la génération de la visualisation
+                
+                // Restaurer le statut de conformité
+                if (data.roll_data.status) {
+                    const conformityBadge = document.getElementById('conformity-status');
+                    if (conformityBadge) {
+                        conformityBadge.textContent = data.roll_data.status.label;
+                        conformityBadge.className = 'badge';
+                        conformityBadge.style.backgroundColor = data.roll_data.status.color;
+                        conformityBadge.style.color = 'white';
+                    }
+                    // Mettre à jour l'ID du rouleau depuis le draft
+                    const rollIdElement = document.getElementById('sticky-roll-id');
+                    if (rollIdElement && data.roll_data.status.roll_id) {
+                        rollIdElement.textContent = data.roll_data.status.roll_id;
+                    }
+                }
+                
+                // Mettre à jour la masse nette et le grammage
+                updateMassDisplay(data);
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement du rouleau actif:', error);
+        });
 }
 
 // Fonction pour sauvegarder les modes actifs
@@ -1856,6 +2394,254 @@ function saveModes() {
     .catch(error => {
         console.error('Erreur:', error);
     });
+}
+
+// Variable globale pour stocker les motifs de temps perdu
+let lostTimeReasons = [];
+
+// Fonction pour charger les motifs de temps perdu depuis la base
+function loadLostTimeReasons() {
+    fetch('/wcm/api/lost-time-reasons/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                lostTimeReasons = data.reasons;
+                populateLostTimeReasonSelect();
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des motifs:', error);
+            // Utiliser des valeurs par défaut en cas d'erreur
+            lostTimeReasons = [
+                {id: 1, name: 'Démarrage', code: 'DEM'},
+                {id: 2, name: 'Panne/Maintenance', code: 'PAN'},
+                {id: 3, name: 'Ménage sans fibrage', code: 'MEN'},
+                {id: 4, name: 'Arrêt', code: 'ARR'},
+                {id: 5, name: 'Autre', code: 'AUT'}
+            ];
+            populateLostTimeReasonSelect();
+        });
+}
+
+// Fonction pour remplir le select des motifs
+function populateLostTimeReasonSelect() {
+    const select = document.getElementById('lost-time-reason-select');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">--</option>';
+    
+    lostTimeReasons.forEach(reason => {
+        const option = document.createElement('option');
+        option.value = reason.id;
+        option.textContent = reason.name;
+        select.appendChild(option);
+    });
+}
+
+// Variable pour stocker les entrées de temps perdu
+let lostTimeEntries = [];
+
+// Fonction pour ajouter une entrée de temps perdu
+function addLostTimeEntry() {
+    const reasonSelect = document.getElementById('lost-time-reason-select');
+    const commentInput = document.getElementById('lost-time-comment');
+    const durationSelect = document.getElementById('time-duration-select');
+    
+    // Validation
+    if (!reasonSelect.value || !durationSelect.value) {
+        alert('Veuillez sélectionner un motif et une durée');
+        return;
+    }
+    
+    // Récupérer les infos du motif sélectionné
+    const selectedReason = lostTimeReasons.find(r => r.id == reasonSelect.value);
+    
+    // Créer l'entrée
+    const entry = {
+        id: Date.now(), // ID temporaire
+        reason_id: parseInt(reasonSelect.value),
+        reason_name: selectedReason.name,
+        comment: commentInput.value,
+        duration: parseInt(durationSelect.value),
+        declaration_time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    // Ajouter à la liste
+    lostTimeEntries.push(entry);
+    
+    // Mettre à jour l'affichage
+    updateLostTimeDisplay();
+    
+    // Réinitialiser le formulaire
+    reasonSelect.value = '';
+    commentInput.value = '';
+    durationSelect.value = '';
+    
+    // Sauvegarder dans le draft
+    saveLostTimeToDraft();
+}
+
+// Fonction pour mettre à jour l'affichage des temps perdus
+function updateLostTimeDisplay() {
+    const listContainer = document.getElementById('lost-time-list');
+    if (!listContainer) return;
+    
+    listContainer.innerHTML = '';
+    
+    // Ajouter l'en-tête avec le total si il y a des entrées
+    if (lostTimeEntries.length > 0) {
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'd-flex justify-content-between align-items-center p-2';
+        headerDiv.innerHTML = `
+            <div class="flex-grow-1"></div>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-danger text-center" style="min-width: 60px; margin-right: 8px; font-size: 0.85rem;" id="lost-time-total-badge">--</span>
+                <button type="button" class="btn btn-secondary p-1" style="font-size: 0.7rem; line-height: 1;" onclick="clearAllLostTimes()" title="Effacer tout">
+                    <i class="bi bi-x-lg" style="font-size: 0.8rem;"></i>
+                </button>
+            </div>
+        `;
+        listContainer.appendChild(headerDiv);
+    }
+    
+    lostTimeEntries.forEach(entry => {
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'lost-time-entry d-flex justify-content-between align-items-center p-2 rounded';
+        entryDiv.style.backgroundColor = '#f8f9fa';
+        
+        // Formater la durée
+        let durationText = '';
+        if (entry.duration >= 60) {
+            const hours = Math.floor(entry.duration / 60);
+            const minutes = entry.duration % 60;
+            if (minutes > 0) {
+                durationText = `${hours}h${minutes.toString().padStart(2, '0')}`;
+            } else {
+                durationText = `${hours}h`;
+            }
+        } else {
+            durationText = `${entry.duration} min`;
+        }
+        
+        // Heure de déclaration (si pas déjà présente, utiliser l'heure actuelle)
+        const declTime = entry.declaration_time || new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        
+        entryDiv.innerHTML = `
+            <div class="flex-grow-1 d-flex align-items-center">
+                <small class="text-muted me-2" style="font-size: 0.75rem;">${declTime}</small>
+                <strong class="me-2">${entry.reason_name}</strong>
+                <div class="flex-grow-1 text-center px-3">
+                    ${entry.comment ? `<span>${entry.comment}</span>` : ''}
+                </div>
+            </div>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-secondary text-center" style="min-width: 60px; margin-right: 8px;">${durationText}</span>
+                <button type="button" class="btn btn-danger p-1" style="font-size: 0.7rem; line-height: 1;" onclick="removeLostTimeEntry(${entry.id})">
+                    <i class="bi bi-trash" style="font-size: 0.8rem;"></i>
+                </button>
+            </div>
+        `;
+        listContainer.appendChild(entryDiv);
+    });
+    
+    
+    // Mettre à jour le total
+    updateLostTimeTotal();
+}
+
+// Fonction pour supprimer une entrée
+function removeLostTimeEntry(entryId) {
+    lostTimeEntries = lostTimeEntries.filter(e => e.id !== entryId);
+    updateLostTimeDisplay();
+    saveLostTimeToDraft();
+}
+
+// Fonction pour effacer tous les temps perdus
+function clearAllLostTimes() {
+    if (lostTimeEntries.length > 0 && confirm('Êtes-vous sûr de vouloir effacer tous les temps perdus ?')) {
+        lostTimeEntries = [];
+        updateLostTimeDisplay();
+        saveLostTimeToDraft();
+    }
+}
+
+// Fonction pour calculer et afficher le total
+function updateLostTimeTotal() {
+    const total = lostTimeEntries.reduce((sum, entry) => sum + entry.duration, 0);
+    
+    // Mettre à jour le total dans le header du bloc
+    const totalElement = document.getElementById('temps-perdu-total');
+    if (totalElement) {
+        // Convertir en format heures:minutes
+        if (total >= 60) {
+            const hours = Math.floor(total / 60);
+            const minutes = total % 60;
+            if (minutes > 0) {
+                totalElement.textContent = `${hours}h${minutes.toString().padStart(2, '0')}`;
+            } else {
+                totalElement.textContent = `${hours}h`;
+            }
+        } else {
+            totalElement.textContent = total > 0 ? `${total} min` : '--';
+        }
+    }
+    
+    // Mettre à jour le total dans la ligne de total
+    const totalBadgeElement = document.getElementById('lost-time-total-badge');
+    if (totalBadgeElement) {
+        // Même formatage
+        if (total >= 60) {
+            const hours = Math.floor(total / 60);
+            const minutes = total % 60;
+            if (minutes > 0) {
+                totalBadgeElement.textContent = `${hours}h${minutes.toString().padStart(2, '0')}`;
+            } else {
+                totalBadgeElement.textContent = `${hours}h`;
+            }
+        } else {
+            totalBadgeElement.textContent = total > 0 ? `${total} min` : '--';
+        }
+    }
+}
+
+// Fonction pour sauvegarder les temps perdus dans le draft
+function saveLostTimeToDraft() {
+    // Collecter toutes les données du shift incluant les temps perdus
+    const shiftData = {
+        lost_times: lostTimeEntries
+    };
+    
+    // Sauvegarder via l'API LiveShift
+    fetch('/livesession/auto-save/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(shiftData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            console.error('Erreur lors de la sauvegarde des temps perdus');
+        }
+    });
+}
+
+// Fonction pour charger les temps perdus depuis le draft
+function loadLostTimesFromDraft() {
+    fetch('/livesession/get-saved-data/')
+        .then(response => response.json())
+        .then(result => {
+            if (result.success && result.data && result.data.lost_times) {
+                lostTimeEntries = result.data.lost_times;
+                updateLostTimeDisplay();
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des temps perdus:', error);
+        });
 }
 
 // Fonction pour générer les options de durée par tranches de 5 minutes
@@ -1886,6 +2672,10 @@ function populateTimeOptions() {
 // Initialisation au chargement
 document.addEventListener('DOMContentLoaded', function() {
     populateTimeOptions();
+    loadLostTimeReasons();
+    loadLostTimesFromDraft();
+    loadThicknessSpecs();
+    loadDefectTypes();
     
     // Initialiser les tooltips Bootstrap
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -1895,6 +2685,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Restaurer les modes sauvegardés
     const savedModes = JSON.parse('{{ active_modes_json|escapejs }}');
+    
+    // Charger les données du rouleau actif depuis LiveRoll
+    loadActiveRollData();
     
     // Restaurer le numéro de rouleau persistant
     {% if roll_number %}
@@ -1924,9 +2717,322 @@ document.addEventListener('DOMContentLoaded', function() {
         showProductivityTab(activeTab);
     }
     
-    // Générer la visualisation du rouleau
-    generateRollVisualization();
+    // Charger les types de défauts puis générer la visualisation
+    loadDefectTypes().then(() => {
+        generateRollVisualization();
+        // Mettre à jour les résumés après un court délai pour laisser le temps aux données de se charger
+        setTimeout(() => {
+            updateSummaries();
+        }, 500);
+    });
 });
+
+// Fonction pour formater les inputs décimaux (ajouter 0 devant la virgule)
+function formatDecimalInput(input) {
+    let value = input.value;
+    
+    // Si la valeur commence par un point ou une virgule, ajouter 0 devant
+    if (value.startsWith('.') || value.startsWith(',')) {
+        // Remplacer la virgule par un point pour type="number"
+        value = '0' + value.replace(',', '.');
+        input.value = value;
+    }
+    
+    // Si l'utilisateur tape une virgule n'importe où, la remplacer par un point
+    if (value.includes(',')) {
+        input.value = value.replace(',', '.');
+    }
+}
+
+// Fonction pour enrouler/dérouler tous les blocs
+window.toggleAllBlocks = function() {
+    // Liste de tous les blocs qui peuvent être toggle (sans poste précédent et historique paramètres)
+    const blocks = [
+        { contentId: 'shift-content', chevronId: 'shift-chevron' },
+        { contentId: 'of-content', chevronId: 'of-chevron' },
+        { contentId: 'temps-content', chevronId: 'temps-chevron' },
+        { contentId: 'productivite-content', chevronId: 'productivite-chevron' },
+        { contentId: 'checklist-content', chevronId: 'checklist-chevron' },
+        { contentId: 'quality-controls-content', chevronId: 'quality-controls-chevron' }
+    ];
+    
+    // Compter combien sont ouverts
+    let openCount = 0;
+    blocks.forEach(block => {
+        const content = document.getElementById(block.contentId);
+        if (content && content.style.display !== 'none') {
+            openCount++;
+        }
+    });
+    
+    // Si la majorité sont ouverts, on ferme tout, sinon on ouvre tout
+    const shouldClose = openCount > blocks.length / 2;
+    
+    blocks.forEach(block => {
+        const content = document.getElementById(block.contentId);
+        const chevron = document.getElementById(block.chevronId);
+        
+        if (content && chevron) {
+            if (shouldClose) {
+                content.style.display = 'none';
+                chevron.className = 'bi bi-chevron-down';
+            } else {
+                content.style.display = 'block';
+                chevron.className = 'bi bi-chevron-up';
+            }
+        }
+    });
+}
+
+// Fonction pour mettre à jour l'affichage de l'ID du rouleau (plus utilisée, gardée pour compatibilité)
+function updateRollIdDisplay(statusCode) {
+    // Cette fonction n'est plus utilisée car l'ID vient maintenant du serveur
+}
+
+// Fonction pour mettre à jour l'affichage de la masse nette et du grammage
+function updateMassDisplay(data) {
+    const massNetElement = document.getElementById('mass-net');
+    const grammageElement = document.getElementById('grammage');
+    
+    // Déterminer le statut du rouleau pour la couleur
+    let statusCode = 'CONFORME';
+    let grammageIsCritical = false;
+    
+    if (data.status && data.status.code) {
+        statusCode = data.status.code;
+    } else if (data.roll_data && data.roll_data.status && data.roll_data.status.code) {
+        statusCode = data.roll_data.status.code;
+    }
+    
+    // Vérifier si le grammage est critique
+    if (data.grammage_critical !== undefined) {
+        grammageIsCritical = data.grammage_critical;
+    } else if (data.status && data.status.grammage_critical !== undefined) {
+        grammageIsCritical = data.status.grammage_critical;
+    } else if (data.roll_data && data.roll_data.status && data.roll_data.status.grammage_critical !== undefined) {
+        grammageIsCritical = data.roll_data.status.grammage_critical;
+    }
+    
+    // Couleur UNIQUEMENT selon si le grammage est critique
+    const color = grammageIsCritical ? '#ff1744' : '#4caf50';
+    
+    // Pour la réponse de autoSaveRollData
+    if (data.net_mass !== undefined && data.grammage !== undefined) {
+        if (massNetElement) {
+            const netMass = parseFloat(data.net_mass);
+            massNetElement.textContent = netMass > 0 ? `${Math.round(netMass)}g` : '--';
+        }
+        if (grammageElement) {
+            const grammageValue = parseFloat(data.grammage);
+            if (grammageValue > 0) {
+                grammageElement.textContent = `${grammageValue.toFixed(2)}g/m²`;
+                grammageElement.style.color = color;
+            } else {
+                grammageElement.textContent = '--';
+                grammageElement.style.color = ''; // Couleur par défaut
+            }
+        }
+    }
+    // Pour la restauration depuis loadActiveRollData
+    else if (data.roll_data) {
+        if (massNetElement && data.roll_data.net_mass !== undefined) {
+            const netMass = parseFloat(data.roll_data.net_mass);
+            massNetElement.textContent = netMass > 0 ? `${Math.round(netMass)}g` : '--';
+        }
+        if (grammageElement && data.roll_data.grammage !== undefined) {
+            const grammageValue = parseFloat(data.roll_data.grammage);
+            if (grammageValue > 0) {
+                grammageElement.textContent = `${grammageValue.toFixed(2)}g/m²`;
+                grammageElement.style.color = color;
+            } else {
+                grammageElement.textContent = '--';
+                grammageElement.style.color = ''; // Couleur par défaut
+            }
+        }
+    }
+}
+
+// Fonction pour mettre à jour les résumés épaisseurs et défauts
+function updateSummaries() {
+    // Compter les épaisseurs
+    const allThicknessInputs = document.querySelectorAll('.thickness-input');
+    let filledCount = 0;
+    let nokCount = 0;
+    
+    allThicknessInputs.forEach(input => {
+        if (input.value && input.value.trim() !== '') {
+            filledCount++;
+            // Vérifier si NOK (fond rouge)
+            if (input.style.backgroundColor === 'rgb(255, 23, 68)' || 
+                input.style.backgroundColor === '#ff1744') {
+                nokCount++;
+            }
+        }
+    });
+    
+    // Mettre à jour les épaisseurs dans la zone au-dessus du rouleau
+    const thicknessProgress = document.getElementById('thickness-progress');
+    if (thicknessProgress) {
+        thicknessProgress.textContent = `Epaisseurs : ${filledCount}/36`;
+    }
+    
+    const nokCountElement = document.getElementById('nok-count');
+    if (nokCountElement) {
+        nokCountElement.textContent = `${nokCount} NOK`;
+    }
+    
+    // Compter les défauts par type
+    const defectCounts = {};
+    let totalDefects = 0;
+    
+    document.querySelectorAll('.defect-select').forEach(select => {
+        if (select.value && select.value !== '') {
+            totalDefects++;
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption && selectedOption.text) {
+                const defectName = selectedOption.text;
+                defectCounts[defectName] = (defectCounts[defectName] || 0) + 1;
+            }
+        }
+    });
+    
+    // Construire le texte des défauts
+    let defectText = `Défauts : ${totalDefects}`;
+    if (totalDefects > 0) {
+        const defectDetails = Object.entries(defectCounts)
+            .map(([name, count]) => `${count} ${name}`)
+            .join(', ');
+        defectText += ` | ${defectDetails}`;
+    } else {
+        defectText += ' |';
+    }
+    
+    // Mettre à jour le résumé défauts
+    const defectsSummary = document.getElementById('defects-summary');
+    if (defectsSummary) {
+        defectsSummary.textContent = defectText;
+    }
+}
+
+// Fonction pour vider toutes les valeurs du rouleau
+window.clearAllThickness = function() {
+    // Vider les épaisseurs
+    document.querySelectorAll('.thickness-meter').forEach(input => {
+        input.value = '';
+    });
+    document.querySelectorAll('.thickness-input').forEach(input => {
+        input.value = '';
+        input.style.backgroundColor = '';
+        input.style.color = '';
+    });
+    
+    // Vider les défauts
+    document.querySelectorAll('.defect-select').forEach(select => {
+        select.value = '';
+        select.style.backgroundColor = '';
+        select.style.color = '';
+    });
+    document.querySelectorAll('.defect-position').forEach(input => {
+        input.value = '';
+    });
+    document.querySelectorAll('.defect-side').forEach(select => {
+        select.value = '';
+    });
+    
+    // Vider les champs de la sticky bar
+    document.getElementById('sticky-tube-mass').value = '';
+    document.getElementById('sticky-roll-length').value = '';
+    document.getElementById('sticky-total-mass').value = '';
+    document.getElementById('sticky-next-tube-mass').value = '';
+    
+    // Mettre à jour les résumés
+    updateSummaries();
+    
+    // Sauvegarder les changements dans le draft
+    autoSaveRollData();
+}
+
+// Fonction pour remplir avec des valeurs aléatoires
+window.fillRandomThickness = function() {
+    // Récupérer les specs d'épaisseur depuis les données globales
+    const specs = thicknessSpecs;
+    
+    if (!specs) {
+        loadThicknessSpecs();
+        setTimeout(() => fillRandomThickness(), 500);
+        return;
+    }
+    
+    // D'abord s'assurer qu'on a une longueur cible
+    const targetLengthInput = document.getElementById('target-length');
+    if (!targetLengthInput || !targetLengthInput.value) {
+        if (targetLengthInput) targetLengthInput.value = '800';
+        // Déclencher l'événement de changement pour mettre à jour
+        if (targetLengthInput) {
+            targetLengthInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+    
+    // Ensuite générer la visualisation si elle n'existe pas
+    const rollContent = document.getElementById('roll-content-viz');
+    if (!rollContent || !rollContent.innerHTML.trim()) {
+        generateRollVisualization();
+        setTimeout(() => fillRandomThickness(), 500);
+        return;
+    }
+    
+    // Vérifier si la visualisation existe
+    let thicknessInputs = document.querySelectorAll('.thickness-input');
+    
+    if (thicknessInputs.length === 0) {
+        setTimeout(() => fillRandomThickness(), 500);
+        return;
+    }
+    
+    // Calculer une plage de valeurs conformes
+    const minValue = specs.ep_mini_alerte || specs.ep_mini || 0.5;
+    const maxValue = specs.ep_max_alerte || specs.ep_max || 2.0;
+    const nominalValue = specs.ep_nominale || ((minValue + maxValue) / 2);
+    
+    // Utiliser setTimeout pour s'assurer que le DOM est prêt
+    setTimeout(() => {
+        // Activer le mode batch update pour éviter les saves multiples
+        isBatchUpdate = true;
+        
+        // Re-sélectionner les inputs au cas où
+        thicknessInputs = document.querySelectorAll('.thickness-input');
+        
+        thicknessInputs.forEach((input, index) => {
+            // Variation de ±10% autour du nominal
+            const variation = (Math.random() - 0.5) * 0.2 * nominalValue;
+            const value = (nominalValue + variation).toFixed(2);
+            
+            // Définir la valeur directement
+            input.value = value;
+            
+            // Déclencher les événements pour la coloration
+            colorThicknessInput(input);
+        });
+        
+        // Remplir les champs de la sticky bar avec des valeurs cohérentes
+        const targetLength = parseFloat(document.getElementById('target-length')?.value) || 800;
+        
+        const rollLength = targetLength; // Utiliser exactement la longueur cible
+        const tubeMass = 810 + Math.random() * 165; // Entre 810 et 975g
+        const totalMass = 3300 + Math.random() * 200; // Entre 3300 et 3500g
+        
+        document.getElementById('sticky-tube-mass').value = Math.round(tubeMass).toString();
+        document.getElementById('sticky-roll-length').value = Math.round(rollLength).toString();
+        document.getElementById('sticky-total-mass').value = Math.round(totalMass).toString();
+        document.getElementById('sticky-next-tube-mass').value = Math.round(810 + Math.random() * 165).toString();
+        
+        // Désactiver le mode batch et sauvegarder une seule fois
+        setTimeout(() => {
+            isBatchUpdate = false;
+            autoSaveRollData();
+        }, 100);
+    }, 100);
+}
 
 </script>
 {% endblock %}

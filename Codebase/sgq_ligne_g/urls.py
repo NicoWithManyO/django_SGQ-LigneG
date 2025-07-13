@@ -26,4 +26,5 @@ urlpatterns = [
     path('quality/', include('quality.urls')),
     path('frontend/', include('frontend.urls')),
     path('livesession/', include('livesession.urls')),
+    path('wcm/', include('wcm.urls')),
 ]

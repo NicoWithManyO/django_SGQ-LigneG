@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import ChecklistTemplate, ChecklistItem, ChecklistResponse, MachineParametersHistory
+from django.utils.html import mark_safe
+from .models import ChecklistTemplate, ChecklistItem, ChecklistResponse, MachineParametersHistory, LostTimeReason
 
 
 class ChecklistItemInline(admin.TabularInline):
@@ -118,3 +119,32 @@ class MachineParametersHistoryAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Empêcher la suppression de l'historique."""
         return False
+
+
+@admin.register(LostTimeReason)
+class LostTimeReasonAdmin(admin.ModelAdmin):
+    """Admin pour les motifs de temps perdus."""
+    list_display = ('code', 'name', 'category', 'is_planned', 'is_active', 'order', 'color_preview')
+    list_filter = ('category', 'is_planned', 'is_active')
+    search_fields = ('code', 'name', 'description')
+    list_editable = ('order', 'is_active')
+    ordering = ['category', 'order', 'name']
+    
+    fieldsets = (
+        (None, {
+            'fields': ('code', 'name', 'category', 'description')
+        }),
+        ('Configuration', {
+            'fields': ('is_planned', 'is_active', 'order', 'color')
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+    readonly_fields = ('created_at', 'updated_at')
+    
+    def color_preview(self, obj):
+        """Aperçu de la couleur."""
+        return mark_safe(f'<div style="width: 20px; height: 20px; background-color: {obj.color}; border: 1px solid #ccc;"></div>')
+    color_preview.short_description = "Couleur"

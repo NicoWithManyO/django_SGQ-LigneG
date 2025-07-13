@@ -79,3 +79,28 @@ def get_all_specifications(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+def get_defect_types(request):
+    """Retourne tous les types de défauts actifs."""
+    try:
+        defect_types = DefectType.objects.filter(is_active=True).order_by('name')
+        defect_types_data = []
+        
+        for defect in defect_types:
+            defect_types_data.append({
+                'id': defect.id,
+                'name': defect.name,
+                'severity': defect.severity,
+                'threshold_value': defect.threshold_value
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'defect_types': defect_types_data
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+

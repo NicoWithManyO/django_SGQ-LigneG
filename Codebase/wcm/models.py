@@ -144,3 +144,54 @@ class MachineParametersHistory(models.Model):
     
     def __str__(self):
         return f"{self.parameter_name}: {self.old_value} → {self.new_value} ({self.timestamp.strftime('%d/%m/%Y %H:%M')})"
+
+
+class LostTimeReason(models.Model):
+    """Motifs de temps perdus configurables."""
+    
+    CATEGORY_CHOICES = [
+        ('arret_programme', 'Arrêt programmé'),
+        ('panne', 'Panne'),
+        ('changement_serie', 'Changement de série'),
+        ('reglage', 'Réglage'),
+        ('maintenance', 'Maintenance'),
+        ('qualite', 'Problème qualité'),
+        ('approvisionnement', 'Approvisionnement'),
+        ('autre', 'Autre'),
+    ]
+    
+    code = models.CharField(max_length=10, unique=True, null=True, blank=True, verbose_name="Code")
+    name = models.CharField(max_length=100, verbose_name="Nom du motif")
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, null=True, blank=True, verbose_name="Catégorie")
+    description = models.TextField(blank=True, verbose_name="Description")
+    is_planned = models.BooleanField(default=False, verbose_name="Arrêt planifié")
+    is_active = models.BooleanField(default=True, verbose_name="Actif")
+    order = models.IntegerField(default=100, verbose_name="Ordre d'affichage")
+    color = models.CharField(max_length=7, default="#6c757d", 
+                           verbose_name="Couleur (hex)",
+                           help_text="Couleur pour l'affichage dans l'interface")
+    
+    # Pour la traçabilité
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Motif de temps perdu"
+        verbose_name_plural = "Motifs de temps perdus"
+        ordering = ['category', 'order', 'name']
+        indexes = [
+            models.Index(fields=['is_active', 'category']),
+            models.Index(fields=['code']),
+        ]
+    
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+    
+    def save(self, *args, **kwargs):
+        # Auto-générer un code si non fourni
+        if not self.code and self.category:
+            # Prendre les 3 premières lettres de la catégorie + numéro
+            prefix = self.category[:3].upper()
+            count = LostTimeReason.objects.filter(code__startswith=prefix).count()
+            self.code = f"{prefix}{count + 1:02d}"
+        super().save(*args, **kwargs)

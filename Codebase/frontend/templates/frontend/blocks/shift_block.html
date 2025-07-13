@@ -124,6 +124,9 @@
                                         <label class="form-check-label fw-bold small" for="{{ form.started_at_beginning.id_for_label }}">
                                             {{ form.started_at_beginning.label }}
                                         </label>
+                                        <button type="button" class="btn btn-sm btn-link p-0 ms-2" onclick="refreshMeterReading()" title="Actualiser le métrage">
+                                            <i class="bi bi-arrow-clockwise small"></i>
+                                        </button>
                                     </div>
                                     {% if form.started_at_beginning.errors %}
                                         <div class="text-danger small">{{ form.started_at_beginning.errors.0 }}</div>
@@ -441,22 +444,34 @@ function toggleMeterReadingFields() {
     const shutdownMessageEnd = document.getElementById('shutdown-message-end');
     
     if (startedAtBeginning && meterStartField && startupMessageStart) {
+        const meterStartInput = document.getElementById('id_meter_reading_start');
         if (startedAtBeginning.checked) {
             meterStartField.style.visibility = 'visible';
             startupMessageStart.style.visibility = 'hidden';
         } else {
             meterStartField.style.visibility = 'hidden';
             startupMessageStart.style.visibility = 'visible';
+            // Mettre à 0 si la machine n'a pas démarré
+            if (meterStartInput) {
+                meterStartInput.value = '0';
+                saveShiftField('meter_reading_start', '0');
+            }
         }
     }
     
     if (startedAtEnd && meterEndField && shutdownMessageEnd) {
+        const meterEndInput = document.getElementById('id_meter_reading_end');
         if (startedAtEnd.checked) {
             meterEndField.style.visibility = 'visible';
             shutdownMessageEnd.style.visibility = 'hidden';
         } else {
             meterEndField.style.visibility = 'hidden';
             shutdownMessageEnd.style.visibility = 'visible';
+            // Mettre à 0 si la machine n'est pas en marche
+            if (meterEndInput) {
+                meterEndInput.value = '0';
+                saveShiftField('meter_reading_end', '0');
+            }
         }
     }
 }
@@ -500,6 +515,12 @@ document.body.addEventListener('htmx:afterSwap', function() {
         toggleMeterReadingFields();
     }, 200);
 });
+
+// Fonction pour actualiser le métrage (sera implémentée plus tard)
+function refreshMeterReading() {
+    console.log('Actualisation du métrage...');
+    // TODO: Implémenter la logique d'actualisation
+}
 
 // Restaurer le brouillon au chargement
 document.addEventListener('DOMContentLoaded', function() {
