@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+# NOTE: Ce modèle est obsolète - tout est maintenant dans CurrentSession.session_data
+# À supprimer dans une future migration
 class CurrentProductionState(models.Model):
     """Données persistantes entre les postes - préférences utilisateur"""
     session_key = models.CharField(max_length=40, unique=True, db_index=True)
@@ -43,15 +45,15 @@ class CurrentProductionState(models.Model):
         return f"Session {self.session_key[:8]}... - {self.updated_at.strftime('%d/%m %H:%M')}"
 
 
-class LiveShift(models.Model):
-    """Draft du poste en cours de saisie - données temporaires"""
+class CurrentSession(models.Model):
+    """Session de production courante - État complet de l'interface"""
     session_key = models.CharField(max_length=40, unique=True, db_index=True)
     
-    # Tout ce qui concerne le poste actuel en JSON
-    shift_data = models.JSONField(default=dict)
+    # Toutes les données de la session en JSON
+    session_data = models.JSONField(default=dict)
     # Structure attendue:
     # {
-    #     "operator_id": 1,
+    #     "operator": 1,
     #     "date": "2024-01-15", 
     #     "vacation": "Matin",
     #     "start_time": "06:00",
@@ -66,14 +68,14 @@ class LiveShift(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        db_table = 'livesession_live_shift'
-        verbose_name = 'Brouillon de poste'
-        verbose_name_plural = 'Brouillons de postes'
+        db_table = 'livesession_currentsession'
+        verbose_name = 'Session de production'
+        verbose_name_plural = 'Sessions de production'
     
     def __str__(self):
-        # Le champ est stocké comme 'operator' (pas 'operator_name')
+        # Le champ est stocké comme 'operator' 
         # Si c'est un ID, essayer de récupérer le nom de l'opérateur
-        operator_value = self.shift_data.get('operator', 'Sans opérateur')
+        operator_value = self.session_data.get('operator', 'Sans opérateur')
         
         # Si la valeur ressemble à un ID (nombre), essayer de récupérer le nom
         if operator_value and str(operator_value).isdigit():
@@ -86,8 +88,65 @@ class LiveShift(models.Model):
         else:
             operator_name = operator_value or 'Sans opérateur'
             
-        date = self.shift_data.get('date', 'Sans date')
-        return f"Draft: {operator_name} - {date}"
+        date = self.session_data.get('date', 'Sans date')
+        return f"Session: {operator_name} - {date}"
+    
+    def calculate_metrics(self):
+        """Calcule les métriques du poste (TO, TP, TD, TA) depuis le draft.
+        Réutilise la logique du modèle Shift pour éviter la duplication."""
+        from datetime import datetime, timedelta
+        
+        data = self.session_data
+        metrics = {
+            'to': 0,  # Temps d'ouverture
+            'tp': 0,  # Temps perdu
+            'td': 0,  # Temps disponible
+            'ta': 0,  # Temps d'arrêt (pour l'instant = TD)
+            'trs': 0  # Taux de rendement synthétique
+        }
+        
+        # Calcul du temps d'ouverture (TO)
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+        
+        if start_time and end_time:
+            try:
+                # Parser les heures (format HH:MM)
+                start = datetime.strptime(start_time, '%H:%M')
+                end = datetime.strptime(end_time, '%H:%M')
+                
+                # Si l'heure de fin est avant l'heure de début, c'est le lendemain
+                if end < start:
+                    end += timedelta(days=1)
+                
+                # Calculer la différence en minutes
+                opening_time = (end - start).total_seconds() / 60
+                metrics['to'] = int(opening_time)
+                
+                # Calcul du temps perdu (TP) - somme des temps d'arrêt
+                lost_times = data.get('lost_times', [])
+                total_lost_minutes = sum(entry.get('duration', 0) for entry in lost_times)
+                metrics['tp'] = int(total_lost_minutes)
+                
+                # Temps disponible (TD) = TO - TP
+                metrics['td'] = metrics['to'] - metrics['tp']
+                
+                # Pour l'instant, TA = TD (temps d'arrêt sera géré plus tard)
+                metrics['ta'] = metrics['td']
+                
+            except (ValueError, TypeError):
+                pass
+        
+        # Calcul du TRS (rendement)
+        # Utilise la longueur OK depuis les métriques de productivité
+        length_ok = float(data.get('meter_reading_end', 0) or 0)
+        
+        # La longueur cible vient maintenant de session_data
+        target_length = float(data.get('target_length', 0) or 0)
+        if target_length > 0:
+            metrics['trs'] = round((length_ok / target_length) * 100, 1)
+        
+        return metrics
 
 
 class LiveRoll(models.Model):
@@ -135,6 +194,8 @@ class LiveRoll(models.Model):
         return f"Draft rouleau: {roll_id} - {status}"
 
 
+# NOTE: Ce modèle n'est plus utilisé - tout est maintenant dans CurrentSession.session_data
+# À supprimer dans une future migration
 class LiveQualityControl(models.Model):
     """Brouillon des contrôles qualité - calculs des moyennes côté serveur"""
     session_key = models.CharField(max_length=40, unique=True, db_index=True)

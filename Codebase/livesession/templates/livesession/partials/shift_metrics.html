@@ -1,0 +1,46 @@
+<!-- Template partiel pour HTMX - retourné par l'API -->
+<div id="all-metrics" class="row g-3">
+    <!-- Carte TO -->
+    <div class="col-md-3">
+        <div class="metric-card">
+            <label class="text-muted small">Temps d'Ouverture</label>
+            <div class="metric-value">
+                <span id="temps-ouverture" class="h5 fw-bold">{{ data.metrics.to_formatted }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Carte TP et Longueur perdue -->
+    <div class="col-md-3">
+        <div class="metric-card">
+            <label class="text-muted small">Tps Perdu | Lg Perdue</label>
+            <div class="metric-value">
+                <span id="temps-perdu-total" class="h6 fw-bold text-danger">{{ data.metrics.tp_formatted }}</span>
+                <span class="text-muted small">|</span>
+                <span id="lg-perdue" class="h6 fw-bold text-danger">{{ data.metrics.length_lost_formatted }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Carte TD -->
+    <div class="col-md-3">
+        <div class="metric-card">
+            <label class="text-muted small">Temps Disponible</label>
+            <div class="metric-value">
+                <span id="temps-disponible" class="h5 fw-bold">{{ data.metrics.td_formatted }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Messages de validation si erreurs -->
+{% if data.validation and not data.validation.is_valid %}
+<div class="alert alert-danger mt-3" role="alert">
+    <strong>Erreurs de validation :</strong>
+    <ul class="mb-0">
+    {% for field, errors in data.validation.errors.items %}
+        <li>{{ field }} : {{ errors|join:", " }}</li>
+    {% endfor %}
+    </ul>
+</div>
+{% endif %}

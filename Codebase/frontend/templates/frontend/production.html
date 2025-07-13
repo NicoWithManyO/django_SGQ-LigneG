@@ -39,6 +39,7 @@
     min-height: 28px !important;
 }
 
+
 /* FORCER pour TOUS les inputs dans la sticky bar sans exception */
 .fibrage-sticky-bar input {
     height: 28px !important;
@@ -546,7 +547,7 @@
                                 <select id="current-order" class="form-select fw-bold of-input" disabled>
                                     <option value="">--</option>
                                     {% for of in normal_orders %}
-                                    <option value="{{ of.id }}" {% if production_state and production_state.current_of_id == of.id %}selected{% endif %}>{{ of.order_number }}</option>
+                                    <option value="{{ of.id }}" {% if production_state and production_state.current_of == of.id %}selected{% endif %}>{{ of.order_number }}</option>
                                     {% endfor %}
                                 </select>
                                 <button type="button" class="btn btn-outline-secondary btn-sm" 
@@ -571,7 +572,7 @@
                                 <select id="cutting-order" class="form-select fw-bold of-input" disabled>
                                     <option value="">--</option>
                                     {% for of in cutting_orders %}
-                                    <option value="{{ of.id }}" {% if production_state and production_state.cutting_of_id == of.id %}selected{% endif %}>{{ of.order_number }}</option>
+                                    <option value="{{ of.id }}" {% if production_state and production_state.cutting_of == of.id %}selected{% endif %}>{{ of.order_number }}</option>
                                     {% endfor %}
                                 </select>
                                 <button type="button" class="btn btn-outline-secondary btn-sm" 
@@ -810,7 +811,7 @@
                                             {% for profile in profiles %}
                                             <option value="{{ profile.id }}" 
                                                     data-belt-speed="{% if profile.machine_parameters and profile.machine_parameters.belt_speed_m_per_minute %}{{ profile.machine_parameters.belt_speed_m_per_minute }}{% else %}0{% endif %}"
-                                                    {% if production_state and production_state.selected_profile_id == profile.id %}selected{% endif %}>{{ profile.name }}</option>
+                                                    {% if production_state and production_state.selected_profile == profile.id %}selected{% endif %}>{{ profile.name }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>
@@ -873,7 +874,7 @@
                             {% if checklist_items %}
                             <div class="signature-field d-flex justify-content-end align-items-center mt-3 gap-2">
                                 <small class="text-muted" id="signature-time">--</small>
-                                <input type="text" class="form-control fw-bold" id="operator-signature" placeholder="Signature" maxlength="5" style="text-transform: uppercase; width: 100px !important; max-width: 100px !important; text-align: center;">
+                                <input type="text" class="form-control fw-bold" id="operator-signature" placeholder="Signature" maxlength="5" style="text-transform: uppercase; width: 100px !important; max-width: 100px !important; text-align: center;" oninput="validateSignature()" onchange="validateSignature()">
                             </div>
                             {% endif %}
                         </div>
@@ -932,7 +933,7 @@
                         <div class="control-content">
                             <div class="sizing-bath">
                                 <div class="sizing-bath-field">
-                                    <input type="number" step="0.01" class="form-control" placeholder="--" id="sizing-bath-input" autocomplete="off" oninput="formatDecimalInput(this); applyDryExtractColor(this, this.value); saveQualityControl('extrait_sec', this.value)">
+                                    <input type="number" step="0.01" class="form-control" placeholder="--" id="sizing-bath-input" autocomplete="off" oninput="formatDecimalInput(this); applyDryExtractColor(this, this.value); updateExtraitSecTime(this.value)">
                                     <small class="text-muted" id="sizing-bath-time">--</small>
                                 </div>
                                 <hr style="width: 80%; margin: 0.5rem 0; border-color: var(--border-color);">
@@ -941,7 +942,7 @@
                                         <div class="d-flex align-items-center justify-content-center gap-1">
                                             <label style="font-size: 0.75rem; font-weight: 500; color: var(--primary-text); margin: 0;">Échantillon LOI</label>
                                             <label class="custom-toggle">
-                                                <input type="checkbox" id="loiSwitch" onchange="saveQualityControl('loi_given', this.checked)">
+                                                <input type="checkbox" id="loiSwitch" onchange="updateLoiTime(this.checked)">
                                                 <span class="toggle-slider"></span>
                                             </label>
                                         </div>
@@ -1018,7 +1019,7 @@
                     <!-- Bouton Clear au centre -->
                     <div class="d-flex flex-column align-items-center justify-content-center gap-2" style="padding: 0 10px;">
                         <small id="quality-controls-status" class="text-muted text-center" style="font-size: 0.65rem; max-width: 150px; font-style: italic;">Renseignez les contrôles pour pouvoir sauvegarder le poste</small>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearQualityControls()" style="opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearRollValues()" style="opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
                             <i class="bi bi-x-circle"></i> Clear
                         </button>
                     </div>
@@ -1186,6 +1187,108 @@
 
 {% block extra_js %}
 <script>
+// Fonction utilitaire pour convertir les nombres avec virgule
+function parseNumberValue(value) {
+    if (value === null || value === undefined || value === '') return '';
+    // Convertir la virgule en point si nécessaire
+    const strValue = String(value).replace(',', '.');
+    return parseFloat(strValue) || '';
+}
+
+// Fonction pour calculer et sauvegarder les métriques de productivité
+function calculateAndSaveProductivityMetrics(savedBeltSpeed = null) {
+    // Récupérer les données nécessaires
+    const tdMinutes = window.currentMetrics?.td || 0;
+    const targetLength = parseFloat(document.getElementById('target-length')?.value) || 0;
+    const meterReadingEnd = parseFloat(document.getElementById('meter_reading_end')?.value) || 0;
+    
+    // Récupérer la vitesse du tapis - utiliser la valeur sauvegardée si fournie
+    let beltSpeedMPerMin = savedBeltSpeed || window.savedBeltSpeed || 0;
+    if (!beltSpeedMPerMin) {
+        const profileSelector = document.getElementById('profile-selector');
+        if (profileSelector && profileSelector.value) {
+            const selectedOption = profileSelector.options[profileSelector.selectedIndex];
+            beltSpeedMPerMin = parseFloat(selectedOption.getAttribute('data-belt-speed')) || 0;
+        }
+    }
+    
+    console.log('Calcul métriques - TD:', tdMinutes, 'Vitesse:', beltSpeedMPerMin, 'Target:', targetLength, 'Meter:', meterReadingEnd);
+    
+    // Calculer la longueur enroulable = TD × vitesse tapis
+    const lengthEnroulable = Math.round(tdMinutes * beltSpeedMPerMin);
+    
+    // Calculer la longueur perdue = TP × vitesse tapis
+    const tpMinutes = window.currentMetrics?.tp || 0;
+    const lengthLost = Math.round(tpMinutes * beltSpeedMPerMin);
+    
+    // Calculer le TRS = (Longueur OK / Longueur cible) × 100
+    let trsPercentage = 0;
+    if (targetLength > 0) {
+        // La longueur OK inclut le relevé compteur fin
+        const lengthOK = meterReadingEnd; // + somme des rouleaux OK (à implémenter)
+        trsPercentage = Math.round((lengthOK / targetLength) * 100 * 10) / 10; // Arrondi à 1 décimale
+    }
+    
+    // Sauvegarder dans la session
+    const updates = {
+        length_enroulable: lengthEnroulable,
+        trs_percentage: trsPercentage
+    };
+    
+    // Mettre à jour l'affichage
+    const lengthEnroulableSpan = document.getElementById('lg-enroulable');
+    if (lengthEnroulableSpan) {
+        lengthEnroulableSpan.textContent = lengthEnroulable + 'm';
+    }
+    
+    const lengthLostSpan = document.getElementById('lg-perdue');
+    if (lengthLostSpan) {
+        lengthLostSpan.textContent = lengthLost > 0 ? lengthLost + 'm' : '--';
+    }
+    
+    // Mettre à jour le TRS (à implémenter selon votre affichage)
+    
+    // Sauvegarder via l'API seulement si on a des données valides
+    if (beltSpeedMPerMin > 0) {
+        if (tdMinutes > 0) {
+            updateFieldViaAPI('length_enroulable', lengthEnroulable);
+        }
+        // Ne pas sauvegarder length_lost - c'est une valeur calculée
+    }
+    
+    if (targetLength > 0) {
+        updateFieldViaAPI('trs_percentage', trsPercentage);
+    }
+    
+    return { lengthEnroulable, trsPercentage };
+}
+
+// Fonction wrapper pour migrer les anciens appels vers la nouvelle API
+function updateFieldViaAPI(fieldName, value) {
+    console.log(`[PATCH] Mise à jour du champ ${fieldName} avec la valeur:`, value);
+    
+    // Utiliser la nouvelle API current-session
+    return fetch('/livesession/api/current-session/', {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            [fieldName]: value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(`${fieldName} mis à jour via current-session`);
+        return data;
+    })
+    .catch(error => {
+        console.error(`Erreur lors de la mise à jour de ${fieldName}:`, error);
+    });
+}
+
 // Fonction pour récupérer un cookie
 function getCookie(name) {
     let cookieValue = null;
@@ -1212,25 +1315,18 @@ window.editCurrentOrder = function() {
         select.focus();
         
         const changeHandler = function() {
-            select.disabled = true;
             console.log(`OF sélectionné: ${select.value}`);
             
-            // Envoyer au serveur
-            const formData = new FormData();
-            formData.append('field', 'current_of');
-            formData.append('value', select.value);
-            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-            
-            fetch('/livesession/update-field/', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
+            // Envoyer au serveur - gérer la valeur vide
+            const value = select.value || null;
+            updateFieldViaAPI('current_of', value)
             .then(data => {
-                console.log('Réponse serveur:', data);
+                console.log('OF en cours mis à jour');
+                select.disabled = true;
             })
             .catch(error => {
                 console.error('Erreur:', error);
+                select.disabled = true;
             });
         };
         
@@ -1255,27 +1351,22 @@ window.editTargetLength = function() {
         input.select();
         
         function save() {
-            input.disabled = true;
             console.log(`Longueur cible: ${input.value}`);
             
-            // Envoyer au serveur
-            const formData = new FormData();
-            formData.append('field', 'target_length');
-            formData.append('value', input.value);
-            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-            
-            fetch('/livesession/update-field/', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
+            // Envoyer au serveur - gérer la valeur vide et forcer un entier
+            const value = input.value ? parseInt(input.value) : null;
+            updateFieldViaAPI('target_length', value)
             .then(data => {
-                console.log('Réponse serveur:', data);
+                console.log('Longueur cible mise à jour');
+                input.disabled = true;
                 // Mettre à jour la visualisation
                 generateRollVisualization();
+                // Recalculer les métriques
+                calculateAndSaveProductivityMetrics();
             })
             .catch(error => {
                 console.error('Erreur:', error);
+                input.disabled = true;
             });
         }
         
@@ -1296,25 +1387,18 @@ window.editCuttingOrder = function() {
         select.focus();
         
         const changeHandler = function() {
-            select.disabled = true;
             console.log(`OF découpe: ${select.value}`);
             
-            // Envoyer au serveur
-            const formData = new FormData();
-            formData.append('field', 'cutting_of');
-            formData.append('value', select.value);
-            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-            
-            fetch('/livesession/update-field/', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
+            // Envoyer au serveur - gérer la valeur vide
+            const value = select.value || null;
+            updateFieldViaAPI('cutting_of', value)
             .then(data => {
-                console.log('Réponse serveur:', data);
+                console.log('OF découpe mis à jour');
+                select.disabled = true;
             })
             .catch(error => {
                 console.error('Erreur:', error);
+                select.disabled = true;
             });
         };
         
@@ -1369,24 +1453,25 @@ window.editStickyField = function(fieldId) {
                     }
                     
                     // Sauvegarder directement sans le préfixe sticky-
-                    const formData = new FormData();
-                    formData.append('field', 'roll_number');
-                    formData.append('value', input.value);
-                    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-                    
-                    fetch('/livesession/update-field/', {
-                        method: 'POST',
-                        body: formData
-                    }).then(() => {
-                        // Mettre à jour defaultValue après sauvegarde réussie
-                        input.defaultValue = input.value;
-                    });
+                    const value = input.value || null;
+                    updateFieldViaAPI('roll_number', value)
+                        .then(() => {
+                            console.log('Numéro de rouleau mis à jour');
+                            input.defaultValue = input.value;
+                            input.disabled = true;
+                        })
+                        .catch(error => {
+                            console.error('Erreur:', error);
+                            input.value = oldValue;
+                            input.disabled = true;
+                        });
                 } else {
                     saveStickValue(fieldName, input.value);
+                    input.disabled = true;
                 }
+            } else {
+                input.disabled = true;
             }
-            
-            input.disabled = true;
         }
         
         function keypressHandler(e) {
@@ -1530,7 +1615,13 @@ function loadMachineParameters(profileId) {
                 html += '<div class="col-md-4 d-flex flex-column justify-content-between">';
                 html += '<div class="text-center">';
                 html += '<div style="font-size: 0.75rem;" class="fw-bold">Vitesse tapis</div>';
-                html += `<div class="mt-2">${data.parameters.belt_speed_m_per_minute !== null ? data.parameters.belt_speed_m_per_minute + ' m/h' : '--'}</div>`;
+                if (data.parameters.belt_speed_m_per_minute !== null) {
+                    const speedMPerMin = parseFloat(data.parameters.belt_speed_m_per_minute);
+                    const speedMPerHour = speedMPerMin * 60;
+                    html += `<div class="mt-2">${speedMPerHour.toFixed(2)} m/h<br>${speedMPerMin.toFixed(2)} m/min</div>`;
+                } else {
+                    html += '<div class="mt-2">--</div>';
+                }
                 html += '</div>';
                 html += '<div class="d-flex justify-content-end">';
                 html += '<button type="button" class="btn btn-outline-secondary btn-sm" onclick="editMachineParameters()" title="Modifier les paramètres" style="opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.6\'">';
@@ -1542,6 +1633,13 @@ function loadMachineParameters(profileId) {
                 html += '</div>';
                 
                 display.innerHTML = html;
+                
+                // Sauvegarder la vitesse du tapis dans la session et en global
+                if (data.parameters.belt_speed_m_per_minute !== null) {
+                    const beltSpeed = parseFloat(data.parameters.belt_speed_m_per_minute);
+                    window.savedBeltSpeed = beltSpeed;
+                    updateFieldViaAPI('belt_speed', beltSpeed);
+                }
                 
                 // Afficher les spécifications
                 if (data.specifications && Object.keys(data.specifications).length > 0) {
@@ -1738,10 +1836,7 @@ function showProductivityTab(tabName) {
     formData.append('value', tabName);
     formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
     
-    fetch('/livesession/update-field/', {
-        method: 'POST',
-        body: formData
-    });
+    updateFieldViaAPI(formData.get('field'), formData.get('value'));
 }
 
 // Fonctions vides pour les boutons d'édition (pour éviter les erreurs)
@@ -1750,16 +1845,10 @@ function editMachineParameters() {}
 
 // Fonction pour sauvegarder le profil sélectionné
 function saveProfile(profileId) {
-    const formData = new FormData();
-    formData.append('field', 'selected_profile');
-    formData.append('value', profileId);
-    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    // Convertir en nombre ou null
+    const value = profileId ? parseInt(profileId) : null;
     
-    fetch('/livesession/update-field/', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
+    updateFieldViaAPI('selected_profile', value)
     .then(data => {
         updateProfileDisplay();
         // Charger les paramètres machine du profil
@@ -1768,6 +1857,8 @@ function saveProfile(profileId) {
         } else {
             document.getElementById('machine-parameters-display').innerHTML = '';
         }
+        // Recalculer les métriques avec la nouvelle vitesse
+        calculateAndSaveProductivityMetrics();
     })
     .catch(error => {
         console.error('Erreur:', error);
@@ -1877,12 +1968,16 @@ function generateRollVisualization() {
         html += `<td class="text-center" style="border: none; padding: 2px; font-size: 0.85rem; color: #215C98; vertical-align: middle; background-color: #f5f5f5;">${m}</td>`;
         
         // Colonnes épaisseur gauche (GG, GC, GD)
-        // Mesures tous les 5m à partir de 3m
-        const hasThickness = (m === 3 || (m > 3 && (m - 3) % 5 === 0));
+        // Si longueur < 3m, mesures au mètre 1
+        // Sinon mesures tous les 5m à partir de 3m
+        const hasThickness = displayLength < 3 ? (m === 1) : (m === 3 || (m > 3 && (m - 3) % 5 === 0));
         const pointLabels = ['G', 'C', 'D'];
         for (let i = 0; i < 3; i++) {
             if (hasThickness) {
-                html += `<td style="border: none; padding: 2px; text-align: center; vertical-align: middle;"><input type="number" step="0.01" class="thickness-input" data-meter="${m}" data-point="G${pointLabels[i]}" style="background-color: #e3f2fd; border: 1px solid #90caf9; width: 60px; height: 24px; text-align: center; font-size: 0.9rem; padding: 2px; border-radius: 12px; cursor: pointer;" onclick="this.select()" oninput="colorThicknessInput(this)" onchange="saveRollThickness()" /></td>`;
+                html += `<td style="border: none; padding: 2px; text-align: center; vertical-align: middle; position: relative;">
+                    <input type="number" step="0.01" class="thickness-input" data-meter="${m}" data-point="G${pointLabels[i]}" style="background-color: #e3f2fd; border: 1px solid #90caf9; width: 60px; height: 24px; text-align: center; font-size: 0.9rem; padding: 2px; border-radius: 12px; cursor: pointer; position: relative; z-index: 1;" onclick="this.select(); bringToFront(this)" oninput="colorThicknessInput(this)" onchange="saveRollThickness()" />
+                    <input type="number" step="0.01" class="thickness-input thickness-rattrapage" data-meter="${m}" data-point="G${pointLabels[i]}-R" style="background-color: #e3f2fd; border: 1px solid #90caf9; width: 60px; height: 24px; text-align: center; font-size: 0.9rem; padding: 2px; border-radius: 12px; cursor: pointer; position: absolute; top: 22px; left: 60%; transform: translateX(-50%); z-index: 2; display: none;" onclick="this.select()" oninput="colorThicknessInput(this)" onchange="saveRollThickness()" />
+                </td>`;
             } else {
                 html += '<td style="border: none; padding: 2px; vertical-align: middle;"></td>';
             }
@@ -1902,7 +1997,10 @@ function generateRollVisualization() {
         // Colonnes épaisseur droite (DG, DC, DD)
         for (let i = 0; i < 3; i++) {
             if (hasThickness) {
-                html += `<td style="border: none; padding: 2px; text-align: center; vertical-align: middle;"><input type="number" step="0.01" class="thickness-input" data-meter="${m}" data-point="D${pointLabels[i]}" style="background-color: #e3f2fd; border: 1px solid #90caf9; width: 60px; height: 24px; text-align: center; font-size: 0.9rem; padding: 2px; border-radius: 12px; cursor: pointer;" onclick="this.select()" oninput="colorThicknessInput(this)" onchange="saveRollThickness()" /></td>`;
+                html += `<td style="border: none; padding: 2px; text-align: center; vertical-align: middle; position: relative;">
+                    <input type="number" step="0.01" class="thickness-input" data-meter="${m}" data-point="D${pointLabels[i]}" style="background-color: #e3f2fd; border: 1px solid #90caf9; width: 60px; height: 24px; text-align: center; font-size: 0.9rem; padding: 2px; border-radius: 12px; cursor: pointer; position: relative; z-index: 1;" onclick="this.select(); bringToFront(this)" oninput="colorThicknessInput(this)" onchange="saveRollThickness()" />
+                    <input type="number" step="0.01" class="thickness-input thickness-rattrapage" data-meter="${m}" data-point="D${pointLabels[i]}-R" style="background-color: #e3f2fd; border: 1px solid #90caf9; width: 60px; height: 24px; text-align: center; font-size: 0.9rem; padding: 2px; border-radius: 12px; cursor: pointer; position: absolute; top: 22px; left: 60%; transform: translateX(-50%); z-index: 2; display: none;" onclick="this.select()" oninput="colorThicknessInput(this)" onchange="saveRollThickness()" />
+                </td>`;
             } else {
                 html += '<td style="border: none; padding: 2px; vertical-align: middle;"></td>';
             }
@@ -2263,14 +2361,56 @@ function updateDryExtractColor() {
     }
 }
 
+// Fonction pour ramener une épaisseur NOK au premier plan
+function bringToFront(input) {
+    // Si c'est une épaisseur NOK avec une rattrapage visible
+    if (!input.classList.contains('thickness-rattrapage')) {
+        const tdElement = input.closest('td');
+        if (tdElement) {
+            const rattrapageInput = tdElement.querySelector('.thickness-rattrapage');
+            if (rattrapageInput && rattrapageInput.style.display === 'block') {
+                // Ramener l'input au premier plan temporairement
+                input.style.zIndex = '3';
+                
+                // Quand on quitte l'input, remettre les z-index normaux
+                input.addEventListener('blur', function handler() {
+                    input.style.zIndex = '1';
+                    input.removeEventListener('blur', handler);
+                }, { once: true });
+            }
+        }
+    }
+}
+
 // Fonction pour colorer un input d'épaisseur selon sa valeur
 function colorThicknessInput(input) {
+    // Ne pas traiter les inputs de rattrapage ici si c'est déclenché par l'input principal
+    const isRattrapage = input.classList.contains('thickness-rattrapage');
+    
     if (!thicknessSpecs || !input.value) {
         // Réinitialiser tous les styles
         input.style.backgroundColor = '#e3f2fd'; // Bleu clair par défaut
         input.style.borderColor = '#90caf9';
         input.style.color = 'black';
         input.style.fontWeight = 'normal';
+        
+        // Si c'est un input principal, masquer son rattrapage
+        if (!isRattrapage) {
+            const tdElement = input.closest('td');
+            if (tdElement) {
+                const rattrapageInput = tdElement.querySelector('.thickness-rattrapage');
+                if (rattrapageInput) {
+                    rattrapageInput.style.display = 'none';
+                    // IMPORTANT : Vider la valeur de rattrapage
+                    rattrapageInput.value = '';
+                    // Réinitialiser le style
+                    rattrapageInput.style.backgroundColor = '#e3f2fd';
+                    rattrapageInput.style.borderColor = '#90caf9';
+                    rattrapageInput.style.color = 'black';
+                    rattrapageInput.style.fontWeight = 'normal';
+                }
+            }
+        }
         return;
     }
     
@@ -2284,18 +2424,69 @@ function colorThicknessInput(input) {
         input.style.borderColor = '#d50000';
         input.style.color = 'white';
         input.style.fontWeight = 'bold';
+        
+        // Si c'est un input principal en rouge, afficher l'input de rattrapage
+        if (!isRattrapage) {
+            const tdElement = input.closest('td');
+            if (tdElement) {
+                const rattrapageInput = tdElement.querySelector('.thickness-rattrapage');
+                if (rattrapageInput) {
+                    rattrapageInput.style.display = 'block';
+                    // Changer la couleur de fond en rouge pastel
+                    input.style.backgroundColor = '#ffcdd2'; // Rouge pastel
+                    input.style.borderColor = '#ef5350';
+                    input.style.color = '#b71c1c'; // Texte rouge foncé
+                }
+            }
+        }
     } else if (value < specs.ep_mini_alerte || value > specs.ep_max_alerte) {
         // Zone d'alerte - fond vert avec texte orange plus doux
         input.style.backgroundColor = '#a5d6a7';
         input.style.borderColor = '#4caf50';
         input.style.color = '#ef6c00';
         input.style.fontWeight = 'bold';
+        
+        // Si c'est un input principal qui n'est plus rouge, masquer son rattrapage
+        if (!isRattrapage) {
+            const tdElement = input.closest('td');
+            if (tdElement) {
+                const rattrapageInput = tdElement.querySelector('.thickness-rattrapage');
+                if (rattrapageInput) {
+                    rattrapageInput.style.display = 'none';
+                    // IMPORTANT : Vider la valeur de rattrapage
+                    rattrapageInput.value = '';
+                    // Réinitialiser le style
+                    rattrapageInput.style.backgroundColor = '#e3f2fd';
+                    rattrapageInput.style.borderColor = '#90caf9';
+                    rattrapageInput.style.color = 'black';
+                    rattrapageInput.style.fontWeight = 'normal';
+                }
+            }
+        }
     } else if (value >= specs.ep_mini_alerte && value <= specs.ep_max_alerte) {
         // Dans la plage nominale - vert pétant
         input.style.backgroundColor = '#4caf50';
         input.style.borderColor = '#388e3c';
         input.style.color = 'white';
         input.style.fontWeight = 'bold';
+        
+        // Si c'est un input principal qui n'est plus rouge, masquer son rattrapage
+        if (!isRattrapage) {
+            const tdElement = input.closest('td');
+            if (tdElement) {
+                const rattrapageInput = tdElement.querySelector('.thickness-rattrapage');
+                if (rattrapageInput) {
+                    rattrapageInput.style.display = 'none';
+                    // IMPORTANT : Vider la valeur de rattrapage
+                    rattrapageInput.value = '';
+                    // Réinitialiser le style
+                    rattrapageInput.style.backgroundColor = '#e3f2fd';
+                    rattrapageInput.style.borderColor = '#90caf9';
+                    rattrapageInput.style.color = 'black';
+                    rattrapageInput.style.fontWeight = 'normal';
+                }
+            }
+        }
     }
 }
 
@@ -2338,7 +2529,14 @@ function autoSaveRollData() {
         const rollData = collectRollData();
         console.log('Données à sauvegarder:', rollData);
         
-        // Sauvegarder via l'API
+        // Sauvegarder via l'API current-session
+        updateFieldViaAPI('current_roll', rollData).then(data => {
+            console.log('Rouleau sauvegardé dans current-session');
+            // TODO: Mettre à jour l'affichage de conformité si nécessaire
+        });
+        
+        // Code désactivé - à migrer
+        /*
         fetch('/livesession/save-active-roll/', {
             method: 'POST',
             headers: {
@@ -2382,56 +2580,99 @@ function autoSaveRollData() {
         .catch(error => {
             console.error('Erreur lors de la sauvegarde LiveRoll:', error);
         });
+        */
     }, 1000);
 }
 
 // Fonction pour collecter toutes les données du rouleau
 function collectRollData() {
-    const data = {};
+    const data = {
+        info: {},
+        defects: [],
+        thickness: {
+            measurements: [],
+            rattrapage: []
+        }
+    };
     
-    // Données de la sticky bar - toujours inclure pour permettre la suppression
-    // Tous les champs sont inclus, même vides, pour permettre leur suppression
-    data.roll_number = document.getElementById('sticky-roll-number')?.value || '';
-    data.tube_mass = document.getElementById('sticky-tube-mass')?.value || '';
-    data.length = document.getElementById('sticky-roll-length')?.value || '';
-    data.total_mass = document.getElementById('sticky-total-mass')?.value || '';
-    data.next_tube_mass = document.getElementById('sticky-next-tube-mass')?.value || '';
+    // Informations de base du rouleau
+    data.info = {
+        roll_number: document.getElementById('sticky-roll-number')?.value || '',
+        tube_mass: document.getElementById('sticky-tube-mass')?.value || '',
+        length: document.getElementById('sticky-roll-length')?.value || '',
+        total_mass: document.getElementById('sticky-total-mass')?.value || '',
+        next_tube_mass: document.getElementById('sticky-next-tube-mass')?.value || ''
+    };
     
     // Défauts (seulement ceux qui ont une valeur)
-    const defects = [];
     document.querySelectorAll('.defect-select').forEach(select => {
         if (select.value && select.value !== '') {
-            defects.push({
+            data.defects.push({
                 type_id: parseInt(select.value),
                 position_m: parseInt(select.dataset.meter),
                 position_side: select.dataset.side
             });
         }
     });
-    // Toujours inclure defects, même vide, pour écraser les anciennes valeurs
-    data.defects = defects;
     
-    // Épaisseurs (seulement celles qui ont une valeur)
-    const thicknesses = [];
+    // Regrouper les épaisseurs par mètre
+    const thicknessByMeter = {};
+    const rattrapageByMeter = {};
+    
     document.querySelectorAll('.thickness-input').forEach(input => {
-        // Seulement si l'input a une valeur non vide
         if (input.value && input.value.trim() !== '') {
-            thicknesses.push({
-                position_m: parseInt(input.dataset.meter),
-                measurement_point: input.dataset.point,
-                thickness_value: parseFloat(input.value),
-                is_catchup: false
-            });
+            const meter = parseInt(input.dataset.meter);
+            const point = input.dataset.point;
+            const value = parseFloat(input.value);
+            const isRattrapage = input.classList.contains('thickness-rattrapage');
+            
+            if (isRattrapage) {
+                // Stocker les rattrapages séparément
+                if (!rattrapageByMeter[meter]) {
+                    rattrapageByMeter[meter] = {};
+                }
+                rattrapageByMeter[meter][point] = value;
+            } else {
+                // Stocker les épaisseurs normales
+                if (!thicknessByMeter[meter]) {
+                    thicknessByMeter[meter] = {};
+                }
+                thicknessByMeter[meter][point] = value;
+            }
         }
     });
-    // Toujours inclure thickness_measurements, même vide, pour écraser les anciennes valeurs
-    data.thickness_measurements = thicknesses;
+    
+    // Convertir en tableau pour measurements
+    Object.entries(thicknessByMeter).forEach(([meter, points]) => {
+        Object.entries(points).forEach(([point, value]) => {
+            data.thickness.measurements.push({
+                position_m: parseInt(meter),
+                measurement_point: point,
+                thickness_value: value
+            });
+        });
+    });
+    
+    // Convertir en tableau pour rattrapage
+    Object.entries(rattrapageByMeter).forEach(([meter, points]) => {
+        Object.entries(points).forEach(([point, value]) => {
+            data.thickness.rattrapage.push({
+                position_m: parseInt(meter),
+                measurement_point: point,
+                thickness_value: value
+            });
+        });
+    });
     
     return data;
 }
 
 // Fonction pour restaurer les données du rouleau depuis LiveRoll
 function restoreRollData() {
+    // TODO: Migrer vers current-session
+    console.log('restoreRollData désactivé temporairement');
+    return;
+    
     // Récupérer les données depuis LiveRoll
     fetch('/livesession/get-active-roll/')
         .then(response => response.json())
@@ -2480,56 +2721,147 @@ function restoreRollData() {
 }
 
 // Fonction pour charger les données du rouleau actif depuis LiveRoll
-function loadActiveRollData() {
-    fetch('/livesession/get-active-roll/')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.roll_data) {
-                // Restaurer les champs de la sticky bar
-                if (data.roll_data.roll_number) {
-                    document.getElementById('sticky-roll-number').value = data.roll_data.roll_number;
-                }
-                if (data.roll_data.tube_mass) {
-                    document.getElementById('sticky-tube-mass').value = data.roll_data.tube_mass;
-                }
-                if (data.roll_data.length) {
-                    document.getElementById('sticky-roll-length').value = data.roll_data.length;
-                    // Régénérer la visualisation
-                    generateRollVisualization();
-                }
-                if (data.roll_data.total_mass) {
-                    document.getElementById('sticky-total-mass').value = data.roll_data.total_mass;
-                }
-                if (data.roll_data.next_tube_mass) {
-                    document.getElementById('sticky-next-tube-mass').value = data.roll_data.next_tube_mass;
-                }
-                
-                // Les défauts et épaisseurs seront restaurés par restoreRollData() 
-                // après la génération de la visualisation
-                
-                // Restaurer le statut de conformité
-                if (data.roll_data.status) {
-                    const conformityBadge = document.getElementById('conformity-status');
-                    if (conformityBadge) {
-                        conformityBadge.textContent = data.roll_data.status.label;
-                        conformityBadge.className = 'badge';
-                        conformityBadge.style.backgroundColor = data.roll_data.status.color;
-                        conformityBadge.style.color = 'white';
-                    }
-                    // Mettre à jour l'ID du rouleau depuis le draft
-                    const rollIdElement = document.getElementById('sticky-roll-id');
-                    if (rollIdElement && data.roll_data.status.roll_id) {
-                        rollIdElement.textContent = data.roll_data.status.roll_id;
-                    }
-                }
-                
-                // Mettre à jour la masse nette et le grammage
-                updateMassDisplay(data);
+function loadActiveRollData(rollData) {
+    // Si pas de données passées, on ne fait rien
+    if (!rollData) {
+        console.log('Pas de données de rouleau à charger');
+        return;
+    }
+    
+    console.log('Chargement des données du rouleau:', rollData);
+    
+    // Gérer l'ancienne structure (compatibilité)
+    if (rollData.roll_number !== undefined && !rollData.info) {
+        // Ancienne structure plate - conversion vers la nouvelle
+        const oldData = rollData;
+        rollData = {
+            info: {
+                roll_number: oldData.roll_number || '',
+                tube_mass: oldData.tube_mass || '',
+                length: oldData.length || '',
+                total_mass: oldData.total_mass || '',
+                next_tube_mass: oldData.next_tube_mass || ''
+            },
+            defects: oldData.defects || [],
+            thickness: {
+                measurements: oldData.thickness_measurements || [],
+                rattrapage: []
             }
-        })
-        .catch(error => {
-            console.error('Erreur lors du chargement du rouleau actif:', error);
+        };
+    }
+    
+    // Restaurer les informations de base
+    if (rollData.info) {
+        if (rollData.info.roll_number !== undefined) {
+            document.getElementById('sticky-roll-number').value = rollData.info.roll_number;
+        }
+        if (rollData.info.tube_mass !== undefined) {
+            document.getElementById('sticky-tube-mass').value = rollData.info.tube_mass;
+        }
+        if (rollData.info.length !== undefined) {
+            document.getElementById('sticky-roll-length').value = rollData.info.length;
+            // Régénérer la visualisation
+            generateRollVisualization();
+        }
+        if (rollData.info.total_mass !== undefined) {
+            document.getElementById('sticky-total-mass').value = rollData.info.total_mass;
+        }
+        if (rollData.info.next_tube_mass !== undefined) {
+            document.getElementById('sticky-next-tube-mass').value = rollData.info.next_tube_mass;
+        }
+    }
+    
+    // Restaurer les défauts
+    if (rollData.defects && Array.isArray(rollData.defects)) {
+        rollData.defects.forEach(defect => {
+            const select = document.querySelector(`.defect-select[data-meter="${defect.position_m}"][data-side="${defect.position_side}"]`);
+            if (select) {
+                select.value = defect.type_id;
+                // Déclencher l'événement change pour mettre à jour l'affichage
+                select.dispatchEvent(new Event('change'));
+            }
         });
+    }
+    
+    // Restaurer les épaisseurs
+    if (rollData.thickness) {
+        // D'abord effacer toutes les valeurs existantes et cacher les rattrapages
+        document.querySelectorAll('.thickness-input').forEach(input => {
+            input.value = '';
+            if (input.classList.contains('thickness-rattrapage')) {
+                input.style.display = 'none';
+            }
+        });
+        
+        // Restaurer les épaisseurs normales
+        if (rollData.thickness.measurements && Array.isArray(rollData.thickness.measurements)) {
+            rollData.thickness.measurements.forEach(thickness => {
+                const input = document.querySelector(`.thickness-input:not(.thickness-rattrapage)[data-meter="${thickness.position_m}"][data-point="${thickness.measurement_point}"]`);
+                if (input) {
+                    input.value = thickness.thickness_value;
+                }
+            });
+        }
+        
+        // Restaurer les épaisseurs de rattrapage
+        if (rollData.thickness.rattrapage && Array.isArray(rollData.thickness.rattrapage)) {
+            rollData.thickness.rattrapage.forEach(thickness => {
+                const input = document.querySelector(`.thickness-rattrapage[data-meter="${thickness.position_m}"][data-point="${thickness.measurement_point}"]`);
+                if (input) {
+                    input.value = thickness.thickness_value;
+                    // Ne pas afficher automatiquement - laissons colorThicknessInput décider
+                    // input.style.display = 'block'; 
+                }
+            });
+        }
+        
+        // Appliquer les couleurs après avoir restauré toutes les valeurs
+        document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)').forEach(input => {
+            if (input.value) {
+                colorThicknessInput(input);
+            }
+        });
+        
+        // Appliquer les couleurs aux rattrapages
+        document.querySelectorAll('.thickness-rattrapage').forEach(input => {
+            if (input.value) {
+                colorThicknessInput(input);
+            }
+        });
+    }
+}
+
+// Fonction pour effacer toutes les valeurs du rouleau
+function clearRollValues() {
+    // Effacer toutes les épaisseurs (normales et rattrapages)
+    document.querySelectorAll('.thickness-input').forEach(input => {
+        input.value = '';
+        
+        // Si c'est une épaisseur de rattrapage, la cacher et réinitialiser ses styles
+        if (input.classList.contains('thickness-rattrapage')) {
+            input.style.display = 'none';
+            input.style.backgroundColor = '#e3f2fd';
+            input.style.borderColor = '#90caf9';
+            input.style.color = 'black';
+            input.style.fontWeight = 'normal';
+        } else {
+            // Pour les épaisseurs normales, réinitialiser aussi les styles
+            colorThicknessInput(input);
+        }
+    });
+    
+    // Effacer tous les défauts
+    document.querySelectorAll('.defect-select').forEach(select => {
+        select.value = '';
+        // Déclencher l'événement change pour mettre à jour l'affichage
+        select.dispatchEvent(new Event('change'));
+    });
+    
+    // Mettre à jour les résumés
+    updateSummaries();
+    
+    // Sauvegarder l'état vide
+    autoSaveRollData();
 }
 
 // Fonction pour sauvegarder les modes actifs
@@ -2540,16 +2872,8 @@ function saveModes() {
         modes[modeCode] = checkbox.checked;
     });
     
-    const formData = new FormData();
-    formData.append('field', 'active_modes');
-    formData.append('value', JSON.stringify(modes));
-    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-    
-    fetch('/livesession/update-field/', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
+    // updateFieldViaAPI attend la valeur directe, pas JSON.stringify
+    updateFieldViaAPI('active_modes', modes)
     .then(data => {
         updateProfileDisplay();
     })
@@ -2560,6 +2884,190 @@ function saveModes() {
 
 // Variable globale pour stocker les motifs de temps perdu
 let lostTimeReasons = [];
+
+// Variables pour la check-list
+let checklistState = {};
+
+// Variables pour les contrôles qualité
+let qualityControlsState = {};
+let qualitySpecs = {};
+
+// Fonction pour initialiser la check-list
+function initializeChecklist() {
+    // Ajouter les event listeners sur tous les boutons
+    document.querySelectorAll('.checklist-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const itemId = this.getAttribute('data-item');
+            const value = this.getAttribute('data-value');
+            setChecklistValue(itemId, value);
+        });
+    });
+    
+    // Event listener sur le champ signature
+    const signatureField = document.getElementById('operator-signature');
+    if (signatureField) {
+        signatureField.addEventListener('input', validateSignature);
+        signatureField.addEventListener('blur', validateSignature);
+        // Désactiver au départ
+        updateSignatureFieldState();
+    }
+}
+
+// Fonction pour définir la valeur d'un item de check-list
+function setChecklistValue(itemId, value) {
+    // Si on clique sur la valeur déjà sélectionnée, on la désélectionne
+    if (checklistState[itemId] === value) {
+        delete checklistState[itemId];
+    } else {
+        checklistState[itemId] = value;
+    }
+    
+    // Mettre à jour l'affichage des boutons
+    updateChecklistButtons(itemId);
+    
+    // Sauvegarder d'abord l'état de la checklist
+    updateFieldViaAPI('checklist_responses', checklistState).then(() => {
+        // Puis mettre à jour l'état du champ signature (qui peut effacer la signature)
+        updateSignatureFieldState();
+    });
+}
+
+// Fonction pour mettre à jour l'affichage des boutons
+function updateChecklistButtons(itemId) {
+    const buttons = document.querySelectorAll(`.checklist-btn[data-item="${itemId}"]`);
+    const selectedValue = checklistState[itemId];
+    
+    buttons.forEach(button => {
+        const value = button.getAttribute('data-value');
+        if (selectedValue === value) {
+            // Activer ce bouton
+            button.classList.remove('btn-outline-success', 'btn-outline-secondary', 'btn-outline-danger');
+            if (value === 'ok') {
+                button.classList.add('btn-success');
+            } else if (value === 'na') {
+                button.classList.add('btn-secondary');
+            } else if (value === 'nok') {
+                button.classList.add('btn-danger');
+            }
+        } else {
+            // Désactiver ce bouton
+            button.classList.remove('btn-success', 'btn-secondary', 'btn-danger');
+            if (value === 'ok') {
+                button.classList.add('btn-outline-success');
+            } else if (value === 'na') {
+                button.classList.add('btn-outline-secondary');
+            } else if (value === 'nok') {
+                button.classList.add('btn-outline-danger');
+            }
+        }
+    });
+}
+
+// Fonction pour mettre à jour l'état du champ signature
+function updateSignatureFieldState() {
+    const signatureField = document.getElementById('operator-signature');
+    const timeElement = document.getElementById('signature-time');
+    if (!signatureField) return;
+    
+    // Compter le nombre d'items de check-list
+    const totalItems = document.querySelectorAll('.checklist-item').length;
+    const checkedItems = Object.keys(checklistState).length;
+    
+    // Activer le champ signature seulement si tous les items ont un état
+    if (totalItems > 0 && checkedItems === totalItems) {
+        signatureField.disabled = false;
+        signatureField.placeholder = "Signature";
+        // Si on réactive le champ et qu'il contient déjà une valeur, la revalider
+        if (signatureField.value) {
+            validateSignature();
+        }
+    } else {
+        // Si pas tous les items sont cochés, effacer la signature
+        signatureField.disabled = true;
+        signatureField.value = '';
+        signatureField.placeholder = `${checkedItems}/${totalItems} validés`;
+        signatureField.classList.remove('is-valid', 'is-invalid');
+        
+        // Effacer l'heure
+        if (timeElement) {
+            timeElement.textContent = '--';
+        }
+        
+        // IMPORTANT : Effacer la signature dans la session
+        console.log('Effacement de la signature car pas tous les items cochés');
+        // Petit délai pour s'assurer que l'effacement se fait après les autres updates
+        setTimeout(() => {
+            updateFieldViaAPI('checklist_signature', null);
+        }, 100);
+    }
+}
+
+// Fonction pour valider la signature
+function validateSignature() {
+    const signatureField = document.getElementById('operator-signature');
+    const operatorSelect = document.getElementById('id_operator');
+    const timeElement = document.getElementById('signature-time');
+    
+    if (!signatureField || !operatorSelect) return;
+    
+    const signature = signatureField.value.trim().toUpperCase();
+    
+    // Si le champ est vide, réinitialiser l'état
+    if (!signature) {
+        signatureField.classList.remove('is-invalid', 'is-valid');
+        if (timeElement) {
+            timeElement.textContent = '--';
+        }
+        // IMPORTANT: Effacer la signature dans la session
+        updateFieldViaAPI('checklist_signature', null);
+        return;
+    }
+    
+    // Récupérer l'opérateur sélectionné
+    const selectedOption = operatorSelect.options[operatorSelect.selectedIndex];
+    if (!selectedOption || !selectedOption.text) return;
+    
+    // Extraire les initiales de l'opérateur (première lettre du prénom + première lettre du nom)
+    const operatorName = selectedOption.text;
+    const nameParts = operatorName.split(' ');
+    let expectedInitials = '';
+    
+    if (nameParts.length >= 2) {
+        // Format attendu : "Prénom Nom"
+        expectedInitials = nameParts[0].charAt(0) + nameParts[1].charAt(0);
+    }
+    expectedInitials = expectedInitials.toUpperCase();
+    
+    // Vérifier si la signature correspond aux initiales
+    if (signature === expectedInitials) {
+        signatureField.classList.remove('is-invalid');
+        signatureField.classList.add('is-valid');
+        // Ajouter l'heure de signature
+        if (timeElement) {
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            timeElement.textContent = timeStr;
+        }
+        // Sauvegarder
+        updateFieldViaAPI('checklist_signature', {
+            signature: signature,
+            time: new Date().toISOString()
+        });
+    } else {
+        signatureField.classList.remove('is-valid');
+        signatureField.classList.add('is-invalid');
+        // Effacer l'heure si la signature est invalide
+        if (timeElement) {
+            timeElement.textContent = '--';
+        }
+        // Sauvegarder même si invalide pour permettre la correction
+        updateFieldViaAPI('checklist_signature', {
+            signature: signature,
+            time: null,
+            invalid: true
+        });
+    }
+}
 
 // Fonction pour charger les motifs de temps perdu depuis la base
 function loadLostTimeReasons() {
@@ -2641,6 +3149,9 @@ function addLostTimeEntry() {
     
     // Sauvegarder dans le draft
     saveLostTimeToDraft();
+    
+    // Ne pas appeler updateShiftMetrics() ici car saveLostTimeToDraft() le fait déjà
+    // avec les bonnes métriques reçues de l'API
 }
 
 // Fonction pour mettre à jour l'affichage des temps perdus
@@ -2649,22 +3160,6 @@ function updateLostTimeDisplay() {
     if (!listContainer) return;
     
     listContainer.innerHTML = '';
-    
-    // Ajouter l'en-tête avec le total si il y a des entrées
-    if (lostTimeEntries.length > 0) {
-        const headerDiv = document.createElement('div');
-        headerDiv.className = 'd-flex justify-content-between align-items-center p-2';
-        headerDiv.innerHTML = `
-            <div class="flex-grow-1"></div>
-            <div class="d-flex align-items-center">
-                <span class="badge bg-danger text-center" style="min-width: 60px; margin-right: 8px; font-size: 0.85rem;" id="lost-time-total-badge">--</span>
-                <button type="button" class="btn btn-secondary p-1" style="font-size: 0.7rem; line-height: 1;" onclick="clearAllLostTimes()" title="Effacer tout">
-                    <i class="bi bi-x-lg" style="font-size: 0.8rem;"></i>
-                </button>
-            </div>
-        `;
-        listContainer.appendChild(headerDiv);
-    }
     
     lostTimeEntries.forEach(entry => {
         const entryDiv = document.createElement('div');
@@ -2716,6 +3211,9 @@ function removeLostTimeEntry(entryId) {
     lostTimeEntries = lostTimeEntries.filter(e => e.id !== entryId);
     updateLostTimeDisplay();
     saveLostTimeToDraft();
+    
+    // Ne pas appeler updateShiftMetrics() ici car saveLostTimeToDraft() le fait déjà
+    // avec les bonnes métriques reçues de l'API
 }
 
 // Fonction pour effacer tous les temps perdus
@@ -2724,6 +3222,9 @@ function clearAllLostTimes() {
         lostTimeEntries = [];
         updateLostTimeDisplay();
         saveLostTimeToDraft();
+        
+        // Ne pas appeler updateShiftMetrics() ici car saveLostTimeToDraft() le fait déjà
+        // avec les bonnes métriques reçues de l'API
     }
 }
 
@@ -2748,62 +3249,42 @@ function updateLostTimeTotal() {
         }
     }
     
-    // Mettre à jour le total dans la ligne de total
-    const totalBadgeElement = document.getElementById('lost-time-total-badge');
-    if (totalBadgeElement) {
-        // Même formatage
-        if (total >= 60) {
-            const hours = Math.floor(total / 60);
-            const minutes = total % 60;
-            if (minutes > 0) {
-                totalBadgeElement.textContent = `${hours}h${minutes.toString().padStart(2, '0')}`;
-            } else {
-                totalBadgeElement.textContent = `${hours}h`;
-            }
-        } else {
-            totalBadgeElement.textContent = total > 0 ? `${total} min` : '--';
-        }
-    }
 }
 
 // Fonction pour sauvegarder les temps perdus dans le draft
 function saveLostTimeToDraft() {
-    // Collecter toutes les données du shift incluant les temps perdus
-    const shiftData = {
-        lost_times: lostTimeEntries
-    };
-    
-    // Sauvegarder via l'API LiveShift
-    fetch('/livesession/auto-save/', {
-        method: 'POST',
+    // Sauvegarder via la nouvelle API DRF
+    fetch('/livesession/api/current-session/', {
+        method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCookie('csrftoken')
         },
         credentials: 'same-origin',
-        body: JSON.stringify(shiftData)
+        body: JSON.stringify({
+            lost_times: lostTimeEntries
+        })
     })
     .then(response => response.json())
     .then(data => {
-        if (!data.success) {
-            console.error('Erreur lors de la sauvegarde des temps perdus');
+        // Mettre à jour les métriques automatiquement
+        if (data.metrics) {
+            console.log('Métriques reçues:', data.metrics);
+            updateShiftMetrics(data.metrics);
         }
+        if (data.validation && !data.validation.is_valid) {
+            console.error('Erreurs de validation:', data.validation.errors);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur lors de la sauvegarde des temps perdus:', error);
     });
 }
 
 // Fonction pour charger les temps perdus depuis le draft
 function loadLostTimesFromDraft() {
-    fetch('/livesession/get-saved-data/')
-        .then(response => response.json())
-        .then(result => {
-            if (result.success && result.data && result.data.lost_times) {
-                lostTimeEntries = result.data.lost_times;
-                updateLostTimeDisplay();
-            }
-        })
-        .catch(error => {
-            console.error('Erreur lors du chargement des temps perdus:', error);
-        });
+    // Les temps perdus sont maintenant chargés dans DOMContentLoaded
+    // Cette fonction est conservée pour compatibilité mais ne fait plus d'appel API
 }
 
 // Fonction pour générer les options de durée par tranches de 5 minutes
@@ -2831,14 +3312,304 @@ function populateTimeOptions() {
     }
 }
 
+// Fonction pour convertir les minutes en format heures:minutes
+function formatMinutesToHours(minutes) {
+    if (!minutes || minutes === 0) return '--';
+    
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    
+    if (hours === 0) {
+        return `${mins}min`;
+    }
+    
+    return `${hours}h${mins.toString().padStart(2, '0')}`;
+}
+
+// Fonction pour calculer le TO depuis les heures de la fiche
+function calculateTOFromShiftHours() {
+    const startTimeField = document.querySelector('input[name="start_time"]');
+    const endTimeField = document.querySelector('input[name="end_time"]');
+    
+    if (!startTimeField || !endTimeField) {
+        return 0;
+    }
+    
+    const startTimeValue = startTimeField.value;
+    const endTimeValue = endTimeField.value;
+    
+    if (startTimeValue && endTimeValue) {
+        const [startHours, startMinutes] = startTimeValue.split(':').map(Number);
+        const [endHours, endMinutes] = endTimeValue.split(':').map(Number);
+        
+        let startTotalMinutes = startHours * 60 + startMinutes;
+        let endTotalMinutes = endHours * 60 + endMinutes;
+        
+        if (endTotalMinutes < startTotalMinutes) {
+            endTotalMinutes += 24 * 60;
+        }
+        
+        return endTotalMinutes - startTotalMinutes;
+    }
+    
+    return 0;
+}
+
+// Fonction pour mettre à jour les métriques du poste
+function updateShiftMetrics(metrics) {
+    // Si pas de métriques fournies, ne rien faire (elles sont chargées au démarrage)
+    if (!metrics) {
+        console.log('updateShiftMetrics: Pas de métriques fournies');
+        return;
+    }
+    
+    // Stocker les métriques pour les calculs
+    window.currentMetrics = metrics;
+    
+    // Mettre à jour TO (Temps d'Ouverture)
+    const toElement = document.getElementById('temps-ouverture');
+    if (toElement) {
+        toElement.textContent = metrics.to_formatted || '--';
+    }
+    
+    // Mettre à jour TP (Temps Perdu)
+    const tpElement = document.getElementById('temps-perdu-total');
+    if (tpElement) {
+        tpElement.textContent = metrics.tp_formatted || '--';
+    }
+    
+    // Mettre à jour Longueur Perdue
+    const lgPerdueElement = document.getElementById('lg-perdue');
+    if (lgPerdueElement) {
+        lgPerdueElement.textContent = metrics.length_lost_formatted || '--';
+    }
+    
+    // Mettre à jour Longueur Enroulable
+    const lgEnroulableElement = document.getElementById('lg-enroulable');
+    if (lgEnroulableElement) {
+        lgEnroulableElement.textContent = metrics.length_enroulable_formatted || '--';
+    }
+    
+    // Mettre à jour TD (Temps Disponible)
+    const tdElement = document.getElementById('temps-disponible');
+    if (tdElement) {
+        tdElement.textContent = metrics.td_formatted || '--';
+    }
+    
+    // Calculer et sauvegarder les métriques de productivité
+    calculateAndSaveProductivityMetrics();
+}
+
 // Initialisation au chargement
 document.addEventListener('DOMContentLoaded', function() {
     populateTimeOptions();
     loadLostTimeReasons();
-    loadLostTimesFromDraft();
+    // loadLostTimesFromDraft(); - Supprimé, maintenant chargé ci-dessous
     loadThicknessSpecs();
     loadAllSpecs();
     loadDefectTypes();
+    
+    // UN SEUL appel pour toutes les données
+    fetch('/livesession/api/current-session/')
+        .then(response => response.json())
+        .then(data => {
+            // Distribuer les données aux différentes fonctions
+            
+            // 1. Métriques
+            if (data.metrics) {
+                updateShiftMetrics(data.metrics);
+            }
+            
+            // 2. Temps perdus
+            if (data.lost_times && Array.isArray(data.lost_times)) {
+                lostTimeEntries = data.lost_times;
+                updateLostTimeDisplay();
+                updateLostTimeTotal();
+                updateShiftMetrics(data.metrics); // Mise à jour avec TP
+            }
+            
+            // 3. Initialiser les champs OF depuis la session
+            if (data.current_of) {
+                const currentOrderSelect = document.getElementById('current-order');
+                if (currentOrderSelect) {
+                    currentOrderSelect.value = data.current_of;
+                }
+            }
+            
+            if (data.cutting_of) {
+                const cuttingOrderSelect = document.getElementById('cutting-order');
+                if (cuttingOrderSelect) {
+                    cuttingOrderSelect.value = data.cutting_of;
+                }
+            }
+            
+            if (data.target_length) {
+                const targetLengthInput = document.getElementById('target-length');
+                if (targetLengthInput) {
+                    targetLengthInput.value = parseNumberValue(data.target_length);
+                }
+            }
+            
+            // 4. Initialiser le profil sélectionné
+            if (data.selected_profile) {
+                const profileSelector = document.getElementById('profile-selector');
+                if (profileSelector) {
+                    profileSelector.value = data.selected_profile;
+                    updateProfileDisplay();
+                    loadMachineParameters(data.selected_profile);
+                }
+            }
+            
+            // 5. Initialiser les modes actifs
+            if (data.active_modes) {
+                Object.keys(data.active_modes).forEach(modeCode => {
+                    const checkbox = document.getElementById(`mode-${modeCode}`);
+                    if (checkbox) {
+                        checkbox.checked = data.active_modes[modeCode];
+                    }
+                });
+                // Attendre un peu avant de mettre à jour l'affichage
+                setTimeout(() => updateProfileDisplay(), 100);
+            }
+            
+            // 6. Initialiser le numéro de rouleau
+            if (data.roll_number) {
+                const rollNumberInput = document.getElementById('sticky-roll-number');
+                if (rollNumberInput) {
+                    rollNumberInput.value = data.roll_number;
+                    rollNumberInput.defaultValue = data.roll_number;
+                }
+            }
+            
+            // 7. Afficher les métriques sauvegardées
+            if (data.length_enroulable !== undefined) {
+                const lengthEnroulableSpan = document.getElementById('lg-enroulable');
+                if (lengthEnroulableSpan) {
+                    lengthEnroulableSpan.textContent = data.length_enroulable + 'm';
+                }
+            }
+            
+            // 8. Si on a une vitesse sauvegardée, la stocker et recalculer
+            if (data.belt_speed) {
+                window.savedBeltSpeed = data.belt_speed;
+                if (window.currentMetrics) {
+                    calculateAndSaveProductivityMetrics(data.belt_speed);
+                }
+            }
+            
+            // 9. Initialiser la check-list depuis la session
+            if (data.checklist_responses) {
+                checklistState = data.checklist_responses;
+                // Mettre à jour l'affichage de tous les boutons
+                Object.keys(checklistState).forEach(itemId => {
+                    updateChecklistButtons(itemId);
+                });
+                updateSignatureFieldState();
+            }
+            
+            // 10. Restaurer les contrôles qualité
+            if (data.quality_controls) {
+                // Micronnaires gauche
+                for (let i = 1; i <= 3; i++) {
+                    const value = data.quality_controls[`micronnaire_left_${i}`];
+                    if (value !== undefined) {
+                        const input = document.querySelectorAll('.micronnaire-left')[i-1];
+                        if (input) input.value = value;
+                    }
+                }
+                
+                // Micronnaires droite
+                for (let i = 1; i <= 3; i++) {
+                    const value = data.quality_controls[`micronnaire_right_${i}`];
+                    if (value !== undefined) {
+                        const input = document.querySelectorAll('.micronnaire-right')[i-1];
+                        if (input) input.value = value;
+                    }
+                }
+                
+                // Extrait sec
+                if (data.quality_controls.extrait_sec !== undefined) {
+                    const input = document.getElementById('sizing-bath-input');
+                    if (input) {
+                        input.value = data.quality_controls.extrait_sec;
+                        applyDryExtractColor(input, data.quality_controls.extrait_sec);
+                    }
+                    if (data.quality_controls.extrait_sec_time) {
+                        document.getElementById('sizing-bath-time').textContent = data.quality_controls.extrait_sec_time;
+                    }
+                }
+                
+                // Masses surfaciques
+                const massFields = {
+                    'surface_mass_gg': 'gg-input',
+                    'surface_mass_gc': 'gc-input',
+                    'surface_mass_dc': 'dc-input',
+                    'surface_mass_dd': 'dd-input'
+                };
+                
+                Object.entries(massFields).forEach(([fieldName, inputId]) => {
+                    if (data.quality_controls[fieldName] !== undefined) {
+                        const input = document.getElementById(inputId);
+                        if (input) input.value = data.quality_controls[fieldName];
+                    }
+                });
+                
+                // LOI
+                if (data.quality_controls.loi_given !== undefined) {
+                    const loiSwitch = document.getElementById('loiSwitch');
+                    if (loiSwitch) loiSwitch.checked = data.quality_controls.loi_given;
+                    if (data.quality_controls.loi_time) {
+                        document.getElementById('loi-time').textContent = data.quality_controls.loi_time;
+                    }
+                }
+                
+                // Calculer les moyennes
+                calculateMicronnaireAverage();
+                calculateSurfaceMassAverage();
+            }
+            
+            // 11. Initialiser la signature si elle existe
+            if (data.checklist_signature && data.checklist_signature.signature) {
+                const signatureField = document.getElementById('operator-signature');
+                const timeElement = document.getElementById('signature-time');
+                
+                // Vérifier que tous les items sont cochés
+                const totalItems = document.querySelectorAll('.checklist-item').length;
+                const checkedItems = Object.keys(checklistState).length;
+                
+                if (totalItems > 0 && checkedItems === totalItems) {
+                    // Tous les items sont cochés, on peut restaurer la signature
+                    if (signatureField) {
+                        signatureField.value = data.checklist_signature.signature;
+                        // Valider immédiatement pour appliquer les styles
+                        validateSignature();
+                    }
+                    if (timeElement && data.checklist_signature.time && !data.checklist_signature.invalid) {
+                        const signTime = new Date(data.checklist_signature.time);
+                        timeElement.textContent = `${signTime.getHours().toString().padStart(2, '0')}:${signTime.getMinutes().toString().padStart(2, '0')}`;
+                    }
+                } else {
+                    // Si pas tous cochés, supprimer la signature de la session
+                    updateFieldViaAPI('checklist_signature', null);
+                }
+            }
+            
+            // 12. Restaurer les données du rouleau actif
+            if (data.current_roll) {
+                // Attendre un peu pour que la visualisation soit générée
+                setTimeout(() => {
+                    loadActiveRollData(data.current_roll);
+                }, 500);
+            }
+            
+            // Le TRS est affiché ailleurs
+            
+            // Les données du formulaire sont chargées par shift_block.html
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement de la session:', error);
+        });
+    
     
     // Initialiser les tooltips Bootstrap
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -2846,27 +3617,16 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
     
-    // Restaurer les modes sauvegardés
-    const savedModes = JSON.parse('{{ active_modes_json|escapejs }}');
-    
-    // Charger les données du rouleau actif depuis LiveRoll
-    loadActiveRollData();
-    
-    // Restaurer le numéro de rouleau persistant
-    {% if roll_number %}
-    const rollNumberInput = document.getElementById('sticky-roll-number');
-    rollNumberInput.value = '{{ roll_number }}';
-    rollNumberInput.defaultValue = '{{ roll_number }}';  // Pour la comparaison lors de la modification
-    {% endif %}
-    Object.keys(savedModes).forEach(modeCode => {
-        const checkbox = document.getElementById('mode-' + modeCode);
-        if (checkbox) {
-            checkbox.checked = savedModes[modeCode];
-        }
-    });
+    // Les données du rouleau seront chargées depuis current-session
     
     // Mettre à jour l'affichage du profil et des modes
     updateProfileDisplay();
+    
+    // Initialiser la check-list
+    initializeChecklist();
+    
+    // Initialiser les contrôles qualité
+    // initializeQualityControls(); // Supprimé - à remplacer par le nouveau système
     
     // Charger les paramètres machine du profil sélectionné
     const profileSelector = document.getElementById('profile-selector');
@@ -2890,68 +3650,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Charger les contrôles qualité sauvegardés
-    loadQualityControls();
+    // loadQualityControls(); // Supprimé - migré vers le nouveau système
 });
 
 // Fonction pour charger les contrôles qualité sauvegardés
-function loadQualityControls() {
-    fetch('/livesession/get-quality-control/')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.quality_data) {
-                // Restaurer les valeurs des micronnaires
-                if (data.quality_data.micronnaire_left) {
-                    const leftInputs = document.querySelectorAll('.micronnaire-left');
-                    data.quality_data.micronnaire_left.forEach((value, index) => {
-                        if (leftInputs[index] && value !== null) {
-                            leftInputs[index].value = value;
-                        }
-                    });
-                }
-                
-                if (data.quality_data.micronnaire_right) {
-                    const rightInputs = document.querySelectorAll('.micronnaire-right');
-                    data.quality_data.micronnaire_right.forEach((value, index) => {
-                        if (rightInputs[index] && value !== null) {
-                            rightInputs[index].value = value;
-                        }
-                    });
-                }
-                
-                // Restaurer les masses surfaciques
-                const fieldsToRestore = {
-                    'surface_mass_gg': 'gg-input',
-                    'surface_mass_gc': 'gc-input',
-                    'surface_mass_dc': 'dc-input',
-                    'surface_mass_dd': 'dd-input',
-                    'extrait_sec': 'sizing-bath-input'
-                };
-                
-                Object.entries(fieldsToRestore).forEach(([dataKey, inputId]) => {
-                    if (data.quality_data[dataKey] !== undefined && data.quality_data[dataKey] !== null) {
-                        const input = document.getElementById(inputId);
-                        if (input) {
-                            input.value = data.quality_data[dataKey];
-                        }
-                    }
-                });
-                
-                // Restaurer le switch LOI
-                if (data.quality_data.loi_given !== undefined) {
-                    const loiSwitch = document.getElementById('loiSwitch');
-                    if (loiSwitch) {
-                        loiSwitch.checked = data.quality_data.loi_given;
-                    }
-                }
-                
-                // Mettre à jour les moyennes et heures
-                updateQualityAverages(data.quality_data);
-            }
-        })
-        .catch(error => {
-            console.error('Erreur lors du chargement des contrôles qualité:', error);
-        });
-}
+// Fonction loadQualityControls supprimée - migrée vers le nouveau système
 
 // Fonction pour formater les inputs décimaux (ajouter 0 devant la virgule)
 function formatDecimalInput(input) {
@@ -2973,178 +3676,100 @@ function formatDecimalInput(input) {
 // Variable pour le debounce des contrôles qualité
 let qualityControlTimeout = null;
 
-// Fonction pour sauvegarder un contrôle qualité et récupérer les moyennes calculées
-function saveQualityControl(fieldName, value) {
-    // Si on est en batch update (Random CTRL ou Clear), on ignore
-    if (isBatchUpdate) {
-        return;
-    }
-    
-    // Si on efface un champ d'extrait sec ou qu'on décoche LOI, effacer l'heure immédiatement
-    if (fieldName === 'extrait_sec' && !value) {
-        document.getElementById('sizing-bath-time').textContent = '--';
-    }
-    if (fieldName === 'loi_given' && (value === false || value === 'false')) {
-        document.getElementById('loi-time').textContent = '--';
-    }
-    
-    // Annuler le timeout précédent
-    if (qualityControlTimeout) {
-        clearTimeout(qualityControlTimeout);
-    }
-    
-    // Debounce de 500ms
-    qualityControlTimeout = setTimeout(() => {
-        fetch('/livesession/save-quality-control/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: JSON.stringify({
-                field: fieldName,
-                value: value
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.quality_data) {
-                // Mettre à jour les moyennes affichées
-                updateQualityAverages(data.quality_data);
-            }
-        })
-        .catch(error => {
-            console.error('Erreur lors de la sauvegarde du contrôle qualité:', error);
-        });
-    }, 500);
-}
+// Fonction saveQualityControl supprimée - migrée vers le nouveau système
 
-// Fonction pour mettre à jour l'affichage des moyennes
-function updateQualityAverages(data) {
-    // Moyennes micronnaire avec code couleur
-    if (data.micronnaire_left_avg !== undefined) {
-        const avgElement = document.getElementById('micronnaire-left-avg');
-        if (data.micronnaire_left_avg !== null) {
-            avgElement.textContent = data.micronnaire_left_avg;
-            // Appliquer le code couleur
-            applyMicrometerColor(avgElement, data.micronnaire_left_avg);
-        } else {
-            avgElement.textContent = '--';
-            avgElement.style.color = '#6c757d'; // Couleur grise par défaut
-        }
-    }
-    if (data.micronnaire_right_avg !== undefined) {
-        const avgElement = document.getElementById('micronnaire-right-avg');
-        if (data.micronnaire_right_avg !== null) {
-            avgElement.textContent = data.micronnaire_right_avg;
-            // Appliquer le code couleur
-            applyMicrometerColor(avgElement, data.micronnaire_right_avg);
-        } else {
-            avgElement.textContent = '--';
-            avgElement.style.color = '#6c757d'; // Couleur grise par défaut
-        }
-    }
-    
-    // Moyennes masses surfaciques avec code couleur
-    if (data.surface_mass_left_avg !== undefined) {
-        const avgElement = document.getElementById('surface-mass-left-avg');
-        if (data.surface_mass_left_avg !== null) {
-            avgElement.textContent = data.surface_mass_left_avg;
-            // Appliquer le code couleur
-            applySurfaceMassColor(avgElement, data.surface_mass_left_avg);
-        } else {
-            avgElement.textContent = '--';
-            avgElement.style.color = '#6c757d'; // Couleur grise par défaut
-        }
-    }
-    if (data.surface_mass_right_avg !== undefined) {
-        const avgElement = document.getElementById('surface-mass-right-avg');
-        if (data.surface_mass_right_avg !== null) {
-            avgElement.textContent = data.surface_mass_right_avg;
-            // Appliquer le code couleur
-            applySurfaceMassColor(avgElement, data.surface_mass_right_avg);
-        } else {
-            avgElement.textContent = '--';
-            avgElement.style.color = '#6c757d'; // Couleur grise par défaut
-        }
-    }
-    
-    // Heures
-    if (data.extrait_sec_time !== undefined) {
-        document.getElementById('sizing-bath-time').textContent = 
-            data.extrait_sec_time !== null ? data.extrait_sec_time : '--';
-    }
-    if (data.loi_time !== undefined) {
-        document.getElementById('loi-time').textContent = 
-            data.loi_time !== null ? data.loi_time : '--';
-    }
-}
+// Fonction updateQualityAverages supprimée - migrée vers le nouveau système
 
 // Fonction appelée quand on change un micronnaire
 function calculateMicronnaireAverage() {
-    // Récupérer les inputs et sauvegarder
+    // Calculer la moyenne gauche
     const leftInputs = document.querySelectorAll('.micronnaire-left');
-    leftInputs.forEach((input, index) => {
-        if (document.activeElement === input) {
-            saveQualityControl(`micronnaire_left_${index + 1}`, input.value);
-            
-            // Vérifier immédiatement si tous les champs gauche sont vides
-            const hasLeftValues = Array.from(leftInputs).some(inp => inp.value.trim() !== '');
-            const leftAvgElement = document.getElementById('micronnaire-left-avg');
-            if (!hasLeftValues) {
-                leftAvgElement.textContent = '--';
-                leftAvgElement.style.color = '#6c757d';
-            }
-        }
-    });
+    const leftValues = Array.from(leftInputs)
+        .map(input => parseFloat(input.value))
+        .filter(val => !isNaN(val));
     
+    const leftAvgElement = document.getElementById('micronnaire-left-avg');
+    if (leftValues.length > 0) {
+        const leftAvg = (leftValues.reduce((sum, val) => sum + val, 0) / leftValues.length).toFixed(2);
+        leftAvgElement.textContent = leftAvg;
+        applyMicrometerColor(leftAvgElement, leftAvg);
+    } else {
+        leftAvgElement.textContent = '--';
+        leftAvgElement.style.color = '#6c757d';
+    }
+    
+    // Calculer la moyenne droite
     const rightInputs = document.querySelectorAll('.micronnaire-right');
-    rightInputs.forEach((input, index) => {
-        if (document.activeElement === input) {
-            saveQualityControl(`micronnaire_right_${index + 1}`, input.value);
-            
-            // Vérifier immédiatement si tous les champs droite sont vides
-            const hasRightValues = Array.from(rightInputs).some(inp => inp.value.trim() !== '');
-            const rightAvgElement = document.getElementById('micronnaire-right-avg');
-            if (!hasRightValues) {
-                rightAvgElement.textContent = '--';
-                rightAvgElement.style.color = '#6c757d';
-            }
-        }
-    });
+    const rightValues = Array.from(rightInputs)
+        .map(input => parseFloat(input.value))
+        .filter(val => !isNaN(val));
+    
+    const rightAvgElement = document.getElementById('micronnaire-right-avg');
+    if (rightValues.length > 0) {
+        const rightAvg = (rightValues.reduce((sum, val) => sum + val, 0) / rightValues.length).toFixed(2);
+        rightAvgElement.textContent = rightAvg;
+        applyMicrometerColor(rightAvgElement, rightAvg);
+    } else {
+        rightAvgElement.textContent = '--';
+        rightAvgElement.style.color = '#6c757d';
+    }
+    
+    // Sauvegarder les données
+    saveQualityControlsToSession();
 }
 
 // Fonction appelée quand on change une masse surfacique
 function calculateSurfaceMassAverage() {
-    const activeElement = document.activeElement;
-    if (activeElement.id) {
-        const fieldMap = {
-            'gg-input': 'surface_mass_gg',
-            'gc-input': 'surface_mass_gc',
-            'dc-input': 'surface_mass_dc',
-            'dd-input': 'surface_mass_dd'
-        };
-        
-        const fieldName = fieldMap[activeElement.id];
-        if (fieldName) {
-            saveQualityControl(fieldName, activeElement.value);
-            
-            // Vérifier immédiatement les moyennes
-            const ggInput = document.getElementById('gg-input');
-            const gcInput = document.getElementById('gc-input');
-            const hasLeftValues = (ggInput && ggInput.value.trim() !== '') || (gcInput && gcInput.value.trim() !== '');
-            if (!hasLeftValues) {
-                document.getElementById('surface-mass-left-avg').textContent = '--';
-            }
-            
-            const dcInput = document.getElementById('dc-input');
-            const ddInput = document.getElementById('dd-input');
-            const hasRightValues = (dcInput && dcInput.value.trim() !== '') || (ddInput && ddInput.value.trim() !== '');
-            if (!hasRightValues) {
-                document.getElementById('surface-mass-right-avg').textContent = '--';
-            }
-        }
+    // Calculer la moyenne gauche (GG + GC)
+    const ggInput = document.getElementById('gg-input');
+    const gcInput = document.getElementById('gc-input');
+    const leftValues = [];
+    
+    if (ggInput && ggInput.value) {
+        const val = parseFloat(ggInput.value);
+        if (!isNaN(val)) leftValues.push(val);
     }
+    if (gcInput && gcInput.value) {
+        const val = parseFloat(gcInput.value);
+        if (!isNaN(val)) leftValues.push(val);
+    }
+    
+    const leftAvgElement = document.getElementById('surface-mass-left-avg');
+    if (leftValues.length > 0) {
+        const leftAvg = (leftValues.reduce((sum, val) => sum + val, 0) / leftValues.length).toFixed(4);
+        leftAvgElement.textContent = leftAvg;
+        applySurfaceMassColor(leftAvgElement, leftAvg);
+    } else {
+        leftAvgElement.textContent = '--';
+        leftAvgElement.style.color = '#6c757d';
+    }
+    
+    // Calculer la moyenne droite (DC + DD)
+    const dcInput = document.getElementById('dc-input');
+    const ddInput = document.getElementById('dd-input');
+    const rightValues = [];
+    
+    if (dcInput && dcInput.value) {
+        const val = parseFloat(dcInput.value);
+        if (!isNaN(val)) rightValues.push(val);
+    }
+    if (ddInput && ddInput.value) {
+        const val = parseFloat(ddInput.value);
+        if (!isNaN(val)) rightValues.push(val);
+    }
+    
+    const rightAvgElement = document.getElementById('surface-mass-right-avg');
+    if (rightValues.length > 0) {
+        const rightAvg = (rightValues.reduce((sum, val) => sum + val, 0) / rightValues.length).toFixed(4);
+        rightAvgElement.textContent = rightAvg;
+        applySurfaceMassColor(rightAvgElement, rightAvg);
+    } else {
+        rightAvgElement.textContent = '--';
+        rightAvgElement.style.color = '#6c757d';
+    }
+    
+    // Sauvegarder les données
+    saveQualityControlsToSession();
 }
 
 // Fonction pour remplir les contrôles qualité avec des valeurs aléatoires basées sur les specs
@@ -3215,7 +3840,6 @@ window.fillRandomQualityControls = function() {
                         const value = (parseFloat(micrometerValue) * variation).toFixed(2);
                         console.log(`Setting micronnaire_left_${index + 1} = ${value}`);
                         input.value = value;
-                        saveQualityControl(`micronnaire_left_${index + 1}`, value);
                     });
                     
                     // Micronnaire droite
@@ -3227,7 +3851,6 @@ window.fillRandomQualityControls = function() {
                         const value = (parseFloat(micrometerValue) * variation).toFixed(2);
                         console.log(`Setting micronnaire_right_${index + 1} = ${value}`);
                         input.value = value;
-                        saveQualityControl(`micronnaire_right_${index + 1}`, value);
                     });
                 }
             } else {
@@ -3242,7 +3865,6 @@ window.fillRandomQualityControls = function() {
                     if (extraitSecInput) {
                         extraitSecInput.value = extraitSec;
                         applyDryExtractColor(extraitSecInput, extraitSec);
-                        saveQualityControl('extrait_sec', extraitSec);
                     }
                 }
             }
@@ -3265,7 +3887,6 @@ window.fillRandomQualityControls = function() {
                         const input = document.getElementById(inputId);
                         if (input) {
                             input.value = value;
-                            saveQualityControl(fieldName, value);
                         }
                     });
                 }
@@ -3284,7 +3905,6 @@ window.fillRandomQualityControls = function() {
                     const input = document.getElementById(inputId);
                     if (input) {
                         input.value = value;
-                        saveQualityControl(fieldName, value);
                     }
                 });
             }
@@ -3304,14 +3924,17 @@ window.fillRandomQualityControls = function() {
                 }
                 // Déclencher l'événement change pour activer le handler
                 loiSwitch.dispatchEvent(new Event('change', { bubbles: true }));
-                saveQualityControl('loi_given', loiValue);
             }
             
-            // Désactiver le flag batch et forcer une sauvegarde
+            // Désactiver le flag batch et mettre à jour les moyennes et heures
             setTimeout(() => {
                 isBatchUpdate = false;
-                // Forcer la sauvegarde de toutes les données
-                saveAllQualityControls();
+                // Mettre à jour les moyennes
+                calculateMicronnaireAverage();
+                calculateSurfaceMassAverage();
+                // Mettre à jour les heures
+                updateExtraitSecTime(document.getElementById('sizing-bath-input')?.value);
+                updateLoiTime(document.getElementById('loiSwitch')?.checked);
             }, 100);
         })
         .catch(error => {
@@ -3327,9 +3950,6 @@ function fillRandomQualityControlsDefault() {
     document.querySelectorAll('.micronnaire-left, .micronnaire-right').forEach((input, index) => {
         const value = (3 + Math.random() * 2).toFixed(2);
         input.value = value;
-        const isLeft = input.classList.contains('micronnaire-left');
-        const idx = Array.from(document.querySelectorAll(isLeft ? '.micronnaire-left' : '.micronnaire-right')).indexOf(input);
-        saveQualityControl(`micronnaire_${isLeft ? 'left' : 'right'}_${idx + 1}`, value);
     });
     
     const extraitSec = (9 + Math.random() * 2).toFixed(2);
@@ -3337,7 +3957,6 @@ function fillRandomQualityControlsDefault() {
     if (extraitSecInput) {
         extraitSecInput.value = extraitSec;
         applyDryExtractColor(extraitSecInput, extraitSec);
-        saveQualityControl('extrait_sec', extraitSec);
     }
     
     ['gg-input', 'gc-input', 'dc-input', 'dd-input'].forEach(id => {
@@ -3346,7 +3965,6 @@ function fillRandomQualityControlsDefault() {
             // Masses surfaciques autour de 0.0109 avec 4 décimales
             const value = (0.0109 + (Math.random() - 0.5) * 0.0010).toFixed(4);
             input.value = value;
-            saveQualityControl(`surface_mass_${id.split('-')[0]}`, value);
         }
     });
     
@@ -3365,95 +3983,115 @@ function fillRandomQualityControlsDefault() {
         }
         // Déclencher l'événement change
         loiSwitch.dispatchEvent(new Event('change', { bubbles: true }));
-        saveQualityControl('loi_given', loiValue);
     }
     
     // Désactiver le flag batch et forcer une sauvegarde
     setTimeout(() => {
         isBatchUpdate = false;
-        saveAllQualityControls();
+        // Mettre à jour les moyennes
+        calculateMicronnaireAverage();
+        calculateSurfaceMassAverage();
+        // Mettre à jour les heures
+        updateExtraitSecTime(document.getElementById('sizing-bath-input')?.value);
+        updateLoiTime(document.getElementById('loiSwitch')?.checked);
     }, 100);
 }
 
-// Fonction pour sauvegarder tous les contrôles qualité d'un coup
-function saveAllQualityControls() {
+// Fonction saveAllQualityControls supprimée - migrée vers le nouveau système
+
+// Fonction pour sauvegarder les contrôles qualité dans la session
+function saveQualityControlsToSession() {
     const qualityData = {};
     
-    // Collecter tous les micronnaires
+    // Micronnaires gauche
     document.querySelectorAll('.micronnaire-left').forEach((input, index) => {
         if (input.value) {
-            qualityData[`micronnaire_left_${index + 1}`] = input.value;
+            qualityData[`micronnaire_left_${index + 1}`] = parseFloat(input.value);
         }
     });
     
+    // Micronnaires droite
     document.querySelectorAll('.micronnaire-right').forEach((input, index) => {
         if (input.value) {
-            qualityData[`micronnaire_right_${index + 1}`] = input.value;
+            qualityData[`micronnaire_right_${index + 1}`] = parseFloat(input.value);
         }
     });
     
     // Extrait sec
     const extraitSecInput = document.getElementById('sizing-bath-input');
     if (extraitSecInput && extraitSecInput.value) {
-        qualityData['extrait_sec'] = extraitSecInput.value;
+        qualityData.extrait_sec = parseFloat(extraitSecInput.value);
+        const timeElement = document.getElementById('sizing-bath-time');
+        if (timeElement && timeElement.textContent !== '--') {
+            qualityData.extrait_sec_time = timeElement.textContent;
+        }
     }
     
     // Masses surfaciques
-    const massFields = {
+    const massInputs = {
         'gg-input': 'surface_mass_gg',
-        'gc-input': 'surface_mass_gc',
+        'gc-input': 'surface_mass_gc', 
         'dc-input': 'surface_mass_dc',
         'dd-input': 'surface_mass_dd'
     };
     
-    Object.entries(massFields).forEach(([inputId, fieldName]) => {
+    Object.entries(massInputs).forEach(([inputId, fieldName]) => {
         const input = document.getElementById(inputId);
         if (input && input.value) {
-            qualityData[fieldName] = input.value;
+            qualityData[fieldName] = parseFloat(input.value);
         }
     });
     
     // LOI
     const loiSwitch = document.getElementById('loiSwitch');
     if (loiSwitch) {
-        qualityData['loi_given'] = loiSwitch.checked;
-        
-        // Mettre à jour l'heure de LOI immédiatement si cochée
+        qualityData.loi_given = loiSwitch.checked;
         if (loiSwitch.checked) {
-            const now = new Date();
-            const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-            document.getElementById('loi-time').textContent = time;
+            const timeElement = document.getElementById('loi-time');
+            if (timeElement && timeElement.textContent !== '--') {
+                qualityData.loi_time = timeElement.textContent;
+            }
         }
     }
     
-    // Mettre à jour l'heure d'extrait sec immédiatement si rempli
-    if (qualityData['extrait_sec']) {
+    // Moyennes (calculées, pas besoin de les sauvegarder)
+    
+    // Sauvegarder dans la session
+    updateFieldViaAPI('quality_controls', qualityData);
+}
+
+// Fonction pour mettre à jour l'heure de l'extrait sec
+function updateExtraitSecTime(value) {
+    const timeElement = document.getElementById('sizing-bath-time');
+    if (!timeElement) return;
+    
+    if (value && value !== '') {
         const now = new Date();
-        const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-        document.getElementById('sizing-bath-time').textContent = time;
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        timeElement.textContent = timeStr;
+    } else {
+        timeElement.textContent = '--';
     }
     
-    // Envoyer toutes les données d'un coup
-    fetch('/livesession/save-quality-control/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: JSON.stringify({
-            field: 'batch_update',
-            value: qualityData
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && data.quality_data) {
-            updateQualityAverages(data.quality_data);
-        }
-    })
-    .catch(error => {
-        console.error('Erreur lors de la sauvegarde batch:', error);
-    });
+    // Sauvegarder les données
+    saveQualityControlsToSession();
+}
+
+// Fonction pour mettre à jour l'heure LOI
+function updateLoiTime(checked) {
+    const timeElement = document.getElementById('loi-time');
+    if (!timeElement) return;
+    
+    if (checked) {
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        timeElement.textContent = timeStr;
+    } else {
+        timeElement.textContent = '--';
+    }
+    
+    // Sauvegarder les données
+    saveQualityControlsToSession();
 }
 
 // Fonction pour effacer tous les contrôles qualité
@@ -3489,32 +4127,23 @@ function clearQualityControls() {
     // Réinitialiser les affichages immédiatement
     document.querySelectorAll('#micronnaire-left-avg, #micronnaire-right-avg, #surface-mass-left-avg, #surface-mass-right-avg').forEach(span => {
         span.textContent = '--';
+        span.style.color = '#6c757d';
     });
     document.getElementById('sizing-bath-time').textContent = '--';
     document.getElementById('loi-time').textContent = '--';
     
-    // Supprimer complètement le draft côté serveur
-    fetch('/livesession/save-quality-control/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: JSON.stringify({
-            field: 'clear_all',
-            value: true
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Désactiver le flag batch
+    // Désactiver le flag batch et mettre à jour les moyennes et heures
+    setTimeout(() => {
         isBatchUpdate = false;
-        console.log('Contrôles qualité effacés');
-    })
-    .catch(error => {
-        isBatchUpdate = false;
-        console.error('Erreur lors de l\'effacement:', error);
-    });
+        // Mettre à jour les moyennes
+        calculateMicronnaireAverage();
+        calculateSurfaceMassAverage();
+        // Mettre à jour les heures
+        updateExtraitSecTime(document.getElementById('sizing-bath-input')?.value);
+        updateLoiTime(document.getElementById('loiSwitch')?.checked);
+        // Effacer complètement les données de la session
+        updateFieldViaAPI('quality_controls', {});
+    }, 100);
 }
 
 // Fonction pour enrouler/dérouler tous les blocs
@@ -3808,4 +4437,8 @@ window.fillRandomThickness = function() {
 }
 
 </script>
+
+<!-- API DRF pour la gestion du shift -->
+<script src="{% static 'js/shift-api.js' %}"></script>
+
 {% endblock %}

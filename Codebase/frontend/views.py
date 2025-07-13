@@ -9,7 +9,7 @@ def production_page(request):
     """Page principale de production"""
     from core.models import Profile, Mode, FabricationOrder
     from wcm.models import ChecklistTemplate
-    from livesession.models import CurrentProductionState, LiveShift
+    from livesession.models import CurrentSession
     
     # S'assurer qu'on a une session
     if not request.session.session_key:
@@ -17,19 +17,20 @@ def production_page(request):
     
     session_key = request.session.session_key
     
-    # Récupérer l'état de production persistant
+    # Récupérer la session courante pour les données persistantes
     try:
-        production_state = CurrentProductionState.objects.get(session_key=session_key)
-    except CurrentProductionState.DoesNotExist:
+        current_session = CurrentSession.objects.get(session_key=session_key)
+        production_state = current_session.session_data  # Pour compatibilité avec le template
+    except CurrentSession.DoesNotExist:
         production_state = None
     
-    # Récupérer le brouillon du poste
+    # Récupérer la session courante
     try:
-        live_shift = LiveShift.objects.get(session_key=session_key)
-        shift_data_json = json.dumps(live_shift.shift_data)
-    except LiveShift.DoesNotExist:
-        live_shift = None
-        shift_data_json = '{}'
+        current_session = CurrentSession.objects.get(session_key=session_key)
+        session_data_json = json.dumps(current_session.session_data)
+    except CurrentSession.DoesNotExist:
+        current_session = None
+        session_data_json = '{}'
     
     # Créer un formulaire vide pour la fiche de poste
     shift_form = ShiftForm()
@@ -52,8 +53,8 @@ def production_page(request):
     
     # Convertir les modes actifs en JSON pour JavaScript
     active_modes_json = '{}'
-    if production_state and production_state.active_modes:
-        active_modes_json = json.dumps(production_state.active_modes)
+    if production_state and production_state.get('active_modes'):
+        active_modes_json = json.dumps(production_state.get('active_modes'))
     
     context = {
         'shift_form': shift_form,
@@ -66,10 +67,10 @@ def production_page(request):
         'checklist_items': checklist_items,
         'production_state': production_state,
         'active_modes_json': active_modes_json,
-        'live_shift': live_shift,
-        'shift_data_json': shift_data_json,
-        'active_productivity_tab': production_state.active_productivity_tab if production_state else 'temps',
-        'roll_number': production_state.roll_number if production_state else None,
+        'current_session': current_session,
+        'session_data_json': session_data_json,
+        'active_productivity_tab': production_state.get('active_productivity_tab', 'temps') if production_state else 'temps',
+        'roll_number': production_state.get('roll_number') if production_state else None,
     }
     
     return render(request, 'frontend/production.html', context)

@@ -196,7 +196,6 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 1rem;
-    min-height: 400px;
 }
 
 .roll-visualization h2 {
@@ -549,7 +548,6 @@ body {
 /* Container principal du rouleau */
 .roll-container {
     width: 100%;
-    min-height: 300px;
     overflow: visible;
     border: 1px solid var(--border-color);
     border-radius: 0;
@@ -620,7 +618,6 @@ body {
 /* Contenu du rouleau */
 #roll-content {
     flex: 1;
-    min-height: 300px;
 }
 
 .roll-empty-state {

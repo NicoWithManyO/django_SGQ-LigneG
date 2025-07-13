@@ -59,7 +59,7 @@
                     <div class="col-6">
                         <label class="form-label">{{ form.date.label }}</label>
                         <div class="input-group">
-                            <input type="date" name="date" id="id_date" class="form-control" onchange="saveShiftField('date', this.value)" required>
+                            <input type="date" name="date" id="id_date" class="form-control" onchange="saveShiftField('date', this.value)">
                             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setTodayDate()" title="Aujourd'hui">
                                 <i class="bi bi-calendar-day"></i>
                             </button>
@@ -70,7 +70,7 @@
                     </div>
                     <div class="col-6">
                         <label class="form-label">{{ form.vacation.label }}</label>
-                        <select name="vacation" id="id_vacation" class="form-select" onchange="saveShiftField('vacation', this.value); setDefaultTimesForVacation(this.value);" required>
+                        <select name="vacation" id="id_vacation" class="form-select" onchange="saveShiftField('vacation', this.value); setDefaultTimesForVacation(this.value);">
                             <option value="">---------</option>
                             <option value="Matin">Matin</option>
                             <option value="ApresMidi">Après-midi</option>
@@ -85,21 +85,24 @@
                 
                 <!-- Ligne 3: Heures début et fin -->
                 <div class="row mb-2">
-                    <div class="col-5">
+                    <div class="col-6">
                         <label class="form-label">{{ form.start_time.label }}</label>
-                        <input type="time" name="start_time" id="id_start_time" class="form-control" onchange="saveShiftField('start_time', this.value)">
+                        <input type="time" 
+                               name="start_time" 
+                               id="id_start_time" 
+                               class="form-control"
+                               onchange="saveShiftField('start_time', this.value)">
                         {% if form.start_time.errors %}
                             <div class="text-danger small">{{ form.start_time.errors.0 }}</div>
                         {% endif %}
                     </div>
-                    <div class="col-2 d-flex align-items-end justify-content-center">
-                        <div class="text-center" id="duration-display">
-                            
-                        </div>
-                    </div>
-                    <div class="col-5">
+                    <div class="col-6">
                         <label class="form-label">{{ form.end_time.label }}</label>
-                        <input type="time" name="end_time" id="id_end_time" class="form-control" onchange="saveShiftField('end_time', this.value)">
+                        <input type="time" 
+                               name="end_time" 
+                               id="id_end_time" 
+                               class="form-control"
+                               onchange="saveShiftField('end_time', this.value)">
                         {% if form.end_time.errors %}
                             <div class="text-danger small">{{ form.end_time.errors.0 }}</div>
                         {% endif %}
@@ -261,27 +264,163 @@
 </div>
 
 
+
 <script>
 // Fonctions basiques uniquement
 
-// Fonction pour sauvegarder un champ dans le draft
-function saveShiftField(fieldName, value) {
-    const formData = new FormData();
-    formData.append('field', 'shift_' + fieldName);
-    formData.append('value', value);
-    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+// Variables pour le debounce des changements d'heures
+let pendingTimeUpdates = {};
+let timeUpdateTimeout = null;
+
+// API DRF pour la session courante
+const sessionAPI = {
+    endpoint: '/livesession/api/current-session/',
     
-    fetch('/livesession/update-field/', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Sauvegarde silencieuse
-    })
-    .catch(error => {
-        console.error('Erreur:', error);
-    });
+    async updateField(fieldName, value) {
+        try {
+            // Ajouter la classe updating si c'est un changement d'heure
+            const durationDisplay = document.getElementById('duration-display');
+            if ((fieldName === 'start_time' || fieldName === 'end_time') && durationDisplay) {
+                durationDisplay.classList.add('updating');
+            }
+            
+            const response = await fetch(this.endpoint, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    [fieldName]: value
+                })
+            });
+            
+            const data = await response.json();
+            
+            // Si on a des métriques dans la réponse, mettre à jour l'affichage
+            if (data.metrics) {
+                // Mettre à jour TO
+                const toElement = document.getElementById('temps-ouverture');
+                if (toElement) {
+                    toElement.textContent = data.metrics.to_formatted || '--';
+                }
+                
+                // Mettre à jour TD
+                const tdElement = document.getElementById('temps-disponible');
+                if (tdElement) {
+                    tdElement.textContent = data.metrics.td_formatted || '--';
+                }
+                
+                // Mettre à jour TP si disponible
+                const tpElement = document.getElementById('temps-perdu-total');
+                if (tpElement && data.metrics.tp_formatted) {
+                    tpElement.textContent = data.metrics.tp_formatted;
+                }
+            }
+            
+            // Gérer les erreurs de validation
+            if (data.validation && !data.validation.is_valid) {
+                console.error('Erreurs de validation:', data.validation.errors);
+                // Ne pas afficher les erreurs de format d'heure et de date
+                Object.entries(data.validation.errors).forEach(([field, errors]) => {
+                    // Ignorer les erreurs sur start_time, end_time et date
+                    if (field === 'start_time' || field === 'end_time' || field === 'date') {
+                        return;
+                    }
+                    
+                    const fieldElement = document.getElementById(`id_${field}`);
+                    if (fieldElement) {
+                        // Afficher l'erreur sous le champ
+                        const errorDiv = fieldElement.parentElement.querySelector('.text-danger') || document.createElement('div');
+                        errorDiv.className = 'text-danger small mt-1';
+                        errorDiv.textContent = Array.isArray(errors) ? errors.join(', ') : errors;
+                        if (!fieldElement.parentElement.querySelector('.text-danger')) {
+                            fieldElement.parentElement.appendChild(errorDiv);
+                        }
+                    }
+                });
+            }
+            
+            return data;
+        } catch (error) {
+            console.error('Erreur API:', error);
+        }
+    },
+    
+    async getShiftData() {
+        try {
+            const response = await fetch(this.endpoint, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Erreur API:', error);
+            return {};
+        }
+    }
+};
+
+
+// Wrapper pour compatibilité avec l'ancien code
+async function saveShiftField(fieldName, value, fromVacation = false) {
+    // Convertir les chaînes vides en null pour les dates
+    if (fieldName === 'date' && value === '') {
+        value = null;
+    }
+    
+    // Si c'est une heure et qu'on vient du changement de vacation, grouper les mises à jour
+    if ((fieldName === 'start_time' || fieldName === 'end_time') && fromVacation) {
+        pendingTimeUpdates[fieldName] = value;
+        
+        // Annuler le timeout précédent
+        if (timeUpdateTimeout) {
+            clearTimeout(timeUpdateTimeout);
+        }
+        
+        // Attendre un peu pour voir si l'autre heure va changer aussi
+        timeUpdateTimeout = setTimeout(async () => {
+            // Calculer le TO localement avec les deux heures
+            const startTime = pendingTimeUpdates.start_time || document.getElementById('id_start_time').value;
+            const endTime = pendingTimeUpdates.end_time || document.getElementById('id_end_time').value;
+            
+            if (startTime && endTime) {
+                const [startHours, startMinutes] = startTime.split(':').map(Number);
+                const [endHours, endMinutes] = endTime.split(':').map(Number);
+                
+                let startTotalMinutes = startHours * 60 + startMinutes;
+                let endTotalMinutes = endHours * 60 + endMinutes;
+                
+                if (endTotalMinutes < startTotalMinutes) {
+                    endTotalMinutes += 24 * 60;
+                }
+                
+                // Le TO est maintenant affiché uniquement dans la carte des métriques
+            }
+            
+            // Envoyer toutes les mises à jour en une fois
+            for (const [field, val] of Object.entries(pendingTimeUpdates)) {
+                await sessionAPI.updateField(field, val);
+            }
+            pendingTimeUpdates = {};
+        }, 100); // 100ms devrait suffire pour recevoir les deux changements
+        
+        return;
+    }
+    
+    // Si c'est une heure normale (pas depuis vacation)
+    if (fieldName === 'start_time' || fieldName === 'end_time') {
+        // Convertir les heures vides en null pour les sauvegarder
+        if (value === '') {
+            value = null;
+        }
+    }
+    
+    const data = await sessionAPI.updateField(fieldName, value);
+    return data;
 }
 
 function setTodayDate() {
@@ -352,45 +491,7 @@ function calculateAvailabilityTime() {
     }
 }
 
-function updateDurationDisplay() {
-    const startTimeField = document.querySelector('input[name="start_time"]');
-    const endTimeField = document.querySelector('input[name="end_time"]');
-    const durationDisplay = document.getElementById('duration-display');
-    
-    if (!startTimeField || !endTimeField || !durationDisplay) {
-        return;
-    }
-    
-    const startTimeValue = startTimeField.value;
-    const endTimeValue = endTimeField.value;
-    
-    if (startTimeValue && endTimeValue) {
-        const [startHours, startMinutes] = startTimeValue.split(':').map(Number);
-        const [endHours, endMinutes] = endTimeValue.split(':').map(Number);
-        
-        let startTotalMinutes = startHours * 60 + startMinutes;
-        let endTotalMinutes = endHours * 60 + endMinutes;
-        
-        if (endTotalMinutes < startTotalMinutes) {
-            endTotalMinutes += 24 * 60;
-        }
-        
-        const durationMinutes = endTotalMinutes - startTotalMinutes;
-        const durationHours = Math.floor(durationMinutes / 60);
-        const remainingMinutes = durationMinutes % 60;
-        
-        const durationTimeStr = `${durationHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}`;
-        
-        durationDisplay.innerHTML = `
-            <div style="line-height: 1.1;">
-                <span class="fw-bold">${durationTimeStr}</span><br>
-                <small class="text-muted">(${durationMinutes}&nbsp;min)</small>
-            </div>
-        `;
-    } else {
-        durationDisplay.innerHTML = '';
-    }
-}
+// Le TO est maintenant affiché uniquement dans la carte des métriques
 
 function setDefaultTimesForVacation(vacation) {
     const startTimeField = document.querySelector('input[name="start_time"]');
@@ -424,15 +525,26 @@ function setDefaultTimesForVacation(vacation) {
             return;
     }
     
+    // Mettre les valeurs dans les champs
     startTimeField.value = defaultStartTime;
     endTimeField.value = defaultEndTime;
     
-    // Sauvegarder les heures automatiquement
-    saveShiftField('start_time', defaultStartTime);
-    saveShiftField('end_time', defaultEndTime);
+    // Calculer et afficher le TO immédiatement
+    const [startHours, startMinutes] = defaultStartTime.split(':').map(Number);
+    const [endHours, endMinutes] = defaultEndTime.split(':').map(Number);
     
-    calculateAvailabilityTime();
-    updateDurationDisplay();
+    let startTotalMinutes = startHours * 60 + startMinutes;
+    let endTotalMinutes = endHours * 60 + endMinutes;
+    
+    if (endTotalMinutes < startTotalMinutes) {
+        endTotalMinutes += 24 * 60;
+    }
+    
+    // Le TO est maintenant affiché uniquement dans la carte des métriques
+    
+    // Sauvegarder les deux heures via l'API (avec le flag fromVacation)
+    saveShiftField('start_time', defaultStartTime, true);
+    saveShiftField('end_time', defaultEndTime, true);
 }
 
 function toggleMeterReadingFields() {
@@ -502,85 +614,102 @@ document.body.addEventListener('change', function(e) {
     if (e.target && (e.target.name === 'started_at_beginning' || e.target.name === 'started_at_end')) {
         toggleMeterReadingFields();
     }
+    
+    // Les métriques sont maintenant mises à jour automatiquement par sessionAPI.updateField()
+    // uniquement pour les champs pertinents (start_time, end_time, lost_times)
 });
 
+// Restaurer le brouillon au chargement
 document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-        toggleMeterReadingFields();
-    }, 500);
+    // Nettoyer les messages d'erreur des heures et de la date
+    const startTimeError = document.querySelector('#id_start_time').parentElement.querySelector('.text-danger');
+    const endTimeError = document.querySelector('#id_end_time').parentElement.querySelector('.text-danger');
+    const dateError = document.querySelector('#id_date').parentElement.querySelector('.text-danger');
+    if (startTimeError) startTimeError.remove();
+    if (endTimeError) endTimeError.remove();
+    if (dateError) dateError.remove();
+    
+    // Charger les données depuis l'API DRF
+    fetch('/livesession/api/current-session/')
+        .then(response => response.json())
+        .then(shiftData => {
+            // Restaurer chaque champ
+            if (shiftData.operator) {
+                const operatorField = document.getElementById('id_operator');
+                if (operatorField) operatorField.value = shiftData.operator;
+            }
+            
+            if (shiftData.date) {
+                const dateField = document.getElementById('id_date');
+                if (dateField) dateField.value = shiftData.date;
+            }
+            
+            if (shiftData.vacation) {
+                const vacationField = document.getElementById('id_vacation');
+                if (vacationField) vacationField.value = shiftData.vacation;
+            }
+            
+            if (shiftData.start_time) {
+                const startTimeField = document.getElementById('id_start_time');
+                if (startTimeField) startTimeField.value = shiftData.start_time;
+            }
+            
+            if (shiftData.end_time) {
+                const endTimeField = document.getElementById('id_end_time');
+                if (endTimeField) endTimeField.value = shiftData.end_time;
+            }
+            
+            if (shiftData.started_at_beginning !== undefined) {
+                const startedBeginning = document.getElementById('id_started_at_beginning');
+                if (startedBeginning) startedBeginning.checked = shiftData.started_at_beginning;
+            }
+            
+            if (shiftData.meter_reading_start) {
+                const meterStart = document.getElementById('id_meter_reading_start');
+                if (meterStart) meterStart.value = shiftData.meter_reading_start;
+            }
+            
+            if (shiftData.started_at_end !== undefined) {
+                const startedEnd = document.getElementById('id_started_at_end');
+                if (startedEnd) startedEnd.checked = shiftData.started_at_end;
+            }
+            
+            if (shiftData.meter_reading_end) {
+                const meterEnd = document.getElementById('id_meter_reading_end');
+                if (meterEnd) meterEnd.value = shiftData.meter_reading_end;
+            }
+            
+            if (shiftData.operator_comments) {
+                const comments = document.getElementById('id_operator_comments');
+                if (comments) comments.value = shiftData.operator_comments;
+            }
+            
+            // Mettre à jour l'affichage après restauration
+            calculateAvailabilityTime();
+            
+            // Ne pas appeler updateShiftMetrics depuis la fiche de poste
+            
+            // Appeler toggleMeterReadingFields après un court délai pour s'assurer que tout est chargé
+            setTimeout(function() {
+                toggleMeterReadingFields();
+            }, 100);
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement du draft:', error);
+        });
 });
 
+// Support HTMX - réactiver les fonctions après un swap
 document.body.addEventListener('htmx:afterSwap', function() {
     setTimeout(function() {
         toggleMeterReadingFields();
-    }, 200);
+    }, 100);
 });
 
-// Fonction pour actualiser le métrage (sera implémentée plus tard)
+// Fonction pour actualiser le métrage
 function refreshMeterReading() {
     console.log('Actualisation du métrage...');
     // TODO: Implémenter la logique d'actualisation
 }
-
-// Restaurer le brouillon au chargement
-document.addEventListener('DOMContentLoaded', function() {
-    const shiftData = JSON.parse('{{ shift_data_json|escapejs }}');
-    
-    // Restaurer chaque champ
-    if (shiftData.operator) {
-        const operatorField = document.getElementById('id_operator');
-        if (operatorField) operatorField.value = shiftData.operator;
-    }
-    
-    if (shiftData.date) {
-        const dateField = document.getElementById('id_date');
-        if (dateField) dateField.value = shiftData.date;
-    }
-    
-    if (shiftData.vacation) {
-        const vacationField = document.getElementById('id_vacation');
-        if (vacationField) vacationField.value = shiftData.vacation;
-    }
-    
-    if (shiftData.start_time) {
-        const startTimeField = document.getElementById('id_start_time');
-        if (startTimeField) startTimeField.value = shiftData.start_time;
-    }
-    
-    if (shiftData.end_time) {
-        const endTimeField = document.getElementById('id_end_time');
-        if (endTimeField) endTimeField.value = shiftData.end_time;
-    }
-    
-    if (shiftData.started_at_beginning !== undefined) {
-        const startedBeginning = document.getElementById('id_started_at_beginning');
-        if (startedBeginning) startedBeginning.checked = shiftData.started_at_beginning;
-    }
-    
-    if (shiftData.meter_reading_start) {
-        const meterStart = document.getElementById('id_meter_reading_start');
-        if (meterStart) meterStart.value = shiftData.meter_reading_start;
-    }
-    
-    if (shiftData.started_at_end !== undefined) {
-        const startedEnd = document.getElementById('id_started_at_end');
-        if (startedEnd) startedEnd.checked = shiftData.started_at_end;
-    }
-    
-    if (shiftData.meter_reading_end) {
-        const meterEnd = document.getElementById('id_meter_reading_end');
-        if (meterEnd) meterEnd.value = shiftData.meter_reading_end;
-    }
-    
-    if (shiftData.operator_comments) {
-        const comments = document.getElementById('id_operator_comments');
-        if (comments) comments.value = shiftData.operator_comments;
-    }
-    
-    // Mettre à jour l'affichage après restauration
-    toggleMeterReadingFields();
-    calculateAvailabilityTime();
-    updateDurationDisplay();
-});
 
 </script>

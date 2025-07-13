@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API DRF - Fiche de poste</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Test API DRF - Fiche de poste</h1>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <h3>Formulaire</h3>
+                <form id="shift-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label>Heure début</label>
+                        <input type="time" name="start_time" class="form-control" value="06:00">
+                    </div>
+                    <div class="mb-3">
+                        <label>Heure fin</label>
+                        <input type="time" name="end_time" class="form-control" value="14:00">
+                    </div>
+                    <div class="mb-3">
+                        <label>Vacation</label>
+                        <select name="vacation" class="form-control">
+                            <option value="Matin">Matin</option>
+                            <option value="ApresMidi">Après-midi</option>
+                            <option value="Nuit">Nuit</option>
+                        </select>
+                    </div>
+                </form>
+                
+                <h4 class="mt-4">Temps perdus</h4>
+                <button class="btn btn-sm btn-primary" onclick="addLostTime(30, 'Panne')">
+                    +30min Panne
+                </button>
+                <button class="btn btn-sm btn-primary" onclick="addLostTime(15, 'Réglage')">
+                    +15min Réglage
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="clearLostTimes()">
+                    Effacer temps perdus
+                </button>
+            </div>
+            
+            <div class="col-md-6">
+                <h3>Métriques (calculées par DRF)</h3>
+                <div id="metrics" class="mt-3">
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <h6>TO (Temps d'ouverture)</h6>
+                            <div id="to" class="h4">--</div>
+                        </div>
+                    </div>
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <h6>TP (Temps perdu)</h6>
+                            <div id="tp" class="h4 text-danger">--</div>
+                        </div>
+                    </div>
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <h6>TD (Temps disponible)</h6>
+                            <div id="td" class="h4">--</div>
+                        </div>
+                    </div>
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <h6>Longueur perdue</h6>
+                            <div id="lg" class="h4 text-danger">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <h3>Réponse API (debug)</h3>
+                <pre id="api-response" class="bg-light p-3" style="max-height: 300px; overflow-y: auto;">
+                    En attente...
+                </pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/livesession/api/shift-draft/';
+        let currentLostTimes = [];
+        
+        // Fonction pour appeler l'API
+        async function updateShift(data) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                // Debug
+                document.getElementById('api-response').textContent = JSON.stringify(result, null, 2);
+                
+                // Mettre à jour les métriques
+                if (result.metrics) {
+                    document.getElementById('to').textContent = result.metrics.to_formatted || '--';
+                    document.getElementById('tp').textContent = result.metrics.tp_formatted || '--';
+                    document.getElementById('td').textContent = result.metrics.td_formatted || '--';
+                    document.getElementById('lg').textContent = result.metrics.length_lost_formatted || '--';
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('Erreur:', error);
+                document.getElementById('api-response').textContent = 'Erreur: ' + error.message;
+            }
+        }
+        
+        // Event listeners sur les champs
+        document.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const data = { [e.target.name]: e.target.value };
+                updateShift(data);
+            });
+        });
+        
+        // Gestion des temps perdus
+        function addLostTime(duration, reason) {
+            currentLostTimes.push({ duration, reason, id: Date.now() });
+            updateShift({ lost_times: currentLostTimes });
+        }
+        
+        function clearLostTimes() {
+            currentLostTimes = [];
+            updateShift({ lost_times: [] });
+        }
+        
+        // Charger les données initiales
+        window.addEventListener('load', () => {
+            // Envoyer les valeurs initiales
+            const startTime = document.querySelector('[name="start_time"]').value;
+            const endTime = document.querySelector('[name="end_time"]').value;
+            updateShift({ start_time: startTime, end_time: endTime });
+        });
+    </script>
+</body>
+</html>
