@@ -1,0 +1,565 @@
+<!-- Bloc Standard Poste -->
+<div class="block-card" id="shift-block">
+    {% if show_alert %}
+    <script>
+        alert("{{ show_alert|escapejs }}");
+    </script>
+    {% endif %}
+    <div class="block-header" style="cursor: pointer;" onclick="toggleShiftBlock()">
+        <h5 class="block-title" id="shift-title">
+            <i class="bi bi-clipboard-data"></i> Fiche de Poste
+        </h5>
+        <div class="block-actions">
+            <span class="htmx-indicator me-2">
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+            </span>
+            <i class="bi bi-chevron-up" id="shift-chevron"></i>
+        </div>
+    </div>
+
+    <div class="block-content" id="shift-content">
+        <form 
+            id="shift-form"
+            method="post"
+            action="#"
+        >
+            {% csrf_token %}
+            
+            <div class="form-section">
+                <!-- Ligne 1: Opérateur -->
+                <div class="row mb-2">
+                    <div class="col-12">
+                        <label class="form-label">{{ form.operator.label }}</label>
+                        <div class="row g-2">
+                            <div class="col-8">
+                                <select name="operator" id="id_operator" class="form-select" onchange="saveShiftField('operator', this.value)">
+                                    <option value="">---------</option>
+                                    {% for operator in form.operator.field.queryset %}
+                                    <option value="{{ operator.id }}">{{ operator.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-4 d-flex align-items-center justify-content-end">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addOperator()" title="Ajouter un opérateur" style="opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+                                    <i class="bi bi-person-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% if form.operator.errors %}
+                            <div class="text-danger small">{{ form.operator.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                
+                <!-- Ligne 2: Date et Vacation -->
+                <div class="row mb-2">
+                    <div class="col-6">
+                        <label class="form-label">{{ form.date.label }}</label>
+                        <div class="input-group">
+                            <input type="date" name="date" id="id_date" class="form-control" onchange="saveShiftField('date', this.value)" required>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setTodayDate()" title="Aujourd'hui">
+                                <i class="bi bi-calendar-day"></i>
+                            </button>
+                        </div>
+                        {% if form.date.errors %}
+                            <div class="text-danger small">{{ form.date.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">{{ form.vacation.label }}</label>
+                        <select name="vacation" id="id_vacation" class="form-select" onchange="saveShiftField('vacation', this.value); setDefaultTimesForVacation(this.value);" required>
+                            <option value="">---------</option>
+                            <option value="Matin">Matin</option>
+                            <option value="ApresMidi">Après-midi</option>
+                            <option value="Nuit">Nuit</option>
+                            <option value="Journee">Journée</option>
+                        </select>
+                        {% if form.vacation.errors %}
+                            <div class="text-danger small">{{ form.vacation.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Ligne 3: Heures début et fin -->
+                <div class="row mb-2">
+                    <div class="col-5">
+                        <label class="form-label">{{ form.start_time.label }}</label>
+                        <input type="time" name="start_time" id="id_start_time" class="form-control" onchange="saveShiftField('start_time', this.value)">
+                        {% if form.start_time.errors %}
+                            <div class="text-danger small">{{ form.start_time.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-2 d-flex align-items-end justify-content-center">
+                        <div class="text-center" id="duration-display">
+                            
+                        </div>
+                    </div>
+                    <div class="col-5">
+                        <label class="form-label">{{ form.end_time.label }}</label>
+                        <input type="time" name="end_time" id="id_end_time" class="form-control" onchange="saveShiftField('end_time', this.value)">
+                        {% if form.end_time.errors %}
+                            <div class="text-danger small">{{ form.end_time.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Paramètres Machine -->
+            <div class="form-section">
+                
+                <!-- Début de poste -->
+                <div class="row mb-1">
+                    <div class="col-12">
+                        <div>
+                            <h6 class="mb-1 small">
+                                <i class="bi bi-play-circle"></i> Prise de Poste
+                            </h6>
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="started_at_beginning" id="id_started_at_beginning" class="form-check-input" onchange="saveShiftField('started_at_beginning', this.checked); toggleMeterReadingFields();">
+                                        <label class="form-check-label fw-bold small" for="{{ form.started_at_beginning.id_for_label }}">
+                                            {{ form.started_at_beginning.label }}
+                                        </label>
+                                    </div>
+                                    {% if form.started_at_beginning.errors %}
+                                        <div class="text-danger small">{{ form.started_at_beginning.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <div id="meter-reading-start-field" style="visibility: hidden;">
+                                        <label class="form-label small">
+                                            {{ form.meter_reading_start.label }}
+                                        </label>
+                                        <input type="number" name="meter_reading_start" id="id_meter_reading_start" class="form-control form-control-sm" step="0.01" onchange="saveShiftField('meter_reading_start', this.value)">
+                                        {% if form.meter_reading_start.errors %}
+                                            <div class="text-danger small">{{ form.meter_reading_start.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div id="startup-message-start" style="visibility: hidden;">
+                                        <small class="text-muted text-center d-block startup-message-text">Pensez à déclarer du temps de démarrage</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Fin de poste -->
+                <div class="row">
+                    <div class="col-12">
+                        <div>
+                            <h6 class="mb-1 small">
+                                <i class="bi bi-stop-circle"></i> Fin de Poste
+                            </h6>
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="started_at_end" id="id_started_at_end" class="form-check-input" onchange="saveShiftField('started_at_end', this.checked); toggleMeterReadingFields();">
+                                        <label class="form-check-label fw-bold small" for="{{ form.started_at_end.id_for_label }}">
+                                            {{ form.started_at_end.label }}
+                                        </label>
+                                    </div>
+                                    {% if form.started_at_end.errors %}
+                                        <div class="text-danger small">{{ form.started_at_end.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6" id="meter-reading-end-field" style="visibility: hidden;">
+                                    <label class="form-label small">{{ form.meter_reading_end.label }}</label>
+                                    <input type="number" name="meter_reading_end" id="id_meter_reading_end" class="form-control form-control-sm" step="0.01" onchange="saveShiftField('meter_reading_end', this.value)">
+                                    {% if form.meter_reading_end.errors %}
+                                        <div class="text-danger small">{{ form.meter_reading_end.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <div id="shutdown-message-end" style="visibility: hidden;">
+                                        <small class="text-muted text-center d-block startup-message-text">Pensez à déclarer du temps d'arrêt</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <label class="form-label">{{ form.operator_comments.label }}</label>
+                    <textarea name="operator_comments" id="id_operator_comments" class="form-control" rows="3" onchange="saveShiftField('operator_comments', this.value)"></textarea>
+                    {% if form.operator_comments.errors %}
+                        <div class="text-danger small">{{ form.operator_comments.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+
+        </form>
+        
+        <!-- Modale pour ajouter un opérateur (hors du formulaire principal pour éviter les conflits) -->
+        <div class="modal fade" id="addOperatorModal" tabindex="-1" aria-labelledby="addOperatorModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <h6 class="modal-title" id="addOperatorModalLabel">
+                            <i class="bi bi-person-plus"></i> Nouvel Opérateur
+                        </h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addOperatorForm">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="operatorFirstName" class="form-label">Prénom</label>
+                                <input type="text" class="form-control" id="operatorFirstName" name="first_name" required autocomplete="off">
+                            </div>
+                            <div class="mb-3">
+                                <label for="operatorLastName" class="form-label">Nom</label>
+                                <input type="text" class="form-control" id="operatorLastName" name="last_name" required autocomplete="off">
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="operatorTrainingCompleted" name="training_completed" checked>
+                                <label class="form-check-label" for="operatorTrainingCompleted">
+                                    Formation terminée
+                                </label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="saveOperator()">
+                            <i class="bi bi-check-lg"></i> Créer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-flex justify-content-center mt-3">
+            <button 
+                type="button" 
+                id="save-shift-btn"
+                onclick="confirmSaveShift()"
+                class="btn btn-success btn-sm fibrage-action-btn conforme"
+            >
+                <i class="bi bi-save"></i> Enregistrer le Poste
+            </button>
+        </div>
+    </div>
+
+</div>
+
+
+<script>
+// Fonctions basiques uniquement
+
+// Fonction pour sauvegarder un champ dans le draft
+function saveShiftField(fieldName, value) {
+    const formData = new FormData();
+    formData.append('field', 'shift_' + fieldName);
+    formData.append('value', value);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch('/livesession/update-field/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(`${fieldName} sauvegardé:`, data);
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+    });
+}
+
+function setTodayDate() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    
+    const dateField = document.querySelector('input[name="date"]');
+    if (dateField) {
+        dateField.value = dateString;
+        // Sauvegarder la date automatiquement
+        saveShiftField('date', dateString);
+    }
+}
+
+function toggleShiftBlock() {
+    const content = document.getElementById('shift-content');
+    const chevron = document.getElementById('shift-chevron');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        chevron.className = 'bi bi-chevron-up';
+    } else {
+        content.style.display = 'none';
+        chevron.className = 'bi bi-chevron-down';
+    }
+}
+
+function calculateAvailabilityTime() {
+    const startTimeField = document.querySelector('input[name="start_time"]');
+    const endTimeField = document.querySelector('input[name="end_time"]');
+    const availabilityDisplay = document.getElementById('availability-time-display');
+    
+    if (startTimeField && endTimeField && availabilityDisplay) {
+        const startTimeValue = startTimeField.value;
+        const endTimeValue = endTimeField.value;
+        
+        if (startTimeValue && endTimeValue) {
+            const [startHours, startMinutes] = startTimeValue.split(':').map(Number);
+            const [endHours, endMinutes] = endTimeValue.split(':').map(Number);
+            
+            let startTotalMinutes = startHours * 60 + startMinutes;
+            let endTotalMinutes = endHours * 60 + endMinutes;
+            
+            if (endTotalMinutes < startTotalMinutes) {
+                endTotalMinutes += 24 * 60;
+            }
+            
+            const openingTotalMinutes = endTotalMinutes - startTotalMinutes;
+            const lostTotalMinutes = 0;
+            const availabilityMinutes = openingTotalMinutes - lostTotalMinutes;
+            
+            const availabilityHours = Math.floor(availabilityMinutes / 60);
+            const remainingMinutes = availabilityMinutes % 60;
+            
+            const availabilityTimeStr = `${availabilityHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}`;
+            
+            const boldSpan = availabilityDisplay.querySelector('.fw-bold');
+            const minutesSpan = availabilityDisplay.querySelector('.text-muted');
+            
+            if (boldSpan && minutesSpan) {
+                boldSpan.textContent = availabilityTimeStr;
+                minutesSpan.textContent = `(${availabilityMinutes} min)`;
+            }
+        }
+    }
+}
+
+function updateDurationDisplay() {
+    const startTimeField = document.querySelector('input[name="start_time"]');
+    const endTimeField = document.querySelector('input[name="end_time"]');
+    const durationDisplay = document.getElementById('duration-display');
+    
+    if (!startTimeField || !endTimeField || !durationDisplay) {
+        return;
+    }
+    
+    const startTimeValue = startTimeField.value;
+    const endTimeValue = endTimeField.value;
+    
+    if (startTimeValue && endTimeValue) {
+        const [startHours, startMinutes] = startTimeValue.split(':').map(Number);
+        const [endHours, endMinutes] = endTimeValue.split(':').map(Number);
+        
+        let startTotalMinutes = startHours * 60 + startMinutes;
+        let endTotalMinutes = endHours * 60 + endMinutes;
+        
+        if (endTotalMinutes < startTotalMinutes) {
+            endTotalMinutes += 24 * 60;
+        }
+        
+        const durationMinutes = endTotalMinutes - startTotalMinutes;
+        const durationHours = Math.floor(durationMinutes / 60);
+        const remainingMinutes = durationMinutes % 60;
+        
+        const durationTimeStr = `${durationHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}`;
+        
+        durationDisplay.innerHTML = `
+            <div style="line-height: 1.1;">
+                <span class="fw-bold">${durationTimeStr}</span><br>
+                <small class="text-muted">(${durationMinutes}&nbsp;min)</small>
+            </div>
+        `;
+    } else {
+        durationDisplay.innerHTML = '';
+    }
+}
+
+function setDefaultTimesForVacation(vacation) {
+    const startTimeField = document.querySelector('input[name="start_time"]');
+    const endTimeField = document.querySelector('input[name="end_time"]');
+    
+    if (!startTimeField || !endTimeField) {
+        return;
+    }
+    
+    let defaultStartTime = '';
+    let defaultEndTime = '';
+    
+    switch(vacation) {
+        case 'Matin':
+            defaultStartTime = '04:00';
+            defaultEndTime = '12:00';
+            break;
+        case 'ApresMidi':
+            defaultStartTime = '12:00';
+            defaultEndTime = '20:00';
+            break;
+        case 'Nuit':
+            defaultStartTime = '20:00';
+            defaultEndTime = '04:00';
+            break;
+        case 'Journee':
+            defaultStartTime = '07:30';
+            defaultEndTime = '15:30';
+            break;
+        default:
+            return;
+    }
+    
+    startTimeField.value = defaultStartTime;
+    endTimeField.value = defaultEndTime;
+    
+    // Sauvegarder les heures automatiquement
+    saveShiftField('start_time', defaultStartTime);
+    saveShiftField('end_time', defaultEndTime);
+    
+    calculateAvailabilityTime();
+    updateDurationDisplay();
+}
+
+function toggleMeterReadingFields() {
+    const startedAtBeginning = document.querySelector('input[name="started_at_beginning"]');
+    const startedAtEnd = document.querySelector('input[name="started_at_end"]');
+    const meterStartField = document.getElementById('meter-reading-start-field');
+    const meterEndField = document.getElementById('meter-reading-end-field');
+    const startupMessageStart = document.getElementById('startup-message-start');
+    const shutdownMessageEnd = document.getElementById('shutdown-message-end');
+    
+    if (startedAtBeginning && meterStartField && startupMessageStart) {
+        if (startedAtBeginning.checked) {
+            meterStartField.style.visibility = 'visible';
+            startupMessageStart.style.visibility = 'hidden';
+        } else {
+            meterStartField.style.visibility = 'hidden';
+            startupMessageStart.style.visibility = 'visible';
+        }
+    }
+    
+    if (startedAtEnd && meterEndField && shutdownMessageEnd) {
+        if (startedAtEnd.checked) {
+            meterEndField.style.visibility = 'visible';
+            shutdownMessageEnd.style.visibility = 'hidden';
+        } else {
+            meterEndField.style.visibility = 'hidden';
+            shutdownMessageEnd.style.visibility = 'visible';
+        }
+    }
+}
+
+function confirmSaveShift() {
+    // Soumettre le formulaire via HTMX sans vérifications
+    const form = document.getElementById('shift-form');
+    if (form) {
+        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+        form.dispatchEvent(submitEvent);
+    }
+}
+
+function addOperator() {
+    console.log('Fonction d\'ajout d\'opérateur désactivée');
+}
+
+function saveOperator() {
+    console.log('Fonction de sauvegarde d\'opérateur désactivée');
+}
+
+// Event listeners basiques
+document.body.addEventListener('change', function(e) {
+    if (e.target && e.target.name === 'vacation') {
+        setDefaultTimesForVacation(e.target.value);
+    }
+    
+    if (e.target && (e.target.name === 'started_at_beginning' || e.target.name === 'started_at_end')) {
+        toggleMeterReadingFields();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        toggleMeterReadingFields();
+    }, 500);
+});
+
+document.body.addEventListener('htmx:afterSwap', function() {
+    setTimeout(function() {
+        toggleMeterReadingFields();
+    }, 200);
+});
+
+// Restaurer le brouillon au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    const shiftData = JSON.parse('{{ shift_data_json|escapejs }}');
+    
+    // Restaurer chaque champ
+    if (shiftData.operator) {
+        const operatorField = document.getElementById('id_operator');
+        if (operatorField) operatorField.value = shiftData.operator;
+    }
+    
+    if (shiftData.date) {
+        const dateField = document.getElementById('id_date');
+        if (dateField) dateField.value = shiftData.date;
+    }
+    
+    if (shiftData.vacation) {
+        const vacationField = document.getElementById('id_vacation');
+        if (vacationField) vacationField.value = shiftData.vacation;
+    }
+    
+    if (shiftData.start_time) {
+        const startTimeField = document.getElementById('id_start_time');
+        if (startTimeField) startTimeField.value = shiftData.start_time;
+    }
+    
+    if (shiftData.end_time) {
+        const endTimeField = document.getElementById('id_end_time');
+        if (endTimeField) endTimeField.value = shiftData.end_time;
+    }
+    
+    if (shiftData.started_at_beginning !== undefined) {
+        const startedBeginning = document.getElementById('id_started_at_beginning');
+        if (startedBeginning) startedBeginning.checked = shiftData.started_at_beginning;
+    }
+    
+    if (shiftData.meter_reading_start) {
+        const meterStart = document.getElementById('id_meter_reading_start');
+        if (meterStart) meterStart.value = shiftData.meter_reading_start;
+    }
+    
+    if (shiftData.started_at_end !== undefined) {
+        const startedEnd = document.getElementById('id_started_at_end');
+        if (startedEnd) startedEnd.checked = shiftData.started_at_end;
+    }
+    
+    if (shiftData.meter_reading_end) {
+        const meterEnd = document.getElementById('id_meter_reading_end');
+        if (meterEnd) meterEnd.value = shiftData.meter_reading_end;
+    }
+    
+    if (shiftData.operator_comments) {
+        const comments = document.getElementById('id_operator_comments');
+        if (comments) comments.value = shiftData.operator_comments;
+    }
+    
+    // Mettre à jour l'affichage après restauration
+    toggleMeterReadingFields();
+    calculateAvailabilityTime();
+    updateDurationDisplay();
+});
+
+</script>

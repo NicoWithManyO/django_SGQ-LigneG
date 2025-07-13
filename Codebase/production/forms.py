@@ -131,18 +131,7 @@ class ShiftForm(forms.ModelForm):
         self.fields['availability_time'].required = False
         self.fields['lost_time'].required = False
         
-        # Valeurs par défaut pour nouveau formulaire
-        if not self.instance.pk:  # Nouveau formulaire
-            from datetime import date
-            self.fields['date'].initial = date.today()
-            # Machine toujours démarrée en fin de poste par défaut
-            self.fields['started_at_end'].initial = True
-            
-        # Forcer les valeurs des checkboxes si définies dans les initiales
-        if 'started_at_beginning' in self.initial:
-            self.fields['started_at_beginning'].initial = self.initial['started_at_beginning']
-        if 'started_at_end' in self.initial:
-            self.fields['started_at_end'].initial = self.initial['started_at_end']
+        # Pas de valeur par défaut pour la date
         
         
     def clean(self):

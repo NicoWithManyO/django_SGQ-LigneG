@@ -1,0 +1,1394 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}PROD - SGQ Ligne G{% endblock %}
+
+{% block extra_css %}
+{% endblock %}
+
+{% block content %}
+<style>
+/* Fix pour les inputs dans la sticky bar */
+.fibrage-sticky-bar input.form-control {
+    width: 60px !important;
+    max-width: 60px !important;
+    min-width: 60px !important;
+    height: 28px !important;
+    max-height: 28px !important;
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.875rem !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+}
+
+.fibrage-sticky-bar input.form-control:focus {
+    width: 60px !important;
+    max-width: 60px !important;
+    min-width: 60px !important;
+    height: 28px !important;
+    max-height: 28px !important;
+    box-shadow: none !important;
+    border-color: #86b7fe !important;
+}
+
+/* Style pour le bouton poubelle */
+.waste-button {
+    background-color: transparent !important;
+    border: none !important;
+    color: white !important;
+    transition: all 0.3s ease;
+}
+
+.waste-button:hover {
+    background-color: #dc3545 !important;
+    border: none !important;
+    color: white !important;
+}
+
+.waste-button:hover i {
+    color: white !important;
+}
+
+/* Style pour le bouton ciseau */
+.cut-button {
+    background-color: transparent !important;
+    border: none !important;
+    color: white !important;
+    transition: all 0.3s ease;
+}
+
+.cut-button:hover {
+    background-color: #fd7e14 !important;
+    border: none !important;
+    color: white !important;
+}
+
+.cut-button:hover i {
+    color: white !important;
+}
+
+/* Styles pour les boutons de la check-list */
+.checklist-btn {
+    padding: 0.2rem 0.4rem !important;
+    font-size: 0.75rem !important;
+    line-height: 1.2 !important;
+}
+
+/* Retirer les bordures entre les boutons */
+.checklist-btn:not(:first-child) {
+    border-left: none !important;
+}
+
+.checklist-btn:not(:last-child) {
+    border-right: none !important;
+}
+
+/* S'assurer que les boutons du milieu n'ont pas de bordures latérales */
+.checklist-btn:not(:first-child):not(:last-child) {
+    border-left: none !important;
+    border-right: none !important;
+}
+
+/* Style pour le champ signature */
+.signature-field {
+    background-color: #f8f9fa;
+    padding: 12px;
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+    margin-top: 15px;
+}
+
+/* Style pour les sections Postes récents et Rouleaux récents */
+#recent-shifts-section .table, #recent-rolls-section .table {
+    color: white !important;
+}
+
+#recent-shifts-section .table td, #recent-rolls-section .table td {
+    color: white !important;
+    border: none !important;
+}
+
+#recent-shifts-section .text-muted, #recent-rolls-section .text-muted {
+    color: white !important;
+}
+
+#operator-signature {
+    width: 100px !important;
+    max-width: 100px !important;
+    min-width: 100px !important;
+    background-color: #fff;
+    border: 2px solid #dee2e6;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
+#operator-signature:focus {
+    background-color: #fff;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+#operator-signature:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+.checklist-item label {
+    font-size: 0.85rem !important;
+    font-weight: normal !important;
+    text-align: right;
+    padding-right: 10px;
+}
+
+/* Style pour le bloc check-list */
+.right-column .block-card {
+    min-width: 320px !important;
+    width: 320px !important;
+}
+
+/* Fixer la largeur du bloc check-list même quand il est collapsed */
+.right-column .block-card.collapsed {
+    width: 320px !important;
+    min-width: 320px !important;
+}
+
+/* Styles pour le bloc Productivité */
+.productivity-metric {
+    text-align: center;
+    padding: 10px 5px;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    min-height: 70px;
+}
+
+.productivity-metric label {
+    font-size: 0.75rem !important;
+    margin-bottom: 3px;
+    line-height: 1.2;
+}
+
+.metric-value {
+    margin-top: 3px;
+}
+
+.metric-value span {
+    font-size: 1.1rem !important;
+    line-height: 1.3;
+}
+
+/* Styles pour les onglets de productivité intégrés au header */
+.productivity-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.productivity-title-tabs {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.productivity-tabs {
+    display: flex;
+    gap: 2px;
+    margin: 0;
+}
+
+.tab-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    border-radius: 3px;
+    line-height: 1.3;
+}
+
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.tab-btn.active {
+    background: white !important;
+    color: #212529 !important;
+}
+
+.tab-btn.active i {
+    color: #212529 !important;
+}
+
+.tab-btn i {
+    margin-right: 3px;
+    font-size: 0.7rem;
+}
+
+.tab-content {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Styles pour la check-list */
+.checklist-items {
+    padding: 10px;
+}
+
+.checklist-items .form-check {
+    padding: 5px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    margin-bottom: 0.25rem !important;
+}
+
+.checklist-items .form-check:hover {
+    background-color: #f8f9fa;
+}
+
+.checklist-items .form-check-input {
+    width: 14px;
+    height: 14px;
+    margin-top: 0;
+}
+
+.checklist-items .form-check-label {
+    margin-left: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+/* Style pour le bloc Poste Précédent */
+.previous-shift-details {
+    font-size: 0.85rem;
+    padding: 10px;
+}
+
+.previous-shift-details .row {
+    margin-bottom: 0.5rem;
+}
+
+.previous-shift-details strong {
+    color: var(--primary-text);
+}
+
+/* Supprimé l'effet de transparence sur le bloc replié */
+</style>
+
+<!-- Blocs Poste Précédent et Temporaire - Au-dessus de tout -->
+<div class="container-fluid mb-3">
+    <div class="row">
+        <div class="col-12">
+            <div class="row gx-3">
+                <!-- Bloc Poste Précédent -->
+                <div class="col-6">
+                    <div class="block-card collapsed" id="previous-shift-block">
+                        <div class="block-header" style="cursor: pointer;" onclick="togglePreviousShiftBlock(event)">
+                            <h5 class="block-title">
+                                <i class="bi bi-clock-history"></i> <span id="previous-shift-header" title="Poste précédent">Poste précédent</span>
+                            </h5>
+                            <div class="block-actions d-flex align-items-center">
+                                <button class="btn btn-sm" onclick="event.stopPropagation()" title="Poste suivant" style="border: none; background: none; color: white; padding: 0.25rem 0.5rem;">
+                                    <i class="bi bi-arrow-down"></i>
+                                </button>
+                                <button class="btn btn-sm" onclick="event.stopPropagation()" title="Revenir au dernier poste" style="border: none; background: none; color: white; padding: 0.25rem 0.5rem;">
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
+                                <button class="btn btn-sm" onclick="event.stopPropagation()" title="Poste précédent" style="border: none; background: none; color: white; padding: 0.25rem 0.5rem;">
+                                    <i class="bi bi-arrow-up"></i>
+                                </button>
+                                <i class="bi bi-chevron-down" id="previous-shift-chevron"></i>
+                            </div>
+                        </div>
+                        <div class="block-content" id="previous-shift-content" style="display: none;">
+                            <div class="previous-shift-info">
+                                <div class="text-center text-muted py-3">
+                                    <i class="bi bi-hourglass-split"></i> Données du poste précédent
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bloc Temporaire -->
+                <div class="col-6">
+                    <div class="block-card collapsed" id="temporary-block">
+                        <div class="block-header" style="cursor: pointer;" onclick="toggleTemporaryBlock(event)">
+                            <h5 class="block-title">
+                                <i class="bi bi-clock-history"></i> Historique des Paramètres Machine
+                            </h5>
+                            <div class="block-actions d-flex align-items-center">
+                                <button class="btn btn-sm" onclick="event.stopPropagation()" title="Suivant" style="border: none; background: none; color: white; padding: 0.25rem 0.5rem;">
+                                    <i class="bi bi-arrow-down"></i>
+                                </button>
+                                <button class="btn btn-sm" onclick="event.stopPropagation()" title="Revenir au dernier" style="border: none; background: none; color: white; padding: 0.25rem 0.5rem;">
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
+                                <button class="btn btn-sm" onclick="event.stopPropagation()" title="Précédent" style="border: none; background: none; color: white; padding: 0.25rem 0.5rem;">
+                                    <i class="bi bi-arrow-up"></i>
+                                </button>
+                                <i class="bi bi-chevron-down" id="temporary-chevron"></i>
+                            </div>
+                        </div>
+                        <div class="block-content" id="temporary-content" style="display: none;">
+                            <div class="temporary-info">
+                                <div class="text-center text-muted py-3">
+                                    <i class="bi bi-hourglass-split"></i> Contenu temporaire...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="production-dashboard">
+    
+    <!-- Sidebar gauche - Tous les blocs -->
+    <aside class="sidebar-left">
+        
+        <!-- Bloc Fiche de Poste -->
+        {% include 'frontend/blocks/shift_block.html' %}
+
+        <!-- Bloc Ordre de Fabrication -->
+        <div class="block-card">
+            <div class="block-header" style="cursor: pointer;" onclick="toggleOFBlock()">
+                <h5 class="block-title"><i class="bi bi-list-task"></i> Ordre de Fabrication</h5>
+                <div class="block-actions">
+                    <i class="bi bi-chevron-up" id="of-chevron"></i>
+                </div>
+            </div>
+            <div class="block-content" id="of-content">
+                <div id="of-fields-row" class="of-container">
+                    <div class="of-left-col">
+                        <div class="of-field-row">
+                            <label class="form-label">OF en cours</label>
+                            <div class="input-group">
+                                <select id="current-order" class="form-select fw-bold of-input" disabled>
+                                    <option value="">--</option>
+                                    {% for of in normal_orders %}
+                                    <option value="{{ of.id }}" {% if production_state and production_state.current_of_id == of.id %}selected{% endif %}>{{ of.order_number }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                        onclick="editCurrentOrder()" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="of-field-row">
+                            <label class="form-label">Lg cible (m)</label>
+                            <div class="input-group">
+                                <input type="number" id="target-length" class="form-control fw-bold of-input" step="1" min="0" placeholder="--" value="{% if production_state and production_state.target_length %}{{ production_state.target_length|floatformat:0 }}{% endif %}" disabled autocomplete="off">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                        onclick="editTargetLength()" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="of-field-row">
+                            <label class="form-label">OF découpe</label>
+                            <div class="input-group">
+                                <select id="cutting-order" class="form-select fw-bold of-input" disabled>
+                                    <option value="">--</option>
+                                    {% for of in cutting_orders %}
+                                    <option value="{{ of.id }}" {% if production_state and production_state.cutting_of_id == of.id %}selected{% endif %}>{{ of.order_number }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                        onclick="editCuttingOrder()" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="of-right-col" style="flex-direction: column; justify-content: space-between; height: 100%;">
+                        <div class="of-info-display">
+                            <small id="of-required-length-local" class="text-muted">--</small>
+                            <small id="of-roll-count-local" class="text-muted">--</small>
+                            <small id="of-due-date-local" class="text-muted">--</small>
+                            <small>&nbsp;</small>
+                            <small id="of-produced-local" class="text-muted">--</small>
+                            <small id="of-remaining-local" class="text-muted">--</small>
+                            <small id="of-days-remaining-local" class="text-muted">--</small>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; align-items: flex-end; width: 100%;">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addFabricationOrder()" title="Créer un OF" style="opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+                                <i class="bi bi-plus"></i> OF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Champs cachés pour maintenir la fonctionnalité auto-save -->
+                <div style="display: none;">
+                    <input type="text" id="roll-number" value="" autocomplete="off">
+                    <div id="roll-id">--</div>
+                    <span id="roll-status" class="badge"></span>
+                    <input type="number" id="next-tube-mass" value="" autocomplete="off">
+                    <input type="number" id="roll-length" value="" autocomplete="off">
+                    <input type="number" id="tube-mass" value="" autocomplete="off">
+                    <input type="number" id="total-mass" value="" autocomplete="off">
+                </div>
+                
+            </div>
+        </div>
+
+    </aside>
+
+    <!-- Zone droite -->
+    <main class="right-content">
+        
+        <!-- Blocs du haut -->
+        <div class="top-blocks">
+            
+            <!-- Colonne gauche : Productivité et Déclaration de temps -->
+            <div class="left-column">
+                
+                <!-- Bloc Déclaration de Temps -->
+                <div class="block-card">
+                    <div class="block-header" style="cursor: pointer;" onclick="toggleTempsBlock()">
+                        <h5 class="block-title"><i class="bi bi-clock"></i> Déclaration de Temps</h5>
+                        <div class="block-actions">
+                            <i class="bi bi-chevron-up" id="temps-chevron"></i>
+                        </div>
+                    </div>
+                    <div class="block-content" id="temps-content">
+                        <form class="time-declaration-form">
+                            <div class="row align-items-end mb-2">
+                                <div class="col-3">
+                                    <label class="form-label">Motif</label>
+                                    <select class="form-select fw-bold">
+                                        <option value="">--</option>
+                                        <option value="demarrage">Démarrage</option>
+                                        <option value="panne_maintenance">Panne/Maintenance</option>
+                                        <option value="menage">Ménage sans fibrage</option>
+                                        <option value="arret">Arrêt</option>
+                                        <option value="autre">Autre</option>
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label">Commentaire</label>
+                                    <input type="text" class="form-control" placeholder="Détails..." autocomplete="off">
+                                </div>
+                                <div class="col-3">
+                                    <label class="form-label">Temps</label>
+                                    <select class="form-select fw-bold" id="time-duration-select">
+                                        <option value="">--</option>
+                                    </select>
+                                </div>
+                                <div class="col-2">
+                                    <button type="button" class="btn btn-primary btn-sm w-100">Ajouter</button>
+                                </div>
+                            </div>
+                        </form>
+                        
+                        <!-- Liste des temps perdus ajoutés -->
+                        <div id="lost-time-list" class="mt-3">
+                            <!-- Les entrées seront ajoutées ici dynamiquement -->
+                        </div>
+                    </div>
+                </div>
+            
+                <!-- Bloc Productivité -->
+                <div class="block-card">
+                    <div class="block-header" style="cursor: pointer;" onclick="event.target.closest('.block-actions') || event.target.tagName === 'BUTTON' ? null : toggleProductiviteBlock()">
+                        <div class="productivity-header">
+                            <div class="productivity-title-tabs">
+                                <h5 class="block-title mb-0" id="productivity-block-title"><i class="bi bi-graph-up"></i> Profil : <span id="selected-profile-name">--</span><span id="active-modes-display"></span></h5>
+                                <!-- Tabs navigation dans le header -->
+                                <div class="productivity-tabs">
+                                    <button class="tab-btn active" onclick="showProductivityTab('temps'); event.stopPropagation();" data-tab="temps">
+                                        <i class="bi bi-clock"></i> TRS
+                                    </button>
+                                    <button class="tab-btn" onclick="showProductivityTab('parametres'); event.stopPropagation();" data-tab="parametres">
+                                        <i class="bi bi-gear"></i> Params & Specs
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="block-actions">
+                                <i class="bi bi-chevron-up" id="productivite-chevron"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="block-content" id="productivite-content">
+                        
+                        <!-- Tab: Temps -->
+                        <div class="tab-content" id="tab-temps" style="display: block;">
+                            <div class="row g-2">
+                                <div class="col-9">
+                                    <div class="row g-2">
+                                        <!-- Première ligne -->
+                                        <div class="col-4">
+                                            <div class="productivity-metric">
+                                                <label class="text-muted small">TO | TD</label>
+                                                <div class="metric-value">
+                                                    <span id="temps-ouverture" class="h6 fw-bold text-primary">--</span>
+                                                    <span class="text-muted small">|</span>
+                                                    <span id="temps-disponible" class="h6 fw-bold text-success">--</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="productivity-metric">
+                                                <label class="text-muted small">Tps Perdu | Lg Perdue</label>
+                                                <div class="metric-value">
+                                                    <span id="temps-perdu-total" class="h6 fw-bold text-danger">--</span>
+                                                    <span class="text-muted small">|</span>
+                                                    <span id="lg-perdue" class="h6 fw-bold text-danger">--</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="productivity-metric">
+                                                <label class="text-muted small">Longueur Enroulable</label>
+                                                <div class="metric-value">
+                                                    <span id="lg-enroulable" class="h6 fw-bold text-info">--</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Deuxième ligne -->
+                                        <div class="col-4">
+                                            <div class="productivity-metric">
+                                                <label class="text-muted small">Longueur Totale</label>
+                                                <div class="metric-value">
+                                                    <span id="longueur-totale" class="h6 fw-bold">--</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="productivity-metric">
+                                                <label class="text-muted small">OK | NOK</label>
+                                                <div class="metric-value">
+                                                    <span id="lg-enroulee-ok" class="h6 fw-bold text-success">--</span>
+                                                    <span class="text-muted small">|</span>
+                                                    <span id="lg-enroulee-nok" class="h6 fw-bold text-warning">--</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="productivity-metric">
+                                                <label class="text-muted small">Rendement</label>
+                                                <div class="metric-value">
+                                                    <span id="temps-rendement" class="h6 fw-bold">--%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="productivity-metric" style="padding: 8px; height: 100%; min-height: 140px; background: none; box-shadow: none;">
+                                        <div class="gauge-container" style="height: 100%; display: flex; align-items: center; justify-content: center;">
+                                            <svg id="projete-gauge" width="100%" height="100%" viewBox="0 0 100 80" style="max-width: 200px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
+                                                <!-- Arc de fond -->
+                                                <path d="M 10 50 A 40 40 0 0 1 90 50" 
+                                                      stroke="#e9ecef" 
+                                                      stroke-width="8" 
+                                                      fill="none"
+                                                      stroke-linecap="round"/>
+                                                
+                                                <!-- Arc coloré (sera mis à jour dynamiquement) -->
+                                                <path id="gauge-arc" 
+                                                      d="M 10 50 A 40 40 0 0 1 90 50" 
+                                                      stroke="#dc3545" 
+                                                      stroke-width="8" 
+                                                      fill="none"
+                                                      stroke-dasharray="0 126"
+                                                      stroke-linecap="round"
+                                                      style="transition: stroke-dasharray 0.5s ease, stroke 0.3s ease"/>
+                                                
+                                                <!-- Graduations -->
+                                                <g id="gauge-ticks">
+                                                    <!-- 0% -->
+                                                    <text x="10" y="58" text-anchor="middle" font-size="8" fill="#666">0</text>
+                                                    
+                                                    <!-- 50% -->
+                                                    <text x="50" y="12" text-anchor="middle" font-size="8" fill="#666">50</text>
+                                                    
+                                                    <!-- 100% -->
+                                                    <text x="90" y="58" text-anchor="middle" font-size="8" fill="#666">100</text>
+                                                </g>
+                                                
+                                                <!-- Aiguille secondaire (longueur enroulable / longueur totale) -->
+                                                <g id="gauge-needle-secondary" transform="rotate(-90 50 50)" style="transition: transform 0.5s ease; opacity: 0.4">
+                                                    <line x1="50" y1="50" x2="50" y2="14" stroke="#666" stroke-width="1" stroke-linecap="round"/>
+                                                    <circle cx="50" cy="50" r="2" fill="#666"/>
+                                                </g>
+                                                
+                                                <!-- Aiguille tertiaire (rendement projeté avec un rouleau de plus) -->
+                                                <g id="gauge-needle-tertiary" transform="rotate(-90 50 50)" style="transition: transform 0.5s ease; opacity: 0.3">
+                                                    <line x1="50" y1="50" x2="50" y2="18" stroke="#666" stroke-width="1" stroke-linecap="round" stroke-dasharray="3,2"/>
+                                                    <circle cx="50" cy="50" r="2" fill="#666"/>
+                                                </g>
+                                                
+                                                <!-- Aiguille principale (rendement) -->
+                                                <g id="gauge-needle" transform="rotate(-90 50 50)" style="transition: transform 0.5s ease">
+                                                    <line id="needle-line" x1="50" y1="50" x2="50" y2="22" stroke="#333" stroke-width="3" stroke-linecap="round"/>
+                                                    <circle id="needle-circle" cx="50" cy="50" r="5" fill="#333"/>
+                                                </g>
+                                                
+                                                <!-- Valeur au centre -->
+                                                <text id="gauge-value" x="50" y="70" text-anchor="middle" font-size="18" font-weight="bold" fill="#333">0%</text>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tab: Paramètres Machine -->
+                        <div class="tab-content" id="tab-parametres" style="display: none;">
+                            <!-- Sélecteur de profil et modes -->
+                            <div class="mb-3">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="profile-selector" class="form-label fw-bold">Profil de production</label>
+                                        <select id="profile-selector" class="form-select" onchange="saveProfile(this.value)">
+                                            <option value="">-- Sélectionner un profil --</option>
+                                            {% for profile in profiles %}
+                                            <option value="{{ profile.id }}" 
+                                                    data-belt-speed="{% if profile.machine_parameters and profile.machine_parameters.belt_speed_m_per_minute %}{{ profile.machine_parameters.belt_speed_m_per_minute }}{% else %}0{% endif %}"
+                                                    {% if production_state and production_state.selected_profile_id == profile.id %}selected{% endif %}>{{ profile.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 d-flex flex-column justify-content-center">
+                                        <label class="form-label fw-bold mb-1">Modes</label>
+                                        <div class="modes-toggles d-flex gap-3">
+                                            {% for mode in modes %}
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="mode-{{ mode.code }}" onchange="saveModes()" data-mode-code="{{ mode.code }}">
+                                                <label class="form-check-label" for="mode-{{ mode.code }}" 
+                                                       data-bs-toggle="tooltip" 
+                                                       data-bs-placement="top" 
+                                                       title="{{ mode.description|default:'Aucune description disponible' }}"
+                                                       style="cursor: help;">
+                                                    {{ mode.name }}
+                                                </label>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Affichage des paramètres machine du profil sélectionné -->
+                            <div id="machine-parameters-display" class="mt-4">
+                                <!-- Les paramètres seront affichés ici dynamiquement -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+            </div> <!-- Fin left-column -->
+        
+            <!-- Colonne droite : Check-list -->
+            <div class="right-column">
+                <!-- Bloc Check-list -->
+                <div class="block-card">
+                    <div class="block-header" style="cursor: pointer;" onclick="toggleChecklistBlock()">
+                        <h5 class="block-title"><i class="bi bi-check2-square"></i> Check-list</h5>
+                        <div class="block-actions">
+                            <i class="bi bi-chevron-up" id="checklist-chevron"></i>
+                        </div>
+                    </div>
+                    <div class="block-content" id="checklist-content">
+                        <div class="checklist-items">
+                            {% for item in checklist_items %}
+                            <div class="checklist-item d-flex justify-content-between align-items-center mb-3">
+                                <label class="form-label mb-0 flex-grow-1">{{ item.text }}</label>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-success checklist-btn" data-item="item-{{ item.id }}" data-value="ok">OK</button>
+                                    <button type="button" class="btn btn-outline-secondary checklist-btn" data-item="item-{{ item.id }}" data-value="na">N/A</button>
+                                    <button type="button" class="btn btn-outline-danger checklist-btn" data-item="item-{{ item.id }}" data-value="nok">NOK</button>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="alert alert-warning">
+                                Aucun item de check-list configuré. Veuillez configurer un template de check-list dans l'administration.
+                            </div>
+                            {% endfor %}
+                            {% if checklist_items %}
+                            <div class="signature-field d-flex justify-content-end align-items-center mt-3 gap-2">
+                                <small class="text-muted" id="signature-time">--</small>
+                                <input type="text" class="form-control fw-bold" id="operator-signature" placeholder="Signature" maxlength="5" style="text-transform: uppercase; width: 100px !important; max-width: 100px !important; text-align: center;">
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div> <!-- Fin right-column -->
+        
+        </div> <!-- Fin top-blocks -->
+
+        <!-- Bloc Contrôles Qualité -->
+        <div class="block-card">
+            <div class="block-header" style="cursor: pointer;" onclick="toggleQualityControlsBlock()">
+                <h5 class="block-title"><i class="bi bi-clipboard-check"></i> Contrôles Qualité</h5>
+                <div class="block-actions">
+                    <i class="bi bi-chevron-up" id="quality-controls-chevron"></i>
+                </div>
+            </div>
+            <div class="block-content" id="quality-controls-content">
+                <div class="quality-controls-grid d-flex gap-3" style="width: 100%;">
+                    <!-- Contrôles Micrionnaire Gauche -->
+                    <div class="control-section left" style="flex: 1;">
+                        <div class="control-header">
+                            <i class="bi bi-search"></i>
+                            <span>Contrôles Micronnaire Gauche (mg/min)</span>
+                        </div>
+                        <div class="control-content">
+                            <div class="micrometer-readings">
+                                <div class="reading-group">
+                                    <label>#1</label>
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
+                                </div>
+                                <div class="reading-group">
+                                    <label>#2</label>
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
+                                </div>
+                                <div class="reading-group">
+                                    <label>#3</label>
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
+                                </div>
+                                <div class="average-display mt-0">
+                                    <small class="text-muted">--</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bain d'Ensimage (Centre) -->
+                    <div class="control-section center" style="flex: 1;">
+                        <div class="control-header">
+                            <i class="bi bi-clipboard-data"></i>
+                            <span>Extrait Sec (%)</span>
+                        </div>
+                        <div class="control-content">
+                            <div class="sizing-bath">
+                                <div class="sizing-bath-field">
+                                    <input type="text" class="form-control" placeholder="--" id="sizing-bath-input" autocomplete="off" inputmode="decimal">
+                                    <small class="text-muted" id="sizing-bath-time">--</small>
+                                </div>
+                                <hr style="width: 80%; margin: 0.5rem 0; border-color: var(--border-color);">
+                                <div class="loi-section">
+                                    <div class="d-flex flex-column align-items-center">
+                                        <div class="d-flex align-items-center justify-content-center gap-1">
+                                            <label style="font-size: 0.75rem; font-weight: 500; color: var(--primary-text); margin: 0;">Échantillon LOI</label>
+                                            <label class="custom-toggle">
+                                                <input type="checkbox" id="loiSwitch">
+                                                <span class="toggle-slider"></span>
+                                            </label>
+                                        </div>
+                                        <small class="text-muted mt-1" id="loi-time">--</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contrôles Micrionnaire Droite -->
+                    <div class="control-section right" style="flex: 1;">
+                        <div class="control-header">
+                            <i class="bi bi-search"></i>
+                            <span>Contrôles Micronnaire Droite (mg/min)</span>
+                        </div>
+                        <div class="control-content">
+                            <div class="micrometer-readings">
+                                <div class="reading-group">
+                                    <label>#1</label>
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
+                                </div>
+                                <div class="reading-group">
+                                    <label>#2</label>
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
+                                </div>
+                                <div class="reading-group">
+                                    <label>#3</label>
+                                    <input type="text" class="form-control" placeholder="--" autocomplete="off" inputmode="decimal">
+                                </div>
+                                <div class="average-display mt-0">
+                                    <small class="text-muted">--</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contrôles Masse Surfacique (Ligne du bas) -->
+                <div class="surface-mass-controls" style="display: flex; flex-wrap: nowrap; width: 100%; gap: 3rem;">
+                    <!-- Gauche -->
+                    <div class="surface-mass-section left" style="flex: 1;">
+                        <div class="control-header">
+                            <i class="bi bi-clipboard-check"></i>
+                            <span>Contrôles Masse Surfacique Gauche (g/25cm²)</span>
+                        </div>
+                        <div class="surface-mass-readings">
+                            <div class="d-flex flex-column">
+                                <div class="d-flex align-items-end gap-2">
+                                    <small class="text-muted" style="margin-bottom: 0;" id="gg-conversion">--</small>
+                                    <div class="reading-group">
+                                        <label>GG</label>
+                                        <input type="text" class="form-control" placeholder="--" id="gg-input" autocomplete="off" inputmode="decimal">
+                                    </div>
+                                    <div class="reading-group">
+                                        <label>GC</label>
+                                        <input type="text" class="form-control" placeholder="--" id="gc-input" autocomplete="off" inputmode="decimal">
+                                    </div>
+                                    <small class="text-muted" style="margin-bottom: 0;" id="gc-conversion">--</small>
+                                </div>
+                                <div class="text-center mt-0">
+                                    <small class="text-muted">--</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bouton Clear au centre -->
+                    <div class="d-flex flex-column align-items-center justify-content-center gap-2" style="padding: 0 10px;">
+                        <small id="quality-controls-status" class="text-muted text-center" style="font-size: 0.65rem; max-width: 150px; font-style: italic;">Renseignez les contrôles pour pouvoir sauvegarder le poste</small>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" style="opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </button>
+                    </div>
+
+                    <!-- Droite -->
+                    <div class="surface-mass-section right" style="flex: 1;">
+                        <div class="control-header">
+                            <i class="bi bi-clipboard-check"></i>
+                            <span>Contrôles Masse Surfacique Droite (g/25cm²)</span>
+                        </div>
+                        <div class="surface-mass-readings">
+                            <div class="d-flex flex-column">
+                                <div class="d-flex align-items-end gap-2">
+                                    <small class="text-muted" style="margin-bottom: 0;" id="dc-conversion">--</small>
+                                    <div class="reading-group">
+                                        <label>DC</label>
+                                        <input type="text" class="form-control" placeholder="--" id="dc-input" autocomplete="off" inputmode="decimal">
+                                    </div>
+                                    <div class="reading-group">
+                                        <label>DD</label>
+                                        <input type="text" class="form-control" placeholder="--" id="dd-input" autocomplete="off" inputmode="decimal">
+                                    </div>
+                                    <small class="text-muted" style="margin-bottom: 0;" id="dd-conversion">--</small>
+                                </div>
+                                <div class="text-center mt-0">
+                                    <small class="text-muted">--</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Zone Rouleau -->
+        <div class="roll-visualization">
+                    <div class="text-center mb-3">
+                        <div class="roll-status-display" style="border: none;">
+                            <div class="info-left">
+                                <div class="top-line">
+                                    <small class="text-muted"><span id="thickness-progress">Epaisseurs : 0/0</span> | <span id="nok-count">0 NOK</span></small>
+                                </div>
+                                <div class="bottom-line">
+                                    <small id="defects-summary" class="text-muted">Défauts : 0 | </small>
+                                </div>
+                            </div>
+                            <div id="conformity-status" class="badge bg-secondary">--</div>
+                            <div class="info-right">
+                                <div class="validation-info-panel" id="validation-info-panel">
+                                    <small id="validation-message" class="text-muted">Renseignez les données du rouleau</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="roll-container" id="roll-container">
+                        <div class="roll-grid">
+                            <!-- Le contenu sera généré dynamiquement -->
+                            <div id="roll-content-viz">
+                                <div class="roll-empty-state">
+                                    <p>Renseignez une longueur cible pour visualiser le rouleau</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        
+    </main>
+</div>
+
+<!-- Sticky Bar -->
+<div class="sticky-bar-bg"></div>
+<div class="sticky-bar">
+    <div class="sticky-content">
+        <div class="fibrage-sticky-bar">
+            <div class="fibrage-container">
+                <div class="fibrage-content">
+                    
+                    <!-- Gauche : Titre -->
+                    <div class="fibrage-left">
+                        <h6><i class="bi bi-box-seam"></i> En cours</h6>
+                    </div>
+                    
+                    <!-- Centre : Numéro rouleau, ID, Lg, Masse tube, Masse totale, Bouton save -->
+                    <div class="fibrage-center">
+                        <div class="fibrage-field">
+                            <label class="fibrage-label">N° Rouleau</label>
+                            <div class="fibrage-value-with-edit">
+                                <div class="fibrage-value-readonly" id="sticky-roll-number">--</div>
+                                <button type="button" class="fibrage-edit-btn" onclick="makeEditable('sticky-roll-number')" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="fibrage-field">
+                            <label class="fibrage-label">ID Rouleau</label>
+                            <div class="fibrage-id-group">
+                                <span class="fibrage-text" id="sticky-roll-id">--</span>
+                                <span class="fibrage-status-text" id="sticky-roll-status"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="fibrage-field">
+                            <label class="fibrage-label">Masse tube (g)</label>
+                            <div class="fibrage-value-center" id="sticky-tube-mass" onclick="makeEditable('sticky-tube-mass')">--</div>
+                        </div>
+                        
+                        <div class="fibrage-field">
+                            <label class="fibrage-label">Lg (m)</label>
+                            <div class="fibrage-value-center" id="sticky-roll-length" onclick="makeEditable('sticky-roll-length')">--</div>
+                        </div>
+                        
+                        <div class="fibrage-field">
+                            <label class="fibrage-label">Masse totale (g)</label>
+                            <div class="fibrage-value-center" id="sticky-total-mass" onclick="makeEditable('sticky-total-mass')">--</div>
+                        </div>
+                        
+                        <div class="fibrage-field mass-calc-field">
+                            <div class="mass-calc-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                                <small class="fibrage-text" id="mass-net" style="font-size: 0.7rem;">--</small>
+                                <small class="fibrage-text" id="grammage" style="font-size: 0.9rem; font-weight: bold;">--</small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex align-items-center">
+                            <button type="button" id="sticky-action-btn" class="btn btn-secondary btn-sm fibrage-action-btn" onclick="handleActionButton()">
+                                <i class="bi bi-save"></i> --
+                            </button>
+                            <button type="button" id="cut-btn" class="btn btn-outline-secondary btn-sm cut-button ms-3" onclick="forceToCutting()" title="Forcer vers la découpe">
+                                <i class="bi bi-scissors"></i>
+                            </button>
+                            <button type="button" id="waste-btn" class="btn btn-outline-secondary btn-sm waste-button ms-3" onclick="sendToWaste()" title="Envoyer aux déchets">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Droite : Masse prochain tube -->
+                    <div class="fibrage-right">
+                        <div class="fibrage-field">
+                            <label class="fibrage-label">Masse prochain tube (g)</label>
+                            <div class="fibrage-value-center" id="sticky-next-tube-mass" onclick="makeEditable('sticky-next-tube-mass')">--</div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Définir les fonctions globalement
+window.editCurrentOrder = function() {
+    console.log('editCurrentOrder called');
+    const select = document.getElementById('current-order');
+    console.log('select element:', select);
+    if (select) {
+        select.disabled = false;
+        select.focus();
+        
+        const changeHandler = function() {
+            select.disabled = true;
+            console.log(`OF sélectionné: ${select.value}`);
+            
+            // Envoyer au serveur
+            const formData = new FormData();
+            formData.append('field', 'current_of');
+            formData.append('value', select.value);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            
+            fetch('/livesession/update-field/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Réponse serveur:', data);
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+            });
+        };
+        
+        const blurHandler = function() {
+            setTimeout(() => {
+                select.disabled = true;
+            }, 200);
+        };
+        
+        select.removeEventListener('change', changeHandler);
+        select.removeEventListener('blur', blurHandler);
+        select.addEventListener('change', changeHandler);
+        select.addEventListener('blur', blurHandler);
+    }
+}
+
+window.editTargetLength = function() {
+    const input = document.getElementById('target-length');
+    if (input) {
+        input.disabled = false;
+        input.focus();
+        input.select();
+        
+        function save() {
+            input.disabled = true;
+            console.log(`Longueur cible: ${input.value}`);
+            
+            // Envoyer au serveur
+            const formData = new FormData();
+            formData.append('field', 'target_length');
+            formData.append('value', input.value);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            
+            fetch('/livesession/update-field/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Réponse serveur:', data);
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+            });
+        }
+        
+        input.addEventListener('blur', save);
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                save();
+            }
+        });
+    }
+}
+
+window.editCuttingOrder = function() {
+    const select = document.getElementById('cutting-order');
+    if (select) {
+        select.disabled = false;
+        select.focus();
+        
+        const changeHandler = function() {
+            select.disabled = true;
+            console.log(`OF découpe: ${select.value}`);
+            
+            // Envoyer au serveur
+            const formData = new FormData();
+            formData.append('field', 'cutting_of');
+            formData.append('value', select.value);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            
+            fetch('/livesession/update-field/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Réponse serveur:', data);
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+            });
+        };
+        
+        const blurHandler = function() {
+            setTimeout(() => {
+                select.disabled = true;
+            }, 200);
+        };
+        
+        select.removeEventListener('change', changeHandler);
+        select.removeEventListener('blur', blurHandler);
+        select.addEventListener('change', changeHandler);
+        select.addEventListener('blur', blurHandler);
+    }
+}
+
+// Fonction pour rendre un champ éditable
+window.makeEditable = function(fieldId) {
+    console.log('makeEditable called for:', fieldId);
+    const field = document.getElementById(fieldId);
+    if (!field) {
+        console.log('Field not found:', fieldId);
+        return;
+    }
+    
+    // Si déjà en édition, ne rien faire
+    if (field.querySelector('input')) return;
+    
+    const currentValue = field.textContent.trim() === '--' ? '' : field.textContent.trim();
+    const originalHTML = field.innerHTML;
+    
+    // Créer un input
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentValue;
+    input.className = 'form-control form-control-sm';
+    
+    // Adapter la largeur selon le champ
+    if (fieldId.includes('sticky-')) {
+        // Pour la sticky bar, garder une petite largeur
+        input.style.width = '60px';
+        input.style.textAlign = 'center';
+    } else {
+        input.style.width = '100px';
+    }
+    
+    // Vider le contenu et ajouter l'input
+    field.innerHTML = '';
+    field.appendChild(input);
+    input.focus();
+    input.select();
+    
+    // Fonction pour sauvegarder
+    function saveValue() {
+        const newValue = input.value || '--';
+        field.innerHTML = newValue;
+        console.log(`Valeur sauvegardée pour ${fieldId}: ${newValue}`);
+    }
+    
+    // Fonction pour annuler
+    function cancelEdit() {
+        field.innerHTML = originalHTML;
+    }
+    
+    // Sauvegarder sur Enter, annuler sur Escape
+    input.addEventListener('blur', saveValue);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveValue();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelEdit();
+        }
+    });
+}
+
+// Fonctions de toggle basiques pour les blocs
+function toggleBlock(blockName) {
+    const content = document.getElementById(blockName + '-content');
+    const chevron = document.getElementById(blockName + '-chevron');
+    const block = content.closest('.block-card');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        chevron.classList.remove('bi-chevron-down');
+        chevron.classList.add('bi-chevron-up');
+        block.classList.remove('collapsed');
+    } else {
+        content.style.display = 'none';
+        chevron.classList.remove('bi-chevron-up');
+        chevron.classList.add('bi-chevron-down');
+        block.classList.add('collapsed');
+    }
+}
+
+function toggleOFBlock() {
+    toggleBlock('of');
+}
+
+function togglePreviousShiftBlock(event) {
+    if (event && event.target.closest('.block-actions')) {
+        return;
+    }
+    toggleBlock('previous-shift');
+}
+
+function toggleTemporaryBlock(event) {
+    if (event && event.target.closest('.block-actions')) {
+        return;
+    }
+    toggleBlock('temporary');
+}
+
+function toggleQualityControlsBlock() {
+    toggleBlock('quality-controls');
+}
+
+function toggleRollBlock() {
+    toggleBlock('roll');
+}
+
+function toggleTempsBlock() {
+    toggleBlock('temps');
+}
+
+function toggleProductiviteBlock() {
+    toggleBlock('productivite');
+}
+
+function toggleChecklistBlock() {
+    toggleBlock('checklist');
+}
+
+// Fonction pour changer d'onglet dans le bloc Productivité
+function showProductivityTab(tabName) {
+    // D'abord, s'assurer que le bloc est déroulé
+    const content = document.getElementById('productivite-content');
+    const chevron = document.getElementById('productivite-chevron');
+    const block = content.closest('.block-card');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        chevron.classList.remove('bi-chevron-down');
+        chevron.classList.add('bi-chevron-up');
+        block.classList.remove('collapsed');
+    }
+    
+    // Masquer tous les tab-content
+    const allTabs = document.querySelectorAll('.tab-content');
+    allTabs.forEach(tab => {
+        tab.style.display = 'none';
+    });
+    
+    // Afficher le tab sélectionné
+    const selectedTab = document.getElementById('tab-' + tabName);
+    if (selectedTab) {
+        selectedTab.style.display = 'block';
+    }
+    
+    // Mettre à jour les boutons actifs
+    const allButtons = document.querySelectorAll('.tab-btn');
+    allButtons.forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const activeButton = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+    if (activeButton) {
+        activeButton.classList.add('active');
+    }
+}
+
+// Fonctions vides pour les boutons d'édition (pour éviter les erreurs)
+function addFabricationOrder() {}
+
+// Fonction pour sauvegarder le profil sélectionné
+function saveProfile(profileId) {
+    const formData = new FormData();
+    formData.append('field', 'selected_profile');
+    formData.append('value', profileId);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch('/livesession/update-field/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+    });
+}
+
+// Fonction pour sauvegarder les modes actifs
+function saveModes() {
+    const modes = {};
+    document.querySelectorAll('input[id^="mode-"]').forEach(checkbox => {
+        const modeCode = checkbox.id.replace('mode-', '');
+        modes[modeCode] = checkbox.checked;
+    });
+    
+    const formData = new FormData();
+    formData.append('field', 'active_modes');
+    formData.append('value', JSON.stringify(modes));
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch('/livesession/update-field/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+    });
+}
+
+// Fonction pour générer les options de durée par tranches de 5 minutes
+function populateTimeOptions() {
+    const timeSelect = document.getElementById('time-duration-select');
+    if (!timeSelect) return;
+    
+    for (let minutes = 5; minutes <= 480; minutes += 5) {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        let text = '';
+        
+        if (hours > 0 && mins > 0) {
+            text = `${hours}h${mins.toString().padStart(2, '0')}`;
+        } else if (hours > 0) {
+            text = `${hours}h`;
+        } else {
+            text = `${mins}min`;
+        }
+        
+        const option = document.createElement('option');
+        option.value = minutes;
+        option.textContent = text;
+        timeSelect.appendChild(option);
+    }
+}
+
+// Initialisation au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    populateTimeOptions();
+    
+    // Initialiser les tooltips Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Restaurer les modes sauvegardés
+    const savedModes = JSON.parse('{{ active_modes_json|escapejs }}');
+    Object.keys(savedModes).forEach(modeCode => {
+        const checkbox = document.getElementById('mode-' + modeCode);
+        if (checkbox) {
+            checkbox.checked = savedModes[modeCode];
+        }
+    });
+});
+
+</script>
+{% endblock %}

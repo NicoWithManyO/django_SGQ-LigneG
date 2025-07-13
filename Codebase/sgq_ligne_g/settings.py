@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'reports',
     'reporting',
     'wcm',
+    'frontend',
+    'livesession',
 ]
 
 MIDDLEWARE = [

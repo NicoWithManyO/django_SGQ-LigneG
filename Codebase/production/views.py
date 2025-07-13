@@ -222,6 +222,9 @@ def prod(request):
     # Récupérer les modes actifs (Permissif en premier)
     modes = Mode.objects.filter(is_active=True).order_by('-name')  # Ordre inverse pour avoir Permissif avant Restrictif
     
+    # Créer un formulaire vide pour la fiche de poste
+    shift_form = ShiftForm()
+    
     context = {
         'shifts': shifts,
         'defect_types': defect_types,
@@ -231,6 +234,8 @@ def prod(request):
         'machine_parameters': machine_parameters,
         'profiles': profiles,
         'modes': modes,
+        'shift_form': shift_form,
+        'form': shift_form,  # Pour compatibilité avec le template shift_block.html
     }
     return render(request, 'production/prod.html', context)
 
@@ -572,27 +577,7 @@ def shift_block(request, shift_id=None):
                             if field in form_data:
                                 preserved_data[field] = form_data[field]
                         
-                        # Reporter l'état machine de fin vers début pour le poste suivant
-                        # D'abord essayer de récupérer depuis les données du formulaire
-                        started_at_end = form.cleaned_data.get('started_at_end', False)
-                        meter_reading_end = form.cleaned_data.get('meter_reading_end', None)
-                        
-                        # Si pas dans cleaned_data, essayer depuis form_data (auto-save)
-                        if 'started_at_end' in form_data:
-                            started_at_end = form_data.get('started_at_end', False)
-                        if 'meter_reading_end' in form_data:
-                            meter_reading_end = form_data.get('meter_reading_end', None)
-                        
-                        if started_at_end:
-                            preserved_data['started_at_beginning'] = True
-                            # Reporter le métrage de fin vers début
-                            if meter_reading_end:
-                                preserved_data['meter_reading_start'] = str(meter_reading_end)
-                            print(f"DEBUG: Machine démarrée en fin, reporté vers début. Métrage: {meter_reading_end}")
-                        else:
-                            preserved_data['started_at_beginning'] = False
-                            preserved_data['meter_reading_start'] = ''
-                            print(f"DEBUG: Machine pas démarrée en fin, début mis à False")
+                        # Ne pas reporter l'état machine entre les postes
                         
                         # Déterminer la vacation suivante
                         current_vacation = shift.vacation
@@ -624,13 +609,7 @@ def shift_block(request, shift_id=None):
                         # Préserver l'opérateur
                         preserved_data['operator'] = form.cleaned_data.get('operator').id if form.cleaned_data.get('operator') else ''
                         
-                        # Machine toujours démarrée en fin par défaut
-                        preserved_data['started_at_end'] = True
-                        # Préserver le métrage de fin pour le prochain formulaire
-                        preserved_data['meter_reading_end'] = str(meter_reading_end) if meter_reading_end else ''
-                        
-                        # NE PAS reporter la longueur totale dans meter_reading_start !
-                        # meter_reading_start est déjà correctement reporté depuis meter_reading_end plus haut
+                        # Ne pas prédéfinir l'état machine
                         
                         # IMPORTANT: Vider TOUTES les données de production après sauvegarde du poste
                         preserved_data['lostTimeEntries'] = []
@@ -649,6 +628,9 @@ def shift_block(request, shift_id=None):
                         
                         # Vider les contrôles qualité
                         preserved_data['qualityControls'] = {}
+                        
+                        # Vider la checklist
+                        preserved_data['checklistData'] = {}
                         
                         # Vider le statut de conformité
                         preserved_data['conformityStatus'] = {
@@ -674,12 +656,7 @@ def shift_block(request, shift_id=None):
                             current_prod = CurrentProd.objects.get(session_key=session_key)
                             preserved = current_prod.form_data
                             # Ajouter les données préservées aux initial_data SAUF la date
-                            if preserved.get('started_at_beginning'):
-                                initial_data['started_at_beginning'] = True
-                            if preserved.get('meter_reading_start'):
-                                initial_data['meter_reading_start'] = preserved.get('meter_reading_start')
-                            if preserved.get('started_at_end'):
-                                initial_data['started_at_end'] = True
+                            # Ne pas reporter l'état machine
                             if preserved.get('vacation'):
                                 initial_data['vacation'] = preserved.get('vacation')
                             if preserved.get('start_time'):
