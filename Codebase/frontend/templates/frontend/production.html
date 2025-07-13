@@ -1089,7 +1089,7 @@
                         <div class="fibrage-field">
                             <label class="fibrage-label">Lg (m)</label>
                             <input type="number" id="sticky-roll-length" class="form-control fw-bold of-input" value="" placeholder="--" 
-                                   onchange="saveStickValue('length', this.value)">
+                                   onchange="saveStickValue('length', this.value); generateRollVisualization();">
                         </div>
                         
                         <div class="fibrage-field">
@@ -1121,7 +1121,7 @@
                     <!-- Droite : Masse prochain tube -->
                     <div class="fibrage-right">
                         <div class="fibrage-field">
-                            <label class="fibrage-label">Masse prochain tube (g)</label>
+                            <label class="fibrage-label">Tube suivant (g)</label>
                             <input type="number" id="sticky-next-tube-mass" class="form-control fw-bold of-input" value="" placeholder="--" 
                                    onchange="saveStickValue('next_tube_mass', this.value)">
                         </div>
@@ -1206,6 +1206,8 @@ window.editTargetLength = function() {
             .then(response => response.json())
             .then(data => {
                 console.log('Réponse serveur:', data);
+                // Mettre à jour la visualisation
+                generateRollVisualization();
             })
             .catch(error => {
                 console.error('Erreur:', error);
@@ -1741,6 +1743,95 @@ function toggleStickyInputs(enable) {
     });
 }
 
+// Fonction pour générer la visualisation du rouleau
+function generateRollVisualization() {
+    const container = document.getElementById('roll-content-viz');
+    if (!container) return;
+    
+    // Récupérer les données
+    const targetLength = parseFloat(document.getElementById('target-length')?.value) || 0;
+    
+    if (targetLength <= 0) {
+        container.innerHTML = `
+            <div class="roll-empty-state">
+                <p>Renseignez une longueur cible pour visualiser le rouleau</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Créer la structure de base
+    let html = '<div style="overflow-x: auto; margin: 0 10px;">';
+    html += '<table class="table table-sm" style="width: 100%; border: none; table-layout: fixed; border-top: none !important; margin-bottom: 0 !important;">';
+    
+    // Définir les largeurs des colonnes
+    html += '<colgroup>';
+    html += '<col style="width: 4%;">'; // Défaut G
+    html += '<col style="width: 4%;">'; // Métrage
+    html += '<col style="width: 15%;">'; // G1
+    html += '<col style="width: 15%;">'; // G2
+    html += '<col style="width: 15%;">'; // G3
+    html += '<col style="width: 4%;">'; // Défaut C
+    html += '<col style="width: 15%;">'; // D1
+    html += '<col style="width: 15%;">'; // D2
+    html += '<col style="width: 15%;">'; // D3
+    html += '<col style="width: 4%;">'; // Métrage
+    html += '<col style="width: 4%;">'; // Défaut D
+    html += '</colgroup>';
+    
+    // Corps de la table
+    html += '<tbody style="border-top: none !important;">';
+    
+    // Générer les lignes (1 ligne = 1m)
+    for (let m = 1; m <= targetLength; m++) {
+        html += '<tr style="border: none;">';
+        
+        // Colonne défaut gauche (vide pour l'instant)
+        html += '<td style="border: none; padding: 2px;"></td>';
+        
+        // Colonne métrage
+        html += `<td class="text-center" style="border: none; padding: 2px; font-size: 0.75rem; color: #215C98; vertical-align: middle;">${m}</td>`;
+        
+        // Colonnes épaisseur gauche (G1, G2, G3)
+        // Mesures tous les 5m à partir de 3m
+        const hasThickness = (m === 3 || (m > 3 && (m - 3) % 5 === 0));
+        for (let i = 0; i < 3; i++) {
+            if (hasThickness) {
+                html += '<td style="border: none; padding: 2px; text-align: center;"><input type="text" class="thickness-input" style="background-color: #e3f2fd; border: 1px solid #90caf9; width: 40px; height: 22px; text-align: center; font-size: 0.75rem; padding: 2px; border-radius: 12px; cursor: pointer;" onclick="this.select()" /></td>';
+            } else {
+                html += '<td style="border: none; padding: 2px;"></td>';
+            }
+        }
+        
+        // Colonne défaut centre (vide pour l'instant)
+        html += '<td style="border: none; padding: 2px;"></td>';
+        
+        // Colonnes épaisseur droite (D1, D2, D3)
+        for (let i = 0; i < 3; i++) {
+            if (hasThickness) {
+                html += '<td style="border: none; padding: 2px; text-align: center;"><input type="text" class="thickness-input" style="background-color: #e3f2fd; border: 1px solid #90caf9; width: 40px; height: 22px; text-align: center; font-size: 0.75rem; padding: 2px; border-radius: 12px; cursor: pointer;" onclick="this.select()" /></td>';
+            } else {
+                html += '<td style="border: none; padding: 2px;"></td>';
+            }
+        }
+        
+        // Colonne métrage droite
+        html += `<td class="text-center" style="border: none; padding: 2px; font-size: 0.75rem; color: #215C98; vertical-align: middle;">${m}</td>`;
+        
+        // Colonne défaut droite (vide pour l'instant)
+        html += '<td style="border: none; padding: 2px;"></td>';
+        
+        html += '</tr>';
+    }
+    
+    html += '</tbody>';
+    
+    html += '</table>';
+    html += '</div>';
+    
+    container.innerHTML = html;
+}
+
 // Fonction pour sauvegarder les modes actifs
 function saveModes() {
     const modes = {};
@@ -1832,6 +1923,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (activeTab && activeTab !== 'temps') {
         showProductivityTab(activeTab);
     }
+    
+    // Générer la visualisation du rouleau
+    generateRollVisualization();
 });
 
 </script>

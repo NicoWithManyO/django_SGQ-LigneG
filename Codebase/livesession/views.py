@@ -123,3 +123,39 @@ def update_field(request):
         return JsonResponse({'status': 'ok', 'message': f'Champ {shift_field} mis à jour'})
     
     return JsonResponse({'status': 'error', 'message': f'Champ inconnu: {field_name}'})
+
+
+@require_http_methods(["GET"])
+def get_active_roll(request):
+    """Récupère les données du rouleau actif"""
+    # S'assurer qu'on a une session
+    if not request.session.session_key:
+        return JsonResponse({'success': False, 'message': 'Pas de session'})
+    
+    session_key = request.session.session_key
+    
+    try:
+        from .models import LiveRoll
+        active_roll = LiveRoll.objects.filter(
+            session_key=session_key,
+            is_active=True
+        ).first()
+        
+        if active_roll:
+            return JsonResponse({
+                'success': True,
+                'roll_data': active_roll.roll_data
+            })
+        else:
+            return JsonResponse({
+                'success': True,
+                'roll_data': {
+                    'defects': [],
+                    'thickness_measurements': []
+                }
+            })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        })
