@@ -96,6 +96,33 @@
     line-height: 1.2 !important;
 }
 
+/* Styles pour les boutons d'action */
+.fibrage-action-btn {
+    min-width: 120px;
+    font-weight: 600;
+}
+
+.cut-button, .waste-button {
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cut-button:hover {
+    background-color: #ff9800;
+    border-color: #ff9800;
+    color: white;
+}
+
+.waste-button:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
 /* Style pour les indicateurs de tendance */
 .trend-indicator {
     display: inline-flex;
@@ -1532,7 +1559,13 @@
                     
                     <!-- Bouton Clear au centre -->
                     <div class="d-flex flex-column align-items-center justify-content-center gap-2" style="padding: 0 10px;">
-                        <small id="quality-controls-status" class="text-muted text-center" style="font-size: 0.65rem; max-width: 150px; font-style: italic;">Renseignez les contrôles pour pouvoir sauvegarder le poste</small>
+                        <div id="quality-controls-status" class="d-flex justify-content-center align-items-center">
+                            <div class="quality-badge-pending">
+                                <i class="bi bi-exclamation-circle"></i>
+                                <span>Quality Control</span>
+                                <small>Pending</small>
+                            </div>
+                        </div>
                         <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearRollValues()" style="opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
                             <i class="bi bi-x-circle"></i> Clear
                         </button>
@@ -1654,7 +1687,7 @@
                             <label class="fibrage-label">Lg (m)</label>
                             <input type="number" id="sticky-roll-length" class="form-control fw-bold of-input" value="" placeholder="--" 
                                    onclick="this.select()"
-                                   onchange="saveStickValue('length', this.value); generateRollVisualization(); calculateAndDisplayMass(true);">
+                                   onchange="saveStickValue('length', this.value); calculateAndDisplayMass(true);">
                         </div>
                         
                         <div class="fibrage-field">
@@ -2551,10 +2584,9 @@ function generateRollVisualization() {
     
     // Récupérer les données
     const targetLength = parseFloat(document.getElementById('target-length')?.value) || 0;
-    const stickyLength = parseFloat(document.getElementById('sticky-roll-length')?.value) || 0;
     
-    // Utiliser la longueur de la sticky bar si elle est remplie ET supérieure à la longueur cible
-    const displayLength = (stickyLength > targetLength) ? stickyLength : targetLength;
+    // Toujours utiliser la longueur cible pour la visualisation
+    const displayLength = targetLength;
     
     if (displayLength <= 0) {
         container.innerHTML = `
@@ -2829,6 +2861,7 @@ function getRollStatus() {
     let hasCriticalThickness = false;
     let hasAlertThickness = false;
     let hasPendingRattrapage = false; // NOK avec rattrapage vide
+    let hasCriticalGrammage = false; // Grammage hors tolérances
     
     // Vérifier les défauts
     document.querySelectorAll('.defect-select').forEach(select => {
@@ -2903,9 +2936,80 @@ function getRollStatus() {
         console.log('[DEBUG] WARNING: thicknessSpecs non chargé !');
     }
     
+    // Vérifier le grammage
+    // Pour un feutre de 1m de large : g/m = g/m²
+    // MAIS seulement si on a des données complètes (longueur ET masse totale)
+    const length = parseFloat(document.getElementById('sticky-roll-length')?.value) || 0;
+    const totalMass = parseFloat(document.getElementById('sticky-total-mass')?.value) || 0;
+    
+    if (surfaceMassSpecs && length > 0 && totalMass > 0) {
+        const grammageElement = document.getElementById('grammage');
+        if (grammageElement && grammageElement.textContent && grammageElement.textContent !== '--') {
+            const grammageText = grammageElement.textContent.replace('g/m²', '').replace('g/m', '').trim();
+            const grammageValue = parseFloat(grammageText);
+            
+            console.log('[DEBUG] Vérification grammage:', grammageValue, 'g/m vs specs min:', surfaceMassSpecs.value_min, 'max:', surfaceMassSpecs.value_max, 'unité specs:', surfaceMassSpecs.unit || 'non définie');
+            console.log('[DEBUG] Specs complètes:', surfaceMassSpecs);
+            
+            if (!isNaN(grammageValue) && grammageValue !== 0) {
+                // Un grammage négatif est toujours NON CONFORME
+                if (grammageValue < 0) {
+                    console.log('[DEBUG] Grammage négatif -> NON CONFORME');
+                    hasCriticalGrammage = true;
+                } else if (surfaceMassSpecs.value_min && grammageValue < surfaceMassSpecs.value_min) {
+                    console.log('[DEBUG] Grammage trop bas -> NON CONFORME');
+                    hasCriticalGrammage = true;
+                } else if (surfaceMassSpecs.value_max && grammageValue > surfaceMassSpecs.value_max) {
+                    console.log('[DEBUG] Grammage trop haut -> NON CONFORME');
+                    hasCriticalGrammage = true;
+                }
+            }
+        }
+    } else if (surfaceMassSpecs) {
+        console.log('[DEBUG] Pas de vérification grammage - données incomplètes (longueur:', length, ', masse totale:', totalMass, ')');
+    } else {
+        console.log('[DEBUG] WARNING: surfaceMassSpecs non chargé !');
+    }
+    
+    // Vérifier les masses surfaciques (g/25cm²) des contrôles qualité
+    let hasCriticalSurfaceMass = false;
+    if (surfaceMass25Specs) {
+        console.log('[DEBUG] Vérification masses surfaciques g/25cm²...');
+        
+        // Vérifier la moyenne gauche
+        const leftAvgElement = document.getElementById('surface-mass-left-avg');
+        if (leftAvgElement && leftAvgElement.textContent !== '--') {
+            const leftAvgValue = parseFloat(leftAvgElement.textContent);
+            if (!isNaN(leftAvgValue)) {
+                if (surfaceMass25Specs.value_min && leftAvgValue < surfaceMass25Specs.value_min) {
+                    console.log('[DEBUG] Masse surfacique gauche trop basse -> NON CONFORME');
+                    hasCriticalSurfaceMass = true;
+                } else if (surfaceMass25Specs.value_max && leftAvgValue > surfaceMass25Specs.value_max) {
+                    console.log('[DEBUG] Masse surfacique gauche trop haute -> NON CONFORME');
+                    hasCriticalSurfaceMass = true;
+                }
+            }
+        }
+        
+        // Vérifier la moyenne droite
+        const rightAvgElement = document.getElementById('surface-mass-right-avg');
+        if (rightAvgElement && rightAvgElement.textContent !== '--') {
+            const rightAvgValue = parseFloat(rightAvgElement.textContent);
+            if (!isNaN(rightAvgValue)) {
+                if (surfaceMass25Specs.value_min && rightAvgValue < surfaceMass25Specs.value_min) {
+                    console.log('[DEBUG] Masse surfacique droite trop basse -> NON CONFORME');
+                    hasCriticalSurfaceMass = true;
+                } else if (surfaceMass25Specs.value_max && rightAvgValue > surfaceMass25Specs.value_max) {
+                    console.log('[DEBUG] Masse surfacique droite trop haute -> NON CONFORME');
+                    hasCriticalSurfaceMass = true;
+                }
+            }
+        }
+    }
+    
     // Retourner le statut
-    console.log('[DEBUG] Final - hasBlockingDefect:', hasBlockingDefect, 'hasCriticalThickness:', hasCriticalThickness, 'hasPendingRattrapage:', hasPendingRattrapage);
-    if (hasBlockingDefect || hasCriticalThickness) {
+    console.log('[DEBUG] Final - hasBlockingDefect:', hasBlockingDefect, 'hasCriticalThickness:', hasCriticalThickness, 'hasPendingRattrapage:', hasPendingRattrapage, 'hasCriticalGrammage:', hasCriticalGrammage, 'hasCriticalSurfaceMass:', hasCriticalSurfaceMass);
+    if (hasBlockingDefect || hasCriticalThickness || hasCriticalGrammage || hasCriticalSurfaceMass) {
         return 'NON_CONFORME';
     } else if (hasPendingRattrapage) {
         return 'PENDING';  // État en attente de rattrapage
@@ -2958,6 +3062,9 @@ function updateRollStatus() {
     
     // Mettre à jour le badge de conformité au-dessus du rouleau
     updateConformityBadge(status);
+    
+    // Mettre à jour le bouton d'action selon le statut
+    updateActionButton(status);
     
     // Retourner le statut pour utilisation future
     return status === 'CONFORME' || status === 'PENDING';  // PENDING est considéré comme "potentiellement conforme"
@@ -3047,8 +3154,11 @@ function toggleRollStatus() {
 // Variable globale pour stocker les specs d'épaisseur
 let thicknessSpecs = null;
 
-// Variable globale pour stocker les specs de masse surfacique
+// Variable globale pour stocker les specs de masse surfacique globale (g/m²)
 let surfaceMassSpecs = null;
+
+// Variable globale pour stocker les specs de masse surfacique (g/25cm²)
+let surfaceMass25Specs = null;
 
 // Variable globale pour stocker les specs de micronnaire
 let micrometerSpecs = null;
@@ -3084,9 +3194,18 @@ function loadAllSpecs() {
         .then(response => response.json())
         .then(data => {
             if (data.specifications) {
-                if (data.specifications.surface_mass) {
-                    surfaceMassSpecs = data.specifications.surface_mass;
+                // Charger les specs de masse surfacique globale (g/m²) pour le grammage
+                if (data.specifications.global_surface_mass) {
+                    surfaceMassSpecs = data.specifications.global_surface_mass;
+                    console.log('[DEBUG] Specs masse surfacique globale chargées:', surfaceMassSpecs);
                 }
+                
+                // Charger les specs de masse surfacique (g/25cm²) pour les contrôles qualité
+                if (data.specifications.surface_mass) {
+                    surfaceMass25Specs = data.specifications.surface_mass;
+                    console.log('[DEBUG] Specs masse surfacique (g/25cm²) chargées:', surfaceMass25Specs);
+                }
+                
                 if (data.specifications.micrometer) {
                     micrometerSpecs = data.specifications.micrometer;
                 }
@@ -3104,25 +3223,29 @@ function loadAllSpecs() {
         });
 }
 
-// Fonction pour appliquer le code couleur aux masses surfaciques
+// Fonction pour appliquer le code couleur aux masses surfaciques (g/25cm²)
 function applySurfaceMassColor(element, value) {
-    if (!surfaceMassSpecs || !value) {
+    if (!surfaceMass25Specs || !value) {
+        console.log('[DEBUG] applySurfaceMassColor - Pas de specs g/25cm² ou valeur');
         element.style.color = '#6c757d';
         return;
     }
     
     const numValue = parseFloat(value);
+    console.log('[DEBUG] applySurfaceMassColor - Valeur:', numValue, 'Specs:', surfaceMass25Specs);
+    console.log('[DEBUG] Comparaisons - Min:', surfaceMass25Specs.value_min, 'numValue < min:', numValue < surfaceMass25Specs.value_min);
+    console.log('[DEBUG] Comparaisons - Max:', surfaceMass25Specs.value_max, 'numValue > max:', numValue > surfaceMass25Specs.value_max);
     
     // Vérifier les limites critiques
-    if (surfaceMassSpecs.value_min && numValue < surfaceMassSpecs.value_min) {
+    if (surfaceMass25Specs.value_min && numValue < surfaceMass25Specs.value_min) {
         element.style.color = '#ff1744'; // Rouge vif
-    } else if (surfaceMassSpecs.value_max && numValue > surfaceMassSpecs.value_max) {
+    } else if (surfaceMass25Specs.value_max && numValue > surfaceMass25Specs.value_max) {
         element.style.color = '#ff1744'; // Rouge vif
     }
     // Vérifier les limites d'alerte
-    else if (surfaceMassSpecs.value_min_alert && numValue < surfaceMassSpecs.value_min_alert) {
+    else if (surfaceMass25Specs.value_min_alert && numValue < surfaceMass25Specs.value_min_alert) {
         element.style.color = '#ff9800'; // Orange
-    } else if (surfaceMassSpecs.value_max_alert && numValue > surfaceMassSpecs.value_max_alert) {
+    } else if (surfaceMass25Specs.value_max_alert && numValue > surfaceMass25Specs.value_max_alert) {
         element.style.color = '#ff9800'; // Orange
     }
     // Dans les limites nominales
@@ -3611,8 +3734,6 @@ function loadActiveRollData(rollData) {
         }
         if (rollData.info.length !== undefined) {
             document.getElementById('sticky-roll-length').value = rollData.info.length;
-            // Régénérer la visualisation
-            generateRollVisualization();
         }
         if (rollData.info.total_mass !== undefined) {
             document.getElementById('sticky-total-mass').value = rollData.info.total_mass;
@@ -4378,6 +4499,128 @@ function forceUpdateStatus() {
     updateRollStatus();
 }
 
+// Fonction pour mettre à jour le bouton d'action selon le statut
+function updateActionButton(status) {
+    const actionBtn = document.getElementById('sticky-action-btn');
+    const cutBtn = document.getElementById('cut-btn');
+    const wasteBtn = document.getElementById('waste-btn');
+    
+    if (!actionBtn) return;
+    
+    // Vérifier qu'on a longueur ET masse totale
+    const length = parseFloat(document.getElementById('sticky-roll-length')?.value) || 0;
+    const totalMass = parseFloat(document.getElementById('sticky-total-mass')?.value) || 0;
+    
+    // Si pas de longueur ou masse totale, désactiver save et découpe
+    if (length <= 0 || totalMass <= 0) {
+        actionBtn.innerHTML = '<i class="bi bi-x-circle"></i> Données incomplètes';
+        actionBtn.className = 'btn btn-secondary btn-sm fibrage-action-btn';
+        actionBtn.disabled = true;
+        
+        // Désactiver aussi le bouton découpe
+        if (cutBtn) cutBtn.disabled = true;
+        
+        // Déchet reste disponible
+        if (wasteBtn) wasteBtn.disabled = false;
+        
+        return;
+    }
+    
+    // Réactiver les boutons si on a les données
+    if (cutBtn) cutBtn.disabled = false;
+    if (wasteBtn) wasteBtn.disabled = false;
+    
+    // Activer le bouton principal
+    actionBtn.disabled = false;
+    
+    if (status === 'NON_CONFORME') {
+        // NON CONFORME : bouton "Vers Découpe"
+        actionBtn.innerHTML = '<i class="bi bi-scissors"></i> Vers Découpe';
+        actionBtn.className = 'btn btn-warning btn-sm fibrage-action-btn';
+    } else if (status === 'PENDING') {
+        // En attente : bouton désactivé
+        actionBtn.innerHTML = '<i class="bi bi-hourglass"></i> En attente';
+        actionBtn.className = 'btn btn-secondary btn-sm fibrage-action-btn';
+        actionBtn.disabled = true;
+    } else {
+        // CONFORME : bouton "Sauvegarder"
+        actionBtn.innerHTML = '<i class="bi bi-save"></i> Sauvegarder';
+        actionBtn.className = 'btn btn-success btn-sm fibrage-action-btn';
+    }
+}
+
+// Fonction pour gérer le clic sur le bouton d'action principal
+function handleActionButton() {
+    const status = getRollStatus();
+    
+    if (status === 'CONFORME') {
+        // Sauvegarder normalement
+        saveRoll('PRODUCTION');
+    } else if (status === 'NON_CONFORME') {
+        // Vers découpe
+        saveRoll('DECOUPE');
+    }
+    // PENDING ne devrait pas arriver ici car le bouton est désactivé
+}
+
+// Fonction pour sauvegarder le rouleau
+function saveRoll(destination, comment = '') {
+    // Vérifier qu'on a bien les données minimales
+    const rollNumber = document.getElementById('sticky-roll-number')?.value;
+    const length = parseFloat(document.getElementById('sticky-roll-length')?.value) || 0;
+    const totalMass = parseFloat(document.getElementById('sticky-total-mass')?.value) || 0;
+    
+    if (!rollNumber) {
+        alert('Veuillez saisir un numéro de rouleau');
+        return;
+    }
+    
+    // Pour toute destination sauf DECHETS, on a besoin de longueur et masse
+    if (destination !== 'DECHETS' && (length <= 0 || totalMass <= 0)) {
+        alert('Veuillez saisir la longueur et la masse totale');
+        return;
+    }
+    
+    // TODO: Implémenter la sauvegarde réelle via API
+    console.log('[DEBUG] Sauvegarde rouleau - Destination:', destination, 'Commentaire:', comment);
+    alert(`Rouleau sauvegardé - Destination: ${destination}`);
+    
+    // Réinitialiser après sauvegarde
+    // clearRollData();
+}
+
+// Fonction pour forcer vers la découpe (icône ciseaux)
+function forceToCutting() {
+    const status = getRollStatus();
+    
+    // Demander confirmation et commentaire
+    const comment = prompt('Commentaire obligatoire pour forcer vers la découpe:');
+    if (!comment || comment.trim() === '') {
+        alert('Un commentaire est obligatoire pour cette action');
+        return;
+    }
+    
+    if (confirm('Confirmer l\'envoi vers découpe forcée ?')) {
+        // Sauvegarder avec destination DECOUPE_FORCEE et commentaire
+        saveRoll('DECOUPE_FORCEE', comment);
+    }
+}
+
+// Fonction pour envoyer aux déchets (icône poubelle)
+function sendToWaste() {
+    // Demander confirmation et commentaire
+    const comment = prompt('Commentaire obligatoire pour envoyer aux déchets:');
+    if (!comment || comment.trim() === '') {
+        alert('Un commentaire est obligatoire pour cette action');
+        return;
+    }
+    
+    if (confirm('Confirmer l\'envoi aux déchets ? Cette action est irréversible.')) {
+        // Sauvegarder avec destination DECHETS et commentaire
+        saveRoll('DECHETS', comment);
+    }
+}
+
 // Fonction pour animer la jauge spectaculaire de rendement
 function updateSpectacularGauge() {
     // Récupérer le rendement depuis les métriques ou calculer
@@ -4672,10 +4915,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (nextTubeMassInput) nextTubeMassInput.value = rollInfo.next_tube_mass;
                 }
                 
-                // Régénérer la visualisation si on a une longueur
-                if (rollInfo.length) {
-                    generateRollVisualization();
-                }
+                // La visualisation est basée sur la longueur cible, pas la longueur réelle
                 
                 // Restaurer les défauts
                 if (data.current_roll.defects) {
@@ -4725,7 +4965,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (massNetElement && rollInfo.net_mass !== undefined) {
                         const netMass = parseFloat(rollInfo.net_mass);
-                        massNetElement.textContent = netMass > 0 ? `${Math.round(netMass)}g` : '--';
+                        // Afficher même si négative
+                        massNetElement.textContent = `${Math.round(netMass)}g`;
                         
                         // Afficher la tendance si disponible
                         if (rollInfo.net_mass_trend) {
@@ -4737,11 +4978,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (grammageElement && rollInfo.grammage !== undefined) {
                         const grammage = parseFloat(rollInfo.grammage);
-                        if (grammage > 0) {
-                            grammageElement.textContent = `${grammage.toFixed(1)}g/m`;
-                            grammageElement.style.color = '#4caf50'; // TODO: vérifier si critique
+                        // Afficher même si négatif
+                        grammageElement.textContent = `${grammage.toFixed(1)}g/m`;
+                        
+                        // Appliquer la couleur appropriée
+                        if (grammage < 0) {
+                            grammageElement.style.color = '#ff1744'; // Rouge pour négatif
                         } else {
-                            grammageElement.textContent = '--';
+                            applySurfaceMassColor(grammageElement, grammage);
                         }
                         
                         // Afficher la tendance si disponible
@@ -5436,7 +5680,9 @@ function calculateAndDisplayMass(showTrends = false) {
     const previousGrammage = window.lastRollData?.info?.grammage || 0;
     
     if (massNetElement) {
-        if (totalMass > 0 && tubeMass > 0) {
+        // Vérifier qu'on a longueur ET masse totale
+        if (length > 0 && totalMass > 0) {
+            // Afficher même si négative
             massNetElement.textContent = `${Math.round(netMass)}g`;
             console.log('Masse nette affichée:', Math.round(netMass));
             
@@ -5463,14 +5709,20 @@ function calculateAndDisplayMass(showTrends = false) {
     
     // Calculer le grammage (g/m)
     if (grammageElement) {
-        if (netMass > 0 && length > 0) {
+        // Vérifier qu'on a une longueur ET une masse totale
+        if (length > 0 && totalMass > 0) {
             const grammage = netMass / length;
             grammageElement.textContent = `${grammage.toFixed(1)}g/m`;
             console.log('Grammage affiché:', grammage.toFixed(1));
             
-            // Vérifier si le grammage est critique (TODO: récupérer les specs)
-            // Pour l'instant, on met en vert par défaut
-            grammageElement.style.color = '#4caf50';
+            // Appliquer la couleur selon les specs
+            // Pour un feutre de 1m de large : g/m = g/m²
+            // Si le grammage est négatif, le mettre en rouge
+            if (grammage < 0) {
+                grammageElement.style.color = '#ff1744'; // Rouge vif pour valeur négative
+            } else {
+                applySurfaceMassColor(grammageElement, grammage);
+            }
             
             // Afficher la tendance si demandé et s'il y a des valeurs précédentes
             if (showTrends && previousGrammage > 0) {
@@ -5493,6 +5745,10 @@ function calculateAndDisplayMass(showTrends = false) {
     } else {
         console.error('Element grammage non trouvé !');
     }
+    
+    // Mettre à jour le statut du rouleau après le calcul du grammage
+    console.log('[DEBUG] calculateAndDisplayMass terminé, appel de updateRollStatus');
+    updateRollStatus();
 }
 
 // Fonction pour mettre à jour l'affichage de la masse nette et du grammage
