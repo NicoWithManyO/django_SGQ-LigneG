@@ -8,6 +8,39 @@
 
 {% block content %}
 <style>
+/* Badge de contrôle qualité */
+.quality-badge-pending, .quality-badge-passed {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    gap: 5px;
+    border-radius: 4px;
+}
+
+.quality-badge-pending {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.quality-badge-pending i {
+    font-size: 0.85rem;
+}
+
+.quality-badge-passed {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.quality-badge-passed i {
+    font-size: 0.85rem;
+}
+
 /* Fix pour les inputs dans la sticky bar */
 .fibrage-sticky-bar input.form-control {
     width: 60px !important;
@@ -1523,7 +1556,7 @@
                 </div>
 
                 <!-- Contrôles Masse Surfacique (Ligne du bas) -->
-                <div class="surface-mass-controls" style="display: flex; flex-wrap: nowrap; width: 100%; gap: 3rem;">
+                <div class="surface-mass-controls" style="display: flex; flex-wrap: nowrap; width: 100%; gap: 1rem; min-height: 150px; align-items: stretch;">
                     <!-- Gauche -->
                     <div class="surface-mass-section left" style="flex: 1;">
                         <div class="control-header">
@@ -1558,12 +1591,11 @@
                     </div>
                     
                     <!-- Bouton Clear au centre -->
-                    <div class="d-flex flex-column align-items-center justify-content-center gap-2" style="padding: 0 10px;">
+                    <div class="d-flex flex-column align-items-center justify-content-center gap-3" style="padding: 0 20px; min-width: 200px;">
                         <div id="quality-controls-status" class="d-flex justify-content-center align-items-center">
                             <div class="quality-badge-pending">
                                 <i class="bi bi-exclamation-circle"></i>
-                                <span>Quality Control</span>
-                                <small>Pending</small>
+                                <span>QC Pending</span>
                             </div>
                         </div>
                         <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearRollValues()" style="opacity: 0.6; transition: opacity 0.2s; font-size: 0.7rem;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
@@ -4533,8 +4565,17 @@ function updateActionButton(status) {
     // Activer le bouton principal
     actionBtn.disabled = false;
     
+    // Compter le nombre d'épaisseurs remplies
+    const thicknessInputs = document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)');
+    let filledThicknessCount = 0;
+    thicknessInputs.forEach(input => {
+        if (input.value && input.value.trim() !== '') {
+            filledThicknessCount++;
+        }
+    });
+    
     if (status === 'NON_CONFORME') {
-        // NON CONFORME : bouton "Vers Découpe"
+        // NON CONFORME : bouton "Vers Découpe" - pas besoin de toutes les épaisseurs
         actionBtn.innerHTML = '<i class="bi bi-scissors"></i> Vers Découpe';
         actionBtn.className = 'btn btn-warning btn-sm fibrage-action-btn';
     } else if (status === 'PENDING') {
@@ -4543,9 +4584,17 @@ function updateActionButton(status) {
         actionBtn.className = 'btn btn-secondary btn-sm fibrage-action-btn';
         actionBtn.disabled = true;
     } else {
-        // CONFORME : bouton "Sauvegarder"
-        actionBtn.innerHTML = '<i class="bi bi-save"></i> Sauvegarder';
-        actionBtn.className = 'btn btn-success btn-sm fibrage-action-btn';
+        // CONFORME : bouton "Sauvegarder" - besoin de toutes les épaisseurs
+        if (filledThicknessCount < 6) {
+            actionBtn.innerHTML = '<i class="bi bi-save"></i> Sauvegarder';
+            actionBtn.className = 'btn btn-secondary btn-sm fibrage-action-btn';
+            actionBtn.disabled = true;
+            actionBtn.title = `${filledThicknessCount}/6 épaisseurs minimum`;
+        } else {
+            actionBtn.innerHTML = '<i class="bi bi-save"></i> Sauvegarder';
+            actionBtn.className = 'btn btn-success btn-sm fibrage-action-btn';
+            actionBtn.title = '';
+        }
     }
 }
 
@@ -4569,6 +4618,7 @@ function saveRoll(destination, comment = '') {
     const rollNumber = document.getElementById('sticky-roll-number')?.value;
     const length = parseFloat(document.getElementById('sticky-roll-length')?.value) || 0;
     const totalMass = parseFloat(document.getElementById('sticky-total-mass')?.value) || 0;
+    const status = getRollStatus();
     
     if (!rollNumber) {
         alert('Veuillez saisir un numéro de rouleau');
@@ -4581,12 +4631,98 @@ function saveRoll(destination, comment = '') {
         return;
     }
     
-    // TODO: Implémenter la sauvegarde réelle via API
-    console.log('[DEBUG] Sauvegarde rouleau - Destination:', destination, 'Commentaire:', comment);
-    alert(`Rouleau sauvegardé - Destination: ${destination}`);
+    // Demander confirmation
+    const statusText = status === 'NON_CONFORME' ? 'NON CONFORME' : 'CONFORME';
+    const confirmMessage = `Êtes-vous sûr de vouloir sauvegarder le rouleau ${rollNumber} (${statusText}) de ${length}m ?`;
     
-    // Réinitialiser après sauvegarde
-    // clearRollData();
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Préparer les données du rouleau
+    const rollData = {
+        roll_number: rollNumber,
+        status: status,
+        destination: destination,
+        comment: comment,
+        // Les autres données sont déjà dans current_roll via autoSaveRollData
+    };
+    
+    // Sauvegarder via l'API
+    fetch('/livesession/api/save-roll/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(rollData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Rouleau sauvegardé avec succès !');
+            
+            // Effacer les données du rouleau actuel
+            clearRollData();
+            
+            // Incrémenter le numéro de rouleau
+            const currentRollNumber = parseInt(rollNumber) || 0;
+            const nextRollNumber = currentRollNumber + 1;
+            document.getElementById('sticky-roll-number').value = nextRollNumber;
+            saveStickValue('roll_number', nextRollNumber);
+            
+            // Mettre la masse du tube suivant dans masse tube
+            const nextTubeMass = document.getElementById('sticky-next-tube-mass')?.value;
+            if (nextTubeMass) {
+                document.getElementById('sticky-tube-mass').value = nextTubeMass;
+                saveStickValue('tube_mass', nextTubeMass);
+                // Effacer la masse tube suivant
+                document.getElementById('sticky-next-tube-mass').value = '';
+                saveStickValue('next_tube_mass', '');
+            }
+            
+            // Mettre à jour l'ID du rouleau
+            updateRollIdDisplay();
+        } else {
+            alert('Erreur lors de la sauvegarde : ' + (data.error || 'Erreur inconnue'));
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la sauvegarde du rouleau');
+    });
+}
+
+// Fonction pour effacer les données du rouleau
+function clearRollData() {
+    // Effacer longueur et masse totale
+    document.getElementById('sticky-roll-length').value = '';
+    document.getElementById('sticky-total-mass').value = '';
+    
+    // Effacer les épaisseurs et défauts via clearRollValues
+    clearRollValues();
+    
+    // Recalculer l'affichage
+    calculateAndDisplayMass();
+    
+    // Sauvegarder l'état vide
+    const clearedData = {
+        info: {
+            roll_number: document.getElementById('sticky-roll-number')?.value || '',
+            tube_mass: document.getElementById('sticky-tube-mass')?.value || '',
+            length: '',
+            total_mass: '',
+            next_tube_mass: document.getElementById('sticky-next-tube-mass')?.value || ''
+        },
+        defects: [],
+        thickness: {
+            measurements: [],
+            rattrapage: []
+        }
+    };
+    
+    updateFieldViaAPI('current_roll', clearedData);
 }
 
 // Fonction pour forcer vers la découpe (icône ciseaux)
@@ -4853,6 +4989,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Calculer les moyennes
                 calculateMicronnaireAverage();
                 calculateSurfaceMassAverage();
+                // Vérifier le statut des contrôles qualité
+                checkQualityControlsStatus();
             }
             
             // 11. Initialiser la signature si elle existe
@@ -4984,8 +5122,29 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Appliquer la couleur appropriée
                         if (grammage < 0) {
                             grammageElement.style.color = '#ff1744'; // Rouge pour négatif
+                        } else if (surfaceMassSpecs) {
+                            // Utiliser les specs de masse surfacique globale (g/m²) pour le grammage
+                            const numValue = grammage;
+                            
+                            // Vérifier les limites critiques
+                            if (surfaceMassSpecs.value_min && numValue < surfaceMassSpecs.value_min) {
+                                grammageElement.style.color = '#ff1744'; // Rouge vif
+                            } else if (surfaceMassSpecs.value_max && numValue > surfaceMassSpecs.value_max) {
+                                grammageElement.style.color = '#ff1744'; // Rouge vif
+                            }
+                            // Vérifier les limites d'alerte
+                            else if (surfaceMassSpecs.value_min_alert && numValue < surfaceMassSpecs.value_min_alert) {
+                                grammageElement.style.color = '#ff9800'; // Orange
+                            } else if (surfaceMassSpecs.value_max_alert && numValue > surfaceMassSpecs.value_max_alert) {
+                                grammageElement.style.color = '#ff9800'; // Orange
+                            }
+                            // Dans les limites nominales
+                            else {
+                                grammageElement.style.color = '#4caf50'; // Vert
+                            }
                         } else {
-                            applySurfaceMassColor(grammageElement, grammage);
+                            // Pas de specs, couleur par défaut
+                            grammageElement.style.color = '#6c757d';
                         }
                         
                         // Afficher la tendance si disponible
@@ -5003,6 +5162,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Si pas de données de rouleau, essayer de calculer quand même
                 calculateAndDisplayMass();
             }
+            
+            // Recalculer les couleurs du grammage après un délai pour s'assurer que les specs sont chargées
+            setTimeout(() => {
+                calculateAndDisplayMass();
+            }, 500);
             
             
             // 13. Restaurer l'onglet actif du bloc productivité
@@ -5488,8 +5652,15 @@ function saveQualityControlsToSession() {
     
     // Moyennes (calculées, pas besoin de les sauvegarder)
     
+    // Vérifier la conformité des contrôles
+    const conformityResult = checkQualityControlsConformity();
+    qualityData.is_conform = conformityResult.isConform;
+    
     // Sauvegarder dans la session
     updateFieldViaAPI('quality_controls', qualityData);
+    
+    // Vérifier le statut des contrôles qualité
+    checkQualityControlsStatus();
 }
 
 // Fonction pour mettre à jour l'heure de l'extrait sec
@@ -5522,8 +5693,119 @@ function updateLoiTime(checked) {
         timeElement.textContent = '--';
     }
     
-    // Sauvegarder les données
+    // Sauvegarder les données et vérifier la conformité
     saveQualityControlsToSession();
+}
+
+// Fonction pour vérifier si les contrôles qualité sont conformes
+function checkQualityControlsConformity() {
+    let isConform = true;
+    let hasRequiredControls = false;
+    
+    // 1. Vérifier l'extrait sec
+    const extraitSecInput = document.getElementById('sizing-bath-input');
+    if (extraitSecInput && extraitSecInput.value) {
+        hasRequiredControls = true;
+        const value = parseFloat(extraitSecInput.value);
+        if (dryExtractSpecs && !isNaN(value)) {
+            if ((dryExtractSpecs.value_min && value < dryExtractSpecs.value_min) ||
+                (dryExtractSpecs.value_max && value > dryExtractSpecs.value_max)) {
+                isConform = false;
+            }
+        }
+    }
+    
+    // 2. Vérifier les moyennes micronnaire gauche et droite
+    const leftMicronnaireAvg = document.getElementById('micronnaire-left-avg');
+    const rightMicronnaireAvg = document.getElementById('micronnaire-right-avg');
+    
+    if (leftMicronnaireAvg && leftMicronnaireAvg.textContent !== '--') {
+        hasRequiredControls = true;
+        const value = parseFloat(leftMicronnaireAvg.textContent);
+        if (micrometerSpecs && !isNaN(value)) {
+            if ((micrometerSpecs.value_min && value < micrometerSpecs.value_min) ||
+                (micrometerSpecs.value_max && value > micrometerSpecs.value_max)) {
+                isConform = false;
+            }
+        }
+    }
+    
+    if (rightMicronnaireAvg && rightMicronnaireAvg.textContent !== '--') {
+        hasRequiredControls = true;
+        const value = parseFloat(rightMicronnaireAvg.textContent);
+        if (micrometerSpecs && !isNaN(value)) {
+            if ((micrometerSpecs.value_min && value < micrometerSpecs.value_min) ||
+                (micrometerSpecs.value_max && value > micrometerSpecs.value_max)) {
+                isConform = false;
+            }
+        }
+    }
+    
+    // 3. Vérifier les moyennes masse surfacique gauche et droite (g/25cm²)
+    const leftMassAvg = document.getElementById('surface-mass-left-avg');
+    const rightMassAvg = document.getElementById('surface-mass-right-avg');
+    
+    if (leftMassAvg && leftMassAvg.textContent !== '--') {
+        hasRequiredControls = true;
+        const value = parseFloat(leftMassAvg.textContent);
+        if (surfaceMass25Specs && !isNaN(value)) {
+            if ((surfaceMass25Specs.value_min && value < surfaceMass25Specs.value_min) ||
+                (surfaceMass25Specs.value_max && value > surfaceMass25Specs.value_max)) {
+                isConform = false;
+            }
+        }
+    }
+    
+    if (rightMassAvg && rightMassAvg.textContent !== '--') {
+        hasRequiredControls = true;
+        const value = parseFloat(rightMassAvg.textContent);
+        if (surfaceMass25Specs && !isNaN(value)) {
+            if ((surfaceMass25Specs.value_min && value < surfaceMass25Specs.value_min) ||
+                (surfaceMass25Specs.value_max && value > surfaceMass25Specs.value_max)) {
+                isConform = false;
+            }
+        }
+    }
+    
+    // 4. Vérifier que LOI est donné
+    const loiSwitch = document.getElementById('loiSwitch');
+    if (loiSwitch && !loiSwitch.checked) {
+        isConform = false;
+    }
+    
+    return { isConform, hasRequiredControls };
+}
+
+// Fonction pour vérifier si les contrôles qualité sont remplis
+function checkQualityControlsStatus() {
+    const conformityResult = checkQualityControlsConformity();
+    
+    // Mettre à jour le badge
+    const statusDiv = document.getElementById('quality-controls-status');
+    if (statusDiv) {
+        if (!conformityResult.hasRequiredControls) {
+            statusDiv.innerHTML = `
+                <div class="quality-badge-pending">
+                    <i class="bi bi-exclamation-circle"></i>
+                    <span>QC Pending</span>
+                </div>
+            `;
+        } else if (conformityResult.isConform) {
+            statusDiv.innerHTML = `
+                <div class="quality-badge-passed">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>QC Passed</span>
+                </div>
+            `;
+        } else {
+            statusDiv.innerHTML = `
+                <div class="quality-badge-pending" style="background-color: #f8d7da; border-color: #f5c2c7; color: #842029;">
+                    <i class="bi bi-x-circle"></i>
+                    <span>QC Failed</span>
+                </div>
+            `;
+        }
+    }
 }
 
 // Fonction pour effacer tous les contrôles qualité
@@ -5575,6 +5857,8 @@ function clearQualityControls() {
         updateLoiTime(document.getElementById('loiSwitch')?.checked);
         // Effacer complètement les données de la session
         updateFieldViaAPI('quality_controls', {});
+        // Mettre à jour le badge
+        checkQualityControlsStatus();
     }, 100);
 }
 
@@ -5720,8 +6004,29 @@ function calculateAndDisplayMass(showTrends = false) {
             // Si le grammage est négatif, le mettre en rouge
             if (grammage < 0) {
                 grammageElement.style.color = '#ff1744'; // Rouge vif pour valeur négative
+            } else if (surfaceMassSpecs) {
+                // Utiliser les specs de masse surfacique globale (g/m²) pour le grammage
+                const numValue = grammage;
+                
+                // Vérifier les limites critiques
+                if (surfaceMassSpecs.value_min && numValue < surfaceMassSpecs.value_min) {
+                    grammageElement.style.color = '#ff1744'; // Rouge vif
+                } else if (surfaceMassSpecs.value_max && numValue > surfaceMassSpecs.value_max) {
+                    grammageElement.style.color = '#ff1744'; // Rouge vif
+                }
+                // Vérifier les limites d'alerte
+                else if (surfaceMassSpecs.value_min_alert && numValue < surfaceMassSpecs.value_min_alert) {
+                    grammageElement.style.color = '#ff9800'; // Orange
+                } else if (surfaceMassSpecs.value_max_alert && numValue > surfaceMassSpecs.value_max_alert) {
+                    grammageElement.style.color = '#ff9800'; // Orange
+                }
+                // Dans les limites nominales
+                else {
+                    grammageElement.style.color = '#4caf50'; // Vert
+                }
             } else {
-                applySurfaceMassColor(grammageElement, grammage);
+                // Pas de specs, couleur par défaut
+                grammageElement.style.color = '#6c757d';
             }
             
             // Afficher la tendance si demandé et s'il y a des valeurs précédentes

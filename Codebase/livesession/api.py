@@ -9,7 +9,7 @@ from rest_framework.renderers import JSONRenderer
 from django.core.serializers.json import DjangoJSONEncoder
 from .models import CurrentSession
 from .serializers import CurrentSessionSerializer
-from production.models import Shift, Roll, LostTimeEntry, QualityControl
+from production.models import Shift, Roll, LostTimeEntry, QualityControl, RollDefect, RollThickness
 from wcm.models import ChecklistResponse
 from datetime import datetime, time
 
@@ -313,3 +313,227 @@ def reset_session_after_save(current_data):
     })
     
     return new_data
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])  # TODO: Mettre IsAuthenticated en production
+def save_roll(request):
+    """
+    Sauvegarde un rouleau terminé en base de données
+    
+    POST: Crée un nouveau Roll avec toutes les données associées
+    Retourne l'ID du rouleau créé
+    """
+    
+    # S'assurer qu'on a une session
+    if not request.session.session_key:
+        return Response(
+            {'error': 'Aucune session active'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    session_key = request.session.session_key
+    
+    # Récupérer la session courante
+    try:
+        draft = CurrentSession.objects.get(session_key=session_key)
+    except CurrentSession.DoesNotExist:
+        return Response(
+            {'error': 'Aucune donnée de session trouvée'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    session_data = draft.session_data
+    roll_data = session_data.get('current_roll', {})
+    
+    # Validation des données requises
+    if not roll_data.get('info'):
+        return Response(
+            {'error': 'Aucune donnée de rouleau à sauvegarder'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    roll_info = roll_data['info']
+    
+    # Validation des champs requis
+    required_fields = ['roll_number', 'length', 'tube_mass', 'total_mass']
+    missing_fields = [field for field in required_fields if not roll_info.get(field)]
+    
+    if missing_fields:
+        return Response(
+            {'error': f'Champs requis manquants: {", ".join(missing_fields)}'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # 1. Déterminer le statut du rouleau
+        roll_status = determine_roll_status(roll_data, session_data)
+        
+        # 2. Générer l'ID du rouleau
+        roll_id = generate_roll_id(session_data, roll_info, roll_status)
+        
+        # 3. Créer le rouleau
+        roll = Roll.objects.create(
+            roll_id=roll_id,
+            session_key=session_key,
+            shift_id_str=session_data.get('shift_id'),
+            fabrication_order_id=session_data.get('current_of') if roll_status == 'CONFORME' else session_data.get('cutting_of'),
+            roll_number=int(roll_info['roll_number']),
+            length=float(roll_info['length']),
+            tube_mass=float(roll_info['tube_mass']),
+            total_mass=float(roll_info['total_mass']),
+            status=roll_status,
+            destination=determine_roll_destination(roll_status),
+            comment=roll_info.get('comment', '')
+        )
+        
+        # 4. Ajouter les défauts
+        if roll_data.get('defects'):
+            create_roll_defects(roll, roll_data['defects'])
+        
+        # 5. Ajouter les mesures d'épaisseur
+        if roll_data.get('thickness'):
+            create_thickness_measurements(roll, roll_data['thickness'])
+        
+        # 6. Calculer les moyennes d'épaisseur et sauvegarder
+        roll.calculate_thickness_averages()
+        roll.save()
+        
+        # 7. Retourner le succès
+        return Response({
+            'success': True,
+            'roll_id': roll.roll_id,
+            'status': roll.status,
+            'destination': roll.destination
+        })
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Erreur lors de la sauvegarde: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+def determine_roll_status(roll_data, session_data):
+    """Détermine le statut du rouleau basé sur les défauts et contrôles qualité"""
+    
+    # Vérifier les défauts bloquants
+    defects = roll_data.get('defects', [])
+    has_blocking_defects = any(d.get('is_blocking', False) for d in defects)
+    
+    if has_blocking_defects:
+        return 'NON_CONFORME'
+    
+    # Vérifier la conformité des contrôles qualité
+    quality_controls = session_data.get('quality_controls', {})
+    
+    # Si pas de contrôles qualité complets, on ne peut pas être conforme
+    required_qc_fields = [
+        'micronnaire_left_1', 'micronnaire_left_2', 'micronnaire_left_3',
+        'micronnaire_right_1', 'micronnaire_right_2', 'micronnaire_right_3',
+        'extrait_sec', 'surface_mass_gg', 'surface_mass_gc', 
+        'surface_mass_dc', 'surface_mass_dd', 'loi_given'
+    ]
+    
+    # Vérifier que tous les contrôles requis sont présents
+    qc_complete = all(quality_controls.get(field) for field in required_qc_fields)
+    
+    if not qc_complete:
+        return 'NON_CONFORME'
+    
+    # TODO: Vérifier contre les spécifications une fois qu'on a les specs chargées
+    # Pour l'instant, on considère conforme si tous les contrôles sont remplis
+    # et qu'il n'y a pas de défauts bloquants
+    
+    return 'CONFORME'
+
+
+def determine_roll_destination(status):
+    """Détermine la destination en fonction du statut"""
+    if status == 'CONFORME':
+        return 'PRODUCTION'
+    else:
+        return 'DECOUPE'
+
+
+def generate_roll_id(session_data, roll_info, status):
+    """Génère l'ID du rouleau selon le format approprié"""
+    if status == 'NON_CONFORME':
+        # Format pour non conforme: OFDecoupe_JJMMAA_HHMM
+        from datetime import datetime
+        now = datetime.now()
+        date_str = now.strftime('%d%m%y')
+        time_str = now.strftime('%H%M')
+        return f"OFDecoupe_{date_str}_{time_str}"
+    else:
+        # Format pour conforme: OF_NumRouleau
+        of_number = session_data.get('current_of')
+        roll_number = roll_info['roll_number']
+        if of_number:
+            # Récupérer l'objet OF pour avoir le numéro
+            from core.models import FabricationOrder
+            try:
+                of = FabricationOrder.objects.get(pk=of_number)
+                return f"{of.order_number}_{int(roll_number):03d}"
+            except:
+                pass
+        # Fallback
+        return f"OF_TEMP_{int(roll_number):03d}"
+
+
+def create_roll_defects(roll, defects_data):
+    """Crée les défauts associés au rouleau"""
+    from quality.models import DefectType
+    
+    for defect_dict in defects_data:
+        # Récupérer le type de défaut
+        defect_type_id = defect_dict.get('type_id')
+        if defect_type_id:
+            try:
+                defect_type = DefectType.objects.get(pk=defect_type_id)
+                defect_name = defect_type.name
+            except:
+                defect_name = defect_dict.get('defect_name', 'Défaut inconnu')
+        else:
+            defect_name = defect_dict.get('defect_name', 'Défaut inconnu')
+        
+        # Mapper les positions
+        position_map = {
+            'G': 'left',
+            'C': 'center', 
+            'D': 'right'
+        }
+        position_side = position_map.get(defect_dict.get('position_side', ''), 'center')
+        
+        RollDefect.objects.create(
+            roll=roll,
+            defect_name=defect_name,
+            position_m=defect_dict.get('position_m', 0),
+            position_side=position_side
+        )
+
+
+def create_thickness_measurements(roll, thickness_data):
+    """Crée les mesures d'épaisseur associées au rouleau"""
+    
+    # Mesures normales
+    for measurement in thickness_data.get('measurements', []):
+        RollThickness.objects.create(
+            roll=roll,
+            meter_position=measurement['position_m'],
+            measurement_point=measurement['measurement_point'],
+            thickness_value=measurement['thickness_value'],
+            is_catchup=False
+        )
+    
+    # Mesures de rattrapage
+    for rattrapage in thickness_data.get('rattrapage', []):
+        # Enlever le suffixe -R du point de mesure
+        point = rattrapage['measurement_point'].replace('-R', '')
+        RollThickness.objects.create(
+            roll=roll,
+            meter_position=rattrapage['position_m'],
+            measurement_point=point,
+            thickness_value=rattrapage['thickness_value'],
+            is_catchup=True
+        )
