@@ -76,6 +76,11 @@ class CurrentSessionSerializer(serializers.Serializer):
         required=False,
         default=dict
     )
+    active_productivity_tab = serializers.ChoiceField(
+        choices=['temps', 'parametres'],
+        required=False,
+        allow_blank=True
+    )
     
     # === DONNÉES DU POSTE EN COURS ===
     operator = serializers.PrimaryKeyRelatedField(

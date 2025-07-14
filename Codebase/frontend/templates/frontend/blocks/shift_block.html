@@ -123,7 +123,7 @@
                             <div class="row align-items-center">
                                 <div class="col-md-6">
                                     <div class="form-check">
-                                        <input type="checkbox" name="started_at_beginning" id="id_started_at_beginning" class="form-check-input" onchange="saveShiftField('started_at_beginning', this.checked); toggleMeterReadingFields();">
+                                        <input type="checkbox" name="started_at_beginning" id="id_started_at_beginning" class="form-check-input" onchange="saveShiftField('started_at_beginning', this.checked); toggleMeterReadingFields(true);">
                                         <label class="form-check-label fw-bold small" for="{{ form.started_at_beginning.id_for_label }}">
                                             {{ form.started_at_beginning.label }}
                                         </label>
@@ -168,7 +168,7 @@
                             <div class="row align-items-center">
                                 <div class="col-md-6">
                                     <div class="form-check">
-                                        <input type="checkbox" name="started_at_end" id="id_started_at_end" class="form-check-input" onchange="saveShiftField('started_at_end', this.checked); toggleMeterReadingFields();">
+                                        <input type="checkbox" name="started_at_end" id="id_started_at_end" class="form-check-input" onchange="saveShiftField('started_at_end', this.checked); toggleMeterReadingFields(true);">
                                         <label class="form-check-label fw-bold small" for="{{ form.started_at_end.id_for_label }}">
                                             {{ form.started_at_end.label }}
                                         </label>
@@ -547,7 +547,7 @@ function setDefaultTimesForVacation(vacation) {
     saveShiftField('end_time', defaultEndTime, true);
 }
 
-function toggleMeterReadingFields() {
+function toggleMeterReadingFields(isUserAction = false) {
     const startedAtBeginning = document.querySelector('input[name="started_at_beginning"]');
     const startedAtEnd = document.querySelector('input[name="started_at_end"]');
     const meterStartField = document.getElementById('meter-reading-start-field');
@@ -563,8 +563,8 @@ function toggleMeterReadingFields() {
         } else {
             meterStartField.style.visibility = 'hidden';
             startupMessageStart.style.visibility = 'visible';
-            // Mettre à 0 si la machine n'a pas démarré
-            if (meterStartInput) {
+            // Mettre à 0 seulement si c'est une action utilisateur
+            if (isUserAction && meterStartInput) {
                 meterStartInput.value = '0';
                 saveShiftField('meter_reading_start', '0');
             }
@@ -579,8 +579,8 @@ function toggleMeterReadingFields() {
         } else {
             meterEndField.style.visibility = 'hidden';
             shutdownMessageEnd.style.visibility = 'visible';
-            // Mettre à 0 si la machine n'est pas en marche
-            if (meterEndInput) {
+            // Mettre à 0 seulement si c'est une action utilisateur
+            if (isUserAction && meterEndInput) {
                 meterEndInput.value = '0';
                 saveShiftField('meter_reading_end', '0');
             }
@@ -671,12 +671,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (shiftData.started_at_end !== undefined) {
                 const startedEnd = document.getElementById('id_started_at_end');
-                if (startedEnd) startedEnd.checked = shiftData.started_at_end;
+                if (startedEnd) {
+                    startedEnd.checked = shiftData.started_at_end;
+                }
             }
             
-            if (shiftData.meter_reading_end) {
+            if (shiftData.meter_reading_end !== undefined) {
                 const meterEnd = document.getElementById('id_meter_reading_end');
-                if (meterEnd) meterEnd.value = shiftData.meter_reading_end;
+                if (meterEnd) meterEnd.value = shiftData.meter_reading_end || '';
             }
             
             if (shiftData.operator_comments) {

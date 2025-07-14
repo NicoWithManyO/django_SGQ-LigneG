@@ -96,6 +96,28 @@
     line-height: 1.2 !important;
 }
 
+/* Style pour les indicateurs de tendance */
+.trend-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #f5f5f5;
+    font-size: 1.2rem;
+}
+
+.trend-indicator.up {
+    background-color: #e8f5e9;
+    color: #4caf50;
+}
+
+.trend-indicator.down {
+    background-color: #ffebee;
+    color: #f44336;
+}
+
 /* Dans la sticky bar, adapter la largeur */
 .fibrage-field .of-input {
     width: 100% !important;
@@ -663,7 +685,7 @@
                             <div class="block-actions d-flex align-items-center gap-2">
                                 <!-- Tabs navigation dans le header -->
                                 <div class="productivity-tabs">
-                                    <button class="tab-btn active" onclick="showProductivityTab('temps'); event.stopPropagation();" data-tab="temps">
+                                    <button class="tab-btn" onclick="showProductivityTab('temps'); event.stopPropagation();" data-tab="temps">
                                         <i class="bi bi-clock"></i> TRS
                                     </button>
                                     <button class="tab-btn" onclick="showProductivityTab('parametres'); event.stopPropagation();" data-tab="parametres">
@@ -677,7 +699,7 @@
                     <div class="block-content" id="productivite-content">
                         
                         <!-- Tab: Temps -->
-                        <div class="tab-content" id="tab-temps" style="display: block;">
+                        <div class="tab-content" id="tab-temps" style="display: none;">
                             <div class="row g-2">
                                 <div class="col-9">
                                     <div class="row g-2">
@@ -904,21 +926,24 @@
                             <div class="micrometer-readings">
                                 <div class="reading-group">
                                     <label>#1</label>
-                                    <input type="number" step="0.01" class="form-control micronnaire-left" placeholder="--" autocomplete="off" oninput="calculateMicronnaireAverage()">
+                                    <input type="number" step="0.01" class="form-control micronnaire-left" placeholder="--" autocomplete="off" onblur="calculateMicronnaireAverage()">
                                 </div>
                                 <div class="reading-group">
                                     <label>#2</label>
-                                    <input type="number" step="0.01" class="form-control micronnaire-left" placeholder="--" autocomplete="off" oninput="calculateMicronnaireAverage()">
+                                    <input type="number" step="0.01" class="form-control micronnaire-left" placeholder="--" autocomplete="off" onblur="calculateMicronnaireAverage()">
                                 </div>
                                 <div class="reading-group">
                                     <label>#3</label>
-                                    <input type="number" step="0.01" class="form-control micronnaire-left" placeholder="--" autocomplete="off" oninput="calculateMicronnaireAverage()">
+                                    <input type="number" step="0.01" class="form-control micronnaire-left" placeholder="--" autocomplete="off" onblur="calculateMicronnaireAverage()">
                                 </div>
-                                <div class="text-center mt-2">
-                                    <div class="fw-bold" style="font-size: 1rem;">
+                                <div class="d-flex align-items-center justify-content-center mt-2" style="gap: 0.5rem;">
+                                    <div class="text-muted" style="font-size: 0.8rem;">Moyenne Gauche</div>
+                                    <div class="fw-bold" style="font-size: 1rem; min-width: 60px; text-align: center;">
                                         <span id="micronnaire-left-avg" style="color: #4caf50;">--</span>
                                     </div>
-                                    <small class="text-muted">Moyenne Gauche</small>
+                                    <div id="micronnaire-left-trend" style="width: 100px; display: none;">
+                                        <i class="bi bi-graph-up-arrow text-success" style="font-size: 1.2rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -963,21 +988,24 @@
                             <div class="micrometer-readings">
                                 <div class="reading-group">
                                     <label>#1</label>
-                                    <input type="number" step="0.01" class="form-control micronnaire-right" placeholder="--" autocomplete="off" oninput="calculateMicronnaireAverage()">
+                                    <input type="number" step="0.01" class="form-control micronnaire-right" placeholder="--" autocomplete="off" onblur="calculateMicronnaireAverage()">
                                 </div>
                                 <div class="reading-group">
                                     <label>#2</label>
-                                    <input type="number" step="0.01" class="form-control micronnaire-right" placeholder="--" autocomplete="off" oninput="calculateMicronnaireAverage()">
+                                    <input type="number" step="0.01" class="form-control micronnaire-right" placeholder="--" autocomplete="off" onblur="calculateMicronnaireAverage()">
                                 </div>
                                 <div class="reading-group">
                                     <label>#3</label>
-                                    <input type="number" step="0.01" class="form-control micronnaire-right" placeholder="--" autocomplete="off" oninput="calculateMicronnaireAverage()">
+                                    <input type="number" step="0.01" class="form-control micronnaire-right" placeholder="--" autocomplete="off" onblur="calculateMicronnaireAverage()">
                                 </div>
-                                <div class="text-center mt-2">
-                                    <div class="fw-bold" style="font-size: 1rem;">
+                                <div class="d-flex align-items-center justify-content-center mt-2" style="gap: 0.5rem;">
+                                    <div class="text-muted" style="font-size: 0.8rem;">Moyenne Droite</div>
+                                    <div class="fw-bold" style="font-size: 1rem; min-width: 60px; text-align: center;">
                                         <span id="micronnaire-right-avg" style="color: #4caf50;">--</span>
                                     </div>
-                                    <small class="text-muted">Moyenne Droite</small>
+                                    <div id="micronnaire-right-trend" style="width: 100px; display: none;">
+                                        <i class="bi bi-graph-down-arrow text-warning" style="font-size: 1.2rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -995,22 +1023,25 @@
                         <div class="surface-mass-readings">
                             <div class="d-flex flex-column">
                                 <div class="d-flex align-items-end gap-2">
-                                    <small class="text-muted" style="margin-bottom: 0;" id="gg-conversion">--</small>
+                                    <small class="text-muted" style="margin-bottom: 0;" id="gg-conversion"></small>
                                     <div class="reading-group">
                                         <label>GG</label>
-                                        <input type="number" step="0.01" class="form-control surface-mass-left" placeholder="--" id="gg-input" autocomplete="off" oninput="formatDecimalInput(this); calculateSurfaceMassAverage()">
+                                        <input type="number" step="0.01" class="form-control surface-mass-left" placeholder="--" id="gg-input" autocomplete="off" oninput="formatDecimalInput(this)" onblur="calculateSurfaceMassAverage()">
                                     </div>
                                     <div class="reading-group">
                                         <label>GC</label>
-                                        <input type="number" step="0.01" class="form-control surface-mass-left" placeholder="--" id="gc-input" autocomplete="off" oninput="formatDecimalInput(this); calculateSurfaceMassAverage()">
+                                        <input type="number" step="0.01" class="form-control surface-mass-left" placeholder="--" id="gc-input" autocomplete="off" oninput="formatDecimalInput(this)" onblur="calculateSurfaceMassAverage()">
                                     </div>
-                                    <small class="text-muted" style="margin-bottom: 0;" id="gc-conversion">--</small>
+                                    <small class="text-muted" style="margin-bottom: 0;" id="gc-conversion"></small>
                                 </div>
-                                <div class="text-center mt-2">
-                                    <div class="fw-bold" style="font-size: 1rem;">
+                                <div class="d-flex align-items-center justify-content-center mt-2" style="gap: 0.5rem;">
+                                    <div class="text-muted" style="font-size: 0.8rem;">Moyenne Gauche</div>
+                                    <div class="fw-bold" style="font-size: 1rem; min-width: 60px; text-align: center;">
                                         <span id="surface-mass-left-avg" style="color: #4caf50;">--</span>
                                     </div>
-                                    <small class="text-muted">Moyenne Gauche</small>
+                                    <div id="surface-mass-left-trend" style="width: 100px; display: none;">
+                                        <i class="bi bi-activity text-primary" style="font-size: 1.2rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1033,22 +1064,25 @@
                         <div class="surface-mass-readings">
                             <div class="d-flex flex-column">
                                 <div class="d-flex align-items-end gap-2">
-                                    <small class="text-muted" style="margin-bottom: 0;" id="dc-conversion">--</small>
+                                    <small class="text-muted" style="margin-bottom: 0;" id="dc-conversion"></small>
                                     <div class="reading-group">
                                         <label>DC</label>
-                                        <input type="number" step="0.01" class="form-control surface-mass-right" placeholder="--" id="dc-input" autocomplete="off" oninput="formatDecimalInput(this); calculateSurfaceMassAverage()">
+                                        <input type="number" step="0.01" class="form-control surface-mass-right" placeholder="--" id="dc-input" autocomplete="off" oninput="formatDecimalInput(this)" onblur="calculateSurfaceMassAverage()">
                                     </div>
                                     <div class="reading-group">
                                         <label>DD</label>
-                                        <input type="number" step="0.01" class="form-control surface-mass-right" placeholder="--" id="dd-input" autocomplete="off" oninput="formatDecimalInput(this); calculateSurfaceMassAverage()">
+                                        <input type="number" step="0.01" class="form-control surface-mass-right" placeholder="--" id="dd-input" autocomplete="off" oninput="formatDecimalInput(this)" onblur="calculateSurfaceMassAverage()">
                                     </div>
-                                    <small class="text-muted" style="margin-bottom: 0;" id="dd-conversion">--</small>
+                                    <small class="text-muted" style="margin-bottom: 0;" id="dd-conversion"></small>
                                 </div>
-                                <div class="text-center mt-2">
-                                    <div class="fw-bold" style="font-size: 1rem;">
+                                <div class="d-flex align-items-center justify-content-center mt-2" style="gap: 0.5rem;">
+                                    <div class="text-muted" style="font-size: 0.8rem;">Moyenne Droite</div>
+                                    <div class="fw-bold" style="font-size: 1rem; min-width: 60px; text-align: center;">
                                         <span id="surface-mass-right-avg" style="color: #4caf50;">--</span>
                                     </div>
-                                    <small class="text-muted">Moyenne Droite</small>
+                                    <div id="surface-mass-right-trend" style="width: 100px; display: none;">
+                                        <i class="bi bi-arrow-down-up text-info" style="font-size: 1.2rem;"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1130,27 +1164,37 @@
                             <label class="fibrage-label">Masse tube (g)</label>
                             <input type="number" id="sticky-tube-mass" class="form-control fw-bold of-input" value="" placeholder="--" 
                                    onclick="this.select()"
-                                   onchange="saveStickValue('tube_mass', this.value)">
+                                   onchange="saveStickValue('tube_mass', this.value); calculateAndDisplayMass(true);">
                         </div>
                         
                         <div class="fibrage-field">
                             <label class="fibrage-label">Lg (m)</label>
                             <input type="number" id="sticky-roll-length" class="form-control fw-bold of-input" value="" placeholder="--" 
                                    onclick="this.select()"
-                                   onchange="saveStickValue('length', this.value); generateRollVisualization();">
+                                   onchange="saveStickValue('length', this.value); generateRollVisualization(); calculateAndDisplayMass(true);">
                         </div>
                         
                         <div class="fibrage-field">
                             <label class="fibrage-label">Masse totale (g)</label>
                             <input type="number" id="sticky-total-mass" class="form-control fw-bold of-input" value="" placeholder="--" 
                                    onclick="this.select()"
-                                   onchange="saveStickValue('total_mass', this.value)">
+                                   onchange="saveStickValue('total_mass', this.value); calculateAndDisplayMass(true);">
                         </div>
                         
                         <div class="fibrage-field mass-calc-field">
                             <div class="mass-calc-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
-                                <small class="fibrage-text" id="mass-net" style="font-size: 0.85rem; font-weight: 500;">--</small>
-                                <small class="fibrage-text" id="grammage" style="font-size: 1.05rem; font-weight: bold;">--</small>
+                                <div style="display: grid; grid-template-columns: 30px 1fr; align-items: center; justify-content: center; width: 100%; min-height: 24px;">
+                                    <span id="mass-trend" style="display: flex; text-align: center; align-items: center; justify-content: center;">
+                                        <i class="bi bi-activity text-primary" style="font-size: 0.8rem; opacity: 0;"></i>
+                                    </span>
+                                    <small class="fibrage-text" id="mass-net" style="font-size: 0.8rem; font-weight: 500; text-align: left; line-height: 20px;">--</small>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 30px 1fr; align-items: center; justify-content: center; width: 100%; min-height: 24px;">
+                                    <span id="grammage-trend" style="display: flex; text-align: center; align-items: center; justify-content: center;">
+                                        <i class="bi bi-activity text-primary" style="font-size: 1.1rem; opacity: 0;"></i>
+                                    </span>
+                                    <small class="fibrage-text" id="grammage" style="font-size: 1.1rem; font-weight: bold; text-align: left; line-height: 24px; display: inline-block; min-width: 85px;">--</small>
+                                </div>
                             </div>
                         </div>
                         
@@ -1323,6 +1367,8 @@ window.editCurrentOrder = function() {
             .then(data => {
                 console.log('OF en cours mis à jour');
                 select.disabled = true;
+                // Mettre à jour l'ID du rouleau
+                updateRollIdDisplay();
             })
             .catch(error => {
                 console.error('Erreur:', error);
@@ -1438,8 +1484,9 @@ window.editStickyField = function(fieldId) {
             
             const fieldName = fieldMap[fieldId];
             if (fieldName) {
-                // Le numéro de rouleau nécessite une confirmation
+                // Le numéro de rouleau nécessite une confirmation et met à jour l'ID
                 if (fieldName === 'roll_number') {
+                    updateRollIdDisplay();
                     const oldValue = input.defaultValue || '';
                     const newValue = input.value;
                     
@@ -1452,18 +1499,33 @@ window.editStickyField = function(fieldId) {
                         }
                     }
                     
-                    // Sauvegarder directement sans le préfixe sticky-
+                    // Sauvegarder dans la session ET dans current_roll.info
                     const value = input.value || null;
+                    
+                    // Mettre à jour l'ID immédiatement côté client
+                    updateRollIdDisplay();
+                    
+                    // D'abord sauvegarder dans la session principale
                     updateFieldViaAPI('roll_number', value)
-                        .then(() => {
-                            console.log('Numéro de rouleau mis à jour');
+                        .then((data) => {
+                            console.log('Numéro de rouleau mis à jour dans la session');
+                            // Mettre à jour sessionData avec les nouvelles données
+                            if (data) sessionData = {...sessionData, ...data};
                             input.defaultValue = input.value;
                             input.disabled = true;
+                            
+                            // Mettre à jour l'ID après la sauvegarde avec un délai
+                            setTimeout(() => updateRollStatus(), 100);
+                            
+                            // Ensuite mettre à jour dans current_roll
+                            autoSaveRollData();
                         })
                         .catch(error => {
                             console.error('Erreur:', error);
                             input.value = oldValue;
                             input.disabled = true;
+                            // Recalculer l'ID avec l'ancienne valeur
+                            updateRollIdDisplay();
                         });
                 } else {
                     saveStickValue(fieldName, input.value);
@@ -1830,13 +1892,8 @@ function showProductivityTab(tabName) {
         activeButton.classList.add('active');
     }
     
-    // Sauvegarder l'onglet actif
-    const formData = new FormData();
-    formData.append('field', 'active_productivity_tab');
-    formData.append('value', tabName);
-    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-    
-    updateFieldViaAPI(formData.get('field'), formData.get('value'));
+    // Sauvegarder l'onglet actif (même si c'est 'temps')
+    updateFieldViaAPI('active_productivity_tab', tabName);
 }
 
 // Fonctions vides pour les boutons d'édition (pour éviter les erreurs)
@@ -1869,6 +1926,12 @@ function saveProfile(profileId) {
 function saveStickValue(fieldName, value) {
     // Déclencher l'auto-save du rouleau
     autoSaveRollData();
+    
+    // Mettre à jour l'ID si c'est le numéro de rouleau qui change
+    // Fait après autoSaveRollData pour avoir les bonnes données
+    if (fieldName === 'roll_number') {
+        setTimeout(() => updateRollIdDisplay(), 50);
+    }
 }
 
 // Fonction pour activer/désactiver les champs de la sticky bar
@@ -1880,6 +1943,78 @@ function toggleStickyInputs(enable) {
         }
     });
 }
+
+// Variable pour stocker les données de session
+let sessionData = {};
+
+// Fonction pour générer l'ID du rouleau (OF_NumRouleau ou OFDecoupe_DDMM)
+function generateRollId() {
+    // Vérifier le statut du rouleau
+    const status = getRollStatus();
+    
+    if (status === 'NON_CONFORME') {
+        // Format pour non conforme: OFDecoupe_DDMM (sans numéro de rouleau)
+        // Prendre l'OF de découpe depuis le select
+        const cuttingOrderSelect = document.getElementById('cutting-order');
+        let ofDecoupe = '';
+        
+        if (cuttingOrderSelect && cuttingOrderSelect.selectedOptions.length > 0) {
+            ofDecoupe = cuttingOrderSelect.selectedOptions[0].text;
+        }
+        
+        if (!ofDecoupe) {
+            return '--';
+        }
+        
+        const now = new Date();
+        const day = now.getDate().toString().padStart(2, '0');
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        
+        return `${ofDecoupe}_${day}${month}`;
+    } else {
+        // Format pour conforme: OF_NumRouleau
+        // Prendre le numéro de rouleau depuis la session
+        const rollNumber = sessionData.roll_number || document.getElementById('sticky-roll-number')?.value;
+        
+        if (!rollNumber) {
+            return '--';
+        }
+        
+        // Prendre l'OF depuis la session
+        let ofNumber = '';
+        if (sessionData.current_of) {
+            // Récupérer le texte de l'OF depuis le select si possible
+            const currentOrderSelect = document.getElementById('current-order');
+            if (currentOrderSelect) {
+                const option = currentOrderSelect.querySelector(`option[value="${sessionData.current_of}"]`);
+                if (option) {
+                    ofNumber = option.text;
+                }
+            }
+        }
+        
+        console.log('[DEBUG] generateRollId: sessionData.current_of =', sessionData.current_of, ', ofNumber =', ofNumber);
+        
+        if (!ofNumber) {
+            return '--';
+        }
+        
+        // Formater le numéro de rouleau sur 3 chiffres
+        const formattedRollNumber = rollNumber.toString().padStart(3, '0');
+        
+        return `${ofNumber}_${formattedRollNumber}`;
+    }
+}
+
+// Fonction pour mettre à jour l'affichage de l'ID du rouleau
+function updateRollIdDisplay() {
+    const rollIdElement = document.getElementById('sticky-roll-id');
+    if (rollIdElement) {
+        const rollId = generateRollId();
+        rollIdElement.textContent = rollId;
+    }
+}
+
 
 // Variable pour stocker les types de défauts
 let defectTypes = [];
@@ -1902,6 +2037,34 @@ function loadDefectTypes() {
 function generateRollVisualization() {
     const container = document.getElementById('roll-content-viz');
     if (!container) return;
+    
+    // Sauvegarder les valeurs actuelles des épaisseurs avant de régénérer
+    const savedThickness = {};
+    document.querySelectorAll('.thickness-input').forEach(input => {
+        if (input.value) {
+            const meter = input.getAttribute('data-meter');
+            const point = input.getAttribute('data-point');
+            const isRattrapage = input.classList.contains('thickness-rattrapage');
+            const key = `${meter}_${point}_${isRattrapage ? 'R' : 'N'}`;
+            savedThickness[key] = {
+                value: input.value,
+                display: input.style.display
+            };
+        }
+    });
+    
+    // Sauvegarder aussi les défauts
+    const savedDefects = {};
+    document.querySelectorAll('.defect-row').forEach((row, index) => {
+        const select = row.querySelector('.defect-select');
+        const position = row.querySelector('.defect-position');
+        if (select && select.value) {
+            savedDefects[index] = {
+                defectType: select.value,
+                position: position ? position.value : ''
+            };
+        }
+    });
     
     // Récupérer les données
     const targetLength = parseFloat(document.getElementById('target-length')?.value) || 0;
@@ -1956,7 +2119,7 @@ function generateRollVisualization() {
         // Colonne défaut gauche
         html += `<td style="border: none; padding: 0; position: relative; text-align: center; vertical-align: middle;">
             <div style="display: flex; align-items: center; justify-content: center;">
-                <select class="defect-select defect-g" data-meter="${m}" data-side="G" style="width: 100%; border: none; border-radius: 4px; font-size: 0.85rem; padding: 1px; appearance: none; cursor: pointer; background-color: transparent; text-align: right;">
+                <select class="defect-select defect-g" data-meter="${m}" data-side="G" style="width: 100%; border: none; border-radius: 4px; font-size: 0.85rem; padding: 1px; appearance: none; cursor: pointer; background-color: transparent; text-align: right;" onchange="saveRollDefects()">
                     <option value=""></option>
                     ${defectTypes.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}
                 </select>
@@ -1986,7 +2149,7 @@ function generateRollVisualization() {
         // Colonne défaut centre
         html += `<td style="border: none; padding: 0; position: relative; text-align: center; vertical-align: middle;">
             <div style="display: flex; align-items: center; justify-content: center;">
-                <select class="defect-select defect-c" data-meter="${m}" data-side="C" style="width: 100%; border: none; border-radius: 4px; font-size: 0.85rem; padding: 1px; appearance: none; cursor: pointer; background-color: transparent; text-align: center;">
+                <select class="defect-select defect-c" data-meter="${m}" data-side="C" style="width: 100%; border: none; border-radius: 4px; font-size: 0.85rem; padding: 1px; appearance: none; cursor: pointer; background-color: transparent; text-align: center;" onchange="saveRollDefects()">
                     <option value=""></option>
                     ${defectTypes.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}
                 </select>
@@ -2013,7 +2176,7 @@ function generateRollVisualization() {
         html += `<td style="border: none; padding: 0; position: relative; text-align: center; vertical-align: middle;">
             <div style="display: flex; align-items: center; justify-content: center;">
                 <i class="bi bi-x-circle-fill text-danger" onclick="removeDefect(this)" style="visibility: hidden; cursor: pointer; font-size: 16px;"></i>
-                <select class="defect-select defect-d" data-meter="${m}" data-side="D" style="width: 100%; border: none; border-radius: 4px; font-size: 0.85rem; padding: 1px; appearance: none; cursor: pointer; background-color: transparent; text-align: left;">
+                <select class="defect-select defect-d" data-meter="${m}" data-side="D" style="width: 100%; border: none; border-radius: 4px; font-size: 0.85rem; padding: 1px; appearance: none; cursor: pointer; background-color: transparent; text-align: left;" onchange="saveRollDefects()">
                     <option value=""></option>
                     ${defectTypes.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}
                 </select>
@@ -2030,8 +2193,50 @@ function generateRollVisualization() {
     
     container.innerHTML = html;
     
-    // Restaurer les données sauvegardées
-    restoreRollData();
+    // Restaurer les valeurs sauvegardées après un court délai pour laisser le DOM se mettre à jour
+    setTimeout(() => {
+        // Restaurer les épaisseurs
+        Object.keys(savedThickness).forEach(key => {
+            const parts = key.split('_');
+            const meter = parts[0];
+            const point = parts[1];
+            const isRattrapage = parts[2] === 'R';
+            
+            let selector = `.thickness-input${isRattrapage ? '.thickness-rattrapage' : ':not(.thickness-rattrapage)'}[data-meter="${meter}"][data-point="${point}"]`;
+            const input = document.querySelector(selector);
+            
+            if (input) {
+                input.value = savedThickness[key].value;
+                if (isRattrapage && savedThickness[key].display) {
+                    input.style.display = savedThickness[key].display;
+                }
+                // Appliquer la coloration
+                colorThicknessInput(input);
+            }
+        });
+        
+        // Restaurer les défauts
+        const defectRows = document.querySelectorAll('.defect-row');
+        Object.keys(savedDefects).forEach(index => {
+            if (defectRows[index]) {
+                const select = defectRows[index].querySelector('.defect-select');
+                const position = defectRows[index].querySelector('.defect-position');
+                
+                if (select) {
+                    select.value = savedDefects[index].defectType;
+                    // Déclencher l'événement change pour mettre à jour l'affichage
+                    select.dispatchEvent(new Event('change'));
+                }
+                if (position) {
+                    position.value = savedDefects[index].position;
+                }
+            }
+        });
+        
+        // Mettre à jour les résumés
+        updateSummaries();
+    }, 50);
+    // restoreRollData(); // Fonction legacy supprimée
     
     // Mettre à jour le statut initial
     updateRollStatus();
@@ -2129,9 +2334,14 @@ function saveRollDefects() {
     autoSaveRollData();
 }
 
-// Fonction pour déterminer et afficher le statut du rouleau
-function updateRollStatus() {
-    let isCompliant = true;
+// Fonction pour calculer le statut du rouleau
+function getRollStatus() {
+    // Vérifier si le statut a été forcé manuellement
+    const rollNumber = document.getElementById('sticky-roll-number')?.value;
+    if (rollNumber && window.forcedRollStatus && window.forcedRollStatus[rollNumber]) {
+        return window.forcedRollStatus[rollNumber];
+    }
+    
     let hasBlockingDefect = false;
     let hasNonBlockingDefect = false;
     let hasCriticalThickness = false;
@@ -2144,7 +2354,6 @@ function updateRollStatus() {
             if (selectedDefect) {
                 if (selectedDefect.severity === 'blocking') {
                     hasBlockingDefect = true;
-                    isCompliant = false;
                 } else if (selectedDefect.severity === 'non_blocking') {
                     hasNonBlockingDefect = true;
                 }
@@ -2152,29 +2361,80 @@ function updateRollStatus() {
         }
     });
     
-    // Vérifier les épaisseurs
+    // Vérifier les épaisseurs avec prise en compte des rattrapages
+    let totalNokCount = 0; // Nombre total d'épaisseurs NOK (pour le seuil)
+    const nokThreshold = 3; // Seuil par défaut, à ajuster selon les besoins
+    
     if (thicknessSpecs) {
-        document.querySelectorAll('.thickness-input').forEach(input => {
+        document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)').forEach(input => {
             if (input.value) {
                 const value = parseFloat(input.value);
+                const tdElement = input.closest('td');
+                const rattrapageInput = tdElement ? tdElement.querySelector('.thickness-rattrapage') : null;
+                
                 if (value < thicknessSpecs.ep_mini) {
-                    hasCriticalThickness = true;
-                    isCompliant = false;
+                    // Épaisseur NOK - compter pour le seuil global
+                    totalNokCount++;
+                    
+                    if (rattrapageInput && rattrapageInput.style.display === 'block' && rattrapageInput.value) {
+                        // Il y a un rattrapage, vérifier sa valeur
+                        const rattrapageValue = parseFloat(rattrapageInput.value);
+                        if (rattrapageValue < thicknessSpecs.ep_mini) {
+                            // Rattrapage aussi NOK = Non conforme immédiatement
+                            hasCriticalThickness = true;
+                        }
+                        // Si le rattrapage est OK, on ne met pas hasCriticalThickness
+                    } else {
+                        // Pas de rattrapage sur une épaisseur NOK
+                        // On ne met pas hasCriticalThickness ici, on attend le seuil
+                    }
                 } else if (value < thicknessSpecs.ep_mini_alerte || value > thicknessSpecs.ep_max_alerte) {
                     hasAlertThickness = true;
                 }
             }
         });
+        
+        // Vérifier si on dépasse le seuil total de NOK
+        if (totalNokCount >= nokThreshold) {
+            hasCriticalThickness = true;
+        }
     }
     
-    // Mettre à jour l'affichage du statut
+    // Retourner le statut
+    if (hasBlockingDefect || hasCriticalThickness) {
+        return 'NON_CONFORME';
+    } else {
+        return 'CONFORME';
+    }
+}
+
+// Fonction pour déterminer et afficher le statut du rouleau
+function updateRollStatus() {
+    const status = getRollStatus();
+    console.log('[DEBUG] Statut du rouleau:', status);
+    
+    // Mettre à jour l'ID du rouleau (qui dépend du statut pour les NON CONFORME)
+    updateRollIdDisplay();
+    
+    // Vérifier les types de défauts pour l'affichage
+    let hasNonBlockingDefect = false;
+    document.querySelectorAll('.defect-select').forEach(select => {
+        if (select.value) {
+            const selectedDefect = defectTypes.find(d => d.id == select.value);
+            if (selectedDefect && selectedDefect.severity === 'non_blocking') {
+                hasNonBlockingDefect = true;
+            }
+        }
+    });
+    
+    // Mettre à jour l'affichage du statut (sticky bar)
     const statusElement = document.getElementById('sticky-roll-status');
     if (statusElement) {
-        if (hasBlockingDefect || hasCriticalThickness) {
+        if (status === 'NON_CONFORME') {
             statusElement.textContent = 'NON CONFORME';
             statusElement.style.color = '#ff1744';
             statusElement.style.fontWeight = 'bold';
-        } else if (hasNonBlockingDefect || hasAlertThickness) {
+        } else if (hasNonBlockingDefect) {
             statusElement.textContent = 'CONFORME AVEC RÉSERVE';
             statusElement.style.color = '#ef6c00';
             statusElement.style.fontWeight = 'bold';
@@ -2185,8 +2445,93 @@ function updateRollStatus() {
         }
     }
     
+    // Mettre à jour le badge de conformité au-dessus du rouleau
+    updateConformityBadge(status);
+    
     // Retourner le statut pour utilisation future
-    return isCompliant;
+    return status === 'CONFORME';
+}
+
+// Fonction pour mettre à jour le badge de conformité
+function updateConformityBadge(status) {
+    const badge = document.getElementById('conformity-status');
+    if (!badge) return;
+    
+    // Vérifier si le statut a été forcé manuellement
+    const rollNumber = document.getElementById('sticky-roll-number')?.value;
+    if (rollNumber && window.forcedRollStatus && window.forcedRollStatus[rollNumber]) {
+        status = window.forcedRollStatus[rollNumber];
+    }
+    
+    // Compter le nombre d'épaisseurs saisies
+    const thicknessInputs = document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)');
+    let filledCount = 0;
+    thicknessInputs.forEach(input => {
+        if (input.value && input.value.trim() !== '') {
+            filledCount++;
+        }
+    });
+    
+    // Si moins de 6 épaisseurs, afficher en gris
+    if (filledCount < 6) {
+        badge.textContent = 'CONFORME';
+        badge.className = 'badge bg-secondary';
+        badge.style.opacity = '0.6';
+        badge.title = `${filledCount}/6 épaisseurs minimum`;
+    } else {
+        // Affichage normal
+        badge.style.opacity = '1';
+        
+        if (status === 'NON_CONFORME') {
+            badge.textContent = 'NON CONFORME';
+            badge.className = 'badge bg-danger';
+        } else {
+            badge.textContent = 'CONFORME';
+            badge.className = 'badge bg-success';
+        }
+    }
+}
+
+// Fonction pour basculer manuellement le statut du rouleau
+function toggleRollStatus() {
+    const badge = document.getElementById('conformity-status');
+    if (!badge) return;
+    
+    // Compter le nombre d'épaisseurs saisies
+    const thicknessInputs = document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)');
+    let filledCount = 0;
+    thicknessInputs.forEach(input => {
+        if (input.value && input.value.trim() !== '') {
+            filledCount++;
+        }
+    });
+    
+    // Ne pas permettre le toggle si moins de 6 épaisseurs
+    if (filledCount < 6) {
+        return;
+    }
+    
+    // Basculer entre CONFORME et NON_CONFORME
+    const currentStatus = badge.textContent === 'CONFORME' ? 'CONFORME' : 'NON_CONFORME';
+    const newStatus = currentStatus === 'CONFORME' ? 'NON_CONFORME' : 'CONFORME';
+    
+    // Mettre à jour l'affichage
+    updateConformityBadge(newStatus);
+    
+    // Sauvegarder le statut forcé
+    if (!window.forcedRollStatus) {
+        window.forcedRollStatus = {};
+    }
+    const rollNumber = document.getElementById('sticky-roll-number')?.value;
+    if (rollNumber) {
+        window.forcedRollStatus[rollNumber] = newStatus;
+    }
+    
+    // Mettre à jour l'ID du rouleau (qui change selon le statut)
+    updateRollIdDisplay();
+    
+    // Déclencher la sauvegarde
+    autoSaveRollData();
 }
 
 // Fonction pour sauvegarder les épaisseurs du rouleau
@@ -2380,6 +2725,16 @@ function bringToFront(input) {
             }
         }
     }
+}
+
+// Fonction pour nettoyer les rattrapages cachés et vides
+function cleanHiddenRattrapages() {
+    document.querySelectorAll('.thickness-rattrapage').forEach(input => {
+        // Si le rattrapage est caché, vider sa valeur
+        if (input.style.display === 'none') {
+            input.value = '';
+        }
+    });
 }
 
 // Fonction pour colorer un input d'épaisseur selon sa valeur
@@ -2586,6 +2941,9 @@ function autoSaveRollData() {
 
 // Fonction pour collecter toutes les données du rouleau
 function collectRollData() {
+    // Nettoyer d'abord les rattrapages cachés
+    cleanHiddenRattrapages();
+    
     const data = {
         info: {},
         defects: [],
@@ -2596,13 +2954,34 @@ function collectRollData() {
     };
     
     // Informations de base du rouleau
+    const tubeMass = parseFloat(document.getElementById('sticky-tube-mass')?.value) || 0;
+    const totalMass = parseFloat(document.getElementById('sticky-total-mass')?.value) || 0;
+    const length = parseFloat(document.getElementById('sticky-roll-length')?.value) || 0;
+    
+    // Récupérer les valeurs précédentes pour la tendance
+    const previousNetMass = window.lastRollData?.info?.net_mass || 0;
+    const previousGrammage = window.lastRollData?.info?.grammage || 0;
+    
+    const netMass = (totalMass && tubeMass) ? (totalMass - tubeMass) : 0;
+    const grammage = (totalMass && tubeMass && length > 0) ? ((totalMass - tubeMass) / length) : 0;
+    
     data.info = {
         roll_number: document.getElementById('sticky-roll-number')?.value || '',
         tube_mass: document.getElementById('sticky-tube-mass')?.value || '',
         length: document.getElementById('sticky-roll-length')?.value || '',
         total_mass: document.getElementById('sticky-total-mass')?.value || '',
-        next_tube_mass: document.getElementById('sticky-next-tube-mass')?.value || ''
+        next_tube_mass: document.getElementById('sticky-next-tube-mass')?.value || '',
+        status: getRollStatus(),  // Ajouter le statut calculé
+        // Ajouter les valeurs calculées
+        net_mass: netMass,
+        grammage: grammage,
+        // Ajouter les tendances
+        net_mass_trend: netMass > previousNetMass ? 'up' : (netMass < previousNetMass ? 'down' : 'stable'),
+        grammage_trend: grammage > previousGrammage ? 'up' : (grammage < previousGrammage ? 'down' : 'stable')
     };
+    
+    // Stocker pour la prochaine comparaison
+    window.lastRollData = JSON.parse(JSON.stringify(data));
     
     // Défauts (seulement ceux qui ont une valeur)
     document.querySelectorAll('.defect-select').forEach(select => {
@@ -2627,17 +3006,21 @@ function collectRollData() {
             const isRattrapage = input.classList.contains('thickness-rattrapage');
             
             if (isRattrapage) {
-                // Stocker les rattrapages séparément
-                if (!rattrapageByMeter[meter]) {
-                    rattrapageByMeter[meter] = {};
+                // Ne sauvegarder le rattrapage que s'il est visible ET a une valeur valide
+                if (input.style.display !== 'none' && !isNaN(value)) {
+                    if (!rattrapageByMeter[meter]) {
+                        rattrapageByMeter[meter] = {};
+                    }
+                    rattrapageByMeter[meter][point] = value;
                 }
-                rattrapageByMeter[meter][point] = value;
             } else {
-                // Stocker les épaisseurs normales
-                if (!thicknessByMeter[meter]) {
-                    thicknessByMeter[meter] = {};
+                // Stocker les épaisseurs normales seulement si valides
+                if (!isNaN(value)) {
+                    if (!thicknessByMeter[meter]) {
+                        thicknessByMeter[meter] = {};
+                    }
+                    thicknessByMeter[meter][point] = value;
                 }
-                thicknessByMeter[meter][point] = value;
             }
         }
     });
@@ -2667,60 +3050,8 @@ function collectRollData() {
     return data;
 }
 
-// Fonction pour restaurer les données du rouleau depuis LiveRoll
-function restoreRollData() {
-    // TODO: Migrer vers current-session
-    console.log('restoreRollData désactivé temporairement');
-    return;
-    
-    // Récupérer les données depuis LiveRoll
-    fetch('/livesession/get-active-roll/')
-        .then(response => response.json())
-        .then(data => {
-            if (data.roll_data) {
-                // Restaurer les défauts
-                if (data.roll_data.defects) {
-                    data.roll_data.defects.forEach(defect => {
-                        const select = document.querySelector(`.defect-select[data-meter="${defect.position_m}"][data-side="${defect.position_side}"]`);
-                        if (select) {
-                            select.value = defect.type_id;
-                            // Colorer selon la sévérité
-                            colorDefectSelect(select);
-                            // Afficher le bouton de suppression
-                            const isRightColumn = select.classList.contains('defect-d');
-                            const removeBtn = isRightColumn ? select.previousElementSibling : select.nextElementSibling;
-                            if (removeBtn) {
-                                removeBtn.style.visibility = 'visible';
-                            }
-                        }
-                    });
-                }
-                
-                // Restaurer les épaisseurs
-                if (data.roll_data.thickness_measurements) {
-                    data.roll_data.thickness_measurements.forEach(thickness => {
-                        const input = document.querySelector(`.thickness-input[data-meter="${thickness.position_m}"][data-point="${thickness.measurement_point}"]`);
-                        if (input) {
-                            input.value = thickness.thickness_value;
-                            // Colorer selon la valeur
-                            colorThicknessInput(input);
-                        }
-                    });
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Erreur lors de la restauration LiveRoll:', error);
-            // Fallback sur sessionStorage si disponible
-            const backup = sessionStorage.getItem('roll_draft_backup');
-            if (backup) {
-                console.log('Utilisation du backup sessionStorage');
-                // Restaurer depuis le backup si nécessaire
-            }
-        });
-}
 
-// Fonction pour charger les données du rouleau actif depuis LiveRoll
+// Fonction pour charger les données du rouleau actif
 function loadActiveRollData(rollData) {
     // Si pas de données passées, on ne fait rien
     if (!rollData) {
@@ -2753,7 +3084,11 @@ function loadActiveRollData(rollData) {
     // Restaurer les informations de base
     if (rollData.info) {
         if (rollData.info.roll_number !== undefined) {
-            document.getElementById('sticky-roll-number').value = rollData.info.roll_number;
+            const rollNumberInput = document.getElementById('sticky-roll-number');
+            if (rollNumberInput) {
+                rollNumberInput.value = rollData.info.roll_number;
+                rollNumberInput.defaultValue = rollData.info.roll_number;
+            }
         }
         if (rollData.info.tube_mass !== undefined) {
             document.getElementById('sticky-tube-mass').value = rollData.info.tube_mass;
@@ -2768,6 +3103,20 @@ function loadActiveRollData(rollData) {
         }
         if (rollData.info.next_tube_mass !== undefined) {
             document.getElementById('sticky-next-tube-mass').value = rollData.info.next_tube_mass;
+        }
+        
+        // Charger le statut si présent
+        if (rollData.info.status !== undefined) {
+            // Si le statut a été forcé manuellement, on le garde dans la mémoire
+            const rollNumber = rollData.info.roll_number;
+            if (rollNumber && rollData.info.status) {
+                if (!window.forcedRollStatus) {
+                    window.forcedRollStatus = {};
+                }
+                // On considère qu'un statut NON_CONFORME a été forcé s'il n'y a pas de défauts bloquants
+                // Cette logique sera affinée plus tard
+                window.forcedRollStatus[rollNumber] = rollData.info.status;
+            }
         }
     }
     
@@ -2829,6 +3178,10 @@ function loadActiveRollData(rollData) {
             }
         });
     }
+    
+    // Mettre à jour l'ID du rouleau et les calculs après avoir tout chargé
+    updateRollIdDisplay();
+    calculateAndDisplayMass();
 }
 
 // Fonction pour effacer toutes les valeurs du rouleau
@@ -2882,6 +3235,102 @@ function saveModes() {
     });
 }
 
+// Fonction pour gérer la navigation par Tab
+function setupTabNavigation() {
+    // Écouter l'événement keydown sur tout le document
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            // Vérifier si on est dans un champ qui doit participer à la navigation custom
+            const activeElement = document.activeElement;
+            
+            // Liste des champs de la sticky bar dans l'ordre
+            const stickyFields = [
+                'sticky-tube-mass',
+                'sticky-roll-length', 
+                'sticky-total-mass',
+                'sticky-next-tube-mass'
+            ];
+            
+            // Si on est dans un input d'épaisseur
+            if (activeElement && activeElement.classList.contains('thickness-input') && !activeElement.classList.contains('thickness-rattrapage')) {
+                e.preventDefault();
+                
+                // Trouver le prochain input d'épaisseur vide
+                const allThicknessInputs = Array.from(document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)'));
+                const currentIndex = allThicknessInputs.indexOf(activeElement);
+                
+                // Chercher le prochain vide après l'actuel
+                for (let i = currentIndex + 1; i < allThicknessInputs.length; i++) {
+                    if (!allThicknessInputs[i].value || allThicknessInputs[i].value === '') {
+                        allThicknessInputs[i].focus();
+                        allThicknessInputs[i].select();
+                        return;
+                    }
+                }
+                
+                // Si on est au dernier input et qu'il n'y a plus de vides après, aller à la sticky bar
+                if (currentIndex === allThicknessInputs.length - 1) {
+                    // Aller au premier champ vide de la sticky bar
+                    for (const fieldId of stickyFields) {
+                        const field = document.getElementById(fieldId);
+                        if (field && (!field.value || field.value === '')) {
+                            field.focus();
+                            field.select();
+                            return;
+                        }
+                    }
+                }
+                
+                // Sinon, chercher depuis le début
+                for (let i = 0; i < currentIndex; i++) {
+                    if (!allThicknessInputs[i].value || allThicknessInputs[i].value === '') {
+                        allThicknessInputs[i].focus();
+                        allThicknessInputs[i].select();
+                        return;
+                    }
+                }
+            }
+            // Si on est dans un champ de la sticky bar
+            else if (activeElement && stickyFields.includes(activeElement.id)) {
+                e.preventDefault();
+                
+                const currentFieldIndex = stickyFields.indexOf(activeElement.id);
+                
+                // Chercher le prochain champ vide dans la sticky bar
+                for (let i = currentFieldIndex + 1; i < stickyFields.length; i++) {
+                    const field = document.getElementById(stickyFields[i]);
+                    if (field && (!field.value || field.value === '')) {
+                        field.focus();
+                        field.select();
+                        return;
+                    }
+                }
+                
+                // Si pas trouvé après, revenir aux épaisseurs vides
+                const allThicknessInputs = Array.from(document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)'));
+                const firstEmpty = allThicknessInputs.find(input => !input.value || input.value === '');
+                
+                if (firstEmpty) {
+                    firstEmpty.focus();
+                    firstEmpty.select();
+                }
+            }
+            // Si on n'est dans aucun de ces champs, et qu'on appuie sur Tab
+            else if (!activeElement || !activeElement.classList.contains('thickness-input')) {
+                // Chercher le premier champ d'épaisseur vide
+                const allThicknessInputs = Array.from(document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)'));
+                const firstEmpty = allThicknessInputs.find(input => !input.value || input.value === '');
+                
+                if (firstEmpty) {
+                    e.preventDefault();
+                    firstEmpty.focus();
+                    firstEmpty.select();
+                }
+            }
+        }
+    });
+}
+
 // Variable globale pour stocker les motifs de temps perdu
 let lostTimeReasons = [];
 
@@ -2908,8 +3357,8 @@ function initializeChecklist() {
     if (signatureField) {
         signatureField.addEventListener('input', validateSignature);
         signatureField.addEventListener('blur', validateSignature);
-        // Désactiver au départ
-        updateSignatureFieldState();
+        // Ne pas appeler updateSignatureFieldState() ici car checklistState n'est pas encore chargé
+        // Ça sera fait après le chargement de la session
     }
 }
 
@@ -3408,11 +3857,15 @@ document.addEventListener('DOMContentLoaded', function() {
     loadThicknessSpecs();
     loadAllSpecs();
     loadDefectTypes();
+    setupTabNavigation();
     
     // UN SEUL appel pour toutes les données
     fetch('/livesession/api/current-session/')
         .then(response => response.json())
         .then(data => {
+            // Stocker les données de session globalement
+            sessionData = data;
+            
             // Distribuer les données aux différentes fonctions
             
             // 1. Métriques
@@ -3594,17 +4047,152 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            // 12. Restaurer les données du rouleau actif
-            if (data.current_roll) {
-                // Attendre un peu pour que la visualisation soit générée
-                setTimeout(() => {
-                    loadActiveRollData(data.current_roll);
-                }, 500);
+            // 12. Restaurer les données du rouleau actif dans les champs sticky
+            if (data.current_roll && data.current_roll.info) {
+                // Initialiser lastRollData pour les comparaisons de tendance
+                window.lastRollData = JSON.parse(JSON.stringify(data.current_roll));
+                const rollInfo = data.current_roll.info;
+                
+                // Restaurer le numéro de rouleau
+                if (rollInfo.roll_number) {
+                    const rollNumberInput = document.getElementById('sticky-roll-number');
+                    if (rollNumberInput) {
+                        rollNumberInput.value = rollInfo.roll_number;
+                        // Mettre à jour l'ID du rouleau
+                        updateRollIdDisplay();
+                    }
+                }
+                
+                // Restaurer les valeurs dans les champs sticky
+                if (rollInfo.tube_mass) {
+                    const tubeMassInput = document.getElementById('sticky-tube-mass');
+                    if (tubeMassInput) tubeMassInput.value = rollInfo.tube_mass;
+                }
+                if (rollInfo.length) {
+                    const lengthInput = document.getElementById('sticky-roll-length');
+                    if (lengthInput) lengthInput.value = rollInfo.length;
+                }
+                if (rollInfo.total_mass) {
+                    const totalMassInput = document.getElementById('sticky-total-mass');
+                    if (totalMassInput) totalMassInput.value = rollInfo.total_mass;
+                }
+                if (rollInfo.next_tube_mass) {
+                    const nextTubeMassInput = document.getElementById('sticky-next-tube-mass');
+                    if (nextTubeMassInput) nextTubeMassInput.value = rollInfo.next_tube_mass;
+                }
+                
+                // Régénérer la visualisation si on a une longueur
+                if (rollInfo.length) {
+                    generateRollVisualization();
+                }
+                
+                // Restaurer les défauts
+                if (data.current_roll.defects) {
+                    data.current_roll.defects.forEach(defect => {
+                        const select = document.querySelector(`.defect-select[data-meter="${defect.position_m}"][data-side="${defect.position_side}"]`);
+                        if (select) {
+                            select.value = defect.type_id;
+                        }
+                    });
+                }
+                
+                // Restaurer les épaisseurs
+                if (data.current_roll.thickness) {
+                    // Mesures normales
+                    if (data.current_roll.thickness.measurements) {
+                        data.current_roll.thickness.measurements.forEach(measure => {
+                            const input = document.querySelector(`.thickness-input[data-meter="${measure.position_m}"][data-point="${measure.measurement_point}"]:not(.thickness-rattrapage)`);
+                            if (input) {
+                                input.value = measure.thickness_value;
+                                // Colorer l'input selon les specs
+                                colorThicknessInput(input);
+                            }
+                        });
+                    }
+                    // Rattrapages
+                    if (data.current_roll.thickness.rattrapage) {
+                        data.current_roll.thickness.rattrapage.forEach(measure => {
+                            const input = document.querySelector(`.thickness-rattrapage[data-meter="${measure.position_m}"][data-point="${measure.measurement_point}"]`);
+                            if (input) {
+                                input.value = measure.thickness_value;
+                                input.style.display = 'block'; // Afficher le rattrapage
+                                colorThicknessInput(input);
+                            }
+                        });
+                    }
+                }
+                
+                // Restaurer le statut forcé si présent
+                if (rollInfo.status && rollInfo.roll_number) {
+                    if (!window.forcedRollStatus) {
+                        window.forcedRollStatus = {};
+                    }
+                    // Restaurer le statut forcé pour ce rouleau
+                    window.forcedRollStatus[rollInfo.roll_number] = rollInfo.status;
+                }
+                
+                // Mettre à jour le statut du rouleau
+                updateRollStatus();
+                
+                // Charger les valeurs calculées depuis la session si disponibles
+                if (rollInfo.net_mass !== undefined || rollInfo.grammage !== undefined) {
+                    const massNetElement = document.getElementById('mass-net');
+                    const grammageElement = document.getElementById('grammage');
+                    
+                    if (massNetElement && rollInfo.net_mass !== undefined) {
+                        const netMass = parseFloat(rollInfo.net_mass);
+                        massNetElement.textContent = netMass > 0 ? `${Math.round(netMass)}g` : '--';
+                        
+                        // Afficher la tendance si disponible
+                        if (rollInfo.net_mass_trend) {
+                            displayTrend('mass-trend', rollInfo.net_mass_trend, 0, netMass);
+                        } else {
+                            displayTrend('mass-trend', 'stable', 0, netMass);
+                        }
+                    }
+                    
+                    if (grammageElement && rollInfo.grammage !== undefined) {
+                        const grammage = parseFloat(rollInfo.grammage);
+                        if (grammage > 0) {
+                            grammageElement.textContent = `${grammage.toFixed(1)}g/m`;
+                            grammageElement.style.color = '#4caf50'; // TODO: vérifier si critique
+                        } else {
+                            grammageElement.textContent = '--';
+                        }
+                        
+                        // Afficher la tendance si disponible
+                        if (rollInfo.grammage_trend) {
+                            displayTrend('grammage-trend', rollInfo.grammage_trend, 0, grammage);
+                        } else {
+                            displayTrend('grammage-trend', 'stable', 0, grammage);
+                        }
+                    }
+                } else {
+                    // Si pas de valeurs calculées dans la session, les calculer
+                    calculateAndDisplayMass();
+                }
+            } else {
+                // Si pas de données de rouleau, essayer de calculer quand même
+                calculateAndDisplayMass();
+            }
+            
+            
+            // 13. Restaurer l'onglet actif du bloc productivité
+            if (data.active_productivity_tab) {
+                showProductivityTab(data.active_productivity_tab);
+            } else {
+                // Si aucun onglet sauvegardé, afficher temps par défaut
+                showProductivityTab('temps');
             }
             
             // Le TRS est affiché ailleurs
             
             // Les données du formulaire sont chargées par shift_block.html
+            
+            // Mettre à jour le statut et l'ID du rouleau après avoir chargé toutes les données
+            setTimeout(() => {
+                updateRollStatus();
+            }, 500);
         })
         .catch(error => {
             console.error('Erreur lors du chargement de la session:', error);
@@ -3634,11 +4222,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loadMachineParameters(profileSelector.value);
     }
     
-    // Restaurer l'onglet actif
-    const activeTab = '{{ active_productivity_tab }}';
-    if (activeTab && activeTab !== 'temps') {
-        showProductivityTab(activeTab);
-    }
+    // L'onglet actif sera restauré depuis current-session
     
     // Charger les types de défauts puis générer la visualisation
     loadDefectTypes().then(() => {
@@ -3689,13 +4273,18 @@ function calculateMicronnaireAverage() {
         .filter(val => !isNaN(val));
     
     const leftAvgElement = document.getElementById('micronnaire-left-avg');
+    const leftTrendElement = document.getElementById('micronnaire-left-trend');
     if (leftValues.length > 0) {
         const leftAvg = (leftValues.reduce((sum, val) => sum + val, 0) / leftValues.length).toFixed(2);
         leftAvgElement.textContent = leftAvg;
         applyMicrometerColor(leftAvgElement, leftAvg);
+        // Afficher l'icône de tendance quand il y a une moyenne
+        if (leftTrendElement) leftTrendElement.style.display = 'inline';
     } else {
         leftAvgElement.textContent = '--';
         leftAvgElement.style.color = '#6c757d';
+        // Cacher l'icône de tendance quand pas de moyenne
+        if (leftTrendElement) leftTrendElement.style.display = 'none';
     }
     
     // Calculer la moyenne droite
@@ -3705,13 +4294,18 @@ function calculateMicronnaireAverage() {
         .filter(val => !isNaN(val));
     
     const rightAvgElement = document.getElementById('micronnaire-right-avg');
+    const rightTrendElement = document.getElementById('micronnaire-right-trend');
     if (rightValues.length > 0) {
         const rightAvg = (rightValues.reduce((sum, val) => sum + val, 0) / rightValues.length).toFixed(2);
         rightAvgElement.textContent = rightAvg;
         applyMicrometerColor(rightAvgElement, rightAvg);
+        // Afficher l'icône de tendance quand il y a une moyenne
+        if (rightTrendElement) rightTrendElement.style.display = 'inline';
     } else {
         rightAvgElement.textContent = '--';
         rightAvgElement.style.color = '#6c757d';
+        // Cacher l'icône de tendance quand pas de moyenne
+        if (rightTrendElement) rightTrendElement.style.display = 'none';
     }
     
     // Sauvegarder les données
@@ -3735,13 +4329,18 @@ function calculateSurfaceMassAverage() {
     }
     
     const leftAvgElement = document.getElementById('surface-mass-left-avg');
+    const leftTrendElement = document.getElementById('surface-mass-left-trend');
     if (leftValues.length > 0) {
         const leftAvg = (leftValues.reduce((sum, val) => sum + val, 0) / leftValues.length).toFixed(4);
         leftAvgElement.textContent = leftAvg;
         applySurfaceMassColor(leftAvgElement, leftAvg);
+        // Afficher l'icône de tendance quand il y a une moyenne
+        if (leftTrendElement) leftTrendElement.style.display = 'inline';
     } else {
         leftAvgElement.textContent = '--';
         leftAvgElement.style.color = '#6c757d';
+        // Cacher l'icône de tendance quand pas de moyenne
+        if (leftTrendElement) leftTrendElement.style.display = 'none';
     }
     
     // Calculer la moyenne droite (DC + DD)
@@ -3759,13 +4358,18 @@ function calculateSurfaceMassAverage() {
     }
     
     const rightAvgElement = document.getElementById('surface-mass-right-avg');
+    const rightTrendElement = document.getElementById('surface-mass-right-trend');
     if (rightValues.length > 0) {
         const rightAvg = (rightValues.reduce((sum, val) => sum + val, 0) / rightValues.length).toFixed(4);
         rightAvgElement.textContent = rightAvg;
         applySurfaceMassColor(rightAvgElement, rightAvg);
+        // Afficher l'icône de tendance quand il y a une moyenne
+        if (rightTrendElement) rightTrendElement.style.display = 'inline';
     } else {
         rightAvgElement.textContent = '--';
         rightAvgElement.style.color = '#6c757d';
+        // Cacher l'icône de tendance quand pas de moyenne
+        if (rightTrendElement) rightTrendElement.style.display = 'none';
     }
     
     // Sauvegarder les données
@@ -4186,13 +4790,134 @@ window.toggleAllBlocks = function() {
     });
 }
 
-// Fonction pour mettre à jour l'affichage de l'ID du rouleau (plus utilisée, gardée pour compatibilité)
-function updateRollIdDisplay(statusCode) {
-    // Cette fonction n'est plus utilisée car l'ID vient maintenant du serveur
+
+// Fonction pour afficher une tendance
+function displayTrend(elementId, trend, previousValue, currentValue) {
+    const trendElement = document.getElementById(elementId);
+    if (!trendElement) return;
+    
+    const iconElement = trendElement.querySelector('i');
+    if (!iconElement) return;
+    
+    // Même taille que la valeur correspondante
+    let fontSize = '1rem';
+    if (elementId === 'mass-trend') {
+        fontSize = '0.8rem'; // Même taille que mass-net
+    } else if (elementId === 'grammage-trend') {
+        fontSize = '1.1rem'; // Même taille que grammage
+    }
+    
+    // Calculer le pourcentage de variation si on a les valeurs
+    let percentChange = 0;
+    if (previousValue && currentValue && previousValue > 0) {
+        percentChange = ((currentValue - previousValue) / previousValue) * 100;
+    }
+    
+    // Déterminer l'icône et la couleur selon le changement
+    if (Math.abs(percentChange) <= 10 || trend === 'stable') {
+        // Stable : ±10%
+        iconElement.className = 'bi bi-activity text-primary';
+        iconElement.style.fontSize = fontSize;
+        iconElement.style.opacity = '1';
+    } else if (percentChange > 10 || trend === 'up') {
+        // Hausse : >10%
+        iconElement.className = 'bi bi-graph-up-arrow text-white';
+        iconElement.style.fontSize = fontSize;
+        iconElement.style.opacity = '1';
+    } else if (percentChange < -10 || trend === 'down') {
+        // Baisse : <-10%
+        iconElement.className = 'bi bi-graph-down-arrow text-warning';
+        iconElement.style.fontSize = fontSize;
+        iconElement.style.opacity = '1';
+    }
+}
+
+// Fonction pour calculer et afficher la masse nette et le grammage
+function calculateAndDisplayMass(showTrends = false) {
+    const massNetElement = document.getElementById('mass-net');
+    const grammageElement = document.getElementById('grammage');
+    
+    // Récupérer les valeurs des champs
+    const totalMass = parseFloat(document.getElementById('sticky-total-mass')?.value) || 0;
+    const tubeMass = parseFloat(document.getElementById('sticky-tube-mass')?.value) || 0;
+    const length = parseFloat(document.getElementById('sticky-roll-length')?.value) || 0;
+    
+    console.log('Calcul masse - Total:', totalMass, 'Tube:', tubeMass, 'Longueur:', length);
+    
+    // Calculer la masse nette
+    const netMass = totalMass - tubeMass;
+    
+    // Récupérer les valeurs précédentes pour les tendances
+    const previousNetMass = window.lastRollData?.info?.net_mass || 0;
+    const previousGrammage = window.lastRollData?.info?.grammage || 0;
+    
+    if (massNetElement) {
+        if (totalMass > 0 && tubeMass > 0) {
+            massNetElement.textContent = `${Math.round(netMass)}g`;
+            console.log('Masse nette affichée:', Math.round(netMass));
+            
+            // Afficher la tendance si demandé et s'il y a des valeurs précédentes
+            if (showTrends && previousNetMass > 0) {
+                const trend = netMass > previousNetMass ? 'up' : (netMass < previousNetMass ? 'down' : 'stable');
+                displayTrend('mass-trend', trend, previousNetMass, netMass);
+            } else if (showTrends) {
+                // Pas de valeur précédente, afficher comme stable
+                displayTrend('mass-trend', 'stable', 0, netMass);
+            }
+        } else {
+            massNetElement.textContent = '--';
+            // Rendre l'icône invisible quand pas de valeur
+            const massTrend = document.getElementById('mass-trend');
+            if (massTrend) {
+                const icon = massTrend.querySelector('i');
+                if (icon) icon.style.opacity = '0';
+            }
+        }
+    } else {
+        console.error('Element mass-net non trouvé !');
+    }
+    
+    // Calculer le grammage (g/m)
+    if (grammageElement) {
+        if (netMass > 0 && length > 0) {
+            const grammage = netMass / length;
+            grammageElement.textContent = `${grammage.toFixed(1)}g/m`;
+            console.log('Grammage affiché:', grammage.toFixed(1));
+            
+            // Vérifier si le grammage est critique (TODO: récupérer les specs)
+            // Pour l'instant, on met en vert par défaut
+            grammageElement.style.color = '#4caf50';
+            
+            // Afficher la tendance si demandé et s'il y a des valeurs précédentes
+            if (showTrends && previousGrammage > 0) {
+                const trend = grammage > previousGrammage ? 'up' : (grammage < previousGrammage ? 'down' : 'stable');
+                displayTrend('grammage-trend', trend, previousGrammage, grammage);
+            } else if (showTrends) {
+                // Pas de valeur précédente, afficher comme stable
+                displayTrend('grammage-trend', 'stable', 0, grammage);
+            }
+        } else {
+            grammageElement.textContent = '--';
+            grammageElement.style.color = '';
+            // Rendre l'icône invisible quand pas de valeur
+            const grammageTrend = document.getElementById('grammage-trend');
+            if (grammageTrend) {
+                const icon = grammageTrend.querySelector('i');
+                if (icon) icon.style.opacity = '0';
+            }
+        }
+    } else {
+        console.error('Element grammage non trouvé !');
+    }
 }
 
 // Fonction pour mettre à jour l'affichage de la masse nette et du grammage
 function updateMassDisplay(data) {
+    // Si pas de données, calculer directement
+    if (!data) {
+        calculateAndDisplayMass();
+        return;
+    }
     const massNetElement = document.getElementById('mass-net');
     const grammageElement = document.getElementById('grammage');
     
@@ -4272,10 +4997,16 @@ function updateSummaries() {
         }
     });
     
+    // Calculer le nombre total de cellules d'épaisseur possibles
+    const targetLength = parseFloat(document.getElementById('target-length')?.value) || 0;
+    const stickyLength = parseFloat(document.getElementById('sticky-roll-length')?.value) || 0;
+    const displayLength = (stickyLength > targetLength) ? stickyLength : targetLength;
+    const totalPossibleCells = displayLength * 6; // 6 cellules par ligne
+    
     // Mettre à jour les épaisseurs dans la zone au-dessus du rouleau
     const thicknessProgress = document.getElementById('thickness-progress');
     if (thicknessProgress) {
-        thicknessProgress.textContent = `Epaisseurs : ${filledCount}/36`;
+        thicknessProgress.textContent = `Epaisseurs : ${filledCount}/${totalPossibleCells}`;
     }
     
     const nokCountElement = document.getElementById('nok-count');
@@ -4434,6 +5165,214 @@ window.fillRandomThickness = function() {
             autoSaveRollData();
         }, 100);
     }, 100);
+}
+
+
+// Fonction pour confirmer et sauvegarder le shift
+function confirmSaveShift() {
+    // Validation des données requises
+    if (!validateShiftData()) {
+        return;
+    }
+    
+    // Confirmation utilisateur
+    if (!confirm('Êtes-vous sûr de vouloir enregistrer ce poste ?\n\nCette action va :\n- Sauvegarder toutes les données du poste\n- Réinitialiser la fiche pour un nouveau poste\n- Conserver les paramètres machine et OF actifs')) {
+        return;
+    }
+    
+    // Afficher le loader
+    showLoader('Enregistrement du poste en cours...');
+    
+    // Appeler l'API
+    fetch('/livesession/api/current-session/save-shift/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoader();
+        
+        if (data.error) {
+            showError(data.error);
+            return;
+        }
+        
+        // Succès
+        showSuccess(`Poste ${data.shift_id} enregistré avec succès`);
+        
+        // Mettre à jour toute l'interface avec le nouvel état
+        updateEntireInterface(data.session);
+    })
+    .catch(error => {
+        hideLoader();
+        console.error('Erreur:', error);
+        showError('Erreur lors de l\'enregistrement du poste');
+    });
+}
+
+
+// Fonction pour valider les données du shift avant sauvegarde
+function validateShiftData() {
+    // Vérifier les champs obligatoires
+    const requiredFields = {
+        'operator': 'Opérateur',
+        'date': 'Date',
+        'vacation': 'Vacation',
+        'start-time': 'Heure de début',
+        'end-time': 'Heure de fin'
+    };
+    
+    const missingFields = [];
+    
+    for (const [fieldId, fieldName] of Object.entries(requiredFields)) {
+        const field = document.getElementById(fieldId);
+        if (!field || !field.value) {
+            missingFields.push(fieldName);
+        }
+    }
+    
+    // Vérifier les contrôles qualité
+    const qualityControlsFilled = checkQualityControlsStatus();
+    if (!qualityControlsFilled) {
+        missingFields.push('Contrôles qualité');
+    }
+    
+    // Vérifier la signature de checklist
+    const signature = document.getElementById('operator-signature');
+    if (!signature || !signature.value) {
+        missingFields.push('Signature checklist');
+    }
+    
+    if (missingFields.length > 0) {
+        showError(`Veuillez remplir les champs obligatoires :\n- ${missingFields.join('\n- ')}`);
+        return false;
+    }
+    
+    return true;
+}
+
+
+// Fonction pour mettre à jour toute l'interface après sauvegarde
+function updateEntireInterface(sessionData) {
+    // 1. Réinitialiser les champs du shift
+    const shiftFields = ['operator', 'date', 'vacation', 'start-time', 'end-time'];
+    shiftFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.value = sessionData[fieldId.replace('-', '_')] || '';
+        }
+    });
+    
+    // 2. Mettre à jour les états machine
+    const startCheckbox = document.getElementById('id_started_at_beginning');
+    const endCheckbox = document.getElementById('id_started_at_end');
+    const meterStart = document.getElementById('id_meter_reading_start');
+    const meterEnd = document.getElementById('id_meter_reading_end');
+    
+    if (startCheckbox) startCheckbox.checked = sessionData.started_at_beginning || false;
+    if (endCheckbox) endCheckbox.checked = sessionData.started_at_end || false;
+    if (meterStart) {
+        meterStart.value = sessionData.meter_reading_start || '';
+        meterStart.disabled = !sessionData.started_at_beginning;
+    }
+    if (meterEnd) {
+        meterEnd.value = sessionData.meter_reading_end || '';
+        meterEnd.disabled = !sessionData.started_at_end;
+    }
+    
+    // Appeler toggleMeterReadingFields pour afficher/cacher les champs
+    if (typeof toggleMeterReadingFields === 'function') {
+        toggleMeterReadingFields();
+    }
+    
+    // 3. Réinitialiser les temps perdus
+    lostTimeEntries = [];
+    updateLostTimeDisplay();
+    
+    // 4. Réinitialiser la checklist
+    checklistState = {};
+    document.querySelectorAll('.checklist-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-value') === 'na') {
+            btn.classList.add('active');
+        }
+    });
+    document.getElementById('operator-signature').value = '';
+    document.getElementById('signature-time').textContent = '--';
+    
+    // 5. Réinitialiser les contrôles qualité
+    clearQualityControls();
+    
+    // 6. Réinitialiser le rouleau actif
+    document.getElementById('sticky-roll-number').value = sessionData.roll_number || '';
+    clearRollData();
+    
+    // 7. Mettre à jour les métriques
+    if (sessionData.metrics) {
+        updateShiftMetrics(sessionData.metrics);
+    }
+    
+    // 8. Mettre à jour le shift_id affiché
+    const shiftIdDisplay = document.getElementById('shift-id-display');
+    if (shiftIdDisplay) {
+        shiftIdDisplay.textContent = sessionData.shift_id || 'Non généré';
+    }
+    
+    // 9. Réinitialiser les commentaires
+    const comments = document.getElementById('operator-comments');
+    if (comments) {
+        comments.value = sessionData.operator_comments || '';
+    }
+}
+
+
+// Fonction pour effacer les contrôles qualité
+function clearQualityControls() {
+    // Micronnaires
+    document.querySelectorAll('.micronnaire-left, .micronnaire-right').forEach(input => {
+        input.value = '';
+    });
+    
+    // Moyennes
+    document.getElementById('micronnaire-left-avg').textContent = '--';
+    document.getElementById('micronnaire-right-avg').textContent = '--';
+    
+    // Extrait sec
+    document.getElementById('sizing-bath-input').value = '';
+    document.getElementById('sizing-bath-time').textContent = '--';
+    document.getElementById('loiSwitch').checked = false;
+    document.getElementById('loi-time').textContent = '--';
+    
+    // Masses surfaciques
+    ['gg', 'gc', 'dc', 'dd'].forEach(id => {
+        const input = document.getElementById(`${id}-input`);
+        if (input) input.value = '';
+    });
+    
+    // Moyennes masses
+    document.getElementById('surface-mass-left-avg').textContent = '--';
+    document.getElementById('surface-mass-right-avg').textContent = '--';
+}
+
+
+// Fonction pour effacer les données du rouleau
+function clearRollData() {
+    // Efface le contenu du conteneur de visualisation
+    const container = document.getElementById('roll-visualization-container');
+    if (container) {
+        container.innerHTML = '';
+    }
+    
+    // Réinitialiser les variables globales du rouleau
+    if (typeof rollDefects !== 'undefined') rollDefects = [];
+    if (typeof thicknessMeasurements !== 'undefined') thicknessMeasurements = [];
+    if (typeof rollData !== 'undefined') rollData = {};
+    
+    // Mettre à jour les résumés
+    updateSummaries();
 }
 
 </script>

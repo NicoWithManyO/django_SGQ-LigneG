@@ -395,6 +395,7 @@ class Roll(models.Model):
     DESTINATION_CHOICES = [
         ('PRODUCTION', 'Production'),
         ('DECOUPE', 'Découpe'),
+        ('DECOUPE_FORCEE', 'Découpe Forcée'),
         ('DECHETS', 'Déchets'),
     ]
     

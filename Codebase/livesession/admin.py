@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CurrentSession, LiveRoll
+from .models import CurrentSession
 
 
 @admin.register(CurrentSession)
@@ -50,44 +50,3 @@ class CurrentSessionAdmin(admin.ModelAdmin):
         import json
         return json.dumps(obj.session_data, indent=2, ensure_ascii=False)
     formatted_session_data.short_description = 'Données formatées'
-
-
-@admin.register(LiveRoll)
-class LiveRollAdmin(admin.ModelAdmin):
-    list_display = ('session_key', 'get_roll_id', 'get_status', 'get_compliant', 'updated_at')
-    list_filter = ('is_active', 'updated_at', 'created_at')
-    search_fields = ('session_key',)
-    date_hierarchy = 'updated_at'
-    readonly_fields = ('created_at', 'updated_at', 'formatted_roll_data')
-    
-    fieldsets = (
-        ('Session', {
-            'fields': ('session_key', 'is_active')
-        }),
-        ('Données du rouleau', {
-            'fields': ('roll_data', 'formatted_roll_data')
-        }),
-        ('Métadonnées', {
-            'fields': ('created_at', 'updated_at')
-        }),
-    )
-    
-    def get_roll_id(self, obj):
-        return obj.roll_data.get('roll_id', 'Sans ID')
-    get_roll_id.short_description = 'ID Rouleau'
-    
-    def get_status(self, obj):
-        return "Actif" if obj.is_active else "Archivé"
-    get_status.short_description = 'Statut'
-    
-    def get_compliant(self, obj):
-        is_compliant = obj.roll_data.get('is_compliant', None)
-        if is_compliant is None:
-            return '-'
-        return '✓ Conforme' if is_compliant else '✗ Non conforme'
-    get_compliant.short_description = 'Conformité'
-    
-    def formatted_roll_data(self, obj):
-        import json
-        return json.dumps(obj.roll_data, indent=2, ensure_ascii=False)
-    formatted_roll_data.short_description = 'Données formatées'
