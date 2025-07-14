@@ -363,6 +363,7 @@
     font-size: 0.75rem !important;
     margin-bottom: 3px;
     line-height: 1.2;
+    color: #0d6efd !important;
 }
 
 .metric-value {
@@ -372,6 +373,174 @@
 .metric-value span {
     font-size: 1.1rem !important;
     line-height: 1.3;
+}
+
+/* Effet de hover super cool pour les métriques */
+.productivity-metric {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    perspective: 1000px;
+}
+
+.productivity-metric:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(13, 110, 253, 0.15);
+    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%);
+    border-radius: 8px;
+}
+
+
+.metric-chart {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.productivity-metric:hover .metric-chart {
+    opacity: 0.15;
+}
+
+.productivity-metric label,
+.productivity-metric .metric-value {
+    position: relative;
+    z-index: 1;
+}
+
+/* Animation du graphique */
+@keyframes drawChart {
+    from {
+        stroke-dashoffset: 100;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.productivity-metric:hover .chart-line {
+    animation: drawChart 0.8s ease-out forwards;
+}
+
+/* Effets de hover spécifiques pour la jauge */
+.productivity-metric.hover-effect:hover .hover-bg-effect {
+    opacity: 1 !important;
+}
+
+.productivity-metric.hover-effect:hover .gauge-bg-arc {
+    stroke: #dee2e6 !important;
+}
+
+.productivity-metric.hover-effect:hover #gauge-arc {
+    filter: brightness(1.2);
+    stroke-width: 10 !important;
+}
+
+.productivity-metric.hover-effect:hover #needle-line,
+.productivity-metric.hover-effect:hover #needle-circle {
+    fill: #198754 !important;
+    stroke: #198754 !important;
+}
+
+.productivity-metric.hover-effect:hover #gauge-value {
+    fill: #198754 !important;
+    transform: scale(1.1);
+}
+
+.productivity-metric.hover-effect:hover #gauge-needle {
+    filter: drop-shadow(0 0 8px rgba(25, 135, 84, 0.6));
+}
+
+/* Particules spécifiques pour la jauge */
+.productivity-metric.hover-effect .metric-particle {
+    animation: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.productivity-metric.hover-effect:hover .metric-particle {
+    opacity: 1;
+    animation: float-particle 1.5s ease-out infinite;
+}
+
+.productivity-metric.hover-effect:hover .metric-particle:nth-child(3) {
+    animation-delay: 0.1s;
+}
+
+.productivity-metric.hover-effect:hover .metric-particle:nth-child(4) {
+    animation-delay: 0.3s;
+}
+
+.productivity-metric.hover-effect:hover .metric-particle:nth-child(5) {
+    animation-delay: 0.5s;
+}
+
+.productivity-metric.hover-effect:hover .metric-particle:nth-child(6) {
+    animation-delay: 0.7s;
+}
+
+.productivity-metric.hover-effect:hover .metric-particle:nth-child(7) {
+    animation-delay: 0.9s;
+}
+
+.productivity-metric.hover-effect:hover .metric-particle:nth-child(8) {
+    animation-delay: 1.1s;
+}
+
+/* Effet de particules */
+@keyframes float-particle {
+    0% {
+        transform: translateY(0) scale(0);
+        opacity: 0;
+    }
+    20% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        transform: translateY(-30px) translateX(10px) scale(0.5);
+        opacity: 0;
+    }
+}
+
+.metric-particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.productivity-metric:hover .metric-particle {
+    animation: float-particle 1.5s ease-out infinite;
+}
+
+.productivity-metric:hover .metric-particle:nth-child(2) {
+    animation-delay: 0.2s;
+    left: 20%;
+}
+
+.productivity-metric:hover .metric-particle:nth-child(3) {
+    animation-delay: 0.4s;
+    left: 40%;
+}
+
+.productivity-metric:hover .metric-particle:nth-child(4) {
+    animation-delay: 0.6s;
+    left: 60%;
+}
+
+.productivity-metric:hover .metric-particle:nth-child(5) {
+    animation-delay: 0.8s;
+    left: 80%;
 }
 
 /* Styles pour les onglets de productivité intégrés au header */
@@ -706,71 +875,221 @@
                                         <!-- Première ligne -->
                                         <div class="col-4">
                                             <div class="productivity-metric">
-                                                <label class="text-muted small">TO | TD</label>
-                                                <div class="metric-value">
-                                                    <span id="temps-ouverture" class="h6 fw-bold text-primary">--</span>
-                                                    <span class="text-muted small">|</span>
-                                                    <span id="temps-disponible" class="h6 fw-bold text-success">--</span>
+                                                <svg class="metric-chart" viewBox="0 0 100 50" preserveAspectRatio="none">
+                                                        <defs>
+                                                            <linearGradient id="gradient-to-td" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                                <stop offset="0%" style="stop-color:#0d6efd;stop-opacity:0.8" />
+                                                                <stop offset="100%" style="stop-color:#198754;stop-opacity:0.8" />
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <path class="chart-line" d="M 0,40 Q 25,20 50,25 T 100,10" 
+                                                              stroke="url(#gradient-to-td)" stroke-width="3" fill="none"
+                                                              stroke-dasharray="100" stroke-dashoffset="100"/>
+                                                        <circle r="2" fill="#0d6efd">
+                                                            <animateMotion dur="3s" repeatCount="indefinite">
+                                                                <mpath href="#chart-line"/>
+                                                            </animateMotion>
+                                                        </circle>
+                                                    </svg>
+                                                    <div class="metric-particle" style="background: #0d6efd; bottom: 10%; left: 10%;"></div>
+                                                    <div class="metric-particle" style="background: #198754; bottom: 15%; left: 30%;"></div>
+                                                    <div class="metric-particle" style="background: #0d6efd; bottom: 5%; left: 50%;"></div>
+                                                    <div class="metric-particle" style="background: #198754; bottom: 20%; left: 70%;"></div>
+                                                    <div class="metric-particle" style="background: #0d6efd; bottom: 10%; left: 90%;"></div>
+                                                    <label class="text-muted small">TO | TD</label>
+                                                    <div class="metric-value">
+                                                        <span id="temps-ouverture" class="h6 fw-bold text-primary">8h</span>
+                                                        <span class="text-muted small">|</span>
+                                                        <span id="temps-disponible" class="h6 fw-bold text-success">7h30</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="col-4">
                                             <div class="productivity-metric">
-                                                <label class="text-muted small">Tps Perdu | Lg Perdue</label>
-                                                <div class="metric-value">
-                                                    <span id="temps-perdu-total" class="h6 fw-bold text-danger">--</span>
-                                                    <span class="text-muted small">|</span>
-                                                    <span id="lg-perdue" class="h6 fw-bold text-danger">--</span>
-                                                </div>
+                                                <svg class="metric-chart" viewBox="0 0 100 50" preserveAspectRatio="none">
+                                                        <defs>
+                                                            <linearGradient id="gradient-danger" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                                <stop offset="0%" style="stop-color:#dc3545;stop-opacity:0.8" />
+                                                                <stop offset="100%" style="stop-color:#ff6b6b;stop-opacity:0.8" />
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <path class="chart-line" d="M 0,10 L 20,35 L 40,20 L 60,40 L 80,25 L 100,45" 
+                                                              stroke="url(#gradient-danger)" stroke-width="3" fill="none"
+                                                              stroke-dasharray="100" stroke-dashoffset="100"/>
+                                                        <polyline points="0,50 0,10 20,35 40,20 60,40 80,25 100,45 100,50" 
+                                                                  fill="url(#gradient-danger)" opacity="0.2"/>
+                                                    </svg>
+                                                    <div class="metric-particle" style="background: #dc3545; bottom: 10%; left: 10%;"></div>
+                                                    <div class="metric-particle" style="background: #ff6b6b; bottom: 15%; left: 30%;"></div>
+                                                    <div class="metric-particle" style="background: #dc3545; bottom: 5%; left: 50%;"></div>
+                                                    <div class="metric-particle" style="background: #ff6b6b; bottom: 20%; left: 70%;"></div>
+                                                    <div class="metric-particle" style="background: #dc3545; bottom: 10%; left: 90%;"></div>
+                                                    <label class="text-muted small">Tps Perdu | Lg Perdue</label>
+                                                    <div class="metric-value">
+                                                        <span id="temps-perdu-total" class="h6 fw-bold text-danger">30min</span>
+                                                        <span class="text-muted small">|</span>
+                                                        <span id="lg-perdue" class="h6 fw-bold text-danger">45m</span>
+                                                    </div>
                                             </div>
                                         </div>
                                         <div class="col-4">
                                             <div class="productivity-metric">
-                                                <label class="text-muted small">Longueur Enroulable</label>
-                                                <div class="metric-value">
-                                                    <span id="lg-enroulable" class="h6 fw-bold text-info">--</span>
-                                                </div>
+                                                <svg class="metric-chart" viewBox="0 0 100 50" preserveAspectRatio="none">
+                                                        <defs>
+                                                            <radialGradient id="gradient-info">
+                                                                <stop offset="0%" style="stop-color:#0dcaf0;stop-opacity:0.8" />
+                                                                <stop offset="100%" style="stop-color:#0dcaf0;stop-opacity:0.2" />
+                                                            </radialGradient>
+                                                            <filter id="glow">
+                                                                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                                                                <feMerge>
+                                                                    <feMergeNode in="coloredBlur"/>
+                                                                    <feMergeNode in="SourceGraphic"/>
+                                                                </feMerge>
+                                                            </filter>
+                                                        </defs>
+                                                        <circle cx="50" cy="25" r="15" fill="url(#gradient-info)" filter="url(#glow)">
+                                                            <animate attributeName="r" values="15;20;15" dur="2s" repeatCount="indefinite"/>
+                                                            <animate attributeName="opacity" values="0.8;0.3;0.8" dur="2s" repeatCount="indefinite"/>
+                                                        </circle>
+                                                        <circle cx="50" cy="25" r="8" fill="#0dcaf0">
+                                                            <animate attributeName="r" values="8;10;8" dur="2s" repeatCount="indefinite"/>
+                                                        </circle>
+                                                    </svg>
+                                                    <div class="metric-particle" style="background: #0dcaf0; bottom: 10%; left: 10%;"></div>
+                                                    <div class="metric-particle" style="background: #17a2b8; bottom: 15%; left: 30%;"></div>
+                                                    <div class="metric-particle" style="background: #0dcaf0; bottom: 5%; left: 50%;"></div>
+                                                    <div class="metric-particle" style="background: #17a2b8; bottom: 20%; left: 70%;"></div>
+                                                    <div class="metric-particle" style="background: #0dcaf0; bottom: 10%; left: 90%;"></div>
+                                                    <label class="text-muted small">Longueur Enroulable</label>
+                                                    <div class="metric-value">
+                                                        <span id="lg-enroulable" class="h6 fw-bold text-info">1250m</span>
+                                                    </div>
                                             </div>
                                         </div>
                                         <!-- Deuxième ligne -->
                                         <div class="col-4">
                                             <div class="productivity-metric">
+                                                <svg class="metric-chart" viewBox="0 0 100 50" preserveAspectRatio="none">
+                                                    <defs>
+                                                        <linearGradient id="gradient-primary" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                            <stop offset="0%" style="stop-color:#0d6efd;stop-opacity:0.8" />
+                                                            <stop offset="100%" style="stop-color:#6610f2;stop-opacity:0.8" />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <rect x="10" y="35" width="15" height="15" fill="url(#gradient-primary)" opacity="0.8">
+                                                        <animate attributeName="height" values="15;5;15" dur="2s" repeatCount="indefinite"/>
+                                                        <animate attributeName="y" values="35;45;35" dur="2s" repeatCount="indefinite"/>
+                                                    </rect>
+                                                    <rect x="30" y="25" width="15" height="25" fill="url(#gradient-primary)" opacity="0.8">
+                                                        <animate attributeName="height" values="25;35;25" dur="2s" begin="0.5s" repeatCount="indefinite"/>
+                                                        <animate attributeName="y" values="25;15;25" dur="2s" begin="0.5s" repeatCount="indefinite"/>
+                                                    </rect>
+                                                    <rect x="50" y="20" width="15" height="30" fill="url(#gradient-primary)" opacity="0.8">
+                                                        <animate attributeName="height" values="30;40;30" dur="2s" begin="1s" repeatCount="indefinite"/>
+                                                        <animate attributeName="y" values="20;10;20" dur="2s" begin="1s" repeatCount="indefinite"/>
+                                                    </rect>
+                                                    <rect x="70" y="15" width="15" height="35" fill="url(#gradient-primary)" opacity="0.8">
+                                                        <animate attributeName="height" values="35;45;35" dur="2s" begin="1.5s" repeatCount="indefinite"/>
+                                                        <animate attributeName="y" values="15;5;15" dur="2s" begin="1.5s" repeatCount="indefinite"/>
+                                                    </rect>
+                                                </svg>
+                                                <div class="metric-particle" style="background: #0d6efd; bottom: 10%; left: 10%;"></div>
+                                                <div class="metric-particle" style="background: #6610f2; bottom: 15%; left: 30%;"></div>
+                                                <div class="metric-particle" style="background: #0d6efd; bottom: 5%; left: 50%;"></div>
+                                                <div class="metric-particle" style="background: #6610f2; bottom: 20%; left: 70%;"></div>
+                                                <div class="metric-particle" style="background: #0d6efd; bottom: 10%; left: 90%;"></div>
                                                 <label class="text-muted small">Longueur Totale</label>
                                                 <div class="metric-value">
-                                                    <span id="longueur-totale" class="h6 fw-bold">--</span>
+                                                    <span id="longueur-totale" class="h6 fw-bold">1850m</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="col-4">
                                             <div class="productivity-metric">
+                                                <svg class="metric-chart" viewBox="0 0 100 50" preserveAspectRatio="none">
+                                                    <defs>
+                                                        <linearGradient id="gradient-mixed" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                            <stop offset="0%" style="stop-color:#198754;stop-opacity:0.8" />
+                                                            <stop offset="50%" style="stop-color:#198754;stop-opacity:0.4" />
+                                                            <stop offset="50%" style="stop-color:#ffc107;stop-opacity:0.4" />
+                                                            <stop offset="100%" style="stop-color:#ffc107;stop-opacity:0.8" />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <rect x="5" y="10" width="80" height="30" fill="url(#gradient-mixed)" opacity="0.6" rx="5" ry="5">
+                                                        <animate attributeName="opacity" values="0.6;0.8;0.6" dur="3s" repeatCount="indefinite"/>
+                                                    </rect>
+                                                    <rect x="5" y="10" width="65" height="30" fill="#198754" opacity="0.8" rx="5" ry="5">
+                                                        <animate attributeName="width" values="65;70;65" dur="2s" repeatCount="indefinite"/>
+                                                    </rect>
+                                                </svg>
+                                                <div class="metric-particle" style="background: #198754; bottom: 10%; left: 10%;"></div>
+                                                <div class="metric-particle" style="background: #ffc107; bottom: 15%; left: 80%;"></div>
+                                                <div class="metric-particle" style="background: #198754; bottom: 5%; left: 30%;"></div>
+                                                <div class="metric-particle" style="background: #ffc107; bottom: 20%; left: 90%;"></div>
                                                 <label class="text-muted small">OK | NOK</label>
                                                 <div class="metric-value">
-                                                    <span id="lg-enroulee-ok" class="h6 fw-bold text-success">--</span>
+                                                    <span id="lg-enroulee-ok" class="h6 fw-bold text-success">1650m</span>
                                                     <span class="text-muted small">|</span>
-                                                    <span id="lg-enroulee-nok" class="h6 fw-bold text-warning">--</span>
+                                                    <span id="lg-enroulee-nok" class="h6 fw-bold text-warning">200m</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="col-4">
                                             <div class="productivity-metric">
+                                                <svg class="metric-chart" viewBox="0 0 100 50" preserveAspectRatio="none">
+                                                    <defs>
+                                                        <radialGradient id="gradient-success">
+                                                            <stop offset="0%" style="stop-color:#198754;stop-opacity:1" />
+                                                            <stop offset="100%" style="stop-color:#198754;stop-opacity:0.2" />
+                                                        </radialGradient>
+                                                    </defs>
+                                                    <circle cx="50" cy="25" r="20" fill="none" stroke="#e9ecef" stroke-width="4"/>
+                                                    <circle cx="50" cy="25" r="20" fill="none" stroke="url(#gradient-success)" stroke-width="4"
+                                                            stroke-dasharray="113" stroke-dashoffset="13"
+                                                            transform="rotate(-90 50 25)">
+                                                        <animate attributeName="stroke-dashoffset" values="13;10;13" dur="3s" repeatCount="indefinite"/>
+                                                    </circle>
+                                                    <text x="50" y="30" text-anchor="middle" font-size="14" font-weight="bold" fill="#198754">89%</text>
+                                                </svg>
+                                                <div class="metric-particle" style="background: #198754; bottom: 10%; left: 10%;"></div>
+                                                <div class="metric-particle" style="background: #40c057; bottom: 15%; left: 30%;"></div>
+                                                <div class="metric-particle" style="background: #198754; bottom: 5%; left: 50%;"></div>
+                                                <div class="metric-particle" style="background: #40c057; bottom: 20%; left: 70%;"></div>
+                                                <div class="metric-particle" style="background: #198754; bottom: 10%; left: 90%;"></div>
                                                 <label class="text-muted small">Rendement</label>
                                                 <div class="metric-value">
-                                                    <span id="temps-rendement" class="h6 fw-bold">--%</span>
+                                                    <span id="temps-rendement" class="h6 fw-bold">89%</span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-3">
-                                    <div class="productivity-metric" style="padding: 8px; height: 100%; min-height: 140px; background: none; box-shadow: none;">
-                                        <div class="gauge-container" style="height: 100%; display: flex; align-items: center; justify-content: center;">
-                                            <svg id="projete-gauge" width="100%" height="100%" viewBox="0 0 100 80" style="max-width: 200px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
+                                    <div class="productivity-metric hover-effect" style="padding: 8px; height: 100%; min-height: 140px; cursor: pointer; position: relative; overflow: hidden;" onclick="toggleSpectacularGauge()">
+                                        <div class="gauge-container" style="height: 100%; display: flex; align-items: center; justify-content: center; position: relative;">
+                                                <!-- Effet de fond animé au hover -->
+                                                <svg class="hover-bg-effect" style="position: absolute; width: 100%; height: 100%; opacity: 0; transition: opacity 0.3s ease;">
+                                                    <defs>
+                                                        <radialGradient id="gauge-hover-gradient">
+                                                            <stop offset="0%" style="stop-color:#198754;stop-opacity:0.3" />
+                                                            <stop offset="50%" style="stop-color:#20c997;stop-opacity:0.2" />
+                                                            <stop offset="100%" style="stop-color:#198754;stop-opacity:0" />
+                                                        </radialGradient>
+                                                    </defs>
+                                                    <circle cx="50%" cy="50%" r="40%" fill="url(#gauge-hover-gradient)">
+                                                        <animate attributeName="r" values="30%;50%;30%" dur="3s" repeatCount="indefinite"/>
+                                                    </circle>
+                                                </svg>
+                                                
+                                                <svg id="projete-gauge" width="100%" height="100%" viewBox="0 0 100 80" style="max-width: 200px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); position: relative; z-index: 2;">
                                                 <!-- Arc de fond -->
-                                                <path d="M 10 50 A 40 40 0 0 1 90 50" 
+                                                <path class="gauge-bg-arc" d="M 10 50 A 40 40 0 0 1 90 50" 
                                                       stroke="#e9ecef" 
                                                       stroke-width="8" 
                                                       fill="none"
-                                                      stroke-linecap="round"/>
+                                                      stroke-linecap="round"
+                                                      style="transition: stroke 0.3s ease;"/>
                                                 
                                                 <!-- Arc coloré (sera mis à jour dynamiquement) -->
                                                 <path id="gauge-arc" 
@@ -813,12 +1132,176 @@
                                                 </g>
                                                 
                                                 <!-- Valeur au centre -->
-                                                <text id="gauge-value" x="50" y="70" text-anchor="middle" font-size="18" font-weight="bold" fill="#333">0%</text>
+                                                <text id="gauge-value" x="50" y="70" text-anchor="middle" font-size="18" font-weight="bold" fill="#333" style="transition: fill 0.3s ease;">0%</text>
                                             </svg>
+                                            
+                                            <!-- Particules flottantes -->
+                                            <div class="metric-particle" style="background: #198754; bottom: 15%; left: 10%;"></div>
+                                            <div class="metric-particle" style="background: #20c997; bottom: 20%; left: 25%;"></div>
+                                            <div class="metric-particle" style="background: #198754; bottom: 10%; left: 40%;"></div>
+                                            <div class="metric-particle" style="background: #40c057; bottom: 25%; left: 60%;"></div>
+                                            <div class="metric-particle" style="background: #198754; bottom: 15%; left: 75%;"></div>
+                                            <div class="metric-particle" style="background: #20c997; bottom: 5%; left: 85%;"></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                            
+                            <!-- JAUGE DE RENDEMENT SPECTACULAIRE (facilement supprimable) -->
+                            <div class="row mt-4" id="spectacular-gauge-container" style="display: none; cursor: pointer;" onclick="toggleSpectacularGauge()">
+                                <div class="col-12">
+                                    <div class="card shadow-sm" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: none;">
+                                        <div class="card-body p-4">
+                                            <h5 class="text-center mb-4" style="color: #495057; font-weight: 600;">
+                                                <i class="fas fa-tachometer-alt me-2"></i>Rendement Global de Production
+                                            </h5>
+                                            <div class="gauge-wrapper" style="position: relative; height: 300px; display: flex; align-items: center; justify-content: center;">
+                                                <svg width="100%" height="100%" viewBox="0 0 400 250" style="max-width: 600px;">
+                                                    <!-- Définitions des gradients et filtres -->
+                                                    <defs>
+                                                        <!-- Gradient pour l'arc principal -->
+                                                        <linearGradient id="arcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                            <stop offset="0%" style="stop-color:#dc3545;stop-opacity:1" />
+                                                            <stop offset="30%" style="stop-color:#fd7e14;stop-opacity:1" />
+                                                            <stop offset="50%" style="stop-color:#ffc107;stop-opacity:1" />
+                                                            <stop offset="70%" style="stop-color:#20c997;stop-opacity:1" />
+                                                            <stop offset="100%" style="stop-color:#198754;stop-opacity:1" />
+                                                        </linearGradient>
+                                                        
+                                                        <!-- Ombre portée -->
+                                                        <filter id="dropShadow">
+                                                            <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+                                                            <feOffset dx="0" dy="2" result="offsetblur"/>
+                                                            <feFlood flood-color="#000000" flood-opacity="0.2"/>
+                                                            <feComposite in2="offsetblur" operator="in"/>
+                                                            <feMerge>
+                                                                <feMergeNode/>
+                                                                <feMergeNode in="SourceGraphic"/>
+                                                            </feMerge>
+                                                        </filter>
+                                                        
+                                                        <!-- Effet de brillance -->
+                                                        <radialGradient id="centerGlow">
+                                                            <stop offset="0%" style="stop-color:#fff;stop-opacity:0.8" />
+                                                            <stop offset="100%" style="stop-color:#fff;stop-opacity:0" />
+                                                        </radialGradient>
+                                                    </defs>
+                                                    
+                                                    <!-- Arc de fond -->
+                                                    <path d="M 50 200 A 150 150 0 0 1 350 200" 
+                                                          stroke="#e9ecef" 
+                                                          stroke-width="30" 
+                                                          fill="none"
+                                                          stroke-linecap="round"/>
+                                                    
+                                                    <!-- Arc coloré principal -->
+                                                    <path id="mainArc" 
+                                                          d="M 50 200 A 150 150 0 0 1 350 200" 
+                                                          stroke="url(#arcGradient)" 
+                                                          stroke-width="30" 
+                                                          fill="none"
+                                                          stroke-dasharray="0 471"
+                                                          stroke-linecap="round"
+                                                          filter="url(#dropShadow)"
+                                                          style="transition: stroke-dasharray 1.5s cubic-bezier(0.4, 0, 0.2, 1)"/>
+                                                    
+                                                    <!-- Graduations majeures -->
+                                                    <g id="majorTicks">
+                                                        <!-- 0% -->
+                                                        <line x1="50" y1="200" x2="70" y2="200" stroke="#6c757d" stroke-width="3"/>
+                                                        <text x="50" y="230" text-anchor="middle" font-size="16" fill="#6c757d" font-weight="600">0%</text>
+                                                        
+                                                        <!-- 25% -->
+                                                        <line x1="125" y1="74" x2="138" y2="89" stroke="#6c757d" stroke-width="3"/>
+                                                        <text x="125" y="60" text-anchor="middle" font-size="16" fill="#6c757d" font-weight="600">25%</text>
+                                                        
+                                                        <!-- 50% -->
+                                                        <line x1="200" y1="50" x2="200" y2="70" stroke="#6c757d" stroke-width="3"/>
+                                                        <text x="200" y="40" text-anchor="middle" font-size="16" fill="#6c757d" font-weight="600">50%</text>
+                                                        
+                                                        <!-- 75% -->
+                                                        <line x1="275" y1="74" x2="262" y2="89" stroke="#6c757d" stroke-width="3"/>
+                                                        <text x="275" y="60" text-anchor="middle" font-size="16" fill="#6c757d" font-weight="600">75%</text>
+                                                        
+                                                        <!-- 100% -->
+                                                        <line x1="350" y1="200" x2="330" y2="200" stroke="#6c757d" stroke-width="3"/>
+                                                        <text x="350" y="230" text-anchor="middle" font-size="16" fill="#6c757d" font-weight="600">100%</text>
+                                                    </g>
+                                                    
+                                                    <!-- Graduations mineures -->
+                                                    <g id="minorTicks" opacity="0.5">
+                                                        <!-- Toutes les 5% -->
+                                                        <line x1="72" y1="155" x2="82" y2="165" stroke="#adb5bd" stroke-width="1"/>
+                                                        <line x1="88" y1="115" x2="98" y2="125" stroke="#adb5bd" stroke-width="1"/>
+                                                        <line x1="112" y1="85" x2="122" y2="95" stroke="#adb5bd" stroke-width="1"/>
+                                                        <line x1="288" y1="85" x2="278" y2="95" stroke="#adb5bd" stroke-width="1"/>
+                                                        <line x1="312" y1="115" x2="302" y2="125" stroke="#adb5bd" stroke-width="1"/>
+                                                        <line x1="328" y1="155" x2="318" y2="165" stroke="#adb5bd" stroke-width="1"/>
+                                                    </g>
+                                                    
+                                                    <!-- Aiguille complexe avec ombre -->
+                                                    <g id="needleGroup" transform="rotate(-90 200 200)" style="transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1)">
+                                                        <!-- Ombre de l'aiguille -->
+                                                        <polygon points="200,200 200,195 60,198 60,202" fill="rgba(0,0,0,0.2)" transform="translate(2,2)"/>
+                                                        <!-- Aiguille principale -->
+                                                        <polygon points="200,200 200,195 60,198 60,202" fill="#212529"/>
+                                                        <!-- Pointe de l'aiguille -->
+                                                        <polygon points="60,198 50,200 60,202" fill="#dc3545"/>
+                                                        <!-- Centre décoratif -->
+                                                        <circle cx="200" cy="200" r="15" fill="#495057" filter="url(#dropShadow)"/>
+                                                        <circle cx="200" cy="200" r="10" fill="#212529"/>
+                                                        <circle cx="200" cy="200" r="5" fill="#dc3545"/>
+                                                    </g>
+                                                    
+                                                    <!-- Valeur centrale -->
+                                                    <text x="200" y="160" text-anchor="middle" font-size="48" font-weight="bold" fill="#212529" filter="url(#dropShadow)">
+                                                        <tspan id="gaugeValue">89</tspan><tspan font-size="36">%</tspan>
+                                                    </text>
+                                                    
+                                                    <!-- Label de performance -->
+                                                    <text id="performanceLabel" x="200" y="185" text-anchor="middle" font-size="18" fill="#198754" font-weight="600">
+                                                        Excellent
+                                                    </text>
+                                                    
+                                                    <!-- Effet de brillance au centre -->
+                                                    <circle cx="200" cy="200" r="50" fill="url(#centerGlow)" opacity="0.3"/>
+                                                </svg>
+                                                
+                                                <!-- Légendes sur les côtés -->
+                                                <div style="position: absolute; left: 10px; bottom: 20px; font-size: 14px;">
+                                                    <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                                                        <div style="width: 20px; height: 4px; background: #dc3545; margin-right: 8px;"></div>
+                                                        <span style="color: #6c757d;">Critique (0-40%)</span>
+                                                    </div>
+                                                    <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                                                        <div style="width: 20px; height: 4px; background: #ffc107; margin-right: 8px;"></div>
+                                                        <span style="color: #6c757d;">Moyen (40-70%)</span>
+                                                    </div>
+                                                    <div style="display: flex; align-items: center;">
+                                                        <div style="width: 20px; height: 4px; background: #198754; margin-right: 8px;"></div>
+                                                        <span style="color: #6c757d;">Excellent (70-100%)</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Statistiques additionnelles -->
+                                                <div style="position: absolute; right: 10px; bottom: 20px; text-align: right; font-size: 14px;">
+                                                    <div style="color: #6c757d; margin-bottom: 5px;">
+                                                        <strong>Objectif:</strong> <span style="color: #0d6efd;">95%</span>
+                                                    </div>
+                                                    <div style="color: #6c757d; margin-bottom: 5px;">
+                                                        <strong>Moyenne 7j:</strong> <span style="color: #198754;">87%</span>
+                                                    </div>
+                                                    <div style="color: #6c757d;">
+                                                        <strong>Tendance:</strong> <i class="fas fa-arrow-up" style="color: #198754;"></i> +2%
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- FIN JAUGE SPECTACULAIRE -->
+                            
                         </div>
                         
                         <!-- Tab: Paramètres Machine -->
@@ -2336,16 +2819,16 @@ function saveRollDefects() {
 
 // Fonction pour calculer le statut du rouleau
 function getRollStatus() {
-    // Vérifier si le statut a été forcé manuellement
-    const rollNumber = document.getElementById('sticky-roll-number')?.value;
-    if (rollNumber && window.forcedRollStatus && window.forcedRollStatus[rollNumber]) {
-        return window.forcedRollStatus[rollNumber];
-    }
+    console.log('[DEBUG] getRollStatus - thicknessSpecs:', thicknessSpecs);
+    
+    // Supprimer la vérification du statut forcé - on veut toujours recalculer
+    // Le statut doit être dynamique basé sur les épaisseurs et défauts
     
     let hasBlockingDefect = false;
     let hasNonBlockingDefect = false;
     let hasCriticalThickness = false;
     let hasAlertThickness = false;
+    let hasPendingRattrapage = false; // NOK avec rattrapage vide
     
     // Vérifier les défauts
     document.querySelectorAll('.defect-select').forEach(select => {
@@ -2363,30 +2846,46 @@ function getRollStatus() {
     
     // Vérifier les épaisseurs avec prise en compte des rattrapages
     let totalNokCount = 0; // Nombre total d'épaisseurs NOK (pour le seuil)
-    const nokThreshold = 3; // Seuil par défaut, à ajuster selon les besoins
+    const nokThreshold = 4; // 4 épaisseurs NOK = NON CONFORME
     
     if (thicknessSpecs) {
+        console.log('[DEBUG] Specs trouvées:', thicknessSpecs);
+        console.log('[DEBUG] Vérification des épaisseurs...');
+        
         document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)').forEach(input => {
             if (input.value) {
                 const value = parseFloat(input.value);
                 const tdElement = input.closest('td');
                 const rattrapageInput = tdElement ? tdElement.querySelector('.thickness-rattrapage') : null;
                 
+                console.log('[DEBUG] Vérification épaisseur:', value, 'vs mini:', thicknessSpecs.ep_mini);
+                
                 if (value < thicknessSpecs.ep_mini) {
                     // Épaisseur NOK - compter pour le seuil global
                     totalNokCount++;
+                    console.log('[DEBUG] Épaisseur NOK détectée, total NOK:', totalNokCount);
                     
-                    if (rattrapageInput && rattrapageInput.style.display === 'block' && rattrapageInput.value) {
-                        // Il y a un rattrapage, vérifier sa valeur
-                        const rattrapageValue = parseFloat(rattrapageInput.value);
-                        if (rattrapageValue < thicknessSpecs.ep_mini) {
-                            // Rattrapage aussi NOK = Non conforme immédiatement
-                            hasCriticalThickness = true;
+                    if (rattrapageInput && rattrapageInput.style.display !== 'none') {
+                        // Il y a un champ de rattrapage visible
+                        if (rattrapageInput.value) {
+                            // Le rattrapage est rempli, vérifier sa valeur
+                            const rattrapageValue = parseFloat(rattrapageInput.value);
+                            console.log('[DEBUG] Épaisseur NOK:', value, 'Rattrapage:', rattrapageValue, 'Mini:', thicknessSpecs.ep_mini);
+                            if (rattrapageValue < thicknessSpecs.ep_mini) {
+                                // Rattrapage aussi NOK = Non conforme immédiatement
+                                console.log('[DEBUG] Rattrapage NOK -> hasCriticalThickness = true');
+                                hasCriticalThickness = true;
+                            }
+                            // Si le rattrapage est OK, on ne met pas hasCriticalThickness
+                        } else {
+                            // Rattrapage visible mais vide = état en attente
+                            console.log('[DEBUG] Épaisseur NOK avec rattrapage vide -> hasPendingRattrapage = true');
+                            hasPendingRattrapage = true;
                         }
-                        // Si le rattrapage est OK, on ne met pas hasCriticalThickness
                     } else {
-                        // Pas de rattrapage sur une épaisseur NOK
-                        // On ne met pas hasCriticalThickness ici, on attend le seuil
+                        // Pas de rattrapage visible sur une épaisseur NOK = NON CONFORME
+                        console.log('[DEBUG] Pas de rattrapage pour épaisseur NOK -> hasCriticalThickness = true');
+                        hasCriticalThickness = true;
                     }
                 } else if (value < thicknessSpecs.ep_mini_alerte || value > thicknessSpecs.ep_max_alerte) {
                     hasAlertThickness = true;
@@ -2394,15 +2893,22 @@ function getRollStatus() {
             }
         });
         
-        // Vérifier si on dépasse le seuil total de NOK
+        // Vérifier si on dépasse le seuil total de NOK (même avec rattrapages OK)
+        console.log('[DEBUG] Total NOK count:', totalNokCount, 'Threshold:', nokThreshold);
         if (totalNokCount >= nokThreshold) {
+            console.log('[DEBUG] Seuil dépassé -> NON CONFORME');
             hasCriticalThickness = true;
         }
+    } else {
+        console.log('[DEBUG] WARNING: thicknessSpecs non chargé !');
     }
     
     // Retourner le statut
+    console.log('[DEBUG] Final - hasBlockingDefect:', hasBlockingDefect, 'hasCriticalThickness:', hasCriticalThickness, 'hasPendingRattrapage:', hasPendingRattrapage);
     if (hasBlockingDefect || hasCriticalThickness) {
         return 'NON_CONFORME';
+    } else if (hasPendingRattrapage) {
+        return 'PENDING';  // État en attente de rattrapage
     } else {
         return 'CONFORME';
     }
@@ -2410,8 +2916,9 @@ function getRollStatus() {
 
 // Fonction pour déterminer et afficher le statut du rouleau
 function updateRollStatus() {
+    console.log('[DEBUG] updateRollStatus appelé');
     const status = getRollStatus();
-    console.log('[DEBUG] Statut du rouleau:', status);
+    console.log('[DEBUG] Status calculé:', status);
     
     // Mettre à jour l'ID du rouleau (qui dépend du statut pour les NON CONFORME)
     updateRollIdDisplay();
@@ -2434,6 +2941,10 @@ function updateRollStatus() {
             statusElement.textContent = 'NON CONFORME';
             statusElement.style.color = '#ff1744';
             statusElement.style.fontWeight = 'bold';
+        } else if (status === 'PENDING') {
+            statusElement.textContent = 'EN ATTENTE';
+            statusElement.style.color = '#757575';
+            statusElement.style.fontWeight = 'bold';
         } else if (hasNonBlockingDefect) {
             statusElement.textContent = 'CONFORME AVEC RÉSERVE';
             statusElement.style.color = '#ef6c00';
@@ -2449,7 +2960,7 @@ function updateRollStatus() {
     updateConformityBadge(status);
     
     // Retourner le statut pour utilisation future
-    return status === 'CONFORME';
+    return status === 'CONFORME' || status === 'PENDING';  // PENDING est considéré comme "potentiellement conforme"
 }
 
 // Fonction pour mettre à jour le badge de conformité
@@ -2457,11 +2968,7 @@ function updateConformityBadge(status) {
     const badge = document.getElementById('conformity-status');
     if (!badge) return;
     
-    // Vérifier si le statut a été forcé manuellement
-    const rollNumber = document.getElementById('sticky-roll-number')?.value;
-    if (rollNumber && window.forcedRollStatus && window.forcedRollStatus[rollNumber]) {
-        status = window.forcedRollStatus[rollNumber];
-    }
+    // Ne plus utiliser le statut forcé
     
     // Compter le nombre d'épaisseurs saisies
     const thicknessInputs = document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)');
@@ -2472,22 +2979,31 @@ function updateConformityBadge(status) {
         }
     });
     
-    // Si moins de 6 épaisseurs, afficher en gris
-    if (filledCount < 6) {
+    // Si le statut est NON_CONFORME, l'afficher immédiatement peu importe le nombre d'épaisseurs
+    if (status === 'NON_CONFORME') {
+        badge.textContent = 'NON CONFORME';
+        badge.className = 'badge bg-danger';
+        badge.style.opacity = '1';
+        badge.title = '';
+    } else if (filledCount < 6) {
+        // Si moins de 6 épaisseurs ET pas NON_CONFORME, afficher en gris
         badge.textContent = 'CONFORME';
         badge.className = 'badge bg-secondary';
         badge.style.opacity = '0.6';
         badge.title = `${filledCount}/6 épaisseurs minimum`;
     } else {
-        // Affichage normal
+        // Affichage normal (6+ épaisseurs, pas NON_CONFORME)
         badge.style.opacity = '1';
         
-        if (status === 'NON_CONFORME') {
-            badge.textContent = 'NON CONFORME';
-            badge.className = 'badge bg-danger';
+        if (status === 'PENDING') {
+            badge.textContent = 'CONFORME';
+            badge.className = 'badge bg-secondary';
+            badge.style.opacity = '0.8';
+            badge.title = 'En attente de rattrapage';
         } else {
             badge.textContent = 'CONFORME';
             badge.className = 'badge bg-success';
+            badge.title = '';
         }
     }
 }
@@ -2518,14 +3034,7 @@ function toggleRollStatus() {
     // Mettre à jour l'affichage
     updateConformityBadge(newStatus);
     
-    // Sauvegarder le statut forcé
-    if (!window.forcedRollStatus) {
-        window.forcedRollStatus = {};
-    }
-    const rollNumber = document.getElementById('sticky-roll-number')?.value;
-    if (rollNumber) {
-        window.forcedRollStatus[rollNumber] = newStatus;
-    }
+    // Ne plus sauvegarder de statut forcé - calcul dynamique uniquement
     
     // Mettre à jour l'ID du rouleau (qui change selon le statut)
     updateRollIdDisplay();
@@ -2552,6 +3061,7 @@ function loadThicknessSpecs() {
     fetch('/quality/get-thickness-specs/')
         .then(response => response.json())
         .then(data => {
+            console.log('[DEBUG] Specs d\'épaisseur chargées:', data);
             thicknessSpecs = data;
             // Colorer tous les inputs existants
             document.querySelectorAll('.thickness-input').forEach(input => {
@@ -2559,6 +3069,9 @@ function loadThicknessSpecs() {
                     colorThicknessInput(input);
                 }
             });
+            // Mettre à jour le statut après avoir chargé les specs
+            console.log('[DEBUG] Mise à jour du statut après chargement des specs');
+            updateRollStatus();
         })
         .catch(error => {
             console.error('Erreur lors du chargement des specs d\'épaisseur:', error);
@@ -2846,6 +3359,7 @@ function colorThicknessInput(input) {
 }
 
 function saveRollThickness() {
+    console.log('[DEBUG] saveRollThickness appelé');
     // Colorer l'input qui vient d'être modifié
     const activeElement = document.activeElement;
     if (activeElement && activeElement.classList.contains('thickness-input')) {
@@ -2853,6 +3367,7 @@ function saveRollThickness() {
     }
     
     // Mettre à jour le statut
+    console.log('[DEBUG] Appel updateRollStatus depuis saveRollThickness');
     updateRollStatus();
     
     // Mettre à jour les résumés
@@ -2887,7 +3402,8 @@ function autoSaveRollData() {
         // Sauvegarder via l'API current-session
         updateFieldViaAPI('current_roll', rollData).then(data => {
             console.log('Rouleau sauvegardé dans current-session');
-            // TODO: Mettre à jour l'affichage de conformité si nécessaire
+            // Mettre à jour le statut du rouleau
+            updateRollStatus();
         });
         
         // Code désactivé - à migrer
@@ -3105,19 +3621,7 @@ function loadActiveRollData(rollData) {
             document.getElementById('sticky-next-tube-mass').value = rollData.info.next_tube_mass;
         }
         
-        // Charger le statut si présent
-        if (rollData.info.status !== undefined) {
-            // Si le statut a été forcé manuellement, on le garde dans la mémoire
-            const rollNumber = rollData.info.roll_number;
-            if (rollNumber && rollData.info.status) {
-                if (!window.forcedRollStatus) {
-                    window.forcedRollStatus = {};
-                }
-                // On considère qu'un statut NON_CONFORME a été forcé s'il n'y a pas de défauts bloquants
-                // Cette logique sera affinée plus tard
-                window.forcedRollStatus[rollNumber] = rollData.info.status;
-            }
-        }
+        // Ne plus charger le statut forcé - il sera recalculé dynamiquement
     }
     
     // Restaurer les défauts
@@ -3847,6 +4351,93 @@ function updateShiftMetrics(metrics) {
     
     // Calculer et sauvegarder les métriques de productivité
     calculateAndSaveProductivityMetrics();
+    
+    // ANIMATION DE LA JAUGE SPECTACULAIRE
+    updateSpectacularGauge();
+}
+
+// Fonction pour toggle l'affichage de la jauge spectaculaire
+function toggleSpectacularGauge() {
+    const gaugeContainer = document.getElementById('spectacular-gauge-container');
+    if (gaugeContainer) {
+        if (gaugeContainer.style.display === 'none') {
+            gaugeContainer.style.display = 'block';
+            // Animer la jauge après affichage
+            setTimeout(() => updateSpectacularGauge(), 100);
+        } else {
+            gaugeContainer.style.display = 'none';
+        }
+    }
+}
+
+// Fonction pour forcer la mise à jour du statut (utile pour debug)
+function forceUpdateStatus() {
+    console.log('[DEBUG] Force update status - specs:', thicknessSpecs);
+    // Nettoyer tout statut forcé résiduel
+    window.forcedRollStatus = {};
+    updateRollStatus();
+}
+
+// Fonction pour animer la jauge spectaculaire de rendement
+function updateSpectacularGauge() {
+    // Récupérer le rendement depuis les métriques ou calculer
+    let rendement = 0;
+    const rendementElement = document.getElementById('temps-rendement');
+    if (rendementElement) {
+        const rendementText = rendementElement.textContent;
+        rendement = parseInt(rendementText) || 0;
+    }
+    
+    // Mettre à jour l'arc coloré (circonférence = 2 * PI * r = 471 pour r=150 et demi-cercle)
+    const arc = document.getElementById('mainArc');
+    if (arc) {
+        const dashArray = (rendement / 100) * 471;
+        arc.setAttribute('stroke-dasharray', `${dashArray} 471`);
+    }
+    
+    // Animer l'aiguille (180 degrés pour 100%)
+    const needle = document.getElementById('needleGroup');
+    if (needle) {
+        const rotation = -90 + (rendement / 100) * 180;
+        needle.style.transform = `rotate(${rotation}deg)`;
+        needle.style.transformOrigin = '200px 200px';
+    }
+    
+    // Mettre à jour la valeur affichée
+    const valueElement = document.getElementById('gaugeValue');
+    if (valueElement) {
+        valueElement.textContent = rendement;
+    }
+    
+    // Mettre à jour le label de performance
+    const labelElement = document.getElementById('performanceLabel');
+    if (labelElement) {
+        let label = 'Critique';
+        let color = '#dc3545';
+        
+        if (rendement >= 90) {
+            label = 'Excellent';
+            color = '#198754';
+        } else if (rendement >= 70) {
+            label = 'Bon';
+            color = '#20c997';
+        } else if (rendement >= 50) {
+            label = 'Moyen';
+            color = '#ffc107';
+        } else if (rendement >= 40) {
+            label = 'Faible';
+            color = '#fd7e14';
+        }
+        
+        labelElement.textContent = label;
+        labelElement.setAttribute('fill', color);
+    }
+    
+    // Animer avec un délai pour un effet visuel
+    setTimeout(() => {
+        if (arc) arc.style.transition = 'stroke-dasharray 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+        if (needle) needle.style.transition = 'transform 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+    }, 100);
 }
 
 // Initialisation au chargement
@@ -4122,14 +4713,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 
-                // Restaurer le statut forcé si présent
-                if (rollInfo.status && rollInfo.roll_number) {
-                    if (!window.forcedRollStatus) {
-                        window.forcedRollStatus = {};
-                    }
-                    // Restaurer le statut forcé pour ce rouleau
-                    window.forcedRollStatus[rollInfo.roll_number] = rollInfo.status;
-                }
+                // Ne plus restaurer le statut forcé
                 
                 // Mettre à jour le statut du rouleau
                 updateRollStatus();
@@ -5374,6 +5958,7 @@ function clearRollData() {
     // Mettre à jour les résumés
     updateSummaries();
 }
+
 
 </script>
 
