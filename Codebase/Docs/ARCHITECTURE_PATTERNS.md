@@ -48,7 +48,7 @@ class CurrentSession(models.Model):
 - **HTMX** : Pour les interactions dynamiques sans JavaScript complexe
 - **JavaScript vanilla** : Pour la logique métier et les calculs
 - **Bootstrap 5** : Framework CSS pour le responsive
-- **CSS personnalisé** : Respectant la charte Saint-Gobain
+- **CSS personnalisé** : Respectant la charte 
 
 ### Pattern principal JavaScript
 

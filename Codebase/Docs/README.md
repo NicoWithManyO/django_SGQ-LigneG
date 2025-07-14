@@ -1,6 +1,5 @@
 # Documentation SGQ Ligne G
 
-Bienvenue dans la documentation du système SGQ Ligne G. Cette documentation couvre les aspects techniques et fonctionnels du système de gestion de production pour Saint-Gobain Quartz SAS - Nemours.
 
 ## Table des matières
 

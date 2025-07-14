@@ -121,9 +121,61 @@ Le grammage dans la sticky bar utilise maintenant les bonnes spécifications :
 - Code couleur corrigé : vert dans les specs, rouge hors specs
 - Recalcul automatique après chargement des spécifications
 
+## 14. Modals de confirmation pour les sauvegardes
+
+Nouvelles modals Bootstrap pour améliorer l'expérience utilisateur :
+
+### Modal Save Poste :
+- **Métriques affichées** : Rendement, Taux OK, Longueur OK, TO
+- **Sélecteur d'humeur** : 3 choix (content, neutre, pas content) avec design ovale
+- **Comptage anonyme** : L'humeur est comptée à la fermeture de la modal
+- **Animation** : Fade in/out avec backdrop
+- **ID et durée** : Affichage de l'ID du poste et de la durée
+
+### Modal Save Rouleau :
+- **Informations rouleau** : Numéro, statut, longueur
+- **Design cohérent** : Même style que la modal save poste
+- **Boutons colorés** : Bleu pour save poste, vert pour save rouleau
+
+## 15. Info-bulles dynamiques sur boutons désactivés
+
+Les boutons désactivés affichent maintenant pourquoi ils ne sont pas actifs :
+- **Bouton Save Poste** : Liste les éléments manquants (opérateur, contrôles qualité, etc.)
+- **Pattern Bootstrap** : Utilisation d'un wrapper pour les tooltips sur éléments désactivés
+- **Mise à jour temps réel** : Les info-bulles se mettent à jour automatiquement
+
+## 16. Système de comptage d'humeur (MoodCounter)
+
+Nouveau système pour tracker l'humeur des opérateurs de façon anonyme :
+- **Modèle MoodCounter** : 4 objets fixes (happy, unhappy, neutral, no_response)
+- **Endpoint API** : `/livesession/api/increment-mood/` pour incrémenter
+- **RGPD compliant** : Aucune donnée personnelle stockée
+- **Admin Django** : Affichage sous le nom "MoOOoOods"
+
+## 17. Vérification des contrôles qualité avant save
+
+Le bouton Save Poste vérifie maintenant que les contrôles qualité sont complets :
+- **Vérifications** : Moyennes micronnaire G/D, masses surfacique G/D, extrait sec, LOI
+- **Message groupé** : "Contrôles qualité incomplets" dans l'info-bulle
+- **Intégration** : Ajouté à la fonction `checkSaveShiftButtonState` existante
+
+## 18. Auto-remplissage created_by dans QualityControl
+
+Lors de la sauvegarde d'un shift :
+- Le champ `created_by` est automatiquement rempli avec l'opérateur du poste
+- Implémenté dans `livesession/api.py` fonction `create_quality_controls`
+
+## 19. Vérification des IDs existants
+
+Nouveaux endpoints pour vérifier si un ID existe déjà :
+- `/livesession/api/check-shift-id/<shift_id>/` : Vérifie les IDs de shift
+- `/livesession/api/check-roll-id/<roll_id>/` : Vérifie les IDs de rouleau
+- Affichage d'un warning icon si l'ID existe déjà
+
 ## Notes techniques
 
 - Ces changements sont implémentés dans le template `production.html` et les fichiers JavaScript associés
 - L'API DRF `/livesession/api/current-session/` gère la persistance de toutes ces données
 - Les calculs côté serveur garantissent la cohérence des données affichées
-- Nouveau endpoint `/livesession/api/save-roll/` pour la sauvegarde des rouleaux
+- Nouveaux endpoints : `/save-roll/`, `/increment-mood/`, `/check-shift-id/`, `/check-roll-id/`
+- Nouveau modèle `MoodCounter` dans `core/models.py`

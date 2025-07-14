@@ -111,7 +111,9 @@ Système de gestion de production de rouleaux de feutre permettant de tracer et 
 - Mesures d'épaisseur tous les 5m à partir de 3m
 - 6 points de mesure par section (3 côté droit, 3 côté gauche)
 - Validation automatique selon critères définis
-- Contrôles globaux Quality : au moins une sauvegarde par poste, mises à jour possibles en cours de poste
+- Contrôles globaux Quality : obligatoires avant save poste, mises à jour possibles en cours de poste
+- Vérification automatique : moyennes micronnaire G/D, masses surfacique G/D, extrait sec, LOI
+- Auto-remplissage created_by avec l'opérateur du poste
 
 ### Gestion des Défauts
 - Défauts non-bloquants : production continue
@@ -170,14 +172,14 @@ Système de gestion de production de rouleaux de feutre permettant de tracer et 
 - **Paramètres process** : températures, vitesses, pressions
 - **Historique réglages** : traçabilité des modifications
 
-## Nouveaux Modèles Ajoutés
+## Modèles de la Migration DRF
 
-### CurrentProd (Auto-Save)
-- Session_key unique par utilisateur
-- form_data JSON avec toutes les données du formulaire
-- Sauvegarde automatique toutes les secondes
-- Préservation sélective après save poste
-- Lecture seule dans l'admin
+### CurrentSession (Gestion de Session DRF)
+- session_key unique par utilisateur
+- session_data JSON avec tout l'état de la session
+- Sauvegarde automatique via API avec debounce 1s
+- Réinitialisation intelligente après save poste
+- Endpoint unifié `/livesession/api/current-session/`
 
 ### LostTimeEntry (Temps Perdus)
 - Shift nullable (liaison via session avant save)
@@ -199,6 +201,13 @@ Système de gestion de production de rouleaux de feutre permettant de tracer et 
 - Unité de mesure configurable
 - Max NOK autorisés pour épaisseurs
 
+### MoodCounter (Compteur d'Humeur)
+- 4 objets fixes : happy, unhappy, neutral, no_response
+- Comptage anonyme sans données personnelles
+- Endpoint `/livesession/api/increment-mood/`
+- Affichage admin sous "MoOOoOods"
+- RGPD compliant
+
 ## Interface Utilisateur Améliorée
 
 ### Layout Principal
@@ -218,17 +227,28 @@ Système de gestion de production de rouleaux de feutre permettant de tracer et 
 - Champ signature avec heure automatique
 - Largeur fixe même repliée
 
+### Modals de Confirmation
+- **Modal Save Poste** : Métriques (rendement, taux OK, TO) + sélecteur humeur
+- **Modal Save Rouleau** : Numéro, statut, longueur avec confirmation
+- **Info-bulles dynamiques** : Sur boutons désactivés (Save Poste)
+- **Vérification contrôles** : Badge Pending/Passed selon complétion
+
 ### Visualisation Rouleau
 - Grille dynamique selon longueur
 - Défauts positionnés visuellement
 - Indicateurs épaisseur et conformité
 - Validation temps réel
 
-## Fonctionnalités HTMX
-- Rechargement partiel des blocs
-- Auto-save côté serveur via /auto-save-form/
-- Validation temps réel sans rechargement
-- Messages d'erreur intégrés
+## Architecture API DRF
+- Endpoint principal : `/livesession/api/current-session/`
+- Méthodes : GET (récupération), PATCH (mise à jour), DELETE (réinit)
+- Endpoints spécifiques :
+  - `/save-shift/` : Sauvegarde du poste avec réinit intelligente
+  - `/save-roll/` : Sauvegarde d'un rouleau
+  - `/check-shift-id/<id>/` : Vérification ID shift
+  - `/check-roll-id/<id>/` : Vérification ID rouleau
+  - `/increment-mood/` : Incrémentation compteur humeur
+- Frontend utilise `updateFieldViaAPI()` pour toutes les mises à jour
 
 ## Génération de Documents (Prévue Phase 3)
 - Module reports en attente d'implémentation

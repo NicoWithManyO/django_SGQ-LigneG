@@ -41,6 +41,9 @@
 - ✅ **Navigation Tab** : Intelligente entre tous les formulaires
 - ✅ **Temps total déclaré** : Affiché dans le header
 - ✅ **Labels alignés** : Spécifications qualité plus lisibles
+- ✅ **Modals de confirmation** : Save poste avec métriques et humeur, save rouleau avec animations
+- ✅ **Info-bulles dynamiques** : Indiquent les éléments manquants sur boutons désactivés
+- ✅ **Système d'humeur** : Sélecteur d'humeur anonyme dans modal save poste
 
 ### 5. API DRF Unifiée
 - ✅ **Endpoint unique** : `/livesession/api/current-session/`
@@ -48,21 +51,28 @@
 - ✅ **Métriques calculées** : Retournées à chaque update
 - ✅ **Structure imbriquée** : Organisation propre des données
 - ✅ **Save roll endpoint** : `/livesession/api/save-roll/` pour persistence
+- ✅ **Vérification IDs** : `/check-shift-id/` et `/check-roll-id/`
+- ✅ **Compteur d'humeur** : `/increment-mood/` pour tracking anonyme
+- ✅ **Auto-remplissage** : created_by dans QualityControl
 
 ## 🔧 Architecture technique actuelle
 
 ### Backend
 ```
 livesession/
-├── api.py          # Endpoint DRF unifié
+├── api.py          # Endpoints DRF (current_session, save_shift, save_roll, increment_mood)
 ├── models.py       # CurrentSession (JSON complet)
-├── serializers.py  # CurrentSessionSerializer
+├── serializers.py  # CurrentSessionSerializer avec validation
 └── services.py     # MetricsCalculator, ShiftMetricsService
 
+core/
+├── models.py       # Operator, FabricationOrder, Profile, Mode, MoodCounter
+└── admin.py        # Admin pour MoOOoOods
+
 production/
-├── models.py       # Shift, Roll, QualityControl, etc.
+├── models.py       # Shift, Roll, QualityControl, MachineParameters
 ├── signals.py      # Calculs auto (lost_time, thickness_avg)
-└── views.py        # Vues HTMX + endpoints utilitaires
+└── views.py        # Vues legacy (en cours de suppression)
 ```
 
 ### Frontend
@@ -102,8 +112,10 @@ current_roll: {
 ### Phase 1 : Finalisation migration DRF (Priorité haute)
 1. **Nettoyer le code legacy** (voir LEGACY_CODE_TO_REMOVE.md)
 2. ~~**Migrer `save_roll`** vers l'API DRF~~ ✅ Fait
-3. **Supprimer les modèles obsolètes** (CurrentProductionState, LiveQualityControl)
-4. **Optimiser les requêtes** : Éviter les N+1
+3. **Supprimer les modèles obsolètes** (CurrentProductionState, LiveQualityControl dans livesession/models.py)
+4. **Supprimer les vues legacy** (production/views.py: auto_save_form, save_quality_controls, etc.)
+5. **Restaurer endpoints manquants** : Création opérateurs/OF via modals
+6. **Optimiser les requêtes** : Éviter les N+1
 
 ### Phase 2 : Qualité et robustesse
 1. **Tests unitaires** : Modèles, serializers, services
@@ -188,4 +200,4 @@ current_roll: {
 
 ---
 
-*Dernière mise à jour : Janvier 2025*
+*Dernière mise à jour : 14 janvier 2025*
