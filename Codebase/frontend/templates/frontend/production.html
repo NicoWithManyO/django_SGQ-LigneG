@@ -2523,26 +2523,23 @@ function generateRollId() {
     } else {
         // Format pour conforme: OF_NumRouleau
         // Prendre le numéro de rouleau depuis la session
-        const rollNumber = sessionData.roll_number || document.getElementById('sticky-roll-number')?.value;
+        const rollNumber = document.getElementById('sticky-roll-number')?.value;
         
         if (!rollNumber) {
             return '--';
         }
         
-        // Prendre l'OF depuis la session
+        // Prendre l'OF directement depuis le select actuel
         let ofNumber = '';
-        if (sessionData.current_of) {
-            // Récupérer le texte de l'OF depuis le select si possible
-            const currentOrderSelect = document.getElementById('current-order');
-            if (currentOrderSelect) {
-                const option = currentOrderSelect.querySelector(`option[value="${sessionData.current_of}"]`);
-                if (option) {
-                    ofNumber = option.text;
-                }
+        const currentOrderSelect = document.getElementById('current-order');
+        if (currentOrderSelect && currentOrderSelect.value) {
+            const selectedOption = currentOrderSelect.options[currentOrderSelect.selectedIndex];
+            if (selectedOption) {
+                ofNumber = selectedOption.text;
             }
         }
         
-        console.log('[DEBUG] generateRollId: sessionData.current_of =', sessionData.current_of, ', ofNumber =', ofNumber);
+        console.log('[DEBUG] generateRollId: OF sélectionné =', ofNumber);
         
         if (!ofNumber) {
             return '--';
@@ -4022,7 +4019,24 @@ function setupTabNavigation() {
                     }
                 }
                 
-                // Fin de sticky bar -> retour aux épaisseurs vides
+                // Fin de sticky bar -> vérifier si tout est rempli
+                const allThickness = Array.from(document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)'));
+                const allThicknessFilled = allThickness.every(input => input.value);
+                const allStickyFilled = stickyFields.every(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    return field && field.value;
+                });
+                
+                if (allThicknessFilled && allStickyFilled) {
+                    // Tout est rempli -> aller au bouton Save
+                    const saveButton = document.querySelector('.btn-save-roll');
+                    if (saveButton && !saveButton.disabled) {
+                        saveButton.focus();
+                        return;
+                    }
+                }
+                
+                // Sinon retour aux épaisseurs vides
                 const firstEmpty = findFirstEmptyThickness();
                 if (firstEmpty) {
                     firstEmpty.focus();
@@ -4675,6 +4689,19 @@ function handleActionButton() {
     // PENDING ne devrait pas arriver ici car le bouton est désactivé
 }
 
+// Fonction pour récupérer la session actuelle
+function getCurrentSession() {
+    return fetch('/livesession/api/current-session/', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json());
+}
+
 // Fonction pour sauvegarder le rouleau
 function saveRoll(destination, comment = '') {
     // Vérifier qu'on a bien les données minimales
@@ -4702,29 +4729,106 @@ function saveRoll(destination, comment = '') {
         return;
     }
     
-    // Préparer les données du rouleau
-    const rollData = {
+    // Collecter TOUTES les données du rouleau
+    const tubeMass = document.getElementById('sticky-tube-mass')?.value;
+    
+    const rollInfo = {
         roll_number: rollNumber,
-        status: status,
-        destination: destination,
-        comment: comment,
-        // Les autres données sont déjà dans current_roll via autoSaveRollData
+        length: length.toString(),
+        tube_mass: tubeMass || '',
+        total_mass: totalMass.toString(),
+        next_tube_mass: document.getElementById('sticky-next-tube-mass')?.value || '',
+        comment: comment
     };
     
-    // Sauvegarder via l'API
-    fetch('/livesession/api/save-roll/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify(rollData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Rouleau sauvegardé avec succès !');
+    // Collecter les défauts
+    const defects = [];
+    document.querySelectorAll('.defect-select').forEach((select) => {
+        if (select.value) {
+            const row = select.closest('.defect-row');
+            const positionInput = row?.querySelector('.defect-position');
+            const sideSelect = row?.querySelector('.defect-side');
+            if (positionInput && sideSelect) {
+                defects.push({
+                    type_id: parseInt(select.value),
+                    position_m: parseInt(positionInput.value) || 0,
+                    position_side: sideSelect.value
+                });
+            }
+        }
+    });
+    
+    // Collecter les épaisseurs
+    const thickness = {
+        measurements: [],
+        rattrapage: []
+    };
+    
+    // Parcourir toutes les cellules d'épaisseur
+    document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)').forEach((input) => {
+        if (input.value) {
+            const cell = input.closest('td');
+            const position = parseInt(cell.getAttribute('data-position')) || 0;
+            const point = cell.getAttribute('data-point') || '';
+            
+            thickness.measurements.push({
+                position_m: position,
+                measurement_point: point,
+                thickness_value: parseFloat(input.value)
+            });
+            
+            // Vérifier s'il y a un rattrapage
+            const rattrapageInput = cell.querySelector('.thickness-rattrapage');
+            if (rattrapageInput && rattrapageInput.value && rattrapageInput.style.display !== 'none') {
+                thickness.rattrapage.push({
+                    position_m: position,
+                    measurement_point: point + '-R',
+                    thickness_value: parseFloat(rattrapageInput.value)
+                });
+            }
+        }
+    });
+    
+    // Récupérer le contexte depuis la session
+    getCurrentSession().then(sessionData => {
+        // Préparer TOUTES les données du rouleau
+        const rollData = {
+            // Informations de base
+            roll_info: rollInfo,
+            
+            // Défauts
+            defects: defects,
+            
+            // Épaisseurs
+            thickness: thickness,
+            
+            // Statut et destination
+            status: status,
+            destination: destination,
+            
+            // Contexte nécessaire pour le backend
+            context: {
+                current_of: sessionData.current_of || null,
+                cutting_of: sessionData.cutting_of || null,
+                shift_id: sessionData.shift_id || null,
+                quality_controls: sessionData.quality_controls || {}
+            }
+        };
+        
+        // Sauvegarder via l'API
+        fetch('/livesession/api/save-roll/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(rollData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Rouleau sauvegardé avec succès !');
             
             // Effacer les données du rouleau actuel
             clearRollData();
@@ -4750,10 +4854,11 @@ function saveRoll(destination, comment = '') {
         } else {
             alert('Erreur lors de la sauvegarde : ' + (data.error || 'Erreur inconnue'));
         }
-    })
-    .catch(error => {
-        console.error('Erreur:', error);
-        alert('Erreur lors de la sauvegarde du rouleau');
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la sauvegarde du rouleau');
+        });
     });
 }
 

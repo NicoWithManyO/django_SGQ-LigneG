@@ -53,7 +53,6 @@
                     </div>
                 </div>
                 
-                
                 <!-- Ligne 2: Date et Vacation -->
                 <div class="row mb-2">
                     <div class="col-6">
@@ -81,6 +80,25 @@
                             <div class="text-danger small">{{ form.vacation.errors.0 }}</div>
                         {% endif %}
                     </div>
+                </div>
+                
+                <!-- ID du poste -->
+                <div class="d-flex align-items-center mb-2">
+                    <div style="width: 20px; text-align: center;">
+                        <i class="bi bi-check-circle text-success" 
+                           id="shift-id-check" 
+                           style="display: none; font-size: 0.75rem;"></i>
+                        <i class="bi bi-x-circle text-danger" 
+                           id="shift-id-error" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Un poste avec cet ID existe déjà"
+                           style="display: none; font-size: 0.75rem; cursor: help;"></i>
+                    </div>
+                    <small class="text-muted" style="font-size: 0.75rem;">
+                        <span>ID Poste : </span>
+                        <span id="shift-id-display">--</span>
+                    </small>
                 </div>
                 
                 <!-- Ligne 3: Heures début et fin -->
@@ -686,6 +704,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (comments) comments.value = shiftData.operator_comments;
             }
             
+            // Afficher l'ID du poste s'il existe
+            if (shiftData.shift_id) {
+                const shiftIdDisplay = document.getElementById('shift-id-display');
+                const shiftIdCheck = document.getElementById('shift-id-check');
+                if (shiftIdDisplay) {
+                    shiftIdDisplay.textContent = shiftData.shift_id;
+                }
+                if (shiftIdCheck) {
+                    shiftIdCheck.style.display = 'inline';
+                }
+            }
+            
             // Mettre à jour l'affichage après restauration
             calculateAvailabilityTime();
             
@@ -694,6 +724,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Appeler toggleMeterReadingFields après un court délai pour s'assurer que tout est chargé
             setTimeout(function() {
                 toggleMeterReadingFields();
+                // Mettre à jour l'ID du poste après chargement
+                updateShiftIdDisplay();
             }, 100);
         })
         .catch(error => {
@@ -713,5 +745,106 @@ function refreshMeterReading() {
     console.log('Actualisation du métrage...');
     // TODO: Implémenter la logique d'actualisation
 }
+
+// Fonction pour calculer l'ID du poste
+function calculateShiftId() {
+    const operatorSelect = document.getElementById('id_operator');
+    const dateInput = document.getElementById('id_date');
+    const vacationSelect = document.getElementById('id_vacation');
+    
+    if (!operatorSelect?.value || !dateInput?.value || !vacationSelect?.value) {
+        return null;
+    }
+    
+    // Format date: JJMMAA
+    const date = new Date(dateInput.value);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    const dateStr = `${day}${month}${year}`;
+    
+    // Extraire prénom et nom de l'opérateur
+    const operatorText = operatorSelect.options[operatorSelect.selectedIndex].text;
+    const [firstName, ...lastNameParts] = operatorText.split(' ');
+    const lastName = lastNameParts.join(' ');
+    
+    // Format: JJMMAA_PrenomNom_Vacation
+    return `${dateStr}_${firstName}${lastName}_${vacationSelect.value}`;
+}
+
+// Fonction pour mettre à jour l'affichage de l'ID du poste
+async function updateShiftIdDisplay() {
+    const shiftIdDisplay = document.getElementById('shift-id-display');
+    const shiftIdCheck = document.getElementById('shift-id-check');
+    const shiftIdError = document.getElementById('shift-id-error');
+    if (!shiftIdDisplay) return;
+    
+    const shiftId = calculateShiftId();
+    if (shiftId) {
+        shiftIdDisplay.textContent = shiftId;
+        
+        // Vérifier si l'ID existe déjà via l'API
+        try {
+            const response = await fetch(`/livesession/api/check-shift-id/${encodeURIComponent(shiftId)}/`);
+            const data = await response.json();
+            const idAlreadyExists = data.exists;
+            
+            if (idAlreadyExists) {
+                // Afficher l'icône d'erreur
+                if (shiftIdError) {
+                    shiftIdError.style.display = 'inline';
+                    // Initialiser le tooltip Bootstrap si pas déjà fait
+                    if (!shiftIdError._tooltip) {
+                        new bootstrap.Tooltip(shiftIdError);
+                    }
+                }
+                // Cacher l'icône de succès
+                if (shiftIdCheck) {
+                    shiftIdCheck.style.display = 'none';
+                }
+            } else {
+                // Afficher l'icône de succès
+                if (shiftIdCheck) {
+                    shiftIdCheck.style.display = 'inline';
+                }
+                // Cacher l'icône d'erreur
+                if (shiftIdError) {
+                    shiftIdError.style.display = 'none';
+                }
+            }
+        } catch (error) {
+            console.error('Erreur lors de la vérification du shift_id:', error);
+            // En cas d'erreur, ne pas afficher d'icône
+            if (shiftIdCheck) shiftIdCheck.style.display = 'none';
+            if (shiftIdError) shiftIdError.style.display = 'none';
+        }
+        
+        // Sauvegarder dans la session
+        sessionAPI.updateField('shift_id', shiftId);
+    } else {
+        shiftIdDisplay.textContent = '--';
+        // Cacher les deux icônes
+        if (shiftIdCheck) {
+            shiftIdCheck.style.display = 'none';
+        }
+        if (shiftIdError) {
+            shiftIdError.style.display = 'none';
+        }
+    }
+}
+
+// Ajouter les listeners pour mettre à jour l'ID quand les champs changent
+document.addEventListener('DOMContentLoaded', function() {
+    // Écouter les changements sur les champs qui affectent l'ID
+    ['id_operator', 'id_date', 'id_vacation'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('change', updateShiftIdDisplay);
+        }
+    });
+    
+    // Mettre à jour l'ID au chargement initial
+    setTimeout(updateShiftIdDisplay, 200);
+});
 
 </script>
