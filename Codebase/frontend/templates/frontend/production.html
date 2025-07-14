@@ -4105,6 +4105,8 @@ function setupTabNavigation() {
 
 // Variable globale pour stocker les motifs de temps perdu
 let lostTimeReasons = [];
+// Exposer globalement pour shift_block.html
+window.lostTimeReasons = lostTimeReasons;
 
 // Variables pour la check-list
 let checklistState = {};
@@ -4321,6 +4323,7 @@ function loadLostTimeReasons() {
         .then(data => {
             if (data.success) {
                 lostTimeReasons = data.reasons;
+                window.lostTimeReasons = lostTimeReasons;  // Synchroniser avec la variable globale
                 populateLostTimeReasonSelect();
             }
         })
@@ -4328,12 +4331,13 @@ function loadLostTimeReasons() {
             console.error('Erreur lors du chargement des motifs:', error);
             // Utiliser des valeurs par défaut en cas d'erreur
             lostTimeReasons = [
-                {id: 1, name: 'Démarrage', code: 'DEM'},
+                {id: 1, name: 'Démarrage machine', code: 'DEM'},
                 {id: 2, name: 'Panne/Maintenance', code: 'PAN'},
                 {id: 3, name: 'Ménage sans fibrage', code: 'MEN'},
                 {id: 4, name: 'Arrêt', code: 'ARR'},
                 {id: 5, name: 'Autre', code: 'AUT'}
             ];
+            window.lostTimeReasons = lostTimeReasons;  // Synchroniser avec la variable globale
             populateLostTimeReasonSelect();
         });
 }
@@ -4355,6 +4359,8 @@ function populateLostTimeReasonSelect() {
 
 // Variable pour stocker les entrées de temps perdu
 let lostTimeEntries = [];
+// Exposer globalement pour shift_block.html
+window.lostTimeEntries = lostTimeEntries;
 
 // Fonction pour ajouter une entrée de temps perdu
 function addLostTimeEntry() {
@@ -4374,7 +4380,8 @@ function addLostTimeEntry() {
     // Créer l'entrée
     const entry = {
         id: Date.now(), // ID temporaire
-        reason_id: parseInt(reasonSelect.value),
+        reason: parseInt(reasonSelect.value),  // L'API attend 'reason' pas 'reason_id'
+        reason_id: parseInt(reasonSelect.value),  // Garder pour compatibilité
         reason_name: selectedReason.name,
         comment: commentInput.value,
         duration: parseInt(durationSelect.value),
@@ -4383,6 +4390,7 @@ function addLostTimeEntry() {
     
     // Ajouter à la liste
     lostTimeEntries.push(entry);
+    window.lostTimeEntries = lostTimeEntries;  // Synchroniser avec la variable globale
     
     // Mettre à jour l'affichage
     updateLostTimeDisplay();
@@ -4394,6 +4402,11 @@ function addLostTimeEntry() {
     
     // Sauvegarder dans le draft
     saveLostTimeToDraft();
+    
+    // Vérifier l'état du bouton save shift
+    if (typeof checkSaveShiftButtonState === 'function') {
+        checkSaveShiftButtonState();
+    }
     
     // Ne pas appeler updateShiftMetrics() ici car saveLostTimeToDraft() le fait déjà
     // avec les bonnes métriques reçues de l'API
@@ -4471,8 +4484,14 @@ function updateLostTimeDisplay() {
 // Fonction pour supprimer une entrée
 function removeLostTimeEntry(entryId) {
     lostTimeEntries = lostTimeEntries.filter(e => e.id !== entryId);
+    window.lostTimeEntries = lostTimeEntries;  // Synchroniser avec la variable globale
     updateLostTimeDisplay();
     saveLostTimeToDraft();
+    
+    // Vérifier l'état du bouton save shift
+    if (typeof checkSaveShiftButtonState === 'function') {
+        checkSaveShiftButtonState();
+    }
     
     // Ne pas appeler updateShiftMetrics() ici car saveLostTimeToDraft() le fait déjà
     // avec les bonnes métriques reçues de l'API
@@ -4482,8 +4501,14 @@ function removeLostTimeEntry(entryId) {
 function clearAllLostTimes() {
     if (lostTimeEntries.length > 0 && confirm('Êtes-vous sûr de vouloir effacer tous les temps perdus ?')) {
         lostTimeEntries = [];
+        window.lostTimeEntries = lostTimeEntries;  // Synchroniser avec la variable globale
         updateLostTimeDisplay();
         saveLostTimeToDraft();
+        
+        // Vérifier l'état du bouton save shift
+        if (typeof checkSaveShiftButtonState === 'function') {
+            checkSaveShiftButtonState();
+        }
         
         // Ne pas appeler updateShiftMetrics() ici car saveLostTimeToDraft() le fait déjà
         // avec les bonnes métriques reçues de l'API
@@ -4529,6 +4554,11 @@ function saveLostTimeToDraft() {
     })
     .then(response => response.json())
     .then(data => {
+        // Mettre à jour sessionData globalement
+        if (data) {
+            window.sessionData = data;
+        }
+        
         // Mettre à jour les métriques automatiquement
         if (data.metrics) {
             console.log('Métriques reçues:', data.metrics);
@@ -4536,6 +4566,11 @@ function saveLostTimeToDraft() {
         }
         if (data.validation && !data.validation.is_valid) {
             console.error('Erreurs de validation:', data.validation.errors);
+        }
+        
+        // Vérifier l'état du bouton save shift après mise à jour
+        if (typeof checkSaveShiftButtonState === 'function') {
+            checkSaveShiftButtonState();
         }
     })
     .catch(error => {
@@ -5192,9 +5227,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // 2. Temps perdus
             if (data.lost_times && Array.isArray(data.lost_times)) {
                 lostTimeEntries = data.lost_times;
+                window.lostTimeEntries = lostTimeEntries;  // Synchroniser avec la variable globale
                 updateLostTimeDisplay();
                 updateLostTimeTotal();
                 updateShiftMetrics(data.metrics); // Mise à jour avec TP
+                
+                // Vérifier l'état du bouton save shift après mise à jour des temps perdus
+                if (typeof checkSaveShiftButtonState === 'function') {
+                    checkSaveShiftButtonState();
+                }
             }
             
             // 3. Initialiser les champs OF depuis la session
@@ -6849,6 +6890,7 @@ function updateEntireInterface(sessionData) {
     
     // 3. Réinitialiser les temps perdus
     lostTimeEntries = [];
+    window.lostTimeEntries = lostTimeEntries;
     updateLostTimeDisplay();
     
     // 4. Réinitialiser la checklist
@@ -7040,6 +7082,7 @@ window.clearAllFields = function() {
     
     // Effacer les temps perdus
     lostTimeEntries = [];
+    window.lostTimeEntries = lostTimeEntries;
     updateLostTimeDisplay();
     
     // Effacer la checklist

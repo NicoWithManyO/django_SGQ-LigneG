@@ -243,12 +243,23 @@ def create_shift_from_session(session_data):
 
 def create_lost_time_entries(shift, lost_times):
     """Crée les entrées de temps perdu pour le shift"""
+    from wcm.models import LostTimeReason
+    
     for entry in lost_times:
+        # Récupérer le nom du motif depuis l'ID
+        motif_name = "Inconnu"
+        if entry.get('reason'):
+            try:
+                reason = LostTimeReason.objects.get(pk=entry['reason'])
+                motif_name = reason.name
+            except LostTimeReason.DoesNotExist:
+                pass
+        
         LostTimeEntry.objects.create(
             shift=shift,
-            reason_id=entry['reason'],
+            motif=motif_name,
             duration=entry['duration'],
-            comments=entry.get('comment', '')
+            comment=entry.get('comment', '')
         )
 
 
@@ -386,7 +397,7 @@ def reset_session_after_save(current_data):
         'vacation': next_vacation,  # Vacation suivante
         'start_time': default_start,  # Heure de début par défaut
         'end_time': default_end,  # Heure de fin par défaut
-        'started_at_end': False,
+        'started_at_end': True,  # Par défaut on suppose que la machine continue
         'meter_reading_end': None,
         'lost_times': [],
         'checklist_responses': {},

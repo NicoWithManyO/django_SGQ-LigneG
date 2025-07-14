@@ -105,7 +105,7 @@
                 <!-- Ligne 3: Heures début et fin -->
                 <div class="row mb-2">
                     <div class="col-6">
-                        <label class="form-label">{{ form.start_time.label }}</label>
+                        <label class="form-label">Prise de poste</label>
                         <input type="time" 
                                name="start_time" 
                                id="id_start_time" 
@@ -116,7 +116,7 @@
                         {% endif %}
                     </div>
                     <div class="col-6">
-                        <label class="form-label">{{ form.end_time.label }}</label>
+                        <label class="form-label">Fin de poste</label>
                         <input type="time" 
                                name="end_time" 
                                id="id_end_time" 
@@ -932,6 +932,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 toggleMeterReadingFields();
                 // Mettre à jour l'ID du poste après chargement
                 updateShiftIdDisplay();
+                
+                // Charger les données de session pour avoir lost_times
+                fetch('/livesession/api/current-session/')
+                    .then(response => response.json())
+                    .then(sessionData => {
+                        // Stocker globalement pour usage ultérieur
+                        window.sessionData = sessionData;
+                        
+                        // DEBUG: Afficher les temps perdus trouvés
+                        console.log('=== DEBUG TEMPS PERDUS AU CHARGEMENT ===');
+                        console.log('window.lostTimeEntries:', window.lostTimeEntries);
+                        console.log('window.sessionData:', window.sessionData);
+                        if (window.sessionData && window.sessionData.lost_times) {
+                            console.log('sessionData.lost_times:', window.sessionData.lost_times);
+                            window.sessionData.lost_times.forEach((lt, index) => {
+                                console.log(`Temps perdu ${index}: reason=${lt.reason}, duration=${lt.duration}, comment="${lt.comment || ''}"`);
+                            });
+                        }
+                        console.log('=== FIN DEBUG ===');
+                        
+                        // Vérifier l'état du bouton après chargement complet
+                        checkSaveShiftButtonState();
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors du chargement de la session complète:', error);
+                        checkSaveShiftButtonState();
+                    });
             }, 100);
         })
         .catch(error => {
@@ -1071,14 +1098,14 @@ function checkSaveShiftButtonState() {
     const startedAtEnd = document.getElementById('id_started_at_end')?.checked;
     const meterReadingEnd = document.getElementById('id_meter_reading_end')?.value;
     
-    if (startedAtBeginning && !meterReadingStart) {
+    if (startedAtBeginning && (!meterReadingStart || parseFloat(meterReadingStart) <= 0)) {
         canSave = false;
-        reasons.push('Métrage début manquant');
+        reasons.push('Métrage début manquant ou invalide (doit être > 0)');
     }
     
-    if (startedAtEnd && !meterReadingEnd) {
+    if (startedAtEnd && (!meterReadingEnd || parseFloat(meterReadingEnd) <= 0)) {
         canSave = false;
-        reasons.push('Métrage fin manquant');
+        reasons.push('Métrage fin manquant ou invalide (doit être > 0)');
     }
     
     // 3. Vérifier la signature de la checklist
@@ -1087,6 +1114,53 @@ function checkSaveShiftButtonState() {
     if (signatureField && !signatureField.classList.contains('is-valid')) {
         canSave = false;
         reasons.push('Checklist non signée');
+    }
+    
+    // 3.5. NOUVEAU - Vérifier le temps de démarrage si machine non démarrée
+    if (!startedAtBeginning) {
+        // Si la machine n'était pas démarrée, il faut du temps de démarrage déclaré
+        let hasStartupTime = false;
+        
+        // D'abord essayer avec lostTimeEntries (variable globale dans production.html)
+        if (window.lostTimeEntries && window.lostTimeEntries.length > 0) {
+            // Chercher si un temps perdu avec reason = 1 existe
+            hasStartupTime = window.lostTimeEntries.some(entry => {
+                return entry.reason == 1;
+            });
+        }
+        
+        // Sinon essayer avec sessionData.lost_times
+        if (!hasStartupTime && window.sessionData && window.sessionData.lost_times && window.sessionData.lost_times.length > 0) {
+            const lostTimes = window.sessionData.lost_times;
+            // Chercher simplement si un temps perdu avec reason ID = 1 existe
+            hasStartupTime = lostTimes.some(lt => {
+                // Le motif "Démarrage machine" a l'ID 1
+                return lt.reason == 1;
+            });
+        }
+        
+        // Gérer l'affichage du message de démarrage
+        const startupMessage = document.getElementById('startup-message-start');
+        if (startupMessage) {
+            if (hasStartupTime) {
+                // Cacher le message si du temps de démarrage est déclaré
+                startupMessage.style.visibility = 'hidden';
+            } else {
+                // Afficher le message si pas de temps de démarrage
+                startupMessage.style.visibility = 'visible';
+            }
+        }
+        
+        if (!hasStartupTime) {
+            canSave = false;
+            reasons.push('Temps de démarrage requis (machine non démarrée)');
+        }
+    } else {
+        // Si la machine était démarrée, cacher le message
+        const startupMessage = document.getElementById('startup-message-start');
+        if (startupMessage) {
+            startupMessage.style.visibility = 'hidden';
+        }
     }
     
     // 4. Vérifier les contrôles qualité
