@@ -363,6 +363,17 @@ def reset_session_after_save(current_data):
     # Créer la nouvelle session avec les données à garder
     new_data = {field: current_data.get(field) for field in keep_fields if field in current_data}
     
+    # Conserver aussi les infos du rouleau en cours (sticky)
+    if current_data.get('current_roll') and current_data['current_roll'].get('info'):
+        new_data['current_roll'] = {
+            'info': {
+                'tube_mass': current_data['current_roll']['info'].get('tube_mass', ''),
+                'next_tube_mass': current_data['current_roll']['info'].get('next_tube_mass', ''),
+                'total_mass': current_data['current_roll']['info'].get('total_mass', ''),
+                'roll_length': current_data['current_roll']['info'].get('roll_length', '')
+            }
+        }
+    
     # Reporter l'état de fin de poste au début du nouveau poste
     if current_data.get('started_at_end'):
         new_data['started_at_beginning'] = True
@@ -403,7 +414,7 @@ def reset_session_after_save(current_data):
         'checklist_responses': {},
         'checklist_signature': {},
         'quality_controls': {},
-        'current_roll': {},
+        # current_roll est déjà géré plus haut pour conserver les valeurs sticky
         'operator_comments': '',
         'shift_id': None,
     })
@@ -538,6 +549,9 @@ def save_roll(request):
         # Effacer next_tube_mass du niveau supérieur aussi
         current_session.session_data['next_tube_mass'] = ''
         
+        # 6b. Calculer et mettre à jour les métriques de production
+        update_production_metrics(current_session, roll, session_key)
+        
         # Sauvegarder la session mise à jour
         current_session.save()
         
@@ -666,6 +680,56 @@ def create_thickness_measurements(roll, thickness_data):
             thickness_value=rattrapage['thickness_value'],
             is_catchup=True
         )
+
+
+def update_production_metrics(current_session, new_roll, session_key):
+    """
+    Met à jour les métriques de production après sauvegarde d'un rouleau
+    
+    Pour le premier rouleau, on soustrait le métrage de début
+    """
+    from production.models import Roll
+    
+    # Récupérer tous les rouleaux de cette session
+    session_rolls = Roll.objects.filter(session_key=session_key)
+    
+    # Calculer les longueurs par statut
+    total_length = 0
+    ok_length = 0
+    nok_length = 0
+    waste_length = 0
+    
+    for roll in session_rolls:
+        length = float(roll.length or 0)
+        total_length += length
+        
+        if roll.status == 'CONFORME':
+            ok_length += length
+        elif roll.status == 'NON_CONFORME':
+            nok_length += length
+        elif roll.destination == 'DECHETS':
+            waste_length += length
+    
+    # Pour le premier rouleau, ajuster avec le métrage de début
+    if session_rolls.count() == 1:
+        meter_reading_start = current_session.session_data.get('meter_reading_start', 0)
+        if meter_reading_start:
+            # La production réelle doit soustraire ce qui était déjà enroulé
+            adjustment = float(meter_reading_start)
+            total_length = max(0, total_length - adjustment)
+            # Ajuster selon le statut du premier rouleau
+            if new_roll.status == 'CONFORME':
+                ok_length = max(0, ok_length - adjustment)
+            elif new_roll.status == 'NON_CONFORME':
+                nok_length = max(0, nok_length - adjustment)
+            elif new_roll.destination == 'DECHETS':
+                waste_length = max(0, waste_length - adjustment)
+    
+    # Mettre à jour la session
+    current_session.session_data['total_length'] = total_length
+    current_session.session_data['ok_length'] = ok_length
+    current_session.session_data['nok_length'] = nok_length
+    current_session.session_data['waste_length'] = waste_length
 
 
 @api_view(['GET'])

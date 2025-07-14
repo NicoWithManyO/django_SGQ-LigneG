@@ -60,6 +60,12 @@ class CurrentSessionSerializer(serializers.Serializer):
         allow_null=True,
         min_value=0
     )
+    
+    # Métriques de production (mises à jour après chaque save rouleau)
+    total_length = serializers.FloatField(required=False, allow_null=True, min_value=0)
+    ok_length = serializers.FloatField(required=False, allow_null=True, min_value=0)
+    nok_length = serializers.FloatField(required=False, allow_null=True, min_value=0)
+    waste_length = serializers.FloatField(required=False, allow_null=True, min_value=0)
     checklist_responses = serializers.JSONField(
         required=False,
         default=dict
@@ -133,30 +139,7 @@ class CurrentSessionSerializer(serializers.Serializer):
     )
     
     # === MÉTRIQUES CALCULÉES ===
-    metrics = serializers.SerializerMethodField()
-    
-    def get_metrics(self, obj):
-        """Calcule toutes les métriques en temps réel"""
-        # obj est maintenant juste le draft
-        if isinstance(obj, dict):
-            draft = obj.get('draft')
-        else:
-            draft = obj
-            
-        if draft:
-            service = ShiftMetricsService(
-                draft.session_data,
-                session_key=self.context['request'].session.session_key
-            )
-            return service.get_all_metrics()
-        
-        return {
-            'to': 0, 'to_formatted': '--',
-            'tp': 0, 'tp_formatted': '--',
-            'td': 0, 'td_formatted': '--',
-            'length_lost': 0, 'length_lost_formatted': '--',
-            'length_enroulable': 0, 'length_enroulable_formatted': '--'
-        }
+    # Supprimé - Les métriques sont maintenant calculées côté frontend
     
     def to_representation(self, instance):
         """Récupère toutes les données depuis CurrentSession"""
@@ -168,8 +151,7 @@ class CurrentSessionSerializer(serializers.Serializer):
         if draft and draft.session_data:
             data.update(draft.session_data)
         
-        # Ajouter les métriques
-        data['metrics'] = self.get_metrics(instance)
+        # Les métriques sont maintenant calculées côté frontend
         
         return data
     

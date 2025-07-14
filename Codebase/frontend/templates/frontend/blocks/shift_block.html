@@ -318,25 +318,93 @@ const sessionAPI = {
             
             const data = await response.json();
             
-            // Si on a des métriques dans la réponse, mettre à jour l'affichage
-            if (data.metrics) {
-                // Mettre à jour TO
-                const toElement = document.getElementById('temps-ouverture');
-                if (toElement) {
-                    toElement.textContent = data.metrics.to_formatted || '--';
+            // Mettre à jour sessionData si elle existe (depuis production.html)
+            if (typeof window.sessionData !== 'undefined' && data) {
+                window.sessionData = data;
+            }
+            
+            // Si les horaires ont changé, recalculer le TO directement ici
+            if (fieldName === 'start_time' || fieldName === 'end_time') {
+                console.log('[DEBUG] Changement horaire détecté:', fieldName, '=', value);
+                
+                // Calculer le TO localement
+                const startTime = data.start_time || document.getElementById('id_start_time')?.value;
+                const endTime = data.end_time || document.getElementById('id_end_time')?.value;
+                
+                if (startTime && endTime) {
+                    const start = new Date(`2000-01-01T${startTime}`);
+                    const end = new Date(`2000-01-01T${endTime}`);
+                    if (end < start) {
+                        end.setDate(end.getDate() + 1);
+                    }
+                    const toMinutes = Math.floor((end - start) / 60000);
+                    
+                    // Formater le temps
+                    let toFormatted = '--';
+                    if (toMinutes > 0) {
+                        const hours = Math.floor(toMinutes / 60);
+                        const mins = toMinutes % 60;
+                        if (hours === 0) toFormatted = `${mins}min`;
+                        else if (mins === 0) toFormatted = `${hours}h`;
+                        else toFormatted = `${hours}h${mins.toString().padStart(2, '0')}`;
+                    }
+                    
+                    // Mettre à jour l'affichage du TO
+                    const toElement = document.getElementById('temps-ouverture');
+                    if (toElement) {
+                        console.log('[DEBUG] Mise à jour TO:', toFormatted);
+                        toElement.textContent = toFormatted;
+                    }
+                    
+                    // Calculer et mettre à jour le TD
+                    // TD = TO - TP
+                    const tpMinutes = window.lostTimeEntries ? 
+                        window.lostTimeEntries.reduce((sum, lt) => sum + (lt.duration || 0), 0) : 0;
+                    const tdMinutes = Math.max(0, toMinutes - tpMinutes);
+                    
+                    // Formater le TD
+                    let tdFormatted = '--';
+                    if (tdMinutes >= 0) {
+                        const tdHours = Math.floor(tdMinutes / 60);
+                        const tdMins = tdMinutes % 60;
+                        if (tdHours === 0) tdFormatted = `${tdMins}min`;
+                        else if (tdMins === 0) tdFormatted = `${tdHours}h`;
+                        else tdFormatted = `${tdHours}h${tdMins.toString().padStart(2, '0')}`;
+                    }
+                    
+                    // Mettre à jour l'affichage du TD
+                    const tdElement = document.getElementById('temps-disponible');
+                    if (tdElement) {
+                        console.log('[DEBUG] Mise à jour TD:', tdFormatted, '(TO:', toMinutes, '- TP:', tpMinutes, ')');
+                        tdElement.textContent = tdFormatted;
+                    }
+                    
+                    // Mettre à jour aussi la longueur enroulable si on a la vitesse
+                    const beltSpeed = window.sessionData?.belt_speed || 0;
+                    if (beltSpeed > 0) {
+                        const lengthEnroulable = Math.round(tdMinutes * beltSpeed);
+                        const lgEnroulableElement = document.getElementById('lg-enroulable');
+                        if (lgEnroulableElement) {
+                            lgEnroulableElement.textContent = lengthEnroulable > 0 ? `${lengthEnroulable}m` : '--';
+                        }
+                        
+                        // Mettre à jour le TRS aussi
+                        const okLength = window.sessionData?.ok_length || 0;
+                        if (lengthEnroulable > 0) {
+                            const trsPercentage = Math.round((okLength / lengthEnroulable) * 100 * 10) / 10;
+                            const rendementElement = document.getElementById('temps-rendement');
+                            if (rendementElement) {
+                                rendementElement.textContent = trsPercentage + '%';
+                            }
+                            // Mettre à jour la jauge si la fonction existe
+                            if (typeof window.updateSmallGauge === 'function') {
+                                window.updateSmallGauge(trsPercentage);
+                            }
+                        }
+                    }
                 }
                 
-                // Mettre à jour TD
-                const tdElement = document.getElementById('temps-disponible');
-                if (tdElement) {
-                    tdElement.textContent = data.metrics.td_formatted || '--';
-                }
-                
-                // Mettre à jour TP si disponible
-                const tpElement = document.getElementById('temps-perdu-total');
-                if (tpElement && data.metrics.tp_formatted) {
-                    tpElement.textContent = data.metrics.tp_formatted;
-                }
+                // NE PAS appeler updateShiftMetrics car elle utilise les anciennes valeurs
             }
             
             // Gérer les erreurs de validation

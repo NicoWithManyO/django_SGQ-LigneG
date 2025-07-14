@@ -1063,7 +1063,7 @@
                                                 <div class="metric-particle" style="background: #0d6efd; bottom: 10%; left: 90%;"></div>
                                                 <label class="text-muted small">Longueur Totale</label>
                                                 <div class="metric-value">
-                                                    <span id="longueur-totale" class="h6 fw-bold">1850m</span>
+                                                    <span id="longueur-totale" class="h6 fw-bold">--</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1091,9 +1091,9 @@
                                                 <div class="metric-particle" style="background: #ffc107; bottom: 20%; left: 90%;"></div>
                                                 <label class="text-muted small">OK | NOK</label>
                                                 <div class="metric-value">
-                                                    <span id="lg-enroulee-ok" class="h6 fw-bold text-success">1650m</span>
+                                                    <span id="lg-enroulee-ok" class="h6 fw-bold text-success">--</span>
                                                     <span class="text-muted small">|</span>
-                                                    <span id="lg-enroulee-nok" class="h6 fw-bold text-warning">200m</span>
+                                                    <span id="lg-enroulee-nok" class="h6 fw-bold text-warning">--</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1112,7 +1112,7 @@
                                                             transform="rotate(-90 50 25)">
                                                         <animate attributeName="stroke-dashoffset" values="13;10;13" dur="3s" repeatCount="indefinite"/>
                                                     </circle>
-                                                    <text x="50" y="30" text-anchor="middle" font-size="14" font-weight="bold" fill="#198754">89%</text>
+                                                    <text x="50" y="30" text-anchor="middle" font-size="14" font-weight="bold" fill="#198754">--</text>
                                                 </svg>
                                                 <div class="metric-particle" style="background: #198754; bottom: 10%; left: 10%;"></div>
                                                 <div class="metric-particle" style="background: #40c057; bottom: 15%; left: 30%;"></div>
@@ -1121,7 +1121,7 @@
                                                 <div class="metric-particle" style="background: #198754; bottom: 10%; left: 90%;"></div>
                                                 <label class="text-muted small">Rendement</label>
                                                 <div class="metric-value">
-                                                    <span id="temps-rendement" class="h6 fw-bold">89%</span>
+                                                    <span id="temps-rendement" class="h6 fw-bold">--</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1825,18 +1825,11 @@ function calculateAndSaveProductivityMetrics(savedBeltSpeed = null) {
     const tpMinutes = window.currentMetrics?.tp || 0;
     const lengthLost = Math.round(tpMinutes * beltSpeedMPerMin);
     
-    // Calculer le TRS = (Longueur OK / Longueur cible) × 100
-    let trsPercentage = 0;
-    if (targetLength > 0) {
-        // La longueur OK inclut le relevé compteur fin
-        const lengthOK = meterReadingEnd; // + somme des rouleaux OK (à implémenter)
-        trsPercentage = Math.round((lengthOK / targetLength) * 100 * 10) / 10; // Arrondi à 1 décimale
-    }
+    // Le TRS est maintenant calculé dans updateTRS() avec la nouvelle formule
     
     // Sauvegarder dans la session
     const updates = {
-        length_enroulable: lengthEnroulable,
-        trs_percentage: trsPercentage
+        length_enroulable: lengthEnroulable
     };
     
     // Mettre à jour l'affichage
@@ -1860,11 +1853,10 @@ function calculateAndSaveProductivityMetrics(savedBeltSpeed = null) {
         // Ne pas sauvegarder length_lost - c'est une valeur calculée
     }
     
-    if (targetLength > 0) {
-        updateFieldViaAPI('trs_percentage', trsPercentage);
-    }
+    // Recalculer le TRS avec la nouvelle formule
+    updateTRS();
     
-    return { lengthEnroulable, trsPercentage };
+    return { lengthEnroulable };
 }
 
 // Fonction wrapper pour migrer les anciens appels vers la nouvelle API
@@ -4483,10 +4475,24 @@ function updateLostTimeDisplay() {
 
 // Fonction pour supprimer une entrée
 function removeLostTimeEntry(entryId) {
-    lostTimeEntries = lostTimeEntries.filter(e => e.id !== entryId);
+    console.log('[DEBUG] removeLostTimeEntry appelée avec ID:', entryId);
+    console.log('[DEBUG] Type de entryId:', typeof entryId);
+    console.log('[DEBUG] Temps perdus AVANT suppression:', JSON.stringify(lostTimeEntries));
+    
+    // S'assurer que entryId est un nombre
+    const idToRemove = typeof entryId === 'string' ? parseInt(entryId) : entryId;
+    
+    lostTimeEntries = lostTimeEntries.filter(e => {
+        console.log('[DEBUG] Comparaison:', e.id, '!==', idToRemove, '→', e.id !== idToRemove);
+        return e.id !== idToRemove;
+    });
     window.lostTimeEntries = lostTimeEntries;  // Synchroniser avec la variable globale
+    
+    console.log('[DEBUG] Temps perdus APRÈS suppression:', JSON.stringify(lostTimeEntries));
+    
     updateLostTimeDisplay();
-    saveLostTimeToDraft();
+    updateLostTimeTotal();  // Mettre à jour le total immédiatement
+    saveLostTimeToDraft();  // Puis sauvegarder et recalculer les métriques
     
     // Vérifier l'état du bouton save shift
     if (typeof checkSaveShiftButtonState === 'function') {
@@ -4559,11 +4565,17 @@ function saveLostTimeToDraft() {
             window.sessionData = data;
         }
         
-        // Mettre à jour les métriques automatiquement
-        if (data.metrics) {
-            console.log('Métriques reçues:', data.metrics);
-            updateShiftMetrics(data.metrics);
-        }
+        // Recalculer les métriques car les temps perdus ont changé
+        console.log('[DEBUG] Mise à jour des métriques suite à changement des temps perdus');
+        updateShiftMetrics();
+        
+        // Debug: Afficher toutes les données de session
+        console.log('[DEBUG] Session après save temps perdus:', {
+            lost_times: data.lost_times,
+            start_time: data.start_time,
+            end_time: data.end_time,
+            nb_temps_perdus: data.lost_times?.length || 0
+        });
         if (data.validation && !data.validation.is_valid) {
             console.error('Erreurs de validation:', data.validation.errors);
         }
@@ -4652,12 +4664,66 @@ function calculateTOFromShiftHours() {
     return 0;
 }
 
-// Fonction pour mettre à jour les métriques du poste
-function updateShiftMetrics(metrics) {
-    // Si pas de métriques fournies, ne rien faire (elles sont chargées au démarrage)
+// Fonction pour calculer les métriques côté frontend
+function calculateMetrics() {
+    const startTime = sessionData?.start_time;
+    const endTime = sessionData?.end_time;
+    // Utiliser la variable globale lostTimeEntries qui est à jour, pas sessionData.lost_times
+    const lostTimes = window.lostTimeEntries || [];
+    const beltSpeed = sessionData?.belt_speed || 0;
+    
+    // Calculer TO (Temps d'Ouverture) en minutes
+    let toMinutes = 0;
+    if (startTime && endTime) {
+        const start = new Date(`2000-01-01T${startTime}`);
+        const end = new Date(`2000-01-01T${endTime}`);
+        if (end < start) {
+            end.setDate(end.getDate() + 1); // Passage minuit
+        }
+        toMinutes = Math.floor((end - start) / 60000);
+    }
+    
+    // Calculer TP (Temps Perdu) en minutes
+    const tpMinutes = lostTimes.reduce((sum, lt) => sum + (lt.duration || 0), 0);
+    console.log('[DEBUG] calculateMetrics - TP calculé:', tpMinutes, 'minutes depuis', lostTimes.length, 'temps perdus');
+    
+    // Calculer TD (Temps Disponible) en minutes
+    const tdMinutes = Math.max(0, toMinutes - tpMinutes);
+    
+    // Calculer les longueurs
+    const lengthLost = Math.round(tpMinutes * beltSpeed);
+    const lengthEnroulable = Math.round(tdMinutes * beltSpeed);
+    
+    // Formater les temps
+    const formatTime = (minutes) => {
+        if (!minutes) return '--';
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        if (hours === 0) return `${mins}min`;
+        if (mins === 0) return `${hours}h`;
+        return `${hours}h${mins.toString().padStart(2, '0')}`;
+    };
+    
+    return {
+        to: toMinutes,
+        to_formatted: formatTime(toMinutes),
+        tp: tpMinutes,
+        tp_formatted: formatTime(tpMinutes),
+        td: tdMinutes,
+        td_formatted: formatTime(tdMinutes),
+        length_lost: lengthLost,
+        length_lost_formatted: lengthLost > 0 ? `${lengthLost}m` : '--',
+        length_enroulable: lengthEnroulable,
+        length_enroulable_formatted: lengthEnroulable > 0 ? `${lengthEnroulable}m` : '--',
+        belt_speed: beltSpeed
+    };
+}
+
+// Fonction pour mettre à jour l'affichage des métriques
+window.updateShiftMetrics = function(metrics) {
+    // Si pas de métriques fournies, les calculer
     if (!metrics) {
-        console.log('updateShiftMetrics: Pas de métriques fournies');
-        return;
+        metrics = calculateMetrics();
     }
     
     // Stocker les métriques pour les calculs
@@ -4693,11 +4759,120 @@ function updateShiftMetrics(metrics) {
         tdElement.textContent = metrics.td_formatted || '--';
     }
     
-    // Calculer et sauvegarder les métriques de productivité
-    calculateAndSaveProductivityMetrics();
+    // Calculer et afficher le nouveau TRS (doit être appelé APRÈS le calcul des métriques)
+    updateTRS();
     
     // ANIMATION DE LA JAUGE SPECTACULAIRE
     updateSpectacularGauge();
+};
+
+// Nouvelle fonction pour calculer et afficher le TRS
+function updateTRS() {
+    console.log('[DEBUG] updateTRS appelée');
+    console.log('[DEBUG] sessionData:', sessionData);
+    console.log('[DEBUG] window.currentMetrics:', window.currentMetrics);
+    
+    const okLength = sessionData?.ok_length || 0;
+    const lengthEnroulable = window.currentMetrics?.length_enroulable || 0;
+    
+    let trsPercentage = 0;
+    if (lengthEnroulable > 0) {
+        // Nouveau calcul : Longueur OK / Longueur enroulable
+        trsPercentage = Math.round((okLength / lengthEnroulable) * 100 * 10) / 10;
+    }
+    
+    console.log('[DEBUG] Calcul TRS FINAL:', {
+        ok_length: okLength,
+        length_enroulable: lengthEnroulable,
+        trs: trsPercentage + '%',
+        currentMetrics: window.currentMetrics
+    });
+    
+    // Mettre à jour l'affichage du rendement
+    const rendementElement = document.getElementById('temps-rendement');
+    console.log('[DEBUG] Element rendement trouvé:', !!rendementElement);
+    if (rendementElement) {
+        console.log('[DEBUG] Mise à jour du texte:', trsPercentage + '%');
+        rendementElement.textContent = trsPercentage + '%';
+    }
+    
+    // Mettre à jour la jauge
+    updateSmallGauge(trsPercentage);
+};
+
+// Fonction pour mettre à jour les métriques de production (longueurs)
+function updateProductionMetrics(data) {
+    console.log('[DEBUG] updateProductionMetrics appelée avec:', data);
+    
+    // Longueur totale
+    const totalLengthElement = document.getElementById('longueur-totale');
+    if (totalLengthElement && data.total_length !== undefined) {
+        totalLengthElement.textContent = Math.round(data.total_length) + 'm';
+    }
+    
+    // Longueur OK
+    const okLengthElement = document.getElementById('lg-enroulee-ok');
+    if (okLengthElement && data.ok_length !== undefined) {
+        okLengthElement.textContent = Math.round(data.ok_length) + 'm';
+    }
+    
+    // Longueur NOK
+    const nokLengthElement = document.getElementById('lg-enroulee-nok');
+    if (nokLengthElement && data.nok_length !== undefined) {
+        nokLengthElement.textContent = Math.round(data.nok_length) + 'm';
+    }
+    
+    console.log('[DEBUG] Avant appel updateTRS');
+    // Le TRS est maintenant calculé dans updateTRS() avec la nouvelle formule
+    updateTRS();
+    console.log('[DEBUG] Après appel updateTRS');
+}
+
+// Fonction pour mettre à jour la petite jauge TRS
+window.updateSmallGauge = function(percentage) {
+    // Limiter le pourcentage entre 0 et 100
+    const clampedPercentage = Math.max(0, Math.min(100, percentage));
+    
+    // Calculer l'angle pour l'aiguille (-90° = 0%, 90° = 100%)
+    const angle = -90 + (clampedPercentage * 1.8);
+    
+    // Mettre à jour l'aiguille principale
+    const needle = document.getElementById('gauge-needle');
+    if (needle) {
+        needle.style.transform = `rotate(${angle} 50 50)`;
+    }
+    
+    // Mettre à jour l'arc coloré
+    const arc = document.getElementById('gauge-arc');
+    if (arc) {
+        // L'arc a une longueur totale de ~126 unités
+        const dashLength = (clampedPercentage / 100) * 126;
+        arc.setAttribute('stroke-dasharray', `${dashLength} 126`);
+        
+        // Changer la couleur selon la performance
+        if (clampedPercentage >= 85) {
+            arc.setAttribute('stroke', '#198754'); // Vert
+        } else if (clampedPercentage >= 70) {
+            arc.setAttribute('stroke', '#ffc107'); // Jaune
+        } else {
+            arc.setAttribute('stroke', '#dc3545'); // Rouge
+        }
+    }
+    
+    // Mettre à jour la valeur affichée
+    const value = document.getElementById('gauge-value');
+    if (value) {
+        value.textContent = `${Math.round(clampedPercentage)}%`;
+        
+        // Changer la couleur du texte
+        if (clampedPercentage >= 85) {
+            value.setAttribute('fill', '#198754');
+        } else if (clampedPercentage >= 70) {
+            value.setAttribute('fill', '#ffc107');
+        } else {
+            value.setAttribute('fill', '#dc3545');
+        }
+    }
 }
 
 // Fonction pour toggle l'affichage de la jauge spectaculaire
@@ -4964,6 +5139,12 @@ function proceedWithRollSave(status, destination, rollNumber, length, totalMass,
                     // METTRE À JOUR sessionData GLOBAL
                     sessionData = data.session;
                     
+                    // Mettre à jour les métriques de production
+                    updateProductionMetrics(data.session);
+                    
+                    // Recalculer les métriques pour mettre à jour window.currentMetrics
+                    updateShiftMetrics();
+                    
                     // 1. NUMÉRO DE ROULEAU (depuis le backend)
                     const newRollNumber = data.session.roll_number || data.session.current_roll?.info?.roll_number || '';
                     document.getElementById('sticky-roll-number').value = newRollNumber;
@@ -5219,9 +5400,29 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Distribuer les données aux différentes fonctions
             
-            // 1. Métriques
-            if (data.metrics) {
-                updateShiftMetrics(data.metrics);
+            // 1. Calculer les métriques côté frontend
+            updateShiftMetrics();
+            
+            // 1b. Métriques de production (longueurs)
+            updateProductionMetrics(data);
+            
+            // 1c. Calculer et afficher le TRS initial si possible
+            const targetLength = data.target_length;
+            const okLength = data.ok_length || 0;
+            
+            console.log('[DEBUG] Chargement initial - Calcul TRS:', {
+                target_length: targetLength,
+                ok_length: okLength,
+                total_length: data.total_length,
+                nok_length: data.nok_length,
+                meter_reading_start: data.meter_reading_start,
+                meter_reading_end: data.meter_reading_end
+            });
+            
+            if (targetLength && targetLength > 0) {
+                const trsPercentage = Math.round((okLength / targetLength) * 100 * 10) / 10;
+                console.log('[DEBUG] TRS calculé:', trsPercentage + '%');
+                updateSmallGauge(trsPercentage);
             }
             
             // 2. Temps perdus
@@ -5230,7 +5431,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.lostTimeEntries = lostTimeEntries;  // Synchroniser avec la variable globale
                 updateLostTimeDisplay();
                 updateLostTimeTotal();
-                updateShiftMetrics(data.metrics); // Mise à jour avec TP
+                updateShiftMetrics(); // Recalculer avec le nouveau TP
                 
                 // Vérifier l'état du bouton save shift après mise à jour des temps perdus
                 if (typeof checkSaveShiftButtonState === 'function') {
@@ -5592,6 +5793,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Mettre à jour l'affichage du profil et des modes
     updateProfileDisplay();
+    
+    // Initialiser la jauge à 0
+    updateSmallGauge(0);
     
     // Initialiser la check-list
     initializeChecklist();
@@ -6911,10 +7115,8 @@ function updateEntireInterface(sessionData) {
     document.getElementById('sticky-roll-number').value = sessionData.roll_number || '';
     clearRollData();
     
-    // 7. Mettre à jour les métriques
-    if (sessionData.metrics) {
-        updateShiftMetrics(sessionData.metrics);
-    }
+    // 7. Calculer et afficher les métriques
+    updateShiftMetrics();
     
     // 8. Mettre à jour le shift_id affiché
     const shiftIdDisplay = document.getElementById('shift-id-display');
