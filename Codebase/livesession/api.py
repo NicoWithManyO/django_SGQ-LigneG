@@ -11,6 +11,7 @@ from .models import CurrentSession
 from .serializers import CurrentSessionSerializer
 from production.models import Shift, Roll, LostTimeEntry, QualityControl, RollDefect, RollThickness
 from wcm.models import ChecklistResponse
+from core.models import MoodCounter
 from datetime import datetime, time
 
 
@@ -170,12 +171,43 @@ def save_shift(request):
 def create_shift_from_session(session_data):
     """Crée un objet Shift à partir des données de session"""
     
+    # Convertir la date string en objet date
+    from datetime import date as date_type
+    date_str = session_data['date']
+    if isinstance(date_str, str):
+        # Format attendu: YYYY-MM-DD
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+    else:
+        date_obj = date_str
+    
+    # Convertir les heures string en objets time
+    start_time_str = session_data['start_time']
+    end_time_str = session_data['end_time']
+    
+    if isinstance(start_time_str, str):
+        # Gérer les formats HH:MM ou HH:MM:SS
+        try:
+            start_time_obj = datetime.strptime(start_time_str, '%H:%M').time()
+        except ValueError:
+            start_time_obj = datetime.strptime(start_time_str, '%H:%M:%S').time()
+    else:
+        start_time_obj = start_time_str
+        
+    if isinstance(end_time_str, str):
+        # Gérer les formats HH:MM ou HH:MM:SS
+        try:
+            end_time_obj = datetime.strptime(end_time_str, '%H:%M').time()
+        except ValueError:
+            end_time_obj = datetime.strptime(end_time_str, '%H:%M:%S').time()
+    else:
+        end_time_obj = end_time_str
+    
     shift_data = {
         'operator_id': session_data['operator'],
-        'date': session_data['date'],
+        'date': date_obj,
         'vacation': session_data['vacation'],
-        'start_time': session_data['start_time'],
-        'end_time': session_data['end_time'],
+        'start_time': start_time_obj,
+        'end_time': end_time_obj,
         'started_at_beginning': session_data.get('started_at_beginning', False),
         'meter_reading_start': session_data.get('meter_reading_start'),
         'started_at_end': session_data.get('started_at_end', False),
@@ -224,14 +256,15 @@ def create_quality_controls(shift, quality_controls):
     """Crée les contrôles qualité pour le shift"""
     qc_data = {
         'shift': shift,
-        'micronnaire_left_1': quality_controls.get('micronnaire_left_1'),
-        'micronnaire_left_2': quality_controls.get('micronnaire_left_2'),
-        'micronnaire_left_3': quality_controls.get('micronnaire_left_3'),
-        'micronnaire_right_1': quality_controls.get('micronnaire_right_1'),
-        'micronnaire_right_2': quality_controls.get('micronnaire_right_2'),
-        'micronnaire_right_3': quality_controls.get('micronnaire_right_3'),
-        'extrait_sec': quality_controls.get('extrait_sec'),
-        'extrait_sec_time': quality_controls.get('extrait_sec_time'),
+        'created_by': shift.operator,  # Remplir automatiquement avec l'opérateur du poste
+        'micrometer_left_1': quality_controls.get('micronnaire_left_1'),
+        'micrometer_left_2': quality_controls.get('micronnaire_left_2'),
+        'micrometer_left_3': quality_controls.get('micronnaire_left_3'),
+        'micrometer_right_1': quality_controls.get('micronnaire_right_1'),
+        'micrometer_right_2': quality_controls.get('micronnaire_right_2'),
+        'micrometer_right_3': quality_controls.get('micronnaire_right_3'),
+        'dry_extract': quality_controls.get('extrait_sec'),
+        'dry_extract_time': quality_controls.get('extrait_sec_time'),
         'surface_mass_gg': quality_controls.get('surface_mass_gg'),
         'surface_mass_gc': quality_controls.get('surface_mass_gc'),
         'surface_mass_dc': quality_controls.get('surface_mass_dc'),
@@ -251,11 +284,18 @@ def create_checklist_responses(shift, checklist_responses):
     """Crée les réponses de checklist pour le shift"""
     for item_id, response in checklist_responses.items():
         if response in ['ok', 'nok']:  # Ignorer 'na'
-            ChecklistResponse.objects.create(
-                shift=shift,
-                checklist_item_id=item_id.replace('item_', ''),  # Retirer le préfixe
-                response=response
-            )
+            # Extraire l'ID numérique de la chaîne (format: "item-15" ou "item_15")
+            numeric_id = item_id.replace('item-', '').replace('item_', '')
+            try:
+                numeric_id = int(numeric_id)
+                ChecklistResponse.objects.create(
+                    shift=shift,
+                    item_id=numeric_id,
+                    response=response
+                )
+            except ValueError:
+                # Si ce n'est pas un nombre valide, on ignore
+                continue
 
 
 def link_rolls_to_shift(shift, session_data):
@@ -269,6 +309,8 @@ def link_rolls_to_shift(shift, session_data):
             fabrication_order_id=current_of,
             shift__isnull=True
         ).update(shift=shift)
+
+
 
 
 def reset_session_after_save(current_data):
@@ -294,13 +336,32 @@ def reset_session_after_save(current_data):
         new_data['started_at_beginning'] = False
         new_data['meter_reading_start'] = None
     
+    # Calculer la vacation suivante et les heures par défaut
+    vacation_map = {
+        'Matin': ('ApresMidi', '12:00', '20:00'),
+        'ApresMidi': ('Nuit', '20:00', '04:00'),
+        'Nuit': ('Matin', '04:00', '12:00'),
+        'Journee': ('Matin', '04:00', '12:00')  # Après journée, on revient au matin
+    }
+    
+    current_vacation = current_data.get('vacation')
+    next_vacation, default_start, default_end = vacation_map.get(current_vacation, ('Matin', '04:00', '12:00'))
+    
+    # Mettre la date à aujourd'hui (ou demain si on était en poste de nuit)
+    from datetime import date, timedelta
+    if current_vacation == 'Nuit':
+        # Si on sauve un poste de nuit, on passe au jour suivant
+        next_date = (date.today() + timedelta(days=1)).strftime('%Y-%m-%d')
+    else:
+        next_date = date.today().strftime('%Y-%m-%d')
+    
     # Réinitialiser tous les autres champs
     new_data.update({
         'operator': None,
-        'date': None,
-        'vacation': None,
-        'start_time': None,
-        'end_time': None,
+        'date': next_date,  # Date du jour (ou +1 si nuit)
+        'vacation': next_vacation,  # Vacation suivante
+        'start_time': default_start,  # Heure de début par défaut
+        'end_time': default_end,  # Heure de fin par défaut
         'started_at_end': False,
         'meter_reading_end': None,
         'lost_times': [],
@@ -334,13 +395,33 @@ def save_roll(request):
     
     session_key = request.session.session_key
     
-    # Récupérer toutes les données depuis la requête
-    roll_info = request.data.get('roll_info', {})
-    defects = request.data.get('defects', [])
-    thickness_data = request.data.get('thickness', {})
-    status = request.data.get('status')
+    # Récupérer la session courante
+    try:
+        current_session = CurrentSession.objects.get(session_key=session_key)
+    except CurrentSession.DoesNotExist:
+        return Response(
+            {'error': 'Aucune session active trouvée'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Récupérer les données depuis la session (source de vérité)
+    session_data = current_session.session_data
+    current_roll = session_data.get('current_roll', {})
+    
+    # Données du rouleau depuis la session
+    roll_info = current_roll.get('info', {})
+    defects = current_roll.get('defects', [])
+    thickness_data = current_roll.get('thickness', {})
+    
+    # Status et destination depuis la requête (choix utilisateur au moment du save)
+    roll_status = request.data.get('status')
     destination = request.data.get('destination')
-    context = request.data.get('context', {})
+    
+    # Contexte depuis la session
+    context = {
+        'current_of': session_data.get('current_of'),
+        'cutting_of': session_data.get('cutting_of')
+    }
     
     # Validation des champs requis
     required_fields = ['roll_number', 'length', 'tube_mass', 'total_mass']
@@ -353,28 +434,23 @@ def save_roll(request):
         )
     
     try:
-        # Récupérer le shift_id depuis la session courante
-        shift_id = None
-        try:
-            current_session = CurrentSession.objects.get(session_key=session_key)
-            shift_id = current_session.session_data.get('shift_id')
-        except CurrentSession.DoesNotExist:
-            pass
+        # Récupérer le shift_id depuis la session déjà chargée
+        shift_id = session_data.get('shift_id')
         
         # 1. Générer l'ID du rouleau
-        roll_id = generate_roll_id_from_data(context, roll_info, status)
+        roll_id = generate_roll_id_from_data(context, roll_info, roll_status)
         
         # 2. Créer le rouleau
         roll = Roll.objects.create(
             roll_id=roll_id,
             session_key=session_key,
             shift_id_str=shift_id,  # Utiliser le shift_id de la session
-            fabrication_order_id=context.get('current_of') if status == 'CONFORME' else context.get('cutting_of'),
+            fabrication_order_id=context.get('current_of') if roll_status == 'CONFORME' else context.get('cutting_of'),
             roll_number=int(roll_info['roll_number']),
             length=float(roll_info['length']),
             tube_mass=float(roll_info['tube_mass']),
             total_mass=float(roll_info['total_mass']),
-            status=status,
+            status=roll_status,
             destination=destination,
             comment=roll_info.get('comment', '')
         )
@@ -468,8 +544,8 @@ def create_roll_defects(roll, defects_data):
         RollDefect.objects.create(
             roll=roll,
             defect_name=defect_name,
-            position_m=defect_dict.get('position_m', 0),
-            position_side=position_side
+            meter_position=defect_dict.get('position_m', 0),
+            side_position=position_side
         )
 
 
@@ -509,3 +585,40 @@ def check_shift_id(request, shift_id):
     """
     exists = Shift.objects.filter(shift_id=shift_id).exists()
     return Response({'exists': exists})
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])  # TODO: Mettre IsAuthenticated en production
+def check_roll_id(request, roll_id):
+    """
+    Vérifie si un roll_id existe déjà dans la base de données
+    
+    GET: Retourne {'exists': True/False}
+    """
+    exists = Roll.objects.filter(roll_id=roll_id).exists()
+    return Response({'exists': exists})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])  # TODO: Mettre IsAuthenticated en production
+def increment_mood(request):
+    """
+    Incrémente le compteur d'humeur
+    
+    POST: {mood: 'happy'|'unhappy'|'neutral'|'no_response'}
+    """
+    mood_type = request.data.get('mood', 'no_response')
+    
+    # Valider la valeur
+    valid_moods = ['happy', 'unhappy', 'neutral', 'no_response']
+    if mood_type not in valid_moods:
+        mood_type = 'no_response'
+    
+    # Incrémenter le compteur
+    counter = MoodCounter.increment(mood_type)
+    
+    return Response({
+        'mood': counter.mood_type,
+        'count': counter.count,
+        'all_counts': MoodCounter.get_all_counts()
+    })

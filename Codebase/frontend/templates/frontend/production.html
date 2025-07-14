@@ -705,6 +705,7 @@
 /* Supprimé l'effet de transparence sur le bloc replié */
 </style>
 
+
 <!-- Blocs Poste Précédent et Temporaire - Au-dessus de tout -->
 <div class="container-fluid mb-3">
     <div class="row">
@@ -1706,6 +1707,13 @@
                             <label class="fibrage-label">ID Rouleau</label>
                             <div class="fibrage-id-group" style="text-align: center;">
                                 <span class="fibrage-text" id="sticky-roll-id">--</span>
+                                <i class="bi bi-exclamation-triangle-fill" 
+                                   id="roll-id-warning" 
+                                   style="color: #ff9800; font-size: 0.9rem; display: none; cursor: help; margin-left: 6px;"
+                                   data-bs-toggle="tooltip" 
+                                   data-bs-placement="top" 
+                                   title="Un rouleau avec cet ID existe déjà">
+                                </i>
                             </div>
                         </div>
                         
@@ -2555,9 +2563,53 @@ function generateRollId() {
 // Fonction pour mettre à jour l'affichage de l'ID du rouleau
 function updateRollIdDisplay() {
     const rollIdElement = document.getElementById('sticky-roll-id');
+    const warningIcon = document.getElementById('roll-id-warning');
+    
     if (rollIdElement) {
         const rollId = generateRollId();
         rollIdElement.textContent = rollId;
+        
+        // Vérifier le statut du rouleau
+        const status = getRollStatus();
+        
+        // Vérifier si l'ID existe déjà (seulement pour les rouleaux CONFORME)
+        if (rollId && rollId !== '--' && status === 'CONFORME') {
+            fetch(`/livesession/api/check-roll-id/${encodeURIComponent(rollId)}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.exists) {
+                        // Afficher l'icône d'avertissement
+                        warningIcon.style.display = 'inline';
+                        // Initialiser le tooltip Bootstrap
+                        if (!warningIcon._tooltip) {
+                            new bootstrap.Tooltip(warningIcon);
+                        }
+                    } else {
+                        // Cacher l'icône d'avertissement
+                        warningIcon.style.display = 'none';
+                        // Détruire le tooltip s'il existe
+                        if (warningIcon._tooltip) {
+                            warningIcon._tooltip.dispose();
+                            warningIcon._tooltip = null;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la vérification du roll_id:', error);
+                    warningIcon.style.display = 'none';
+                });
+        } else {
+            // Cacher l'icône si pas d'ID valide ou si NON CONFORME
+            warningIcon.style.display = 'none';
+            // Détruire le tooltip s'il existe
+            if (warningIcon._tooltip) {
+                warningIcon._tooltip.dispose();
+                warningIcon._tooltip = null;
+            }
+        }
+        
+        // Mettre à jour le bouton d'action pour afficher le nouvel ID
+        updateActionButton(status);
     }
 }
 
@@ -4095,6 +4147,10 @@ function setChecklistValue(itemId, value) {
     updateFieldViaAPI('checklist_responses', checklistState).then(() => {
         // Puis mettre à jour l'état du champ signature (qui peut effacer la signature)
         updateSignatureFieldState();
+        // Vérifier si le bouton Save Poste peut être activé
+        if (typeof checkSaveShiftButtonState === 'function') {
+            checkSaveShiftButtonState();
+        }
     });
 }
 
@@ -4163,8 +4219,18 @@ function updateSignatureFieldState() {
         console.log('Effacement de la signature car pas tous les items cochés');
         // Petit délai pour s'assurer que l'effacement se fait après les autres updates
         setTimeout(() => {
-            updateFieldViaAPI('checklist_signature', null);
+            updateFieldViaAPI('checklist_signature', null).then(() => {
+                // Vérifier l'état du bouton Save Poste
+                if (typeof checkSaveShiftButtonState === 'function') {
+                    checkSaveShiftButtonState();
+                }
+            });
         }, 100);
+    }
+    
+    // Vérifier l'état du bouton Save Poste dans tous les cas
+    if (typeof checkSaveShiftButtonState === 'function') {
+        checkSaveShiftButtonState();
     }
 }
 
@@ -4218,6 +4284,11 @@ function validateSignature() {
         updateFieldViaAPI('checklist_signature', {
             signature: signature,
             time: new Date().toISOString()
+        }).then(() => {
+            // Vérifier l'état du bouton Save Poste
+            if (typeof checkSaveShiftButtonState === 'function') {
+                checkSaveShiftButtonState();
+            }
         });
     } else {
         signatureField.classList.remove('is-valid');
@@ -4231,6 +4302,11 @@ function validateSignature() {
             signature: signature,
             time: null,
             invalid: true
+        }).then(() => {
+            // Vérifier l'état du bouton Save Poste
+            if (typeof checkSaveShiftButtonState === 'function') {
+                checkSaveShiftButtonState();
+            }
         });
     }
 }
@@ -4662,13 +4738,17 @@ function updateActionButton(status) {
         actionBtn.disabled = true;
     } else {
         // CONFORME : bouton "Sauvegarder" - besoin de toutes les épaisseurs
+        // Récupérer l'ID du rouleau
+        const rollIdElement = document.getElementById('sticky-roll-id');
+        const rollId = rollIdElement ? rollIdElement.textContent : '--';
+        
         if (filledThicknessCount < 6) {
-            actionBtn.innerHTML = '<i class="bi bi-save"></i> Sauvegarder';
+            actionBtn.innerHTML = `<i class="bi bi-save"></i> Save Rouleau ${rollId}`;
             actionBtn.className = 'btn btn-secondary btn-sm fibrage-action-btn';
             actionBtn.disabled = true;
             actionBtn.title = `${filledThicknessCount}/6 épaisseurs minimum`;
         } else {
-            actionBtn.innerHTML = '<i class="bi bi-save"></i> Sauvegarder';
+            actionBtn.innerHTML = `<i class="bi bi-save"></i> Save Rouleau ${rollId}`;
             actionBtn.className = 'btn btn-success btn-sm fibrage-action-btn';
             actionBtn.title = '';
         }
@@ -4702,6 +4782,7 @@ function getCurrentSession() {
     .then(response => response.json());
 }
 
+
 // Fonction pour sauvegarder le rouleau
 function saveRoll(destination, comment = '') {
     // Vérifier qu'on a bien les données minimales
@@ -4721,14 +4802,40 @@ function saveRoll(destination, comment = '') {
         return;
     }
     
-    // Demander confirmation
     const statusText = status === 'NON_CONFORME' ? 'NON CONFORME' : 'CONFORME';
-    const confirmMessage = `Êtes-vous sûr de vouloir sauvegarder le rouleau ${rollNumber} (${statusText}) de ${length}m ?`;
     
-    if (!confirm(confirmMessage)) {
-        return;
-    }
+    // Calculer la masse nette et le grammage
+    const tubeMass = parseFloat(document.getElementById('sticky-tube-mass')?.value) || 0;
+    const netMass = totalMass - tubeMass;
+    const grammage = length > 0 ? netMass / length : 0;
     
+    // Récupérer l'OF depuis la session
+    getCurrentSession().then(sessionData => {
+        const currentOF = sessionData.current_of || sessionData.cutting_of || null;
+        
+        // Générer l'ID du rouleau (format provisoire, sera remplacé par le vrai ID)
+        const date = new Date();
+        const dateStr = date.getDate().toString().padStart(2, '0') + 
+                       (date.getMonth() + 1).toString().padStart(2, '0') + 
+                       date.getFullYear().toString().substr(2, 2);
+        const rollId = `${dateStr}_${currentOF || '000'}_${rollNumber}`;
+        
+        // Afficher la modal de sauvegarde
+        showRollSaveModal({
+            id: rollId,
+            length: `${length} m`,
+            netMass: `${Math.round(netMass)} g`,
+            grammage: `${Math.round(grammage)} g/m²`,
+            status: statusText
+        }, () => {
+            // Continuer avec la sauvegarde
+            proceedWithRollSave(status, destination, rollNumber, length, totalMass, comment);
+        });
+    });
+}
+
+// Nouvelle fonction pour effectuer la sauvegarde après confirmation
+function proceedWithRollSave(status, destination, rollNumber, length, totalMass, comment) {
     // Collecter TOUTES les données du rouleau
     const tubeMass = document.getElementById('sticky-tube-mass')?.value;
     
@@ -4791,28 +4898,11 @@ function saveRoll(destination, comment = '') {
     
     // Récupérer le contexte depuis la session
     getCurrentSession().then(sessionData => {
-        // Préparer TOUTES les données du rouleau
+        // Envoyer seulement le status et la destination
+        // Toutes les autres données sont déjà dans CurrentSession
         const rollData = {
-            // Informations de base
-            roll_info: rollInfo,
-            
-            // Défauts
-            defects: defects,
-            
-            // Épaisseurs
-            thickness: thickness,
-            
-            // Statut et destination
             status: status,
-            destination: destination,
-            
-            // Contexte nécessaire pour le backend
-            context: {
-                current_of: sessionData.current_of || null,
-                cutting_of: sessionData.cutting_of || null,
-                shift_id: sessionData.shift_id || null,
-                quality_controls: sessionData.quality_controls || {}
-            }
+            destination: destination
         };
         
         // Sauvegarder via l'API
@@ -4828,7 +4918,12 @@ function saveRoll(destination, comment = '') {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Rouleau sauvegardé avec succès !');
+                // Afficher le succès dans la modal
+                showRollSaveSuccess({
+                    roll_id: data.roll_id,
+                    status: data.status,
+                    destination: data.destination
+                });
             
             // Effacer les données du rouleau actuel
             clearRollData();
@@ -4852,11 +4947,19 @@ function saveRoll(destination, comment = '') {
             // Mettre à jour l'ID du rouleau
             updateRollIdDisplay();
         } else {
+            // Fermer la modal en cas d'erreur
+            if (window.rollSaveModalBS) {
+                window.rollSaveModalBS.hide();
+            }
             alert('Erreur lors de la sauvegarde : ' + (data.error || 'Erreur inconnue'));
         }
         })
         .catch(error => {
             console.error('Erreur:', error);
+            // Fermer la modal en cas d'erreur
+            if (window.rollSaveModalBS) {
+                window.rollSaveModalBS.hide();
+            }
             alert('Erreur lors de la sauvegarde du rouleau');
         });
     });
@@ -5096,6 +5199,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     updateChecklistButtons(itemId);
                 });
                 updateSignatureFieldState();
+                // Vérifier l'état du bouton Save Poste
+                if (typeof checkSaveShiftButtonState === 'function') {
+                    checkSaveShiftButtonState();
+                }
             }
             
             // 10. Restaurer les contrôles qualité
@@ -5426,7 +5533,7 @@ let qualityControlTimeout = null;
 
 // Fonction appelée quand on change un micronnaire
 function calculateMicronnaireAverage() {
-    // Calculer la moyenne gauche
+    // Calculer la moyenne gauche (minimum 2 valeurs pour afficher la moyenne)
     const leftInputs = document.querySelectorAll('.micronnaire-left');
     const leftValues = Array.from(leftInputs)
         .map(input => parseFloat(input.value))
@@ -5434,7 +5541,7 @@ function calculateMicronnaireAverage() {
     
     const leftAvgElement = document.getElementById('micronnaire-left-avg');
     const leftTrendElement = document.getElementById('micronnaire-left-trend');
-    if (leftValues.length > 0) {
+    if (leftValues.length >= 2) {  // Changé de > 0 à >= 2
         const leftAvg = (leftValues.reduce((sum, val) => sum + val, 0) / leftValues.length).toFixed(2);
         leftAvgElement.textContent = leftAvg;
         applyMicrometerColor(leftAvgElement, leftAvg);
@@ -5447,7 +5554,7 @@ function calculateMicronnaireAverage() {
         if (leftTrendElement) leftTrendElement.style.display = 'none';
     }
     
-    // Calculer la moyenne droite
+    // Calculer la moyenne droite (minimum 2 valeurs pour afficher la moyenne)
     const rightInputs = document.querySelectorAll('.micronnaire-right');
     const rightValues = Array.from(rightInputs)
         .map(input => parseFloat(input.value))
@@ -5455,7 +5562,7 @@ function calculateMicronnaireAverage() {
     
     const rightAvgElement = document.getElementById('micronnaire-right-avg');
     const rightTrendElement = document.getElementById('micronnaire-right-trend');
-    if (rightValues.length > 0) {
+    if (rightValues.length >= 2) {  // Changé de > 0 à >= 2
         const rightAvg = (rightValues.reduce((sum, val) => sum + val, 0) / rightValues.length).toFixed(2);
         rightAvgElement.textContent = rightAvg;
         applyMicrometerColor(rightAvgElement, rightAvg);
@@ -5474,7 +5581,7 @@ function calculateMicronnaireAverage() {
 
 // Fonction appelée quand on change une masse surfacique
 function calculateSurfaceMassAverage() {
-    // Calculer la moyenne gauche (GG + GC)
+    // Calculer la moyenne gauche (GG + GC) - minimum 2 valeurs
     const ggInput = document.getElementById('gg-input');
     const gcInput = document.getElementById('gc-input');
     const leftValues = [];
@@ -5490,7 +5597,7 @@ function calculateSurfaceMassAverage() {
     
     const leftAvgElement = document.getElementById('surface-mass-left-avg');
     const leftTrendElement = document.getElementById('surface-mass-left-trend');
-    if (leftValues.length > 0) {
+    if (leftValues.length >= 2) {  // Changé de > 0 à >= 2
         const leftAvg = (leftValues.reduce((sum, val) => sum + val, 0) / leftValues.length).toFixed(4);
         leftAvgElement.textContent = leftAvg;
         applySurfaceMassColor(leftAvgElement, leftAvg);
@@ -5503,7 +5610,7 @@ function calculateSurfaceMassAverage() {
         if (leftTrendElement) leftTrendElement.style.display = 'none';
     }
     
-    // Calculer la moyenne droite (DC + DD)
+    // Calculer la moyenne droite (DC + DD) - minimum 2 valeurs
     const dcInput = document.getElementById('dc-input');
     const ddInput = document.getElementById('dd-input');
     const rightValues = [];
@@ -5519,7 +5626,7 @@ function calculateSurfaceMassAverage() {
     
     const rightAvgElement = document.getElementById('surface-mass-right-avg');
     const rightTrendElement = document.getElementById('surface-mass-right-trend');
-    if (rightValues.length > 0) {
+    if (rightValues.length >= 2) {  // Changé de > 0 à >= 2
         const rightAvg = (rightValues.reduce((sum, val) => sum + val, 0) / rightValues.length).toFixed(4);
         rightAvgElement.textContent = rightAvg;
         applySurfaceMassColor(rightAvgElement, rightAvg);
@@ -5829,6 +5936,11 @@ function saveQualityControlsToSession() {
     
     // Vérifier le statut des contrôles qualité
     checkQualityControlsStatus();
+    
+    // Vérifier si le bouton Save Poste peut être activé
+    if (typeof checkSaveShiftButtonState === 'function') {
+        checkSaveShiftButtonState();
+    }
 }
 
 // Fonction pour mettre à jour l'heure de l'extrait sec
@@ -5868,80 +5980,135 @@ function updateLoiTime(checked) {
 // Fonction pour vérifier si les contrôles qualité sont conformes
 function checkQualityControlsConformity() {
     let isConform = true;
-    let hasRequiredControls = false;
+    let errors = [];
     
-    // 1. Vérifier l'extrait sec
+    // Pour être conforme, il faut TOUS ces contrôles :
+    // 1. Extrait sec
+    // 2. Moyennes micronnaires gauche ET droite (avec au moins 2 valeurs chacune)
+    // 3. Moyennes masses surfaciques gauche ET droite (avec au moins 2 valeurs chacune)
+    // 4. LOI donnée
+    
+    // 1. Vérifier l'extrait sec (OBLIGATOIRE)
     const extraitSecInput = document.getElementById('sizing-bath-input');
-    if (extraitSecInput && extraitSecInput.value) {
-        hasRequiredControls = true;
+    if (!extraitSecInput || !extraitSecInput.value) {
+        isConform = false;
+        errors.push('Extrait sec manquant');
+    } else {
         const value = parseFloat(extraitSecInput.value);
         if (dryExtractSpecs && !isNaN(value)) {
             if ((dryExtractSpecs.value_min && value < dryExtractSpecs.value_min) ||
                 (dryExtractSpecs.value_max && value > dryExtractSpecs.value_max)) {
                 isConform = false;
+                errors.push('Extrait sec hors spec');
             }
         }
     }
     
-    // 2. Vérifier les moyennes micronnaire gauche et droite
-    const leftMicronnaireAvg = document.getElementById('micronnaire-left-avg');
-    const rightMicronnaireAvg = document.getElementById('micronnaire-right-avg');
+    // 2. Vérifier les moyennes micronnaires (OBLIGATOIRE d'avoir les 2 moyennes)
+    // Gauche
+    const leftInputs = document.querySelectorAll('.micronnaire-left');
+    const leftValues = Array.from(leftInputs)
+        .map(input => parseFloat(input.value))
+        .filter(val => !isNaN(val));
     
-    if (leftMicronnaireAvg && leftMicronnaireAvg.textContent !== '--') {
-        hasRequiredControls = true;
-        const value = parseFloat(leftMicronnaireAvg.textContent);
-        if (micrometerSpecs && !isNaN(value)) {
-            if ((micrometerSpecs.value_min && value < micrometerSpecs.value_min) ||
-                (micrometerSpecs.value_max && value > micrometerSpecs.value_max)) {
-                isConform = false;
-            }
-        }
-    }
-    
-    if (rightMicronnaireAvg && rightMicronnaireAvg.textContent !== '--') {
-        hasRequiredControls = true;
-        const value = parseFloat(rightMicronnaireAvg.textContent);
-        if (micrometerSpecs && !isNaN(value)) {
-            if ((micrometerSpecs.value_min && value < micrometerSpecs.value_min) ||
-                (micrometerSpecs.value_max && value > micrometerSpecs.value_max)) {
-                isConform = false;
-            }
-        }
-    }
-    
-    // 3. Vérifier les moyennes masse surfacique gauche et droite (g/25cm²)
-    const leftMassAvg = document.getElementById('surface-mass-left-avg');
-    const rightMassAvg = document.getElementById('surface-mass-right-avg');
-    
-    if (leftMassAvg && leftMassAvg.textContent !== '--') {
-        hasRequiredControls = true;
-        const value = parseFloat(leftMassAvg.textContent);
-        if (surfaceMass25Specs && !isNaN(value)) {
-            if ((surfaceMass25Specs.value_min && value < surfaceMass25Specs.value_min) ||
-                (surfaceMass25Specs.value_max && value > surfaceMass25Specs.value_max)) {
-                isConform = false;
-            }
-        }
-    }
-    
-    if (rightMassAvg && rightMassAvg.textContent !== '--') {
-        hasRequiredControls = true;
-        const value = parseFloat(rightMassAvg.textContent);
-        if (surfaceMass25Specs && !isNaN(value)) {
-            if ((surfaceMass25Specs.value_min && value < surfaceMass25Specs.value_min) ||
-                (surfaceMass25Specs.value_max && value > surfaceMass25Specs.value_max)) {
-                isConform = false;
-            }
-        }
-    }
-    
-    // 4. Vérifier que LOI est donné
-    const loiSwitch = document.getElementById('loiSwitch');
-    if (loiSwitch && !loiSwitch.checked) {
+    if (leftValues.length < 2) {
         isConform = false;
+        errors.push('Micronnaire gauche: minimum 2 valeurs requises');
+    } else {
+        const leftAvg = leftValues.reduce((sum, val) => sum + val, 0) / leftValues.length;
+        if (micrometerSpecs) {
+            if ((micrometerSpecs.value_min && leftAvg < micrometerSpecs.value_min) ||
+                (micrometerSpecs.value_max && leftAvg > micrometerSpecs.value_max)) {
+                isConform = false;
+                errors.push('Moyenne micronnaire gauche hors spec');
+            }
+        }
     }
     
-    return { isConform, hasRequiredControls };
+    // Droite
+    const rightInputs = document.querySelectorAll('.micronnaire-right');
+    const rightValues = Array.from(rightInputs)
+        .map(input => parseFloat(input.value))
+        .filter(val => !isNaN(val));
+    
+    if (rightValues.length < 2) {
+        isConform = false;
+        errors.push('Micronnaire droite: minimum 2 valeurs requises');
+    } else {
+        const rightAvg = rightValues.reduce((sum, val) => sum + val, 0) / rightValues.length;
+        if (micrometerSpecs) {
+            if ((micrometerSpecs.value_min && rightAvg < micrometerSpecs.value_min) ||
+                (micrometerSpecs.value_max && rightAvg > micrometerSpecs.value_max)) {
+                isConform = false;
+                errors.push('Moyenne micronnaire droite hors spec');
+            }
+        }
+    }
+    
+    
+    // 3. Vérifier les moyennes masses surfaciques (OBLIGATOIRE d'avoir les 2 moyennes)
+    // Gauche (GG + GC)
+    const ggInput = document.getElementById('gg-input');
+    const gcInput = document.getElementById('gc-input');
+    const leftSurfaceValues = [];
+    if (ggInput && ggInput.value) leftSurfaceValues.push(parseFloat(ggInput.value));
+    if (gcInput && gcInput.value) leftSurfaceValues.push(parseFloat(gcInput.value));
+    
+    if (leftSurfaceValues.length < 2) {
+        isConform = false;
+        errors.push('Masse surfacique gauche: minimum 2 valeurs requises (GG et GC)');
+    } else {
+        const leftSurfaceAvg = leftSurfaceValues.reduce((sum, val) => sum + val, 0) / leftSurfaceValues.length;
+        if (surfaceMass25Specs) {
+            if ((surfaceMass25Specs.value_min && leftSurfaceAvg < surfaceMass25Specs.value_min) ||
+                (surfaceMass25Specs.value_max && leftSurfaceAvg > surfaceMass25Specs.value_max)) {
+                isConform = false;
+                errors.push('Moyenne masse surfacique gauche hors spec');
+            }
+        }
+    }
+    
+    // Droite (DC + DD)
+    const dcInput = document.getElementById('dc-input');
+    const ddInput = document.getElementById('dd-input');
+    const rightSurfaceValues = [];
+    if (dcInput && dcInput.value) rightSurfaceValues.push(parseFloat(dcInput.value));
+    if (ddInput && ddInput.value) rightSurfaceValues.push(parseFloat(ddInput.value));
+    
+    if (rightSurfaceValues.length < 2) {
+        isConform = false;
+        errors.push('Masse surfacique droite: minimum 2 valeurs requises (DC et DD)');
+    } else {
+        const rightSurfaceAvg = rightSurfaceValues.reduce((sum, val) => sum + val, 0) / rightSurfaceValues.length;
+        if (surfaceMass25Specs) {
+            if ((surfaceMass25Specs.value_min && rightSurfaceAvg < surfaceMass25Specs.value_min) ||
+                (surfaceMass25Specs.value_max && rightSurfaceAvg > surfaceMass25Specs.value_max)) {
+                isConform = false;
+                errors.push('Moyenne masse surfacique droite hors spec');
+            }
+        }
+    }
+    
+    // 4. LOI doit être donnée (OBLIGATOIRE)
+    const loiSwitch = document.getElementById('loiSwitch');
+    if (!loiSwitch || !loiSwitch.checked) {
+        isConform = false;
+        errors.push('LOI non donnée');
+    }
+    
+    // Pour le debug
+    if (errors.length > 0) {
+        console.log('Contrôles qualité non conformes:', errors);
+    }
+    
+    // hasRequiredControls est vrai seulement si on a au moins essayé de remplir quelque chose
+    const hasRequiredControls = extraitSecInput?.value || 
+                                leftValues.length > 0 || 
+                                rightValues.length > 0 || 
+                                leftSurfaceValues.length > 0 || 
+                                rightSurfaceValues.length > 0;
+    
+    return { isConform, hasRequiredControls, errors };
 }
 
 // Fonction pour vérifier si les contrôles qualité sont remplis
@@ -5975,6 +6142,7 @@ function checkQualityControlsStatus() {
         }
     }
 }
+
 
 // Fonction pour effacer tous les contrôles qualité
 function clearQualityControls() {
@@ -6481,8 +6649,9 @@ window.fillRandomThickness = function() {
 }
 
 
+/* OBSOLETE - Utiliser la fonction confirmSaveShift de shift_block.html
 // Fonction pour confirmer et sauvegarder le shift
-function confirmSaveShift() {
+function confirmSaveShift_OLD() {
     // Validation des données requises
     if (!validateShiftData()) {
         return;
@@ -6509,7 +6678,7 @@ function confirmSaveShift() {
         hideLoader();
         
         if (data.error) {
-            showError(data.error);
+            alert(data.error);
             return;
         }
         
@@ -6522,11 +6691,12 @@ function confirmSaveShift() {
     .catch(error => {
         hideLoader();
         console.error('Erreur:', error);
-        showError('Erreur lors de l\'enregistrement du poste');
+        alert('Erreur lors de l\'enregistrement du poste');
     });
 }
+*/
 
-
+/* OBSOLETE - La validation se fait via checkSaveShiftButtonState()
 // Fonction pour valider les données du shift avant sauvegarde
 function validateShiftData() {
     // Vérifier les champs obligatoires
@@ -6560,12 +6730,13 @@ function validateShiftData() {
     }
     
     if (missingFields.length > 0) {
-        showError(`Veuillez remplir les champs obligatoires :\n- ${missingFields.join('\n- ')}`);
+        alert(`Veuillez remplir les champs obligatoires :\n- ${missingFields.join('\n- ')}`);
         return false;
     }
     
     return true;
 }
+*/
 
 
 // Fonction pour mettre à jour toute l'interface après sauvegarde
@@ -6688,10 +6859,156 @@ function clearRollData() {
     updateSummaries();
 }
 
+// Fonction pour remplir la checklist aléatoirement et la signer
+window.fillChecklistRandomly = function() {
+    console.log('fillChecklistRandomly appelée');
+    
+    // Récupérer tous les items de la checklist
+    const checklistItems = document.querySelectorAll('.checklist-item');
+    
+    if (checklistItems.length === 0) {
+        console.log('Aucun item de checklist trouvé');
+        return;
+    }
+    
+    // Pour chaque item, sélectionner aléatoirement OK, NA ou NOK
+    checklistItems.forEach((item) => {
+        const buttons = item.querySelectorAll('.checklist-btn');
+        if (buttons.length > 0) {
+            // Récupérer l'itemId depuis le premier bouton
+            const itemId = buttons[0].getAttribute('data-item');
+            
+            // 80% de chance d'avoir OK, 15% NA, 5% NOK
+            const random = Math.random();
+            let valueToSelect;
+            if (random < 0.8) {
+                valueToSelect = 'ok';
+            } else if (random < 0.95) {
+                valueToSelect = 'na';
+            } else {
+                valueToSelect = 'nok';
+            }
+            
+            // Définir directement la valeur dans checklistState pour éviter le toggle
+            checklistState[itemId] = valueToSelect;
+            
+            // Mettre à jour l'affichage
+            updateChecklistButtons(itemId);
+        }
+    });
+    
+    // Sauvegarder l'état complet de la checklist
+    updateFieldViaAPI('checklist_responses', checklistState).then(() => {
+        // Mettre à jour l'état du champ signature
+        updateSignatureFieldState();
+        
+        // Attendre un peu que tous les états soient mis à jour
+        setTimeout(() => {
+            // Vérifier si tous les items sont remplis
+            const totalItems = checklistItems.length;
+            const checkedItems = Object.keys(checklistState).length;
+            
+            if (checkedItems === totalItems) {
+                // Récupérer l'opérateur sélectionné pour générer les initiales
+                const operatorSelect = document.getElementById('id_operator');
+                const signatureField = document.getElementById('operator-signature');
+                
+                if (operatorSelect && signatureField && operatorSelect.value) {
+                    const selectedOption = operatorSelect.options[operatorSelect.selectedIndex];
+                    if (selectedOption && selectedOption.text) {
+                        // Extraire les initiales
+                        const operatorName = selectedOption.text;
+                        const nameParts = operatorName.split(' ');
+                        let initials = '';
+                        
+                        if (nameParts.length >= 2) {
+                            // Format: Prénom Nom -> PN
+                            initials = nameParts[0].charAt(0).toUpperCase() + nameParts[1].charAt(0).toUpperCase();
+                        } else if (nameParts.length === 1) {
+                            // Un seul nom, prendre les deux premières lettres
+                            initials = nameParts[0].substring(0, 2).toUpperCase();
+                        }
+                        
+                        // Remplir le champ signature
+                        signatureField.value = initials;
+                        
+                        // Déclencher la validation
+                        validateSignature();
+                        
+                        console.log(`Checklist remplie et signée avec: ${initials}`);
+                    }
+                } else {
+                    console.log('Pas d\'opérateur sélectionné pour signer');
+                }
+            }
+        }, 500);
+    });
+}
+
+// Fonction pour effacer tous les champs (Clear ALL)
+window.clearAllFields = function() {
+    if (!confirm('Êtes-vous sûr de vouloir effacer TOUS les champs ?')) {
+        return;
+    }
+    
+    // Effacer les champs du shift
+    document.getElementById('id_operator').value = '';
+    document.getElementById('id_date').value = '';
+    document.getElementById('id_vacation').value = '';
+    document.getElementById('id_start_time').value = '';
+    document.getElementById('id_end_time').value = '';
+    document.getElementById('id_started_at_beginning').checked = false;
+    document.getElementById('id_started_at_end').checked = false;
+    document.getElementById('id_meter_reading_start').value = '';
+    document.getElementById('id_meter_reading_end').value = '';
+    document.getElementById('id_operator_comments').value = '';
+    
+    // Effacer les temps perdus
+    lostTimeEntries = [];
+    updateLostTimeDisplay();
+    
+    // Effacer la checklist
+    checklistState = {};
+    document.querySelectorAll('.checklist-btn').forEach(btn => {
+        btn.classList.remove('btn-success', 'btn-secondary', 'btn-danger');
+        btn.classList.add('btn-outline-success', 'btn-outline-secondary', 'btn-outline-danger');
+    });
+    document.getElementById('operator-signature').value = '';
+    document.getElementById('signature-time').textContent = '--';
+    
+    // Effacer les contrôles qualité
+    clearQualityControls();
+    
+    // Effacer les données du rouleau
+    window.clearAllThickness();
+    
+    // Effacer les OF
+    document.getElementById('current-order').value = '';
+    document.getElementById('cutting-order').value = '';
+    document.getElementById('target-length').value = '';
+    
+    // Réinitialiser la session côté serveur
+    fetch('/livesession/api/current-session/', {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    }).then(() => {
+        console.log('Session réinitialisée');
+        // Recharger la page pour avoir un état propre
+        window.location.reload();
+    });
+}
 
 </script>
 
 <!-- API DRF pour la gestion du shift -->
 <script src="{% static 'js/shift-api.js' %}"></script>
+
+<!-- Modal de sauvegarde rouleau -->
+{% include 'frontend/components/roll_save_modal.html' %}
+
+<!-- Modal de sauvegarde poste -->
+{% include 'frontend/components/shift_save_modal.html' %}
 
 {% endblock %}

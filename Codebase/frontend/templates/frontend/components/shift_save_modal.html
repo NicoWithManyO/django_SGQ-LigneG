@@ -1,0 +1,626 @@
+<!-- Modal de sauvegarde de poste -->
+<div class="modal fade" id="shiftSaveModal" tabindex="-1" aria-labelledby="shiftSaveModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <!-- Header avec croix de fermeture -->
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title w-100 text-center">Sauvegarder le poste</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <!-- Block 1: Icône et message -->
+            <div class="modal-body text-center pt-0 pb-2">
+                
+                <!-- Container pour l'icône/animation -->
+                <div class="icon-container mb-3" style="height: 80px;">
+                    <!-- Point d'interrogation initial -->
+                    <div id="shiftQuestionIcon">
+                        <i class="bi bi-question-circle text-primary" style="font-size: 4rem;"></i>
+                    </div>
+                    
+                    <!-- Animation de succès (cachée) -->
+                    <div id="shiftSuccessAnimation" style="display: none;">
+                        <div class="success-checkmark">
+                            <div class="check-icon">
+                                <span class="icon-line line-tip"></span>
+                                <span class="icon-line line-long"></span>
+                                <div class="icon-circle"></div>
+                                <div class="icon-fix"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="fs-5 mb-0" id="shiftConfirmMessage">Confirmez-vous la sauvegarde du poste ?</p>
+            </div>
+            
+            <!-- Block 2: ID et Durée -->
+            <div class="modal-body pt-2 pb-1">
+                <div class="card border-0 bg-light mx-3">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">ID Poste :</span>
+                            <span class="fw-bold" id="shiftDetailsID">--</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Durée :</span>
+                            <span class="fw-bold" id="shiftDetailsDuration">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Block 3: Cards métriques -->
+            <div class="modal-body pt-1 pb-1">
+                <div class="row g-2 mx-2">
+                    <div class="col-6">
+                        <div class="metric-card text-center p-2">
+                            <div class="metric-value" id="metricRendement">--</div>
+                            <div class="metric-label">Rendement</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-card text-center p-2">
+                            <div class="metric-value" id="metricTauxOK">--</div>
+                            <div class="metric-label">Taux de OK</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-card text-center p-2">
+                            <div class="metric-value" id="metricLongueurOK">--</div>
+                            <div class="metric-label">Longueur OK</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-card text-center p-2">
+                            <div class="metric-value" id="metricTO">--</div>
+                            <div class="metric-label">TO</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Block 4: Sélecteur de moral -->
+            <div class="modal-body pt-1 pb-2">
+                <div class="text-center">
+                    <p class="text-muted mb-2" style="font-size: 0.875rem;">MoOoOOoOOoooOd de fin de poste :</p>
+                    <div class="mood-selector d-flex justify-content-center gap-3">
+                        <button type="button" class="mood-btn" data-mood="sad">
+                            <i class="bi bi-emoji-frown" style="font-size: 2.5rem; color: #dc3545;"></i>
+                        </button>
+                        <button type="button" class="mood-btn" data-mood="neutral">
+                            <i class="bi bi-emoji-neutral" style="font-size: 2.5rem; color: #ffc107;"></i>
+                        </button>
+                        <button type="button" class="mood-btn" data-mood="happy">
+                            <i class="bi bi-emoji-smile" style="font-size: 2.5rem; color: #28a745;"></i>
+                        </button>
+                    </div>
+                    <p class="text-muted mt-2" style="font-size: 0.7rem; font-style: italic;">Information anonyme</p>
+                </div>
+            </div>
+            
+            <!-- Block 5: Container avec hauteur fixe pour boutons OU message -->
+            <div style="height: 80px; position: relative;">
+                <!-- Boutons -->
+                <div class="modal-footer border-0 justify-content-center position-absolute w-100" id="shiftModalButtons" style="height: 80px;">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Annuler
+                    </button>
+                    <button type="button" class="btn btn-primary px-4" id="saveShiftBtn">
+                        <i class="bi bi-check-circle me-2"></i>Sauvegarder
+                    </button>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Réutiliser les mêmes styles que pour la modal de rouleau */
+#shiftSaveModal .modal-content {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+}
+
+#shiftSaveModal .modal-content::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent,
+        rgba(13, 110, 253, 0.05),
+        transparent,
+        rgba(13, 110, 253, 0.05)
+    );
+    animation: gradientShift 8s ease-in-out infinite;
+    z-index: -1;
+}
+
+#shiftSaveModal .modal-dialog {
+    animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#shiftSaveModal .modal-header {
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.05) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(13, 110, 253, 0.1);
+    padding: 1.5rem;
+}
+
+#shiftSaveModal .modal-title {
+    font-weight: 600;
+    background: linear-gradient(135deg, #212529 0%, #495057 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    position: relative;
+}
+
+#shiftSaveModal .card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(13, 110, 253, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+#shiftSaveModal .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(13, 110, 253, 0.15);
+    border-color: rgba(13, 110, 253, 0.2);
+}
+
+#shiftQuestionIcon {
+    animation: iconPulse 2s ease-in-out infinite;
+}
+
+#shiftSuccessAnimation {
+    animation: successBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+#shiftModalButtons {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#shiftSaveModal .btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.5rem 1.5rem;
+}
+
+#shiftSaveModal .btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+#shiftSaveModal .btn:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+#shiftSaveModal .btn-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    border: none;
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+#shiftSaveModal .btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+}
+
+#shiftSaveModal .btn-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+#shiftSaveModal .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+}
+
+/* Transitions fluides */
+#shiftQuestionIcon, #shiftSuccessAnimation {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Effet de particules */
+#shiftSaveModal .modal-body {
+    position: relative;
+}
+
+#shiftSaveModal .text-muted {
+    position: relative;
+    font-size: 0.875rem;
+}
+
+/* Feux d'artifice multicolores */
+.fireworks-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1000;
+}
+
+.firework-particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+@keyframes fireworkBurst {
+    0% {
+        transform: translate(0, 0) scale(0);
+        opacity: 1;
+    }
+    10% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--fx), var(--fy)) scale(0.2);
+        opacity: 0;
+    }
+}
+
+.firework-particle.burst {
+    animation: fireworkBurst 1.5s ease-out forwards;
+}
+
+/* Cards métriques */
+.metric-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 249, 250, 0.9) 100%);
+    border: 1px solid rgba(13, 110, 253, 0.1);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.1);
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0d6efd;
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Sélecteur de moral */
+.mood-btn {
+    background: none;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 8px 20px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.mood-btn:hover {
+    transform: scale(1.05);
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+}
+
+.mood-btn.selected {
+    border-color: currentColor;
+    background: rgba(0, 0, 0, 0.05);
+    transform: scale(1.05);
+    border-radius: 8px;
+}
+
+.mood-btn[data-mood="happy"].selected {
+    border-color: #28a745;
+}
+
+.mood-btn[data-mood="neutral"].selected {
+    border-color: #ffc107;
+}
+
+.mood-btn[data-mood="sad"].selected {
+    border-color: #dc3545;
+}
+</style>
+
+<script>
+// Variables globales pour la modal de poste
+let shiftSaveCallback = null;
+window.shiftSaveModalBS = null;
+window.selectedMood = null;  // Rendre accessible globalement
+let fireworksInterval = null;
+let shouldReloadOnClose = false;
+
+// Fonction pour afficher la modal de sauvegarde du poste
+window.showShiftSaveModal = function(shiftData, onConfirm) {
+    const modal = document.getElementById('shiftSaveModal');
+    window.shiftSaveModalBS = new bootstrap.Modal(modal);
+    shiftSaveCallback = onConfirm;
+    shouldReloadOnClose = false; // Réinitialiser
+    
+    // Réinitialiser l'état
+    document.getElementById('shiftQuestionIcon').style.display = 'block';
+    document.getElementById('shiftSuccessAnimation').style.display = 'none';
+    document.getElementById('shiftConfirmMessage').textContent = 'Confirmez-vous la sauvegarde du poste ?';
+    document.getElementById('shiftModalButtons').classList.remove('hiding');
+    document.getElementById('shiftModalButtons').style.display = 'flex';
+    document.getElementById('saveShiftBtn').disabled = false;
+    document.getElementById('saveShiftBtn').innerHTML = '<i class="bi bi-check-circle me-2"></i>Sauvegarder';
+    
+    // Remplir les détails de base
+    document.getElementById('shiftDetailsID').textContent = shiftData.id || '--';
+    document.getElementById('shiftDetailsDuration').textContent = shiftData.duration || '--';
+    
+    // Remplir les métriques
+    document.getElementById('metricRendement').textContent = shiftData.rendement || '--';
+    document.getElementById('metricTauxOK').textContent = shiftData.tauxOK || '--';
+    document.getElementById('metricLongueurOK').textContent = shiftData.longueurOK || '--';
+    document.getElementById('metricTO').textContent = shiftData.to || '--';
+    
+    // Réinitialiser la sélection du moral
+    window.selectedMood = null;
+    document.querySelectorAll('.mood-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    
+    // Afficher la modal
+    window.shiftSaveModalBS.show();
+}
+
+// Gestionnaire pour la sélection du moral
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.mood-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Si ce bouton est déjà sélectionné, le désélectionner
+            if (this.classList.contains('selected')) {
+                this.classList.remove('selected');
+                window.selectedMood = null;
+            } else {
+                // Retirer la sélection des autres boutons
+                document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+                
+                // Ajouter la sélection sur ce bouton
+                this.classList.add('selected');
+                window.selectedMood = this.dataset.mood;
+            }
+        });
+    });
+});
+
+// Fonction pour créer des feux d'artifice multicolores
+function createFireworks(container) {
+    const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#ff1493', '#00fa9a', '#ff69b4'];
+    
+    // Créer un burst de particules
+    const burstX = Math.random() * container.offsetWidth;
+    const burstY = Math.random() * container.offsetHeight;
+    
+    // Créer 12-20 particules par burst
+    const particleCount = 12 + Math.floor(Math.random() * 8);
+    
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'firework-particle burst';
+        
+        // Couleur aléatoire
+        particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        // Position initiale
+        particle.style.left = burstX + 'px';
+        particle.style.top = burstY + 'px';
+        
+        // Direction aléatoire
+        const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
+        const distance = 80 + Math.random() * 120;
+        const fx = Math.cos(angle) * distance;
+        const fy = Math.sin(angle) * distance;
+        
+        particle.style.setProperty('--fx', `${fx}px`);
+        particle.style.setProperty('--fy', `${fy}px`);
+        
+        // Ajouter une lueur
+        particle.style.boxShadow = `0 0 6px ${particle.style.backgroundColor}`;
+        
+        container.appendChild(particle);
+        
+        // Supprimer après l'animation
+        setTimeout(() => particle.remove(), 1500);
+    }
+}
+
+// Fonction pour afficher le succès
+window.showShiftSaveSuccess = function(responseData) {
+    // Marquer qu'il faut recharger à la fermeture
+    shouldReloadOnClose = true;
+    
+    // Masquer le point d'interrogation avec effet de fade
+    const questionIcon = document.getElementById('shiftQuestionIcon');
+    questionIcon.style.transform = 'scale(0.8)';
+    questionIcon.style.opacity = '0';
+    
+    setTimeout(() => {
+        questionIcon.style.display = 'none';
+        
+        const successAnimation = document.getElementById('shiftSuccessAnimation');
+        successAnimation.style.display = 'block';
+        successAnimation.style.opacity = '0';
+        successAnimation.style.transform = 'scale(0.5)';
+        
+        // Forcer le reflow
+        successAnimation.offsetHeight;
+        
+        // Animation d'entrée
+        successAnimation.style.opacity = '1';
+        successAnimation.style.transform = 'scale(1)';
+        
+        // Créer le conteneur de feux d'artifice
+        const modalContent = document.querySelector('#shiftSaveModal .modal-content');
+        let fireworksContainer = modalContent.querySelector('.fireworks-container');
+        if (!fireworksContainer) {
+            fireworksContainer = document.createElement('div');
+            fireworksContainer.className = 'fireworks-container';
+            modalContent.appendChild(fireworksContainer);
+        }
+        
+        // Lancer les feux d'artifice en continu
+        createFireworks(fireworksContainer); // Premier burst immédiat
+        fireworksInterval = setInterval(() => {
+            createFireworks(fireworksContainer);
+        }, 300); // Nouveau burst toutes les 300ms
+        
+        // Mettre à jour le message
+        const confirmMessage = document.getElementById('shiftConfirmMessage');
+        confirmMessage.style.opacity = '0';
+        setTimeout(() => {
+            confirmMessage.textContent = 'Poste sauvegardé avec succès !';
+            confirmMessage.style.opacity = '1';
+        }, 200);
+        
+        // Animer les boutons
+        const modalButtons = document.getElementById('shiftModalButtons');
+        modalButtons.style.transform = 'translateY(10px)';
+        modalButtons.style.opacity = '0';
+        
+        setTimeout(() => {
+            modalButtons.innerHTML = `
+                <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal">
+                    <i class="bi bi-check-circle me-2"></i>Fermer
+                </button>
+            `;
+            modalButtons.style.transform = 'translateY(0)';
+            modalButtons.style.opacity = '1';
+        }, 300);
+        
+    }, 300);
+}
+
+// Gestionnaire du bouton sauvegarder
+document.getElementById('saveShiftBtn').addEventListener('click', function() {
+    const btn = this;
+    
+    // Désactiver et montrer loading
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sauvegarde...';
+    
+    // Exécuter le callback
+    if (shiftSaveCallback) {
+        shiftSaveCallback();
+    }
+});
+
+// Réinitialiser à la fermeture
+document.getElementById('shiftSaveModal').addEventListener('hidden.bs.modal', function() {
+    // Envoyer l'humeur sélectionnée (ou no_response si aucune)
+    const moodToCount = window.selectedMood || 'no_response';
+    
+    // Mapper les valeurs pour l'API
+    const moodMap = {
+        'sad': 'unhappy',
+        'neutral': 'neutral', 
+        'happy': 'happy'
+    };
+    
+    const apiMood = moodMap[moodToCount] || 'no_response';
+    
+    // Appeler l'API pour incrémenter le compteur
+    fetch('/livesession/api/increment-mood/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ mood: apiMood })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Mood counted:', data);
+    })
+    .catch(error => {
+        console.error('Error counting mood:', error);
+    });
+    
+    // Si on doit recharger après un succès
+    if (shouldReloadOnClose) {
+        window.location.reload();
+        return;
+    }
+    
+    shiftSaveCallback = null;
+    window.shiftSaveModalBS = null;
+    
+    // Arrêter les feux d'artifice
+    if (fireworksInterval) {
+        clearInterval(fireworksInterval);
+        fireworksInterval = null;
+    }
+    
+    // Supprimer le conteneur de feux d'artifice
+    const fireworksContainer = this.querySelector('.fireworks-container');
+    if (fireworksContainer) {
+        fireworksContainer.remove();
+    }
+    
+    // Réinitialiser l'état visuel
+    document.getElementById('shiftQuestionIcon').style.display = 'block';
+    document.getElementById('shiftQuestionIcon').style.opacity = '1';
+    document.getElementById('shiftSuccessAnimation').style.display = 'none';
+    document.getElementById('shiftConfirmMessage').textContent = 'Confirmez-vous la sauvegarde du poste ?';
+    
+    // Réinitialiser les boutons
+    document.getElementById('shiftModalButtons').style.display = 'flex';
+    document.getElementById('shiftModalButtons').style.opacity = '1';
+    document.getElementById('shiftModalButtons').innerHTML = `
+        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-2"></i>Annuler
+        </button>
+        <button type="button" class="btn btn-primary px-4" id="saveShiftBtn">
+            <i class="bi bi-check-circle me-2"></i>Sauvegarder
+        </button>
+    `;
+    
+    // Réattacher l'event listener au nouveau bouton
+    document.getElementById('saveShiftBtn').addEventListener('click', function() {
+        const btn = this;
+        
+        // Désactiver et montrer loading
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sauvegarde...';
+        
+        // Exécuter le callback
+        if (shiftSaveCallback) {
+            shiftSaveCallback();
+        }
+    });
+});
+</script>

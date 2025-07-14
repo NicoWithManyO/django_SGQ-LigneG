@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness, LostTimeEntry, MachineParameters
+from core.admin_filters import RelatedCountedFilter, BooleanCountedFilter, ChoiceCountedFilter
 
 
 class LostTimeInline(admin.TabularInline):
@@ -14,12 +15,34 @@ class LostTimeInline(admin.TabularInline):
         return False
 
 
+# Filtre personnalisé pour vacation avec comptage
+class VacationCountedFilter(admin.SimpleListFilter):
+    title = 'vacation'
+    parameter_name = 'vacation'
+    
+    def lookups(self, request, model_admin):
+        queryset = model_admin.get_queryset(request)
+        choices = []
+        
+        for vacation, label in [('Matin', 'Matin'), ('ApresMidi', 'Après-midi'), ('Nuit', 'Nuit'), ('Journee', 'Journée')]:
+            count = queryset.filter(vacation=vacation).count()
+            if count > 0:
+                choices.append((vacation, f'{label} ({count})'))
+        
+        return choices
+    
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(vacation=self.value())
+        return queryset
+
+
 @admin.register(Shift)
 class ShiftAdmin(admin.ModelAdmin):
     """Configuration admin pour le modèle Shift."""
     
     list_display = ('shift_id', 'operator', 'date', 'vacation', 'total_length', 'ok_length')
-    list_filter = ('vacation', 'date', 'operator')
+    list_filter = (VacationCountedFilter, 'date', ('operator', RelatedCountedFilter))
     search_fields = ('shift_id', 'operator__first_name', 'operator__last_name', 'operator_comments')
     readonly_fields = ('shift_id', 'checklist_signed', 'checklist_signed_time', 'created_at', 'updated_at')
     inlines = [LostTimeInline]

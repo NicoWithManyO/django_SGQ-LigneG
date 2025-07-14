@@ -1,0 +1,269 @@
+<!-- Modal de succès réutilisable -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center p-4">
+                <!-- Icône de succès animée -->
+                <div class="success-checkmark mb-3">
+                    <div class="check-icon">
+                        <span class="icon-line line-tip"></span>
+                        <span class="icon-line line-long"></span>
+                        <div class="icon-circle"></div>
+                        <div class="icon-fix"></div>
+                    </div>
+                </div>
+                
+                <!-- Titre dynamique -->
+                <h4 class="modal-title mb-3" id="successModalTitle">Sauvegarde réussie !</h4>
+                
+                <!-- Message principal -->
+                <div class="mb-3">
+                    <p class="text-muted mb-2" id="successModalMessage">Le rouleau a été sauvegardé avec succès</p>
+                    
+                    <!-- ID ou détails (optionnel) -->
+                    <div id="successModalDetails" class="alert alert-light border-0 py-2 px-3 d-inline-block" style="display: none;">
+                        <code class="text-primary fw-bold" id="successModalId"></code>
+                    </div>
+                </div>
+                
+                <!-- Sous-message optionnel -->
+                <p class="text-muted small mb-0" id="successModalSubMessage"></p>
+            </div>
+            
+            <div class="modal-footer border-0 justify-content-center pb-4">
+                <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Animation checkmark */
+.success-checkmark {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.check-icon {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    border-radius: 50%;
+    box-sizing: content-box;
+    border: 4px solid #4CAF50;
+}
+
+.check-icon::before {
+    top: 3px;
+    left: -2px;
+    width: 30px;
+    transform-origin: 100% 50%;
+    border-radius: 100px 0 0 100px;
+}
+
+.check-icon::after {
+    top: 0;
+    left: 30px;
+    width: 60px;
+    transform-origin: 0 50%;
+    border-radius: 0 100px 100px 0;
+    animation: rotate-circle 4.25s ease-in;
+}
+
+.check-icon::before, .check-icon::after {
+    content: '';
+    height: 100px;
+    position: absolute;
+    background: #FFFFFF;
+    transform: rotate(-45deg);
+}
+
+.icon-line {
+    height: 5px;
+    background-color: #4CAF50;
+    display: block;
+    border-radius: 2px;
+    position: absolute;
+    z-index: 10;
+}
+
+.icon-line.line-tip {
+    top: 46px;
+    left: 14px;
+    width: 25px;
+    transform: rotate(45deg);
+    animation: icon-line-tip 0.75s;
+}
+
+.icon-line.line-long {
+    top: 38px;
+    right: 8px;
+    width: 47px;
+    transform: rotate(-45deg);
+    animation: icon-line-long 0.75s;
+}
+
+.icon-circle {
+    top: -4px;
+    left: -4px;
+    z-index: 10;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    position: absolute;
+    box-sizing: content-box;
+    border: 4px solid rgba(76, 175, 80, .5);
+}
+
+.icon-fix {
+    top: 8px;
+    width: 5px;
+    left: 26px;
+    z-index: 1;
+    height: 85px;
+    position: absolute;
+    transform: rotate(-45deg);
+    background-color: #FFFFFF;
+}
+
+@keyframes rotate-circle {
+    0% {
+        transform: rotate(-45deg);
+    }
+    5% {
+        transform: rotate(-45deg);
+    }
+    12% {
+        transform: rotate(-405deg);
+    }
+    100% {
+        transform: rotate(-405deg);
+    }
+}
+
+@keyframes icon-line-tip {
+    0% {
+        width: 0;
+        left: 1px;
+        top: 19px;
+    }
+    54% {
+        width: 0;
+        left: 1px;
+        top: 19px;
+    }
+    70% {
+        width: 50px;
+        left: -8px;
+        top: 37px;
+    }
+    84% {
+        width: 17px;
+        left: 21px;
+        top: 48px;
+    }
+    100% {
+        width: 25px;
+        left: 14px;
+        top: 45px;
+    }
+}
+
+@keyframes icon-line-long {
+    0% {
+        width: 0;
+        right: 46px;
+        top: 54px;
+    }
+    65% {
+        width: 0;
+        right: 46px;
+        top: 54px;
+    }
+    84% {
+        width: 55px;
+        right: 0px;
+        top: 35px;
+    }
+    100% {
+        width: 47px;
+        right: 8px;
+        top: 38px;
+    }
+}
+
+/* Fade in animation pour la modal */
+.modal.fade .modal-dialog {
+    transform: scale(0.7);
+    opacity: 0;
+    transition: all 0.3s;
+}
+
+.modal.show .modal-dialog {
+    transform: scale(1);
+    opacity: 1;
+}
+</style>
+
+<script>
+// Fonction globale pour afficher la modal de succès
+function showSuccessModal(options = {}) {
+    const modal = document.getElementById('successModal');
+    const modalBS = new bootstrap.Modal(modal);
+    
+    // Définir les valeurs par défaut
+    const defaults = {
+        title: 'Sauvegarde réussie !',
+        message: 'L\'opération a été effectuée avec succès',
+        id: null,
+        subMessage: '',
+        autoClose: 3000 // Auto-fermeture après 3 secondes
+    };
+    
+    // Fusionner avec les options fournies
+    const config = { ...defaults, ...options };
+    
+    // Mettre à jour le contenu
+    document.getElementById('successModalTitle').textContent = config.title;
+    document.getElementById('successModalMessage').textContent = config.message;
+    document.getElementById('successModalSubMessage').textContent = config.subMessage;
+    
+    // Gérer l'affichage de l'ID
+    const detailsDiv = document.getElementById('successModalDetails');
+    const idSpan = document.getElementById('successModalId');
+    
+    if (config.id) {
+        detailsDiv.style.display = 'inline-block';
+        idSpan.textContent = config.id;
+    } else {
+        detailsDiv.style.display = 'none';
+    }
+    
+    // Afficher la modal
+    modalBS.show();
+    
+    // Auto-fermeture si configurée
+    if (config.autoClose > 0) {
+        setTimeout(() => {
+            modalBS.hide();
+        }, config.autoClose);
+    }
+    
+    // Réinitialiser l'animation à chaque ouverture
+    const checkIcon = modal.querySelector('.check-icon');
+    const lineElements = modal.querySelectorAll('.icon-line');
+    
+    // Forcer le redémarrage de l'animation
+    checkIcon.style.animation = 'none';
+    lineElements.forEach(el => el.style.animation = 'none');
+    
+    setTimeout(() => {
+        checkIcon.style.animation = '';
+        lineElements.forEach(el => el.style.animation = '');
+    }, 10);
+    
+    return modalBS;
+}
+</script>

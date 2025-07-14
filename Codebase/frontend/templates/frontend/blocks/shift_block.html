@@ -88,12 +88,13 @@
                         <i class="bi bi-check-circle text-success" 
                            id="shift-id-check" 
                            style="display: none; font-size: 0.75rem;"></i>
-                        <i class="bi bi-x-circle text-danger" 
-                           id="shift-id-error" 
+                        <i class="bi bi-exclamation-triangle-fill" 
+                           id="shift-id-warning-icon" 
+                           style="color: #ff9800; font-size: 0.75rem; display: none; cursor: help;"
                            data-bs-toggle="tooltip" 
                            data-bs-placement="top" 
-                           title="Un poste avec cet ID existe déjà"
-                           style="display: none; font-size: 0.75rem; cursor: help;"></i>
+                           title="Un poste avec cet ID existe déjà">
+                        </i>
                     </div>
                     <small class="text-muted" style="font-size: 0.75rem;">
                         <span>ID Poste : </span>
@@ -272,9 +273,11 @@
                 type="button" 
                 id="save-shift-btn"
                 onclick="confirmSaveShift()"
-                class="btn btn-success btn-sm fibrage-action-btn conforme"
+                class="btn btn-primary btn-sm fibrage-action-btn"
+                style="background-color: #0d6efd !important; border-color: #0d6efd !important;"
+                title="Cliquer pour sauvegarder le poste"
             >
-                <i class="bi bi-save"></i> Enregistrer le Poste
+                <i class="bi bi-save"></i> Save Poste
             </button>
         </div>
     </div>
@@ -424,6 +427,9 @@ async function saveShiftField(fieldName, value, fromVacation = false) {
                 await sessionAPI.updateField(field, val);
             }
             pendingTimeUpdates = {};
+            
+            // Vérifier l'état du bouton Save Poste après les changements
+            checkSaveShiftButtonState();
         }, 100); // 100ms devrait suffire pour recevoir les deux changements
         
         return;
@@ -438,6 +444,18 @@ async function saveShiftField(fieldName, value, fromVacation = false) {
     }
     
     const data = await sessionAPI.updateField(fieldName, value);
+    
+    // Si l'opérateur change, revalider la signature de la checklist
+    if (fieldName === 'operator') {
+        // Revalider la signature existante avec le nouvel opérateur
+        if (typeof validateSignature === 'function') {
+            validateSignature();
+        }
+    }
+    
+    // Vérifier l'état du bouton Save Poste après chaque changement
+    checkSaveShiftButtonState();
+    
     return data;
 }
 
@@ -607,12 +625,125 @@ function toggleMeterReadingFields(isUserAction = false) {
 }
 
 function confirmSaveShift() {
-    // Soumettre le formulaire via HTMX sans vérifications
-    const form = document.getElementById('shift-form');
-    if (form) {
-        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-        form.dispatchEvent(submitEvent);
+    // Récupérer les métriques depuis l'interface
+    const rendementElement = document.querySelector('.productivity-display');
+    const tauxOKElement = document.querySelector('[data-metric="ok_rate"]');
+    const longueurOKElement = document.querySelector('[data-metric="length_ok"]');
+    const toElement = document.querySelector('#availability-time-display');
+    const qualityBadge = document.querySelector('.quality-badge-passed, .quality-badge-pending');
+    
+    // Préparer les données pour la modal
+    const shiftData = {
+        id: document.getElementById('shift-id-display')?.textContent || 'Non défini',
+        duration: calculateShiftDuration() || '--',
+        rendement: rendementElement?.textContent || '--',
+        tauxOK: tauxOKElement?.textContent || '--',
+        longueurOK: longueurOKElement?.textContent || '--',
+        to: toElement?.textContent || '--',
+        qcPassed: qualityBadge?.classList.contains('quality-badge-passed') || false
+    };
+    
+    // Afficher la modal avec les données
+    if (typeof showShiftSaveModal === 'function') {
+        showShiftSaveModal(shiftData, () => {
+            // Callback pour la sauvegarde
+            saveShiftToAPI();
+        });
+    } else {
+        // Fallback si la modal n'est pas disponible
+        if (confirm('Confirmez-vous la sauvegarde du poste ?')) {
+            saveShiftToAPI();
+        }
     }
+}
+
+function calculateShiftDuration() {
+    const startTime = document.getElementById('id_start_time')?.value;
+    const endTime = document.getElementById('id_end_time')?.value;
+    
+    if (startTime && endTime) {
+        const [startHours, startMinutes] = startTime.split(':').map(Number);
+        const [endHours, endMinutes] = endTime.split(':').map(Number);
+        
+        let startTotalMinutes = startHours * 60 + startMinutes;
+        let endTotalMinutes = endHours * 60 + endMinutes;
+        
+        if (endTotalMinutes < startTotalMinutes) {
+            endTotalMinutes += 24 * 60;
+        }
+        
+        const durationMinutes = endTotalMinutes - startTotalMinutes;
+        const hours = Math.floor(durationMinutes / 60);
+        const minutes = durationMinutes % 60;
+        
+        return `${hours}h${minutes.toString().padStart(2, '0')}`;
+    }
+    
+    return null;
+}
+
+function saveShiftToAPI() {
+    // Récupérer l'humeur sélectionnée depuis la variable globale de la modal
+    const moodValue = window.selectedMood || 'no_response';
+    
+    // Appeler l'API DRF pour sauvegarder le shift avec l'humeur
+    fetch('/livesession/api/current-session/save-shift/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            mood: moodValue
+        }),
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.shift_id) {
+            // Succès - Afficher l'animation de succès dans la modal
+            if (typeof showShiftSaveSuccess === 'function') {
+                showShiftSaveSuccess(data);
+                // NE PAS recharger automatiquement - laisser l'utilisateur fermer la modal
+            } else {
+                // Fallback
+                alert(`Poste enregistré avec succès !\nID: ${data.shift_id}`);
+                // Recharger seulement après que l'utilisateur ait fermé l'alerte
+                window.location.reload();
+            }
+        } else {
+            // Erreur
+            alert('Erreur lors de l\'enregistrement : ' + (data.error || 'Erreur inconnue'));
+            
+            // Fermer la modal en cas d'erreur
+            if (window.shiftSaveModalBS) {
+                window.shiftSaveModalBS.hide();
+            }
+            
+            // Réactiver le bouton
+            const saveBtn = document.getElementById('save-shift-btn');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Poste';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la sauvegarde du poste');
+        
+        // Fermer la modal en cas d'erreur
+        if (window.shiftSaveModalBS) {
+            window.shiftSaveModalBS.hide();
+        }
+        
+        // Réactiver le bouton
+        const saveBtn = document.getElementById('save-shift-btn');
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Poste';
+        }
+    });
 }
 
 function addOperator() {
@@ -777,6 +908,7 @@ async function updateShiftIdDisplay() {
     const shiftIdDisplay = document.getElementById('shift-id-display');
     const shiftIdCheck = document.getElementById('shift-id-check');
     const shiftIdError = document.getElementById('shift-id-error');
+    const warningIcon = document.getElementById('shift-id-warning-icon');
     if (!shiftIdDisplay) return;
     
     const shiftId = calculateShiftId();
@@ -790,47 +922,202 @@ async function updateShiftIdDisplay() {
             const idAlreadyExists = data.exists;
             
             if (idAlreadyExists) {
-                // Afficher l'icône d'erreur
-                if (shiftIdError) {
-                    shiftIdError.style.display = 'inline';
+                // Afficher l'icône d'avertissement orange
+                if (warningIcon) {
+                    warningIcon.style.display = 'inline';
                     // Initialiser le tooltip Bootstrap si pas déjà fait
-                    if (!shiftIdError._tooltip) {
-                        new bootstrap.Tooltip(shiftIdError);
+                    if (!warningIcon._tooltip) {
+                        new bootstrap.Tooltip(warningIcon);
                     }
                 }
-                // Cacher l'icône de succès
-                if (shiftIdCheck) {
-                    shiftIdCheck.style.display = 'none';
-                }
+                // Cacher les anciennes icônes
+                if (shiftIdCheck) shiftIdCheck.style.display = 'none';
+                if (shiftIdError) shiftIdError.style.display = 'none';
             } else {
+                // Cacher l'icône d'avertissement
+                if (warningIcon) {
+                    warningIcon.style.display = 'none';
+                    // Détruire le tooltip s'il existe
+                    if (warningIcon._tooltip) {
+                        warningIcon._tooltip.dispose();
+                        warningIcon._tooltip = null;
+                    }
+                }
                 // Afficher l'icône de succès
-                if (shiftIdCheck) {
-                    shiftIdCheck.style.display = 'inline';
-                }
+                if (shiftIdCheck) shiftIdCheck.style.display = 'inline';
                 // Cacher l'icône d'erreur
-                if (shiftIdError) {
-                    shiftIdError.style.display = 'none';
-                }
+                if (shiftIdError) shiftIdError.style.display = 'none';
             }
         } catch (error) {
             console.error('Erreur lors de la vérification du shift_id:', error);
             // En cas d'erreur, ne pas afficher d'icône
             if (shiftIdCheck) shiftIdCheck.style.display = 'none';
             if (shiftIdError) shiftIdError.style.display = 'none';
+            if (warningIcon) warningIcon.style.display = 'none';
         }
         
         // Sauvegarder dans la session
         updateFieldViaAPI('shift_id', shiftId);
     } else {
         shiftIdDisplay.textContent = '--';
-        // Cacher les deux icônes
-        if (shiftIdCheck) {
-            shiftIdCheck.style.display = 'none';
-        }
-        if (shiftIdError) {
-            shiftIdError.style.display = 'none';
-        }
+        // Cacher toutes les icônes
+        if (shiftIdCheck) shiftIdCheck.style.display = 'none';
+        if (shiftIdError) shiftIdError.style.display = 'none';
+        if (warningIcon) warningIcon.style.display = 'none';
     }
+}
+
+// Fonction pour vérifier si le bouton Save Poste peut être activé
+function checkSaveShiftButtonState() {
+    const saveBtn = document.getElementById('save-shift-btn');
+    if (!saveBtn) return;
+    
+    let canSave = true;
+    let reasons = [];
+    
+    // 1. Vérifier les champs essentiels
+    const operator = document.getElementById('id_operator')?.value;
+    const date = document.getElementById('id_date')?.value;
+    const vacation = document.getElementById('id_vacation')?.value;
+    const startTime = document.getElementById('id_start_time')?.value;
+    const endTime = document.getElementById('id_end_time')?.value;
+    
+    if (!operator) { canSave = false; reasons.push('Opérateur manquant'); }
+    if (!date) { canSave = false; reasons.push('Date manquante'); }
+    if (!vacation) { canSave = false; reasons.push('Vacation manquante'); }
+    if (!startTime) { canSave = false; reasons.push('Heure début manquante'); }
+    if (!endTime) { canSave = false; reasons.push('Heure fin manquante'); }
+    
+    // 2. Vérifier la cohérence des checkboxes machine
+    const startedAtBeginning = document.getElementById('id_started_at_beginning')?.checked;
+    const meterReadingStart = document.getElementById('id_meter_reading_start')?.value;
+    const startedAtEnd = document.getElementById('id_started_at_end')?.checked;
+    const meterReadingEnd = document.getElementById('id_meter_reading_end')?.value;
+    
+    if (startedAtBeginning && !meterReadingStart) {
+        canSave = false;
+        reasons.push('Métrage début manquant');
+    }
+    
+    if (startedAtEnd && !meterReadingEnd) {
+        canSave = false;
+        reasons.push('Métrage fin manquant');
+    }
+    
+    // 3. Vérifier la signature de la checklist
+    // La checklist ne peut être signée que si elle est complète, donc on vérifie juste la signature
+    const signatureField = document.getElementById('operator-signature');
+    if (signatureField && !signatureField.classList.contains('is-valid')) {
+        canSave = false;
+        reasons.push('Checklist non signée');
+    }
+    
+    // 4. Vérifier les contrôles qualité
+    let qualityControlsIncomplete = false;
+    
+    // Extrait sec
+    const extraitSec = document.getElementById('sizing-bath-input')?.value;
+    if (!extraitSec) {
+        qualityControlsIncomplete = true;
+    }
+    
+    // Moyennes micronnaires (min 2 valeurs pour chaque côté)
+    const leftInputs = document.querySelectorAll('.micronnaire-left');
+    const leftValues = Array.from(leftInputs).filter(input => input.value).length;
+    if (leftValues < 2) {
+        qualityControlsIncomplete = true;
+    }
+    
+    const rightInputs = document.querySelectorAll('.micronnaire-right');
+    const rightValues = Array.from(rightInputs).filter(input => input.value).length;
+    if (rightValues < 2) {
+        qualityControlsIncomplete = true;
+    }
+    
+    // Moyennes masses surfaciques (2 valeurs pour chaque côté)
+    const ggValue = document.getElementById('surface-mass-gg')?.value;
+    const gcValue = document.getElementById('surface-mass-gc')?.value;
+    if (!ggValue || !gcValue) {
+        qualityControlsIncomplete = true;
+    }
+    
+    const dcValue = document.getElementById('surface-mass-dc')?.value;
+    const ddValue = document.getElementById('surface-mass-dd')?.value;
+    if (!dcValue || !ddValue) {
+        qualityControlsIncomplete = true;
+    }
+    
+    // LOI
+    const loiGiven = document.getElementById('loiSwitch')?.checked;
+    if (!loiGiven) {
+        qualityControlsIncomplete = true;
+    }
+    
+    if (qualityControlsIncomplete) {
+        canSave = false;
+        reasons.push('Contrôles qualité incomplets');
+    }
+    
+    // 5. Vérifier si l'ID du shift existe déjà
+    const warningIcon = document.getElementById('shift-id-warning-icon');
+    if (warningIcon && warningIcon.style.display !== 'none') {
+        canSave = false;
+        reasons.push('ID du poste existe déjà');
+    }
+    
+    // Mettre à jour l'état du bouton
+    // D'abord, nettoyer tout tooltip existant
+    const existingTooltip = bootstrap.Tooltip.getInstance(saveBtn);
+    if (existingTooltip) {
+        existingTooltip.dispose();
+    }
+    
+    if (canSave) {
+        saveBtn.disabled = false;
+        saveBtn.className = 'btn btn-primary btn-sm fibrage-action-btn';
+        // Retirer l'infobulle si tout est OK
+        saveBtn.removeAttribute('data-bs-toggle');
+        saveBtn.removeAttribute('data-bs-placement');
+        saveBtn.removeAttribute('title');
+        
+        // Si le bouton est dans un wrapper, le retirer
+        const wrapper = saveBtn.parentElement;
+        if (wrapper && wrapper.classList.contains('d-inline-block') && wrapper.hasAttribute('data-bs-toggle')) {
+            // Détruire le tooltip du wrapper
+            const wrapperTooltip = bootstrap.Tooltip.getInstance(wrapper);
+            if (wrapperTooltip) {
+                wrapperTooltip.dispose();
+            }
+            // Sortir le bouton du wrapper
+            wrapper.parentNode.insertBefore(saveBtn, wrapper);
+            wrapper.remove();
+        }
+    } else {
+        saveBtn.disabled = true;
+        saveBtn.className = 'btn btn-secondary btn-sm fibrage-action-btn';
+        
+        // Pour les boutons désactivés, on doit utiliser un conteneur parent
+        // Vérifier si on a déjà un wrapper
+        let wrapper = saveBtn.parentElement;
+        if (!wrapper || !wrapper.classList.contains('d-inline-block')) {
+            // Créer un wrapper si nécessaire
+            wrapper = document.createElement('span');
+            wrapper.className = 'd-inline-block';
+            wrapper.setAttribute('tabindex', '0');
+            saveBtn.parentNode.insertBefore(wrapper, saveBtn);
+            wrapper.appendChild(saveBtn);
+        }
+        
+        // Ajouter l'infobulle sur le wrapper
+        wrapper.setAttribute('data-bs-toggle', 'tooltip');
+        wrapper.setAttribute('data-bs-placement', 'top');
+        wrapper.setAttribute('title', reasons.join(' • '));
+        
+        // Initialiser le tooltip sur le wrapper
+        new bootstrap.Tooltip(wrapper);
+    }
+    
+    return canSave;
 }
 
 // Ajouter les listeners pour mettre à jour l'ID quand les champs changent
@@ -839,12 +1126,41 @@ document.addEventListener('DOMContentLoaded', function() {
     ['id_operator', 'id_date', 'id_vacation'].forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (field) {
-            field.addEventListener('change', updateShiftIdDisplay);
+            field.addEventListener('change', () => {
+                updateShiftIdDisplay();
+                checkSaveShiftButtonState();
+            });
+        }
+    });
+    
+    // Écouter les changements sur les heures
+    ['id_start_time', 'id_end_time'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('change', checkSaveShiftButtonState);
+        }
+    });
+    
+    // Écouter les changements sur les checkboxes et métrages
+    ['id_started_at_beginning', 'id_started_at_end'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('change', checkSaveShiftButtonState);
+        }
+    });
+    
+    ['id_meter_reading_start', 'id_meter_reading_end'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('input', checkSaveShiftButtonState);
         }
     });
     
     // Mettre à jour l'ID au chargement initial
-    setTimeout(updateShiftIdDisplay, 200);
+    setTimeout(() => {
+        updateShiftIdDisplay();
+        checkSaveShiftButtonState();
+    }, 200);
 });
 
 </script>

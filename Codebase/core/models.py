@@ -215,3 +215,81 @@ class Operator(models.Model):
             # Format: PrenomNOM (NOM en majuscules)
             self.employee_id = f"{self.first_name}{self.last_name.upper()}"
         super().save(*args, **kwargs)
+
+
+class MoodCounter(models.Model):
+    """Compteur d'humeur - 4 objets fixes pour les 4 humeurs possibles."""
+    
+    MOOD_CHOICES = [
+        ('no_response', 'Sans réponse'),
+        ('happy', 'Content'),
+        ('unhappy', 'Pas content'),
+        ('neutral', 'Neutre'),
+    ]
+    
+    # Type d'humeur (unique)
+    mood_type = models.CharField(
+        max_length=20, 
+        choices=MOOD_CHOICES,
+        unique=True,
+        verbose_name="Type d'humeur"
+    )
+    
+    # Compteur
+    count = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Nombre de fois sélectionnée"
+    )
+    
+    # Pas de timestamp pour rester RGPD compliant
+    
+    class Meta:
+        verbose_name = "MoOOoOod"
+        verbose_name_plural = "MoOOoOods"
+        ordering = ['mood_type']
+    
+    def __str__(self):
+        return f"{self.get_mood_type_display()} : {self.count}"
+    
+    @classmethod
+    def increment(cls, mood_type):
+        """Incrémente le compteur pour une humeur donnée."""
+        counter, created = cls.objects.get_or_create(
+            mood_type=mood_type,
+            defaults={'count': 0}
+        )
+        counter.count += 1
+        counter.save()
+        return counter
+    
+    @classmethod
+    def get_all_counts(cls):
+        """Retourne tous les compteurs sous forme de dictionnaire."""
+        counters = cls.objects.all()
+        return {
+            counter.mood_type: counter.count 
+            for counter in counters
+        }
+    
+    @classmethod
+    def get_percentages(cls):
+        """Retourne les pourcentages de chaque humeur."""
+        counts = cls.get_all_counts()
+        total = sum(counts.values())
+        
+        if total == 0:
+            return {mood: 0 for mood in counts}
+        
+        return {
+            mood: round((count / total) * 100, 1) 
+            for mood, count in counts.items()
+        }
+    
+    @classmethod
+    def ensure_all_moods_exist(cls):
+        """S'assure que les 4 compteurs existent."""
+        for mood_code, mood_label in cls.MOOD_CHOICES:
+            cls.objects.get_or_create(
+                mood_type=mood_code,
+                defaults={'count': 0}
+            )
