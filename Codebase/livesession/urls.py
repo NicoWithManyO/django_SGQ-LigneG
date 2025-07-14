@@ -11,4 +11,5 @@ urlpatterns = [
     path('api/check-shift-id/<str:shift_id>/', api.check_shift_id, name='check_shift_id'),
     path('api/check-roll-id/<str:roll_id>/', api.check_roll_id, name='check_roll_id'),
     path('api/increment-mood/', api.increment_mood, name='increment_mood'),
+    path('api/clear-production-data/', api.clear_production_data, name='clear_production_data'),
 ]

@@ -128,29 +128,31 @@ Après suppression des vues legacy, ces imports deviendront inutiles :
 
 ## Plan de Suppression Recommandé
 
-### Phase 1 : Suppression immédiate (sans risque)
-1. Supprimer la vue `save_quality_controls` (déjà désactivée)
-2. Supprimer le template `test_drf.html`
-3. Nettoyer les URLs commentées dans `production/urls.py`
+### Phase 1 : Suppression immédiate (sans risque) ✅ COMPLÉTÉ
+1. ✅ Supprimer la vue `save_quality_controls` (déjà désactivée)
+2. ✅ Supprimer les vues `auto_save_form`, `get_saved_form_data`, `clear_saved_form_data`
+3. ✅ Supprimer les vues `check_roll_id`, `check_shift_exists`, `save_roll`
+4. ✅ Supprimer la vue `shift_save_field`
+5. ✅ Nettoyer les URLs commentées dans `production/urls.py`
 
-### Phase 2 : Migration des dépendances
-1. Refactoriser `shift_block` pour utiliser CurrentSession au lieu de CurrentProd
-2. Remplacer tous les appels à `autoSaveRollData()` par `updateFieldViaAPI()`
-3. Vérifier que toutes les fonctionnalités marchent avec l'API DRF
+### Phase 2 : Migration des dépendances ✅ COMPLÉTÉ
+1. ✅ Refactoriser `shift_block` pour utiliser CurrentSession au lieu de CurrentProd
+2. ✅ Remplacer tous les appels à `autoSaveRollData()` par `updateFieldViaAPI()`
+3. ✅ Vérifier que toutes les fonctionnalités marchent avec l'API DRF
 
-### Phase 3 : Suppression des modèles obsolètes
-1. Créer une migration pour supprimer les tables :
-   - `livesession_current_state` (CurrentProductionState)
-   - `livesession_live_quality` (LiveQualityControl)  
-   - `production_currentprod` (CurrentProd)
-2. Supprimer les modèles du code
-3. Supprimer CurrentProdAdmin
+### Phase 3 : Suppression des modèles obsolètes ✅ COMPLÉTÉ
+1. ✅ Créer une migration pour supprimer les tables :
+   - ✅ `livesession_current_state` (CurrentProductionState)
+   - ✅ `livesession_live_quality` (LiveQualityControl)  
+   - ✅ `production_currentprod` (CurrentProd)
+2. ✅ Supprimer les modèles du code
+3. ✅ Supprimer CurrentProdAdmin
 
-### Phase 4 : Nettoyage final
-1. Supprimer toutes les vues legacy non utilisées
-2. Nettoyer les imports
-3. Supprimer les templates orphelins
-4. Faire un audit complet pour s'assurer qu'il ne reste aucune référence
+### Phase 4 : Nettoyage final ✅ COMPLÉTÉ
+1. ✅ Supprimer toutes les vues legacy non utilisées
+2. ✅ Nettoyer les imports (HttpResponse, HttpResponseClientRedirect, RollDefect, RollThickness)
+3. ✅ Supprimer les templates orphelins (déjà fait)
+4. ✅ Faire un audit complet pour s'assurer qu'il ne reste aucune référence
 
 ## Notes Importantes
 

@@ -1721,6 +1721,7 @@
                             <label class="fibrage-label">Masse tube (g)</label>
                             <input type="number" id="sticky-tube-mass" class="form-control fw-bold of-input" value="" placeholder="--" 
                                    onclick="this.select()"
+                                   oninput="calculateAndDisplayMass(false);"
                                    onchange="saveStickValue('tube_mass', this.value); calculateAndDisplayMass(true);">
                         </div>
                         
@@ -1728,6 +1729,7 @@
                             <label class="fibrage-label">Lg (m)</label>
                             <input type="number" id="sticky-roll-length" class="form-control fw-bold of-input" value="" placeholder="--" 
                                    onclick="this.select()"
+                                   oninput="calculateAndDisplayMass(false);"
                                    onchange="saveStickValue('length', this.value); calculateAndDisplayMass(true);">
                         </div>
                         
@@ -1735,6 +1737,7 @@
                             <label class="fibrage-label">Masse totale (g)</label>
                             <input type="number" id="sticky-total-mass" class="form-control fw-bold of-input" value="" placeholder="--" 
                                    onclick="this.select()"
+                                   oninput="calculateAndDisplayMass(false);"
                                    onchange="saveStickValue('total_mass', this.value); calculateAndDisplayMass(true);">
                         </div>
                         
@@ -4813,12 +4816,8 @@ function saveRoll(destination, comment = '') {
     getCurrentSession().then(sessionData => {
         const currentOF = sessionData.current_of || sessionData.cutting_of || null;
         
-        // Générer l'ID du rouleau (format provisoire, sera remplacé par le vrai ID)
-        const date = new Date();
-        const dateStr = date.getDate().toString().padStart(2, '0') + 
-                       (date.getMonth() + 1).toString().padStart(2, '0') + 
-                       date.getFullYear().toString().substr(2, 2);
-        const rollId = `${dateStr}_${currentOF || '000'}_${rollNumber}`;
+        // Générer l'ID du rouleau en utilisant la fonction existante
+        const rollId = generateRollId();
         
         // Afficher la modal de sauvegarde
         showRollSaveModal({
@@ -4924,29 +4923,42 @@ function proceedWithRollSave(status, destination, rollNumber, length, totalMass,
                     status: data.status,
                     destination: data.destination
                 });
-            
-            // Effacer les données du rouleau actuel
-            clearRollData();
-            
-            // Incrémenter le numéro de rouleau
-            const currentRollNumber = parseInt(rollNumber) || 0;
-            const nextRollNumber = currentRollNumber + 1;
-            document.getElementById('sticky-roll-number').value = nextRollNumber;
-            saveStickValue('roll_number', nextRollNumber);
-            
-            // Mettre la masse du tube suivant dans masse tube
-            const nextTubeMass = document.getElementById('sticky-next-tube-mass')?.value;
-            if (nextTubeMass) {
-                document.getElementById('sticky-tube-mass').value = nextTubeMass;
-                saveStickValue('tube_mass', nextTubeMass);
-                // Effacer la masse tube suivant
-                document.getElementById('sticky-next-tube-mass').value = '';
-                saveStickValue('next_tube_mass', '');
-            }
-            
-            // Mettre à jour l'ID du rouleau
-            updateRollIdDisplay();
-        } else {
+                
+                // Utiliser l'état retourné par le backend
+                if (data.session) {
+                    // METTRE À JOUR sessionData GLOBAL
+                    sessionData = data.session;
+                    
+                    // 1. NUMÉRO DE ROULEAU (depuis le backend)
+                    const newRollNumber = data.session.roll_number || data.session.current_roll?.info?.roll_number || '';
+                    document.getElementById('sticky-roll-number').value = newRollNumber;
+                    
+                    // 2. MASSES (depuis le backend)
+                    const rollInfo = data.session.current_roll?.info || {};
+                    document.getElementById('sticky-tube-mass').value = rollInfo.tube_mass || '';
+                    document.getElementById('sticky-next-tube-mass').value = rollInfo.next_tube_mass || '';
+                    document.getElementById('sticky-total-mass').value = rollInfo.total_mass || '';
+                    
+                    // 3. LONGUEUR = LONGUEUR CIBLE (comme demandé)
+                    const targetLength = data.session.target_length || '';
+                    document.getElementById('sticky-roll-length').value = targetLength;
+                    
+                    // 4. EFFACER DÉFAUTS ET ÉPAISSEURS
+                    clearRollValues();
+                    
+                    // 5. RECALCULER L'AFFICHAGE
+                    updateRollIdDisplay();
+                    calculateAndDisplayMass();
+                } else {
+                    // Fallback : ancien comportement si pas de session retournée
+                    console.warn('Pas de session retournée, utilisation du comportement par défaut');
+                    clearRollData();
+                    const currentRollNumber = parseInt(rollNumber) || 0;
+                    const nextRollNumber = currentRollNumber + 1;
+                    document.getElementById('sticky-roll-number').value = nextRollNumber;
+                    updateRollIdDisplay();
+                }
+            } else {
             // Fermer la modal en cas d'erreur
             if (window.rollSaveModalBS) {
                 window.rollSaveModalBS.hide();
@@ -5026,6 +5038,69 @@ function sendToWaste() {
         // Sauvegarder avec destination DECHETS et commentaire
         saveRoll('DECHETS', comment);
     }
+}
+
+// Fonctions pour le loader (si pas déjà définies)
+function showLoader(message) {
+    // Simple implémentation - peut être améliorée avec un vrai loader
+    console.log('Loading:', message);
+}
+
+function hideLoader() {
+    console.log('Loading complete');
+}
+
+// Fonction pour vider la base de données de production
+function clearProductionDatabase() {
+    // Double confirmation pour éviter les erreurs
+    if (!confirm('⚠️ ATTENTION ⚠️\n\nVous êtes sur le point de SUPPRIMER DÉFINITIVEMENT toutes les données de production :\n- Tous les rouleaux\n- Tous les postes\n- Tous les contrôles qualité\n- Toutes les épaisseurs et défauts\n- Toutes les réponses checklist\n- Tous les temps perdus\n\nCette action est IRRÉVERSIBLE !\n\nÊtes-vous sûr de vouloir continuer ?')) {
+        return;
+    }
+    
+    if (!confirm('⚠️ DERNIÈRE CONFIRMATION ⚠️\n\nToutes les données de production seront PERDUES DÉFINITIVEMENT.\n\nConfirmer la suppression ?')) {
+        return;
+    }
+    
+    // Appeler l'API
+    fetch('/livesession/api/clear-production-data/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Afficher le rapport de suppression
+            let report = 'Base de données vidée avec succès !\n\n';
+            report += 'Éléments supprimés :\n';
+            report += `- ${data.deleted_counts.rolls} rouleaux\n`;
+            report += `- ${data.deleted_counts.shifts} postes\n`;
+            report += `- ${data.deleted_counts.quality_controls} contrôles qualité\n`;
+            report += `- ${data.deleted_counts.checklist_responses} réponses checklist\n`;
+            report += `- ${data.deleted_counts.roll_defects} défauts\n`;
+            report += `- ${data.deleted_counts.roll_thickness} mesures d\'épaisseur\n`;
+            report += `- ${data.deleted_counts.lost_time_entries} temps perdus`;
+            
+            alert(report);
+            
+            // Recharger la page pour rafraîchir l'interface
+            window.location.reload();
+        } else {
+            alert('Erreur lors de la suppression : ' + (data.error || 'Erreur inconnue'));
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la suppression des données : ' + error.message);
+    });
 }
 
 // Fonction pour animer la jauge spectaculaire de rendement

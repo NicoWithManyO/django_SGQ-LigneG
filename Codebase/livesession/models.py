@@ -1,60 +1,16 @@
 from django.db import models
-from django.contrib.auth.models import User
-
-
-# NOTE: Ce modèle est obsolète - tout est maintenant dans CurrentSession.session_data
-# À supprimer dans une future migration
-class CurrentProductionState(models.Model):
-    """Données persistantes entre les postes - préférences utilisateur"""
-    session_key = models.CharField(max_length=40, unique=True, db_index=True)
-    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
-    
-    # OF et paramètres qui restent entre les sessions
-    current_of = models.ForeignKey('core.FabricationOrder', null=True, blank=True, on_delete=models.SET_NULL)
-    cutting_of = models.ForeignKey('core.FabricationOrder', null=True, blank=True, related_name='cutting_sessions', on_delete=models.SET_NULL)
-    target_length = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    
-    # Profil et modes actifs
-    selected_profile = models.ForeignKey('core.Profile', null=True, blank=True, on_delete=models.SET_NULL)
-    active_modes = models.JSONField(default=dict)  # {"maintenance": true, "permissive": false}
-    
-    # Onglet actif dans le bloc productivité
-    active_productivity_tab = models.CharField(
-        max_length=20,
-        default='temps',
-        choices=[('temps', 'TRS'), ('parametres', 'Params & Specs')],
-        verbose_name="Onglet actif productivité"
-    )
-    
-    # Numéro de rouleau persistant
-    roll_number = models.PositiveIntegerField(
-        null=True, 
-        blank=True,
-        verbose_name="Numéro de rouleau actuel"
-    )
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        db_table = 'livesession_current_state'
-        verbose_name = 'État de production persistant'
-        verbose_name_plural = 'États de production persistants'
-    
-    def __str__(self):
-        return f"Session {self.session_key[:8]}... - {self.updated_at.strftime('%d/%m %H:%M')}"
 
 
 class CurrentSession(models.Model):
     """Session de production courante - État complet de l'interface"""
     session_key = models.CharField(max_length=40, unique=True, db_index=True)
     
-    # Toutes les données de la session en JSON
+    # Toutes les données de la session dans un seul champ JSON
     session_data = models.JSONField(default=dict)
-    # Structure attendue:
+    # Structure du JSON:
     # {
     #     "operator": 1,
-    #     "date": "2024-01-15", 
+    #     "date": "2024-01-15",
     #     "vacation": "Matin",
     #     "start_time": "06:00",
     #     "end_time": "14:00",
@@ -97,96 +53,52 @@ class CurrentSession(models.Model):
         from datetime import datetime, timedelta
         
         data = self.session_data
-        metrics = {
-            'to': 0,  # Temps d'ouverture
-            'tp': 0,  # Temps perdu
-            'td': 0,  # Temps disponible
-            'ta': 0,  # Temps d'arrêt (pour l'instant = TD)
-            'trs': 0  # Taux de rendement synthétique
-        }
         
-        # Calcul du temps d'ouverture (TO)
-        start_time = data.get('start_time')
-        end_time = data.get('end_time')
+        # TO (Temps d'ouverture)
+        start = data.get('start_time')
+        end = data.get('end_time')
         
-        if start_time and end_time:
-            try:
-                # Parser les heures (format HH:MM)
-                start = datetime.strptime(start_time, '%H:%M')
-                end = datetime.strptime(end_time, '%H:%M')
+        if not start or not end:
+            return {'to': 0, 'tp': 0, 'td': 0, 'ta': 0}
+            
+        try:
+            # Gérer le cas où les heures sont des strings
+            if isinstance(start, str):
+                start_time = datetime.strptime(start, '%H:%M').time()
+            else:
+                start_time = start
                 
-                # Si l'heure de fin est avant l'heure de début, c'est le lendemain
-                if end < start:
-                    end += timedelta(days=1)
+            if isinstance(end, str):
+                end_time = datetime.strptime(end, '%H:%M').time()
+            else:
+                end_time = end
+            
+            # Calculer TO en minutes
+            start_dt = datetime.combine(datetime.today(), start_time)
+            end_dt = datetime.combine(datetime.today(), end_time)
+            
+            # Si l'heure de fin est avant l'heure de début, on assume qu'on passe minuit
+            if end_dt < start_dt:
+                end_dt += timedelta(days=1)
                 
-                # Calculer la différence en minutes
-                opening_time = (end - start).total_seconds() / 60
-                metrics['to'] = int(opening_time)
-                
-                # Calcul du temps perdu (TP) - somme des temps d'arrêt
-                lost_times = data.get('lost_times', [])
-                total_lost_minutes = sum(entry.get('duration', 0) for entry in lost_times)
-                metrics['tp'] = int(total_lost_minutes)
-                
-                # Temps disponible (TD) = TO - TP
-                metrics['td'] = metrics['to'] - metrics['tp']
-                
-                # Pour l'instant, TA = TD (temps d'arrêt sera géré plus tard)
-                metrics['ta'] = metrics['td']
-                
-            except (ValueError, TypeError):
-                pass
-        
-        # Calcul du TRS (rendement)
-        # Utilise la longueur OK depuis les métriques de productivité
-        length_ok = float(data.get('meter_reading_end', 0) or 0)
-        
-        # La longueur cible vient maintenant de session_data
-        target_length = float(data.get('target_length', 0) or 0)
-        if target_length > 0:
-            metrics['trs'] = round((length_ok / target_length) * 100, 1)
-        
-        return metrics
-
-
-
-
-# NOTE: Ce modèle n'est plus utilisé - tout est maintenant dans CurrentSession.session_data
-# À supprimer dans une future migration
-class LiveQualityControl(models.Model):
-    """Brouillon des contrôles qualité - calculs des moyennes côté serveur"""
-    session_key = models.CharField(max_length=40, unique=True, db_index=True)
-    
-    # Données des contrôles qualité en JSON
-    quality_data = models.JSONField(default=dict)
-    # Structure attendue:
-    # {
-    #     "micronnaire_left": [valeur1, valeur2, valeur3],
-    #     "micronnaire_right": [valeur1, valeur2, valeur3],
-    #     "micronnaire_left_avg": moyenne_calculée,
-    #     "micronnaire_right_avg": moyenne_calculée,
-    #     "extrait_sec": valeur,
-    #     "extrait_sec_time": "HH:MM",
-    #     "surface_mass_gg": valeur,
-    #     "surface_mass_gc": valeur,
-    #     "surface_mass_dc": valeur,
-    #     "surface_mass_dd": valeur,
-    #     "surface_mass_left_avg": moyenne_calculée,
-    #     "surface_mass_right_avg": moyenne_calculée,
-    #     "loi_given": true/false,
-    #     "loi_time": "HH:MM"
-    # }
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        db_table = 'livesession_live_quality'
-        verbose_name = 'Brouillon contrôles qualité'
-        verbose_name_plural = 'Brouillons contrôles qualité'
-    
-    def __str__(self):
-        data = self.quality_data
-        micronnaire_count = len([v for v in data.get('micronnaire_left', []) + data.get('micronnaire_right', []) if v])
-        surface_mass_count = len([v for k, v in data.items() if k.startswith('surface_mass_') and not k.endswith('_avg') and v])
-        return f"Draft qualité: {micronnaire_count} micronnaires, {surface_mass_count} masses surfaciques"
+            to_minutes = int((end_dt - start_dt).total_seconds() / 60)
+            
+            # TP (Temps perdu) - depuis les temps perdus
+            tp_minutes = sum([lt.get('duration', 0) for lt in data.get('lost_times', [])])
+            
+            # TD (Temps disponible)
+            td_minutes = to_minutes - tp_minutes
+            
+            # TA (Temps d'arrêt) - pas encore implémenté
+            ta_minutes = 0
+            
+            return {
+                'to': to_minutes,
+                'tp': tp_minutes,
+                'td': td_minutes,
+                'ta': ta_minutes
+            }
+            
+        except Exception as e:
+            print(f"Erreur calcul métriques: {e}")
+            return {'to': 0, 'tp': 0, 'td': 0, 'ta': 0}

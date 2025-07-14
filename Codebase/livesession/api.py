@@ -142,7 +142,7 @@ def save_shift(request):
             create_checklist_responses(shift, session_data['checklist_responses'])
         
         # 5. Associer les rouleaux déjà sauvegardés au shift
-        link_rolls_to_shift(shift, session_data)
+        link_rolls_to_shift(shift, session_key)
         
         # 6. Réinitialiser intelligemment la session
         new_session_data = reset_session_after_save(session_data)
@@ -298,17 +298,41 @@ def create_checklist_responses(shift, checklist_responses):
                 continue
 
 
-def link_rolls_to_shift(shift, session_data):
+def link_rolls_to_shift(shift, session_key):
     """Associe les rouleaux déjà sauvegardés au shift"""
-    # Les rouleaux ont été sauvegardés indépendamment
-    # On doit maintenant les lier au shift
-    current_of = session_data.get('current_of')
-    if current_of:
-        # Trouver tous les rouleaux de cet OF sans shift
-        Roll.objects.filter(
-            fabrication_order_id=current_of,
-            shift__isnull=True
-        ).update(shift=shift)
+    # Chercher les rouleaux orphelins de cette session
+    orphan_rolls = Roll.objects.filter(
+        session_key=session_key,
+        shift__isnull=True
+    )
+    
+    if orphan_rolls.exists():
+        count = orphan_rolls.count()
+        # Lier les rouleaux au shift et effacer la session_key
+        orphan_rolls.update(shift=shift, shift_id_str=shift.shift_id, session_key=None)
+        print(f"Lié {count} rouleaux orphelins au shift {shift.shift_id}")
+        
+        # Recalculer les moyennes du shift
+        shift.calculate_roll_averages()
+        
+        # Recalculer les longueurs totales
+        total_length = 0
+        ok_length = 0 
+        nok_length = 0
+        
+        for roll in shift.rolls.all():
+            total_length += float(roll.length or 0)
+            if roll.status == 'CONFORME':
+                ok_length += float(roll.length or 0)
+            elif roll.status == 'NON_CONFORME':
+                nok_length += float(roll.length or 0)
+        
+        shift.total_length = total_length
+        shift.ok_length = ok_length
+        shift.nok_length = nok_length
+        
+        shift.save(update_fields=['avg_thickness_left_shift', 'avg_thickness_right_shift', 
+                                 'avg_grammage_shift', 'total_length', 'ok_length', 'nok_length'])
 
 
 
@@ -467,12 +491,57 @@ def save_roll(request):
         roll.calculate_thickness_averages()
         roll.save()
         
-        # 6. Retourner le succès
+        # 6. Mettre à jour l'état de la session
+        # Incrémenter le numéro de rouleau SEULEMENT si CONFORME
+        if roll_status == 'CONFORME':
+            current_session.session_data['roll_number'] = int(roll_info['roll_number']) + 1
+        # Si NON CONFORME, on garde le même numéro
+        
+        # Réinitialiser les données du rouleau actuel
+        # Récupérer next_tube_mass depuis current_roll.info (où il est stocké)
+        current_roll_info = current_session.session_data.get('current_roll', {}).get('info', {})
+        next_tube_mass = current_roll_info.get('next_tube_mass', '')
+        
+        # Si pas trouvé dans current_roll, essayer au niveau racine (pour compatibilité)
+        if not next_tube_mass:
+            next_tube_mass = current_session.session_data.get('next_tube_mass', '')
+        
+        target_length = current_session.session_data.get('target_length', '')  # Récupérer la longueur cible
+        
+        current_session.session_data['current_roll'] = {
+            'info': {
+                'roll_number': current_session.session_data.get('roll_number', 1),
+                'length': str(target_length) if target_length else '',  # Remettre la longueur cible
+                'tube_mass': next_tube_mass,  # Passer la masse du tube suivant
+                'total_mass': '',
+                'next_tube_mass': '',  # Vider next_tube_mass
+                'comment': ''
+            },
+            'defects': [],
+            'thickness': {
+                'measurements': [],
+                'rattrapage': []
+            }
+        }
+        
+        # Effacer next_tube_mass du niveau supérieur aussi
+        current_session.session_data['next_tube_mass'] = ''
+        
+        # Sauvegarder la session mise à jour
+        current_session.save()
+        
+        # 7. Retourner l'état complet avec les métriques calculées
+        serializer = CurrentSessionSerializer(
+            instance={'draft': current_session},
+            context={'request': request}
+        )
+        
         return Response({
             'success': True,
             'roll_id': roll.roll_id,
             'status': roll.status,
-            'destination': roll.destination
+            'destination': roll.destination,
+            'session': serializer.data  # État complet de la session
         })
         
     except Exception as e:
@@ -487,10 +556,23 @@ def generate_roll_id_from_data(context, roll_info, status):
     if status == 'NON_CONFORME':
         # Format pour non conforme: OFDecoupe_JJMMAA_HHMM
         from datetime import datetime
+        from core.models import FabricationOrder
+        
+        # Récupérer le numéro de l'OF de découpe
+        cutting_of_id = context.get('cutting_of')
+        of_decoupe_number = 'OFDecoupe'  # Valeur par défaut
+        
+        if cutting_of_id:
+            try:
+                cutting_of = FabricationOrder.objects.get(pk=cutting_of_id)
+                of_decoupe_number = cutting_of.order_number
+            except:
+                pass
+        
         now = datetime.now()
         date_str = now.strftime('%d%m%y')
         time_str = now.strftime('%H%M')
-        return f"OFDecoupe_{date_str}_{time_str}"
+        return f"{of_decoupe_number}_{date_str}_{time_str}"
     else:
         # Format pour conforme: OF_NumRouleau
         of_number = context.get('current_of')
@@ -597,6 +679,51 @@ def check_roll_id(request, roll_id):
     """
     exists = Roll.objects.filter(roll_id=roll_id).exists()
     return Response({'exists': exists})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])  # TODO: Mettre IsAuthenticated en production
+def clear_production_data(request):
+    """
+    Vide les données de production de la base de données
+    - Rouleaux (Roll, RollDefect, RollThickness)
+    - Postes (Shift, LostTimeEntry)
+    - Contrôles qualité (QualityControl)
+    - Réponses checklist (ChecklistResponse)
+    """
+    try:
+        # Compter avant suppression pour le rapport
+        counts = {
+            'rolls': Roll.objects.count(),
+            'shifts': Shift.objects.count(),
+            'quality_controls': QualityControl.objects.count(),
+            'checklist_responses': ChecklistResponse.objects.count(),
+            'roll_defects': RollDefect.objects.count(),
+            'roll_thickness': RollThickness.objects.count(),
+            'lost_time_entries': LostTimeEntry.objects.count()
+        }
+        
+        # Supprimer dans l'ordre (à cause des foreign keys)
+        RollDefect.objects.all().delete()
+        RollThickness.objects.all().delete()
+        Roll.objects.all().delete()
+        
+        LostTimeEntry.objects.all().delete()
+        QualityControl.objects.all().delete()
+        ChecklistResponse.objects.all().delete()
+        Shift.objects.all().delete()
+        
+        return Response({
+            'success': True,
+            'message': 'Données de production effacées',
+            'deleted_counts': counts
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])

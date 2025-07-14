@@ -701,7 +701,18 @@ function saveShiftToAPI() {
     .then(response => response.json())
     .then(data => {
         if (data.shift_id) {
-            // Succès - Afficher l'animation de succès dans la modal
+            // Succès - Appliquer le nouvel état depuis le backend
+            if (data.session) {
+                // METTRE À JOUR sessionData GLOBAL (si accessible)
+                if (typeof sessionData !== 'undefined') {
+                    window.sessionData = data.session;
+                }
+                
+                // Mettre à jour les champs avec le nouvel état
+                updateShiftFieldsFromSession(data.session);
+            }
+            
+            // Afficher l'animation de succès dans la modal
             if (typeof showShiftSaveSuccess === 'function') {
                 showShiftSaveSuccess(data);
                 // NE PAS recharger automatiquement - laisser l'utilisateur fermer la modal
@@ -744,6 +755,70 @@ function saveShiftToAPI() {
             saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Poste';
         }
     });
+}
+
+// Fonction pour mettre à jour les champs du shift depuis l'état de session
+function updateShiftFieldsFromSession(sessionData) {
+    // Réinitialiser les champs du shift avec les nouvelles valeurs
+    
+    // Opérateur (réinitialisé à vide)
+    const operatorField = document.getElementById('id_operator');
+    if (operatorField) operatorField.value = sessionData.operator || '';
+    
+    // Date (nouvelle date)
+    const dateField = document.getElementById('id_date');
+    if (dateField) dateField.value = sessionData.date || '';
+    
+    // Vacation (vacation suivante)
+    const vacationField = document.getElementById('id_vacation');
+    if (vacationField) vacationField.value = sessionData.vacation || '';
+    
+    // Heures (nouvelles heures par défaut)
+    const startTimeField = document.getElementById('id_start_time');
+    if (startTimeField) startTimeField.value = sessionData.start_time || '';
+    
+    const endTimeField = document.getElementById('id_end_time');
+    if (endTimeField) endTimeField.value = sessionData.end_time || '';
+    
+    // Machine start/end
+    const startedAtBeginning = document.getElementById('id_started_at_beginning');
+    if (startedAtBeginning) startedAtBeginning.checked = sessionData.started_at_beginning || false;
+    
+    const meterReadingStart = document.getElementById('id_meter_reading_start');
+    if (meterReadingStart) meterReadingStart.value = sessionData.meter_reading_start || '';
+    
+    const startedAtEnd = document.getElementById('id_started_at_end');
+    if (startedAtEnd) startedAtEnd.checked = sessionData.started_at_end || false;
+    
+    const meterReadingEnd = document.getElementById('id_meter_reading_end');
+    if (meterReadingEnd) meterReadingEnd.value = sessionData.meter_reading_end || '';
+    
+    // Commentaires (vider)
+    const comments = document.getElementById('id_operator_comments');
+    if (comments) comments.value = sessionData.operator_comments || '';
+    
+    // Réinitialiser l'ID du shift
+    const shiftIdDisplay = document.getElementById('shift-id-display');
+    if (shiftIdDisplay) shiftIdDisplay.textContent = sessionData.shift_id || '--';
+    
+    // Mettre à jour les métriques si disponibles
+    if (sessionData.metrics) {
+        // TO
+        const toElement = document.getElementById('temps-ouverture');
+        if (toElement) toElement.textContent = sessionData.metrics.to_formatted || '--';
+        
+        // TD
+        const tdElement = document.getElementById('temps-disponible');
+        if (tdElement) tdElement.textContent = sessionData.metrics.td_formatted || '--';
+        
+        // TP
+        const tpElement = document.getElementById('temps-perdu-total');
+        if (tpElement) tpElement.textContent = sessionData.metrics.tp_formatted || '--';
+    }
+    
+    // Vérifier l'état des boutons
+    toggleMeterReadingFields();
+    checkSaveShiftButtonState();
 }
 
 function addOperator() {
@@ -957,7 +1032,9 @@ async function updateShiftIdDisplay() {
         }
         
         // Sauvegarder dans la session
-        updateFieldViaAPI('shift_id', shiftId);
+        if (typeof updateFieldViaAPI === 'function') {
+            updateFieldViaAPI('shift_id', shiftId);
+        }
     } else {
         shiftIdDisplay.textContent = '--';
         // Cacher toutes les icônes

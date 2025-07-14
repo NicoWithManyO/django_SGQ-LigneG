@@ -194,28 +194,6 @@ class Shift(models.Model):
                 super().save(update_fields=['avg_thickness_left_shift', 'avg_thickness_right_shift', 'avg_grammage_shift'])
 
 
-class CurrentProd(models.Model):
-    """Modèle pour sauvegarder automatiquement les données en cours de saisie."""
-    
-    # Identifiant de session/utilisateur (pour différencier les saisies)
-    session_key = models.CharField(max_length=255, help_text="Clé de session pour identifier la saisie")
-    
-    # Données du formulaire sérialisées
-    form_data = models.JSONField(default=dict, help_text="Données du formulaire en JSON")
-    
-    # Timestamps
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        verbose_name = "Production en cours"
-        verbose_name_plural = "Productions en cours"
-        ordering = ['-updated_at']
-    
-    def __str__(self):
-        return f"Saisie {self.session_key} - {self.updated_at.strftime('%H:%M:%S')}"
-
-
 class LostTimeEntry(models.Model):
     """Modèle pour enregistrer les temps d'arrêt."""
     
