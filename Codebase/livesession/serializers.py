@@ -123,6 +123,7 @@ class CurrentSessionSerializer(serializers.Serializer):
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )
     operator_comments = serializers.CharField(required=False, allow_blank=True)
+    shift_id = serializers.CharField(required=False, allow_blank=True)
     
     # === COLLECTIONS ===
     lost_times = serializers.ListField(

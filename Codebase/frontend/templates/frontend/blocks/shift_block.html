@@ -820,7 +820,7 @@ async function updateShiftIdDisplay() {
         }
         
         // Sauvegarder dans la session
-        sessionAPI.updateField('shift_id', shiftId);
+        updateFieldViaAPI('shift_id', shiftId);
     } else {
         shiftIdDisplay.textContent = '--';
         // Cacher les deux icônes
