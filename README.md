@@ -43,13 +43,16 @@ Système de gestion de production de feutre pour **Saint-Gobain Quartz SAS - Nem
 ├── core/           # Modèles partagés (Operator, FabricationOrder)
 ├── production/     # Gestion des postes et production
 ├── quality/        # Contrôles qualité (DefectType, RollDefect, ThicknessMeasurement)
+├── livesession/    # Gestion de session avec DRF (API unifiée)
+├── wcm/           # Work Checklist Management
 └── reports/        # Génération documents Excel (à venir)
 ```
 
 ### Technologies Utilisées
-- **Backend** : Django 5.2, Python 3.11+
-- **Frontend** : Bootstrap 5.3, HTMX 2.0
-- **Base de données** : SQLite (développement)
+- **Backend** : Django 5.2, Python 3.11+, Django REST Framework
+- **Frontend** : Bootstrap 5.3, HTMX 2.0, JavaScript vanilla
+- **Base de données** : SQLite (développement), PostgreSQL (production recommandé)
+- **API** : DRF avec endpoint unifié `/livesession/api/current-session/`
 - **Styling** : CSS custom avec variables CSS
 
 ### Modèles de Données Clés
@@ -224,6 +227,13 @@ python manage.py runserver
 - [x] Check-list fin de poste avec boutons 3 états
 - [x] Calcul automatique moyennes épaisseur via signals
 - [x] Bouton cut pour forcer découpe rouleaux conformes
+- [x] Badge de statut contrôles qualité (Pending/Passed)
+- [x] Vérification conformité contrôles qualité automatique
+- [x] Sauvegarde rouleaux en base via API avec confirmation
+- [x] Navigation Tab intelligente dans tous les formulaires
+- [x] Affichage temps total déclaré dans le header
+- [x] Alignement labels spécifications qualité
+- [x] Correction code couleur grammage avec bonnes specs
 
 ### Phase 2 (À venir)
 - [ ] Intégration complète mesures d'épaisseur

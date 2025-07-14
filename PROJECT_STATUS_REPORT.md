@@ -29,6 +29,8 @@
 - ✅ **Masses surfaciques** : 4 points avec moyennes
 - ✅ **LOI** : Toggle avec heure
 - ✅ **Validation temps réel** : Couleurs selon specs
+- ✅ **Badge de statut** : Pending/Passed selon conformité
+- ✅ **Vérification automatique** : Tous les contrôles vs specs
 
 ### 4. Interface Utilisateur
 - ✅ **Layout responsive** : 3 colonnes avec sticky bar
@@ -36,12 +38,16 @@
 - ✅ **Check-list** : 6 points avec boutons 3 états + signature
 - ✅ **Auto-save** : Sauvegarde continue sans perte de données
 - ✅ **HTMX** : Mises à jour partielles sans rechargement
+- ✅ **Navigation Tab** : Intelligente entre tous les formulaires
+- ✅ **Temps total déclaré** : Affiché dans le header
+- ✅ **Labels alignés** : Spécifications qualité plus lisibles
 
 ### 5. API DRF Unifiée
 - ✅ **Endpoint unique** : `/livesession/api/current-session/`
 - ✅ **Session complète** : Tout l'état dans un seul objet
 - ✅ **Métriques calculées** : Retournées à chaque update
 - ✅ **Structure imbriquée** : Organisation propre des données
+- ✅ **Save roll endpoint** : `/livesession/api/save-roll/` pour persistence
 
 ## 🔧 Architecture technique actuelle
 
@@ -89,12 +95,13 @@ current_roll: {
 2. **Performance** : Ralentissements avec beaucoup de rouleaux
 3. **Validation** : Certains messages d'erreur peu clairs
 4. **Tests** : Aucun test automatisé écrit
+5. ~~**Grammage** : Code couleur utilise mauvaises specs~~ ✅ Corrigé
 
 ## 🎯 Prochaines étapes nécessaires
 
 ### Phase 1 : Finalisation migration DRF (Priorité haute)
 1. **Nettoyer le code legacy** (voir LEGACY_CODE_TO_REMOVE.md)
-2. **Migrer `save_roll`** vers l'API DRF
+2. ~~**Migrer `save_roll`** vers l'API DRF~~ ✅ Fait
 3. **Supprimer les modèles obsolètes** (CurrentProductionState, LiveQualityControl)
 4. **Optimiser les requêtes** : Éviter les N+1
 

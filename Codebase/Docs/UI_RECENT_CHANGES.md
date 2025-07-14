@@ -57,8 +57,73 @@ La navigation avec la touche Tab a été optimisée :
 1. Cellules d'épaisseur vides (dans l'ordre de position)
 2. Champs de la sticky bar (masse tube, longueur, masse totale, etc.)
 
+## 7. Badge de contrôle qualité
+
+Un nouveau badge remplace le texte "Renseignez les contrôles pour pouvoir sauvegarder le poste" :
+- **Badge "Contrôles Qualité Pending"** : Affiché en jaune quand les contrôles ne sont pas complets
+- **Badge "Contrôles Qualité Passed"** : Affiché en vert quand tous les contrôles sont conformes
+- Design professionnel avec icônes et style cohérent avec la charte graphique
+
+## 8. Vérification de conformité des contrôles qualité
+
+La conformité des contrôles qualité est maintenant vérifiée automatiquement :
+- **Extrait sec** : Doit être dans les spécifications
+- **Moyennes micronnaire gauche/droite** : Doivent être dans les spécifications
+- **Moyennes masse surfacique gauche/droite** : Doivent être dans les spécifications
+- **LOI** : Le switch doit être activé (échantillon donné)
+
+## 9. Sauvegarde des rouleaux en base de données
+
+Nouvelle fonctionnalité de sauvegarde des rouleaux :
+- **Endpoint API** : `/livesession/api/save-roll/` pour persister les rouleaux
+- **Boîte de confirmation** : Demande confirmation avant sauvegarde avec affichage du numéro, statut et longueur
+- **Gestion automatique** : Après sauvegarde, incrémentation du numéro de rouleau et transfert de la masse tube suivante
+- **Détermination du statut** : CONFORME/NON_CONFORME basé sur les défauts bloquants et la conformité des contrôles qualité
+
+## 10. Navigation Tab améliorée dans tous les formulaires
+
+La navigation Tab a été étendue et optimisée :
+
+### Dans les contrôles qualité :
+- Navigation entre les champs vides uniquement
+- Une fois tous remplis → première épaisseur vide
+
+### Dans les épaisseurs :
+- Navigation en boucle entre les épaisseurs vides
+- Une fois toutes remplies → premier champ vide de la sticky bar
+
+### Dans la sticky bar :
+- Navigation vers les champs vides uniquement (pas en boucle)
+- Après le dernier champ → retour aux épaisseurs vides
+
+### Comportement global :
+- Si le curseur n'est nulle part → première épaisseur vide
+- Navigation intelligente qui suit le flux de travail naturel
+
+## 11. Affichage du temps total déclaré
+
+Le header "Déclaration de Temps" affiche maintenant le total :
+- **Format** : "Déclaration de Temps : 2h30" (ou "45min" si moins d'une heure)
+- **Mise à jour automatique** : Le total se recalcule à chaque ajout/suppression
+- **Affichage** : "--" si aucun temps n'est déclaré
+
+## 12. Alignement des labels dans les spécifications qualité
+
+Dans le bloc profil, les labels des spécifications sont maintenant alignés à droite :
+- Meilleure lisibilité des valeurs Min/Nominal/Max
+- Alignement cohérent pour toutes les spécifications
+- Padding de 10px pour un espacement optimal
+
+## 13. Correction du code couleur du grammage
+
+Le grammage dans la sticky bar utilise maintenant les bonnes spécifications :
+- Comparaison avec les specs de masse surfacique globale (g/m²)
+- Code couleur corrigé : vert dans les specs, rouge hors specs
+- Recalcul automatique après chargement des spécifications
+
 ## Notes techniques
 
 - Ces changements sont implémentés dans le template `production.html` et les fichiers JavaScript associés
 - L'API DRF `/livesession/api/current-session/` gère la persistance de toutes ces données
 - Les calculs côté serveur garantissent la cohérence des données affichées
+- Nouveau endpoint `/livesession/api/save-roll/` pour la sauvegarde des rouleaux

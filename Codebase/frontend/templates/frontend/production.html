@@ -21,6 +21,7 @@
     border-radius: 4px;
 }
 
+
 .quality-badge-pending {
     background-color: #fff3cd;
     color: #856404;
@@ -869,7 +870,7 @@
                 <!-- Bloc Déclaration de Temps -->
                 <div class="block-card">
                     <div class="block-header" style="cursor: pointer;" onclick="toggleTempsBlock()">
-                        <h5 class="block-title"><i class="bi bi-clock"></i> Déclaration de Temps</h5>
+                        <h5 class="block-title"><i class="bi bi-clock"></i> Déclaration de Temps : <span id="total-temps-declare" style="font-weight: normal;">--</span></h5>
                         <div class="block-actions">
                             <i class="bi bi-chevron-up" id="temps-chevron"></i>
                         </div>
@@ -2269,7 +2270,7 @@ function loadMachineParameters(profileId) {
                             if (!unit && key === 'dry_extract') unit = '%';
                             
                             html += '<div class="col-12 d-flex align-items-center mb-1">';
-                            html += `<div class="col-5" style="font-size: 0.75rem; font-weight: bold;">${spec.type}${unit ? ' (' + unit + ')' : ''}</div>`;
+                            html += `<div class="col-5" style="font-size: 0.75rem; font-weight: bold; text-align: right; padding-right: 10px;">${spec.type}${unit ? ' (' + unit + ')' : ''}</div>`;
                             html += '<div class="col-7 d-flex justify-content-around align-items-center" style="font-size: 0.75rem;">';
                             html += `<span style="min-width: 25px; text-align: center;">${spec.value_min !== null ? spec.value_min : '--'}</span>`;
                             html += `<span class="badge" style="background-color: #28a745; color: white; font-size: 0.7rem; line-height: 1.2; min-width: 30px;">${spec.value_nominal !== null ? spec.value_nominal : '--'}</span>`;
@@ -2290,7 +2291,7 @@ function loadMachineParameters(profileId) {
                             const spec = data.specifications[key];
                             // Déterminer l'unité
                             html += '<div class="col-12 d-flex align-items-center mb-1">';
-                            html += `<div class="col-5" style="font-size: 0.75rem; font-weight: bold;">${spec.type}</div>`;
+                            html += `<div class="col-5" style="font-size: 0.75rem; font-weight: bold; text-align: right; padding-right: 10px;">${spec.type}</div>`;
                             html += '<div class="col-7 d-flex justify-content-around align-items-center" style="font-size: 0.75rem;">';
                             html += `<span style="min-width: 25px; text-align: center;">${spec.value_min !== null ? spec.value_min : '--'}</span>`;
                             html += `<span class="badge" style="background-color: #28a745; color: white; font-size: 0.7rem; line-height: 1.2; min-width: 30px;">${spec.value_nominal !== null ? spec.value_nominal : '--'}</span>`;
@@ -3897,8 +3898,18 @@ function setupTabNavigation() {
     // Écouter l'événement keydown sur tout le document
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Tab') {
-            // Vérifier si on est dans un champ qui doit participer à la navigation custom
+            e.preventDefault(); // Toujours empêcher le comportement par défaut
+            
             const activeElement = document.activeElement;
+            
+            // Liste des champs de contrôle qualité dans l'ordre
+            const qualityFields = [
+                'sizing-bath-input',  // Extrait sec
+                'gg-input',          // Masse GG
+                'gc-input',          // Masse GC
+                'dc-input',          // Masse DC
+                'dd-input'           // Masse DD
+            ];
             
             // Liste des champs de la sticky bar dans l'ordre
             const stickyFields = [
@@ -3908,81 +3919,116 @@ function setupTabNavigation() {
                 'sticky-next-tube-mass'
             ];
             
-            // Si on est dans un input d'épaisseur
-            if (activeElement && activeElement.classList.contains('thickness-input') && !activeElement.classList.contains('thickness-rattrapage')) {
-                e.preventDefault();
-                
-                // Trouver le prochain input d'épaisseur vide
-                const allThicknessInputs = Array.from(document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)'));
-                const currentIndex = allThicknessInputs.indexOf(activeElement);
-                
-                // Chercher le prochain vide après l'actuel
-                for (let i = currentIndex + 1; i < allThicknessInputs.length; i++) {
-                    if (!allThicknessInputs[i].value || allThicknessInputs[i].value === '') {
-                        allThicknessInputs[i].focus();
-                        allThicknessInputs[i].select();
-                        return;
-                    }
-                }
-                
-                // Si on est au dernier input et qu'il n'y a plus de vides après, aller à la sticky bar
-                if (currentIndex === allThicknessInputs.length - 1) {
-                    // Aller au premier champ vide de la sticky bar
-                    for (const fieldId of stickyFields) {
-                        const field = document.getElementById(fieldId);
-                        if (field && (!field.value || field.value === '')) {
-                            field.focus();
-                            field.select();
-                            return;
-                        }
-                    }
-                }
-                
-                // Sinon, chercher depuis le début
-                for (let i = 0; i < currentIndex; i++) {
-                    if (!allThicknessInputs[i].value || allThicknessInputs[i].value === '') {
-                        allThicknessInputs[i].focus();
-                        allThicknessInputs[i].select();
-                        return;
-                    }
-                }
+            // Fonction helper pour trouver la première épaisseur vide
+            function findFirstEmptyThickness() {
+                const allThickness = Array.from(document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)'));
+                return allThickness.find(input => !input.value);
             }
-            // Si on est dans un champ de la sticky bar
-            else if (activeElement && stickyFields.includes(activeElement.id)) {
-                e.preventDefault();
+            
+            // 0. SI LE CURSEUR N'EST NULLE PART
+            if (!activeElement || !activeElement.tagName || activeElement.tagName === 'BODY') {
+                const firstEmpty = findFirstEmptyThickness();
+                if (firstEmpty) {
+                    firstEmpty.focus();
+                    firstEmpty.select();
+                }
+                return;
+            }
+            
+            // 1. SI ON EST DANS UN CONTRÔLE QUALITÉ
+            if (qualityFields.includes(activeElement.id)) {
+                const currentIndex = qualityFields.indexOf(activeElement.id);
                 
-                const currentFieldIndex = stickyFields.indexOf(activeElement.id);
-                
-                // Chercher le prochain champ vide dans la sticky bar
-                for (let i = currentFieldIndex + 1; i < stickyFields.length; i++) {
-                    const field = document.getElementById(stickyFields[i]);
-                    if (field && (!field.value || field.value === '')) {
+                // Chercher le prochain contrôle VIDE
+                for (let i = currentIndex + 1; i < qualityFields.length; i++) {
+                    const field = document.getElementById(qualityFields[i]);
+                    if (field && !field.value) {
                         field.focus();
                         field.select();
                         return;
                     }
                 }
                 
-                // Si pas trouvé après, revenir aux épaisseurs vides
-                const allThicknessInputs = Array.from(document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)'));
-                const firstEmpty = allThicknessInputs.find(input => !input.value || input.value === '');
+                // Si pas trouvé après, chercher depuis le début
+                for (let i = 0; i < currentIndex; i++) {
+                    const field = document.getElementById(qualityFields[i]);
+                    if (field && !field.value) {
+                        field.focus();
+                        field.select();
+                        return;
+                    }
+                }
                 
+                // Tous pleins ou dernière position -> aller aux épaisseurs
+                const firstEmpty = findFirstEmptyThickness();
                 if (firstEmpty) {
                     firstEmpty.focus();
                     firstEmpty.select();
                 }
+                return;
             }
-            // Si on n'est dans aucun de ces champs, et qu'on appuie sur Tab
-            else if (!activeElement || !activeElement.classList.contains('thickness-input')) {
-                // Chercher le premier champ d'épaisseur vide
-                const allThicknessInputs = Array.from(document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)'));
-                const firstEmpty = allThicknessInputs.find(input => !input.value || input.value === '');
+            
+            // 2. SI ON EST DANS UNE ÉPAISSEUR
+            if (activeElement.classList.contains('thickness-input') && !activeElement.classList.contains('thickness-rattrapage')) {
+                const allThickness = Array.from(document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)'));
+                const currentIndex = allThickness.indexOf(activeElement);
                 
+                // Vérifier s'il reste des épaisseurs vides
+                const hasEmptyThickness = allThickness.some(input => !input.value);
+                
+                if (hasEmptyThickness) {
+                    // Navigation EN BOUCLE dans les épaisseurs vides
+                    for (let i = currentIndex + 1; i < allThickness.length; i++) {
+                        if (!allThickness[i].value) {
+                            allThickness[i].focus();
+                            allThickness[i].select();
+                            return;
+                        }
+                    }
+                    
+                    // Chercher depuis le début
+                    for (let i = 0; i <= currentIndex; i++) {
+                        if (!allThickness[i].value) {
+                            allThickness[i].focus();
+                            allThickness[i].select();
+                            return;
+                        }
+                    }
+                } else {
+                    // Toutes les épaisseurs sont pleines -> aller au premier champ VIDE de sticky bar
+                    for (const fieldId of stickyFields) {
+                        const field = document.getElementById(fieldId);
+                        if (field && !field.value) {
+                            field.focus();
+                            field.select();
+                            return;
+                        }
+                    }
+                }
+                return;
+            }
+            
+            // 3. SI ON EST DANS LA STICKY BAR
+            if (stickyFields.includes(activeElement.id)) {
+                const currentIndex = stickyFields.indexOf(activeElement.id);
+                
+                // Chercher le prochain champ VIDE dans sticky bar (PAS en boucle)
+                for (let i = currentIndex + 1; i < stickyFields.length; i++) {
+                    const field = document.getElementById(stickyFields[i]);
+                    if (field && !field.value) {
+                        field.focus();
+                        field.select();
+                        return;
+                    }
+                }
+                
+                // Fin de sticky bar -> retour aux épaisseurs vides
+                const firstEmpty = findFirstEmptyThickness();
                 if (firstEmpty) {
-                    e.preventDefault();
                     firstEmpty.focus();
                     firstEmpty.select();
                 }
+                return;
             }
         }
     });
@@ -4266,6 +4312,23 @@ function updateLostTimeDisplay() {
     if (!listContainer) return;
     
     listContainer.innerHTML = '';
+    
+    // Calculer et afficher le total dans le header
+    const totalMinutes = lostTimeEntries.reduce((sum, entry) => sum + entry.duration, 0);
+    const totalElement = document.getElementById('total-temps-declare');
+    if (totalElement) {
+        if (totalMinutes > 0) {
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            if (hours > 0) {
+                totalElement.textContent = `${hours}h${minutes > 0 ? minutes.toString().padStart(2, '0') : ''}`;
+            } else {
+                totalElement.textContent = `${minutes}min`;
+            }
+        } else {
+            totalElement.textContent = '--';
+        }
+    }
     
     lostTimeEntries.forEach(entry => {
         const entryDiv = document.createElement('div');
