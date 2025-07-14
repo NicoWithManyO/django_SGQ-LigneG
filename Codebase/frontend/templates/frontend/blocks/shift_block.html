@@ -1017,39 +1017,44 @@ function checkSaveShiftButtonState() {
     
     // Extrait sec
     const extraitSec = document.getElementById('sizing-bath-input')?.value;
-    if (!extraitSec) {
+    if (!extraitSec || extraitSec.trim() === '') {
         qualityControlsIncomplete = true;
     }
     
     // Moyennes micronnaires (min 2 valeurs pour chaque côté)
     const leftInputs = document.querySelectorAll('.micronnaire-left');
-    const leftValues = Array.from(leftInputs).filter(input => input.value).length;
-    if (leftValues < 2) {
+    const leftValues = Array.from(leftInputs)
+        .map(input => input.value)
+        .filter(val => val && val.trim() !== '');
+    if (leftValues.length < 2) {
         qualityControlsIncomplete = true;
     }
     
     const rightInputs = document.querySelectorAll('.micronnaire-right');
-    const rightValues = Array.from(rightInputs).filter(input => input.value).length;
-    if (rightValues < 2) {
+    const rightValues = Array.from(rightInputs)
+        .map(input => input.value)
+        .filter(val => val && val.trim() !== '');
+    if (rightValues.length < 2) {
         qualityControlsIncomplete = true;
     }
     
-    // Moyennes masses surfaciques (2 valeurs pour chaque côté)
-    const ggValue = document.getElementById('surface-mass-gg')?.value;
-    const gcValue = document.getElementById('surface-mass-gc')?.value;
-    if (!ggValue || !gcValue) {
+    // Moyennes masses surfaciques (vérifier les IDs corrects)
+    const ggValue = document.getElementById('gg-input')?.value;
+    const gcValue = document.getElementById('gc-input')?.value;
+    if (!ggValue || !gcValue || ggValue.trim() === '' || gcValue.trim() === '') {
         qualityControlsIncomplete = true;
     }
     
-    const dcValue = document.getElementById('surface-mass-dc')?.value;
-    const ddValue = document.getElementById('surface-mass-dd')?.value;
-    if (!dcValue || !ddValue) {
+    const dcValue = document.getElementById('dc-input')?.value;
+    const ddValue = document.getElementById('dd-input')?.value;
+    if (!dcValue || !ddValue || dcValue.trim() === '' || ddValue.trim() === '') {
         qualityControlsIncomplete = true;
     }
     
-    // LOI
-    const loiGiven = document.getElementById('loiSwitch')?.checked;
-    if (!loiGiven) {
+    // LOI - le switch doit juste être manipulé (l'heure sera présente si c'est le cas)
+    const loiTimeElement = document.getElementById('loi-time');
+    const loiHasTime = loiTimeElement && loiTimeElement.textContent && loiTimeElement.textContent !== '--';
+    if (!loiHasTime) {
         qualityControlsIncomplete = true;
     }
     
