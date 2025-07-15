@@ -748,6 +748,31 @@ def update_production_metrics(current_session, new_roll, session_key):
         current_session.session_data['rendement'] = round(rendement, 1)
     else:
         current_session.session_data['rendement'] = 0
+    
+    # Calculer la longueur enroulable avec TO (temps d'ouverture)
+    # TO = temps total du poste sans déduire les temps perdus
+    start_time = current_session.session_data.get('start_time')
+    end_time = current_session.session_data.get('end_time')
+    belt_speed = current_session.session_data.get('belt_speed', 0)
+    
+    if start_time and end_time and belt_speed:
+        from datetime import datetime
+        # Convertir les heures en objets datetime pour le calcul
+        start = datetime.strptime(start_time, '%H:%M:%S' if len(start_time) > 5 else '%H:%M')
+        end = datetime.strptime(end_time, '%H:%M:%S' if len(end_time) > 5 else '%H:%M')
+        
+        # Gérer le passage de minuit
+        if end < start:
+            end = end.replace(day=end.day + 1)
+        
+        # TO en minutes
+        to_minutes = (end - start).total_seconds() / 60
+        
+        # Longueur enroulable avec TO = TO × vitesse
+        length_enroulable_to = round(to_minutes * float(belt_speed))
+        current_session.session_data['length_enroulable_to'] = length_enroulable_to
+    else:
+        current_session.session_data['length_enroulable_to'] = 0
 
 
 @api_view(['GET'])

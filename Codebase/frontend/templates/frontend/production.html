@@ -1025,7 +1025,8 @@
                                                     <div class="metric-particle" style="background: #0dcaf0; bottom: 10%; left: 90%;"></div>
                                                     <label class="text-muted small">Longueur Enroulable</label>
                                                     <div class="metric-value">
-                                                        <span id="lg-enroulable" class="h6 fw-bold text-info">1250m</span>
+                                                        <span id="lg-enroulable" class="h6 fw-bold text-info">--</span>
+                                                        <span id="lg-enroulable-to" class="text-muted ms-2" style="opacity: 0.3; font-size: 0.85rem; font-weight: 500;">(--)</span>
                                                     </div>
                                             </div>
                                         </div>
@@ -1089,11 +1090,13 @@
                                                 <div class="metric-particle" style="background: #ffc107; bottom: 15%; left: 80%;"></div>
                                                 <div class="metric-particle" style="background: #198754; bottom: 5%; left: 30%;"></div>
                                                 <div class="metric-particle" style="background: #ffc107; bottom: 20%; left: 90%;"></div>
-                                                <label class="text-muted small">OK | NOK</label>
+                                                <label class="text-muted small">OK | NOK | DÉC</label>
                                                 <div class="metric-value">
                                                     <span id="lg-enroulee-ok" class="h6 fw-bold text-success">--</span>
                                                     <span class="text-muted small">|</span>
                                                     <span id="lg-enroulee-nok" class="h6 fw-bold text-warning">--</span>
+                                                    <span class="text-muted small">|</span>
+                                                    <span id="lg-enroulee-dec" class="h6 fw-bold text-danger">--</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -4710,6 +4713,7 @@ function calculateMetrics() {
     // Calculer les longueurs
     const lengthLost = Math.round(tpMinutes * beltSpeed);
     const lengthEnroulable = Math.round(tdMinutes * beltSpeed);
+    const lengthEnroulableTo = Math.round(toMinutes * beltSpeed); // Longueur avec TO (sans déduire temps perdus)
     
     // Formater les temps
     const formatTime = (minutes) => {
@@ -4732,6 +4736,8 @@ function calculateMetrics() {
         length_lost_formatted: lengthLost > 0 ? `${lengthLost}m` : '--',
         length_enroulable: lengthEnroulable,
         length_enroulable_formatted: lengthEnroulable > 0 ? `${lengthEnroulable}m` : '--',
+        length_enroulable_to: lengthEnroulableTo,
+        length_enroulable_to_formatted: lengthEnroulableTo > 0 ? `(${lengthEnroulableTo}m)` : '(--)',
         belt_speed: beltSpeed
     };
 }
@@ -4768,6 +4774,12 @@ window.updateShiftMetrics = function(metrics) {
     const lgEnroulableElement = document.getElementById('lg-enroulable');
     if (lgEnroulableElement) {
         lgEnroulableElement.textContent = metrics.length_enroulable_formatted || '--';
+    }
+    
+    // Mettre à jour Longueur Enroulable avec TO (en grisé)
+    const lgEnroulableToElement = document.getElementById('lg-enroulable-to');
+    if (lgEnroulableToElement) {
+        lgEnroulableToElement.textContent = metrics.length_enroulable_to_formatted || '--';
     }
     
     // Mettre à jour TD (Temps Disponible)
@@ -4837,6 +4849,26 @@ function updateProductionMetrics(data) {
     const nokLengthElement = document.getElementById('lg-enroulee-nok');
     if (nokLengthElement && data.nok_length !== undefined) {
         nokLengthElement.textContent = Math.round(data.nok_length) + 'm';
+    }
+    
+    // Longueur DÉC (déchets)
+    const decLengthElement = document.getElementById('lg-enroulee-dec');
+    if (decLengthElement && data.waste_length !== undefined) {
+        decLengthElement.textContent = Math.round(data.waste_length) + 'm';
+    }
+    
+    // Longueur enroulable avec TO
+    const lgEnroulableToElement = document.getElementById('lg-enroulable-to');
+    if (lgEnroulableToElement && data.length_enroulable_to !== undefined) {
+        lgEnroulableToElement.textContent = '(' + Math.round(data.length_enroulable_to) + 'm)';
+    }
+    
+    // Rendement (déjà calculé côté serveur)
+    const rendementElement = document.getElementById('temps-rendement');
+    if (rendementElement && data.rendement !== undefined) {
+        rendementElement.textContent = data.rendement + '%';
+        // Mettre à jour la jauge
+        updateSmallGauge(data.rendement);
     }
     
     console.log('[DEBUG] Avant appel updateTRS');
@@ -5499,6 +5531,83 @@ function updateSpectacularGauge() {
     }, 100);
 }
 
+// Fonction pour rendre une modal déplaçable
+function makeModalDraggable(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    
+    const modalDialog = modal.querySelector('.modal-dialog');
+    const modalHeader = modal.querySelector('.modal-header');
+    
+    if (!modalDialog || !modalHeader) return;
+    
+    // Style pour indiquer que c'est déplaçable et empêcher la sélection
+    modalHeader.style.cursor = 'move';
+    modalHeader.style.userSelect = 'none';
+    modalHeader.style.webkitUserSelect = 'none';
+    modalHeader.style.mozUserSelect = 'none';
+    modalHeader.style.msUserSelect = 'none';
+    
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let xOffset = 0;
+    let yOffset = 0;
+    
+    modalHeader.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+    
+    function dragStart(e) {
+        // Ignorer si on clique sur un bouton (comme la croix de fermeture)
+        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+            return;
+        }
+        
+        e.preventDefault(); // Empêcher la sélection de texte
+        
+        initialX = e.clientX - xOffset;
+        initialY = e.clientY - yOffset;
+        
+        isDragging = true;
+        
+        // Ajouter une transition pour plus de fluidité
+        modalDialog.style.transition = 'none';
+    }
+    
+    function dragEnd(e) {
+        initialX = currentX;
+        initialY = currentY;
+        isDragging = false;
+    }
+    
+    function drag(e) {
+        if (isDragging) {
+            e.preventDefault();
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+            
+            xOffset = currentX;
+            yOffset = currentY;
+            
+            // Utiliser requestAnimationFrame pour plus de fluidité
+            requestAnimationFrame(() => {
+                modalDialog.style.transform = `translate(${currentX}px, ${currentY}px)`;
+            });
+        }
+    }
+    
+    // Reset position when modal is hidden
+    modal.addEventListener('hidden.bs.modal', function() {
+        xOffset = 0;
+        yOffset = 0;
+        modalDialog.style.transform = '';
+        modalDialog.style.transition = '';
+    });
+}
+
 // Initialisation au chargement
 document.addEventListener('DOMContentLoaded', function() {
     populateTimeOptions();
@@ -5506,6 +5615,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // loadLostTimesFromDraft(); - Supprimé, maintenant chargé ci-dessous
     loadThicknessSpecs();
     loadAllSpecs();
+    
+    // Rendre toutes les modals déplaçables
+    setTimeout(() => {
+        makeModalDraggable('shiftSaveModal');
+        makeModalDraggable('rollSaveModal');
+        makeModalDraggable('confirmModal');
+        makeModalDraggable('successModal');
+    }, 500); // Petit délai pour être sûr que les modals sont chargées
     loadDefectTypes();
     setupTabNavigation();
     
