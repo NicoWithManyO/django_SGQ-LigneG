@@ -497,6 +497,7 @@ def save_roll(request):
             length=float(roll_info['length']),
             tube_mass=float(roll_info['tube_mass']),
             total_mass=float(roll_info['total_mass']),
+            grammage_calc=float(roll_info.get('grammage', 0)),  # Récupérer le grammage déjà calculé
             status=roll_status,
             destination=destination,
             comment=roll_info.get('comment', '')

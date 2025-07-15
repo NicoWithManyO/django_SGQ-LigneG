@@ -392,6 +392,13 @@ const sessionAPI = {
                             lgEnroulableElement.textContent = lengthEnroulable > 0 ? `${lengthEnroulable}m` : '--';
                         }
                         
+                        // Mettre à jour la longueur enroulable avec TO (temps d'ouverture)
+                        const lengthEnroulableTo = Math.round(toMinutes * beltSpeed);
+                        const lgEnroulableToElement = document.getElementById('lg-enroulable-to');
+                        if (lgEnroulableToElement) {
+                            lgEnroulableToElement.textContent = lengthEnroulableTo > 0 ? `(${lengthEnroulableTo}m)` : '(--)';
+                        }
+                        
                         // Mettre à jour le TRS aussi
                         const okLength = window.sessionData?.ok_length || 0;
                         if (lengthEnroulable > 0) {

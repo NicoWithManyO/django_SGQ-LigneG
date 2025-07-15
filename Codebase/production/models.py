@@ -396,6 +396,11 @@ class Roll(models.Model):
                                             null=True, blank=True,
                                             verbose_name="Épaisseur moyenne droite (mm)")
     
+    # Grammage calculé lors de la sauvegarde
+    grammage_calc = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True,
+                                       verbose_name="Grammage calculé",
+                                       help_text="Grammage calculé et sauvegardé (g/m)")
+    
     # Masse nette calculée
     net_mass = models.DecimalField(max_digits=10, decimal_places=2, 
                                   null=True, blank=True,
