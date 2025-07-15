@@ -367,10 +367,11 @@ def reset_session_after_save(current_data):
     if current_data.get('current_roll') and current_data['current_roll'].get('info'):
         new_data['current_roll'] = {
             'info': {
+                'roll_number': current_data['current_roll']['info'].get('roll_number', ''),
                 'tube_mass': current_data['current_roll']['info'].get('tube_mass', ''),
                 'next_tube_mass': current_data['current_roll']['info'].get('next_tube_mass', ''),
                 'total_mass': current_data['current_roll']['info'].get('total_mass', ''),
-                'roll_length': current_data['current_roll']['info'].get('roll_length', '')
+                'length': current_data['current_roll']['info'].get('length', '')  # Utiliser 'length' pas 'roll_length'
             }
         }
     
@@ -687,6 +688,7 @@ def update_production_metrics(current_session, new_roll, session_key):
     Met à jour les métriques de production après sauvegarde d'un rouleau
     
     Pour le premier rouleau, on soustrait le métrage de début
+    Pour tous les rouleaux, on prend en compte le métrage fin si renseigné
     """
     from production.models import Roll
     
@@ -710,26 +712,42 @@ def update_production_metrics(current_session, new_roll, session_key):
         elif roll.destination == 'DECHETS':
             waste_length += length
     
-    # Pour le premier rouleau, ajuster avec le métrage de début
-    if session_rolls.count() == 1:
+    # Pour le premier rouleau uniquement, retirer le métrage de début
+    if session_rolls.count() == 1 and new_roll:
         meter_reading_start = current_session.session_data.get('meter_reading_start', 0)
         if meter_reading_start:
-            # La production réelle doit soustraire ce qui était déjà enroulé
+            # Cette longueur a été enroulée sur le poste précédent
             adjustment = float(meter_reading_start)
+            # Pour l'instant, on retire toujours de OK pour tester
             total_length = max(0, total_length - adjustment)
-            # Ajuster selon le statut du premier rouleau
-            if new_roll.status == 'CONFORME':
-                ok_length = max(0, ok_length - adjustment)
-            elif new_roll.status == 'NON_CONFORME':
-                nok_length = max(0, nok_length - adjustment)
-            elif new_roll.destination == 'DECHETS':
-                waste_length = max(0, waste_length - adjustment)
+            ok_length = max(0, ok_length - adjustment)
+    
+    # Ajouter la production non déclarée en rouleaux basée sur le métrage fin
+    meter_reading_start = current_session.session_data.get('meter_reading_start', 0)
+    meter_reading_end = current_session.session_data.get('meter_reading_end', 0)
+    if meter_reading_start and meter_reading_end:
+        # Production réelle = métrage fin - métrage début
+        production_reelle = float(meter_reading_end) - float(meter_reading_start)
+        # Production déclarée = somme des rouleaux (déjà dans total_length)
+        production_non_declaree = production_reelle - total_length
+        if production_non_declaree > 0:
+            # Cette production supplémentaire est considérée comme OK
+            total_length += production_non_declaree
+            ok_length += production_non_declaree
     
     # Mettre à jour la session
     current_session.session_data['total_length'] = total_length
     current_session.session_data['ok_length'] = ok_length
     current_session.session_data['nok_length'] = nok_length
     current_session.session_data['waste_length'] = waste_length
+    
+    # Calculer le rendement si on a la longueur enroulable
+    length_enroulable = current_session.session_data.get('length_enroulable', 0)
+    if length_enroulable and length_enroulable > 0:
+        rendement = (ok_length / length_enroulable) * 100
+        current_session.session_data['rendement'] = round(rendement, 1)
+    else:
+        current_session.session_data['rendement'] = 0
 
 
 @api_view(['GET'])

@@ -1,0 +1,644 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - SGQ Ligne G{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.dashboard-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.metric-label {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    margin-bottom: 5px;
+}
+
+.metric-unit {
+    font-size: 1rem;
+    color: #95a5a6;
+    font-weight: normal;
+}
+
+.shift-card {
+    background: #f8f9fa;
+    border-left: 4px solid #007bff;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.shift-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.shift-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.shift-metric {
+    text-align: center;
+}
+
+.mood-container {
+    display: flex;
+    justify-content: space-around;
+    padding: 20px 0;
+}
+
+.mood-item {
+    text-align: center;
+}
+
+.mood-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.mood-count {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.table-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-conforme {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-non-conforme {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.trs-gauge {
+    width: 60px;
+    height: 60px;
+    position: relative;
+}
+
+.average-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.average-card .card-title {
+    color: white;
+    border-bottom-color: rgba(255,255,255,0.3);
+}
+
+.average-card .metric-value {
+    color: white;
+}
+
+.average-card .metric-label {
+    color: rgba(255,255,255,0.8);
+}
+
+.defects-chart {
+    height: 300px;
+}
+
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Responsive grid */
+@media (max-width: 768px) {
+    .shift-metrics {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Tableau de Bord</h1>
+        <button class="btn btn-primary" onclick="refreshDashboard()">
+            <i class="bi bi-arrow-clockwise"></i> Actualiser
+        </button>
+    </div>
+
+    <!-- Première ligne: 3 derniers postes -->
+    <div class="row" id="lastShiftsRow">
+        <div class="col-md-4">
+            <div class="dashboard-card">
+                <h5 class="card-title">Dernier Poste</h5>
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="dashboard-card">
+                <h5 class="card-title">Avant-dernier Poste</h5>
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="dashboard-card">
+                <h5 class="card-title">Antépénultième Poste</h5>
+                <div class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deuxième ligne: Moyennes et Humeurs -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="dashboard-card average-card">
+                <h5 class="card-title">Moyennes des 3 Derniers Postes</h5>
+                <div id="averagesContent" class="loading-spinner">
+                    <div class="spinner-border text-light" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <h5 class="card-title">Rapport des Humeurs</h5>
+                <div id="moodsContent" class="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Troisième ligne: Listings -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <h5 class="card-title">Derniers Postes</h5>
+                <div class="filters">
+                    <select class="form-select form-select-sm" id="filterWeek">
+                        <option value="">Toutes les semaines</option>
+                        <option value="current">Cette semaine</option>
+                        <option value="last">Semaine dernière</option>
+                    </select>
+                    <select class="form-select form-select-sm" id="filterVacation">
+                        <option value="">Toutes les vacations</option>
+                        <option value="Matin">Matin</option>
+                        <option value="ApresMidi">Après-midi</option>
+                        <option value="Nuit">Nuit</option>
+                        <option value="Journee">Journée</option>
+                    </select>
+                </div>
+                <div id="shiftsListingContent" class="table-container">
+                    <div class="loading-spinner">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <h5 class="card-title">Rouleaux de l'OF en Cours</h5>
+                <div id="rollsListingContent" class="table-container">
+                    <div class="loading-spinner">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quatrième ligne: Graphique défauts -->
+    <div class="row">
+        <div class="col-12">
+            <div class="dashboard-card">
+                <h5 class="card-title">Évolution des Défauts</h5>
+                <div id="defectsChartContent" class="defects-chart">
+                    <canvas id="defectsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let dashboardData = null;
+let defectsChart = null;
+
+// Fonction pour charger les données
+async function loadDashboardData() {
+    try {
+        const response = await fetch('/reporting/api/dashboard-data/');
+        if (!response.ok) throw new Error('Erreur réseau');
+        
+        dashboardData = await response.json();
+        updateDashboard();
+    } catch (error) {
+        console.error('Erreur lors du chargement des données:', error);
+        showError('Impossible de charger les données du dashboard');
+    }
+}
+
+// Fonction pour mettre à jour l'affichage
+function updateDashboard() {
+    if (!dashboardData) return;
+
+    // Mettre à jour les 3 derniers postes
+    updateLastShifts();
+    
+    // Mettre à jour les moyennes
+    updateAverages();
+    
+    // Mettre à jour les humeurs
+    updateMoods();
+    
+    // Mettre à jour le listing des postes
+    updateShiftsListing();
+    
+    // Mettre à jour le listing des rouleaux
+    updateRollsListing();
+    
+    // Mettre à jour le graphique des défauts
+    updateDefectsChart();
+}
+
+// Mise à jour des 3 derniers postes
+function updateLastShifts() {
+    const container = document.getElementById('lastShiftsRow');
+    const titles = ['Dernier Poste', 'Avant-dernier Poste', 'Antépénultième Poste'];
+    
+    container.innerHTML = '';
+    
+    dashboardData.shifts.forEach((shift, index) => {
+        const col = document.createElement('div');
+        col.className = 'col-md-4';
+        
+        col.innerHTML = `
+            <div class="dashboard-card">
+                <h5 class="card-title">${titles[index]}</h5>
+                <div class="shift-card">
+                    <div class="shift-header">
+                        <div>
+                            <strong>${shift.date}</strong> - ${shift.vacation}<br>
+                            <small class="text-muted">${shift.operator}</small>
+                        </div>
+                        <div class="trs-gauge">
+                            <svg viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="45" fill="none" stroke="#e0e0e0" stroke-width="10"/>
+                                <circle cx="50" cy="50" r="45" fill="none" stroke="${getTRSColor(shift.trs)}" 
+                                        stroke-width="10" stroke-dasharray="${shift.trs * 2.83} 283" 
+                                        transform="rotate(-90 50 50)"/>
+                                <text x="50" y="55" text-anchor="middle" font-size="20" font-weight="bold">
+                                    ${shift.trs}%
+                                </text>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="shift-metrics">
+                        <div class="shift-metric">
+                            <div class="metric-label">Total</div>
+                            <div class="metric-value">${Math.round(shift.total_length)}<span class="metric-unit">m</span></div>
+                        </div>
+                        <div class="shift-metric">
+                            <div class="metric-label">OK</div>
+                            <div class="metric-value text-success">${Math.round(shift.ok_length)}<span class="metric-unit">m</span></div>
+                        </div>
+                        <div class="shift-metric">
+                            <div class="metric-label">Rouleaux</div>
+                            <div class="metric-value">${shift.rolls_count}</div>
+                            <small>${shift.conformes} OK / ${shift.non_conformes} NOK</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(col);
+    });
+    
+    // Ajouter des cartes vides si moins de 3 postes
+    for (let i = dashboardData.shifts.length; i < 3; i++) {
+        const col = document.createElement('div');
+        col.className = 'col-md-4';
+        col.innerHTML = `
+            <div class="dashboard-card">
+                <h5 class="card-title">${titles[i]}</h5>
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                    <p>Aucune donnée</p>
+                </div>
+            </div>
+        `;
+        container.appendChild(col);
+    }
+}
+
+// Mise à jour des moyennes
+function updateAverages() {
+    const content = document.getElementById('averagesContent');
+    const avg = dashboardData.averages;
+    
+    content.innerHTML = `
+        <div class="row">
+            <div class="col-6">
+                <div class="metric-label">Longueur moyenne</div>
+                <div class="metric-value">${Math.round(avg.total_length)}<span class="metric-unit">m</span></div>
+            </div>
+            <div class="col-6">
+                <div class="metric-label">TRS moyen</div>
+                <div class="metric-value">${avg.trs.toFixed(1)}<span class="metric-unit">%</span></div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-6">
+                <div class="metric-label">Longueur OK moyenne</div>
+                <div class="metric-value">${Math.round(avg.ok_length)}<span class="metric-unit">m</span></div>
+            </div>
+            <div class="col-6">
+                <div class="metric-label">Temps perdu moyen</div>
+                <div class="metric-value">${Math.round(avg.lost_time)}<span class="metric-unit">min</span></div>
+            </div>
+        </div>
+    `;
+}
+
+// Mise à jour des humeurs
+function updateMoods() {
+    const content = document.getElementById('moodsContent');
+    const moods = dashboardData.moods;
+    
+    content.innerHTML = `
+        <div class="mood-container">
+            <div class="mood-item">
+                <div class="mood-icon text-success">😊</div>
+                <div class="mood-count">${moods.happy || 0}</div>
+                <div class="metric-label">Heureux</div>
+            </div>
+            <div class="mood-item">
+                <div class="mood-icon text-warning">😐</div>
+                <div class="mood-count">${moods.neutral || 0}</div>
+                <div class="metric-label">Neutre</div>
+            </div>
+            <div class="mood-item">
+                <div class="mood-icon text-danger">😔</div>
+                <div class="mood-count">${moods.unhappy || 0}</div>
+                <div class="metric-label">Mécontent</div>
+            </div>
+            <div class="mood-item">
+                <div class="mood-icon text-muted">❓</div>
+                <div class="mood-count">${moods.no_response || 0}</div>
+                <div class="metric-label">Sans réponse</div>
+            </div>
+        </div>
+    `;
+}
+
+// Mise à jour du listing des postes
+function updateShiftsListing() {
+    const content = document.getElementById('shiftsListingContent');
+    const shifts = dashboardData.shifts_listing;
+    
+    if (shifts.length === 0) {
+        content.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                <p>Aucun poste trouvé</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = `
+        <table class="table table-sm table-hover">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Vacation</th>
+                    <th>Opérateur</th>
+                    <th>Longueur</th>
+                    <th>TRS</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    shifts.forEach(shift => {
+        html += `
+            <tr>
+                <td>${shift.date}</td>
+                <td>${shift.vacation}</td>
+                <td>${shift.operator}</td>
+                <td>${Math.round(shift.total_length)}m</td>
+                <td>
+                    <span class="badge ${getTRSBadgeClass(shift.trs)}">
+                        ${shift.trs}%
+                    </span>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table>';
+    content.innerHTML = html;
+}
+
+// Mise à jour du listing des rouleaux
+function updateRollsListing() {
+    const content = document.getElementById('rollsListingContent');
+    const rolls = dashboardData.rolls_of;
+    const currentOf = dashboardData.current_of;
+    
+    if (!currentOf) {
+        content.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                <p>Aucun OF en cours</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = `
+        <h6 class="mb-3">OF: ${currentOf}</h6>
+        <table class="table table-sm table-hover">
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>ID</th>
+                    <th>Longueur</th>
+                    <th>Statut</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    rolls.forEach(roll => {
+        html += `
+            <tr>
+                <td>${roll.number}</td>
+                <td><small>${roll.id}</small></td>
+                <td>${Math.round(roll.length)}m</td>
+                <td>
+                    <span class="status-badge status-${roll.status.toLowerCase().replace('_', '-')}">
+                        ${roll.status === 'CONFORME' ? 'OK' : 'NOK'}
+                    </span>
+                </td>
+                <td><small>${roll.date}</small></td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table>';
+    content.innerHTML = html;
+}
+
+// Mise à jour du graphique des défauts
+function updateDefectsChart() {
+    const ctx = document.getElementById('defectsChart').getContext('2d');
+    
+    if (defectsChart) {
+        defectsChart.destroy();
+    }
+    
+    defectsChart = new Chart(ctx, {
+        type: 'line',
+        data: dashboardData.defects,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+// Fonctions utilitaires
+function getTRSColor(trs) {
+    if (trs >= 80) return '#28a745';
+    if (trs >= 60) return '#ffc107';
+    return '#dc3545';
+}
+
+function getTRSBadgeClass(trs) {
+    if (trs >= 80) return 'bg-success';
+    if (trs >= 60) return 'bg-warning';
+    return 'bg-danger';
+}
+
+function showError(message) {
+    // TODO: Implémenter l'affichage d'erreur
+    console.error(message);
+}
+
+// Fonction pour rafraîchir le dashboard
+function refreshDashboard() {
+    const btn = event.target.closest('button');
+    const icon = btn.querySelector('i');
+    icon.classList.add('spinning');
+    
+    loadDashboardData().finally(() => {
+        icon.classList.remove('spinning');
+    });
+}
+
+// Charger les données au démarrage
+document.addEventListener('DOMContentLoaded', loadDashboardData);
+
+// Auto-refresh toutes les 60 secondes
+setInterval(loadDashboardData, 60000);
+
+// Style pour l'animation de rotation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

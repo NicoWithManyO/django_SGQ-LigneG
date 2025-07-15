@@ -159,7 +159,9 @@
                                         <label class="form-label small">
                                             {{ form.meter_reading_start.label }}
                                         </label>
-                                        <input type="number" name="meter_reading_start" id="id_meter_reading_start" class="form-control form-control-sm" step="0.01" onchange="saveShiftField('meter_reading_start', this.value)">
+                                        <input type="number" name="meter_reading_start" id="id_meter_reading_start" class="form-control form-control-sm" step="0.01" 
+                                               onchange="saveShiftField('meter_reading_start', this.value);"
+                                               oninput="if (this.value === '') { saveShiftField('meter_reading_start', null); }">
                                         {% if form.meter_reading_start.errors %}
                                             <div class="text-danger small">{{ form.meter_reading_start.errors.0 }}</div>
                                         {% endif %}
@@ -198,7 +200,9 @@
                                 </div>
                                 <div class="col-md-6" id="meter-reading-end-field" style="visibility: hidden;">
                                     <label class="form-label small">{{ form.meter_reading_end.label }}</label>
-                                    <input type="number" name="meter_reading_end" id="id_meter_reading_end" class="form-control form-control-sm" step="0.01" onchange="saveShiftField('meter_reading_end', this.value)">
+                                    <input type="number" name="meter_reading_end" id="id_meter_reading_end" class="form-control form-control-sm" step="0.01" 
+                                           onchange="saveShiftField('meter_reading_end', this.value); updateProductionMetricsFromSession();"
+                                           oninput="if (this.value === '') { saveShiftField('meter_reading_end', null); updateProductionMetricsFromSession(); }">
                                     {% if form.meter_reading_end.errors %}
                                         <div class="text-danger small">{{ form.meter_reading_end.errors.0 }}</div>
                                     {% endif %}
@@ -1299,6 +1303,9 @@ function checkSaveShiftButtonState() {
     if (canSave) {
         saveBtn.disabled = false;
         saveBtn.className = 'btn btn-primary btn-sm fibrage-action-btn';
+        saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Poste';
+        saveBtn.style.pointerEvents = 'auto';
+        
         // Retirer l'infobulle si tout est OK
         saveBtn.removeAttribute('data-bs-toggle');
         saveBtn.removeAttribute('data-bs-placement');
@@ -1319,6 +1326,7 @@ function checkSaveShiftButtonState() {
     } else {
         saveBtn.disabled = true;
         saveBtn.className = 'btn btn-secondary btn-sm fibrage-action-btn';
+        saveBtn.innerHTML = '<i class="bi bi-x-circle"></i> Save Poste';
         
         // Pour les boutons désactivés, on doit utiliser un conteneur parent
         // Vérifier si on a déjà un wrapper
@@ -1328,9 +1336,12 @@ function checkSaveShiftButtonState() {
             wrapper = document.createElement('span');
             wrapper.className = 'd-inline-block';
             wrapper.setAttribute('tabindex', '0');
+            wrapper.style.cursor = 'not-allowed';
             saveBtn.parentNode.insertBefore(wrapper, saveBtn);
             wrapper.appendChild(saveBtn);
         }
+        
+        saveBtn.style.pointerEvents = 'none';
         
         // Ajouter l'infobulle sur le wrapper
         wrapper.setAttribute('data-bs-toggle', 'tooltip');

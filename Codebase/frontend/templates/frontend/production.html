@@ -1807,12 +1807,19 @@ function calculateAndSaveProductivityMetrics(savedBeltSpeed = null) {
     const meterReadingEnd = parseFloat(document.getElementById('meter_reading_end')?.value) || 0;
     
     // Récupérer la vitesse du tapis - utiliser la valeur sauvegardée si fournie
-    let beltSpeedMPerMin = savedBeltSpeed || window.savedBeltSpeed || 0;
-    if (!beltSpeedMPerMin) {
+    let beltSpeedMPerMin;
+    if (savedBeltSpeed !== null && savedBeltSpeed !== undefined) {
+        beltSpeedMPerMin = savedBeltSpeed;
+    } else if (window.savedBeltSpeed !== null && window.savedBeltSpeed !== undefined) {
+        beltSpeedMPerMin = window.savedBeltSpeed;
+    } else {
+        // Fallback : chercher dans le select
         const profileSelector = document.getElementById('profile-selector');
         if (profileSelector && profileSelector.value) {
             const selectedOption = profileSelector.options[profileSelector.selectedIndex];
             beltSpeedMPerMin = parseFloat(selectedOption.getAttribute('data-belt-speed')) || 0;
+        } else {
+            beltSpeedMPerMin = 0;
         }
     }
     
@@ -1919,8 +1926,12 @@ window.editCurrentOrder = function() {
             .then(data => {
                 console.log('OF en cours mis à jour');
                 select.disabled = true;
+                // Mettre à jour sessionData avec la nouvelle valeur
+                if (data) sessionData = {...sessionData, ...data};
                 // Mettre à jour l'ID du rouleau
                 updateRollIdDisplay();
+                // Mettre à jour le bouton d'action comme pour le numéro de rouleau
+                updateActionButton();
             })
             .catch(error => {
                 console.error('Erreur:', error);
@@ -2253,6 +2264,8 @@ function loadMachineParameters(profileId) {
                     const beltSpeed = parseFloat(data.parameters.belt_speed_m_per_minute);
                     window.savedBeltSpeed = beltSpeed;
                     updateFieldViaAPI('belt_speed', beltSpeed);
+                    // Recalculer les métriques avec la nouvelle vitesse
+                    calculateAndSaveProductivityMetrics(beltSpeed);
                 }
                 
                 // Afficher les spécifications
@@ -2465,6 +2478,8 @@ function saveProfile(profileId) {
             loadMachineParameters(profileId);
         } else {
             document.getElementById('machine-parameters-display').innerHTML = '';
+            // Remettre la vitesse à 0 quand on désélectionne le profil
+            window.savedBeltSpeed = 0;
         }
         // Recalculer les métriques avec la nouvelle vitesse
         calculateAndSaveProductivityMetrics();
@@ -3604,6 +3619,8 @@ function autoSaveRollData() {
             console.log('Rouleau sauvegardé dans current-session');
             // Mettre à jour le statut du rouleau
             updateRollStatus();
+            // Mettre à jour le bouton d'action
+            updateActionButton();
         });
         
         // Code désactivé - à migrer
@@ -4903,7 +4920,10 @@ function updateActionButton(status) {
     const cutBtn = document.getElementById('cut-btn');
     const wasteBtn = document.getElementById('waste-btn');
     
-    if (!actionBtn) return;
+    if (!actionBtn) {
+        console.log('[DEBUG] Bouton action introuvable');
+        return;
+    }
     
     // Vérifier qu'on a longueur ET masse totale
     const length = parseFloat(document.getElementById('sticky-roll-length')?.value) || 0;
@@ -4955,15 +4975,99 @@ function updateActionButton(status) {
         const rollIdElement = document.getElementById('sticky-roll-id');
         const rollId = rollIdElement ? rollIdElement.textContent : '--';
         
+        // Vérifier les conditions pour activer le bouton
+        let canSave = true;
+        let reasons = [];
+        
+        // Vérifier les épaisseurs
         if (filledThicknessCount < 6) {
-            actionBtn.innerHTML = `<i class="bi bi-save"></i> Save Rouleau ${rollId}`;
-            actionBtn.className = 'btn btn-secondary btn-sm fibrage-action-btn';
-            actionBtn.disabled = true;
-            actionBtn.title = `${filledThicknessCount}/6 épaisseurs minimum`;
-        } else {
+            canSave = false;
+            reasons.push(`${filledThicknessCount}/6 épaisseurs minimum`);
+        }
+        
+        // Vérifier la longueur
+        const lengthValue = document.getElementById('sticky-roll-length')?.value;
+        if (!lengthValue || lengthValue.trim() === '') {
+            canSave = false;
+            reasons.push('Longueur manquante');
+        }
+        
+        // Vérifier la masse totale
+        const totalMassValue = document.getElementById('sticky-total-mass')?.value;
+        if (!totalMassValue || totalMassValue.trim() === '') {
+            canSave = false;
+            reasons.push('Masse totale manquante');
+        }
+        
+        // Vérifier la masse tube
+        const tubeMassValue = document.getElementById('sticky-tube-mass')?.value;
+        if (!tubeMassValue || tubeMassValue.trim() === '') {
+            canSave = false;
+            reasons.push('Masse tube manquante');
+        }
+        
+        // Vérifier le numéro de rouleau
+        const rollNumberValue = document.getElementById('sticky-roll-number')?.value;
+        if (!rollNumberValue || rollNumberValue.trim() === '') {
+            canSave = false;
+            reasons.push('Numéro de rouleau manquant');
+        }
+        
+        // Vérifier qu'un OF est sélectionné
+        if (!sessionData?.current_of || sessionData.current_of === '') {
+            canSave = false;
+            reasons.push('OF non sélectionné');
+        }
+        
+        if (canSave) {
             actionBtn.innerHTML = `<i class="bi bi-save"></i> Save Rouleau ${rollId}`;
             actionBtn.className = 'btn btn-success btn-sm fibrage-action-btn';
-            actionBtn.title = '';
+            actionBtn.disabled = false;
+            
+            // Si le bouton est dans un wrapper, le sortir
+            const wrapper = actionBtn.parentElement;
+            if (wrapper && wrapper.classList.contains('d-inline-block')) {
+                // Nettoyer le tooltip du wrapper
+                const wrapperTooltip = bootstrap.Tooltip.getInstance(wrapper);
+                if (wrapperTooltip) {
+                    wrapperTooltip.dispose();
+                }
+                // Sortir le bouton du wrapper
+                wrapper.parentNode.insertBefore(actionBtn, wrapper);
+                wrapper.remove();
+            }
+        } else {
+            actionBtn.innerHTML = `<i class="bi bi-x-circle"></i> Save Rouleau ${rollId}`;
+            actionBtn.className = 'btn btn-secondary btn-sm fibrage-action-btn';
+            actionBtn.disabled = true;
+            
+            // Pour les boutons désactivés, on doit utiliser un conteneur parent (comme save poste)
+            let wrapper = actionBtn.parentElement;
+            if (!wrapper || !wrapper.classList.contains('d-inline-block')) {
+                // Créer un wrapper si nécessaire
+                wrapper = document.createElement('span');
+                wrapper.className = 'd-inline-block';
+                wrapper.setAttribute('tabindex', '0');
+                wrapper.style.cursor = 'not-allowed';
+                
+                // Insérer le wrapper et y mettre le bouton
+                actionBtn.parentNode.insertBefore(wrapper, actionBtn);
+                wrapper.appendChild(actionBtn);
+            }
+            
+            // Nettoyer tout ancien tooltip
+            const wrapperTooltip = bootstrap.Tooltip.getInstance(wrapper);
+            if (wrapperTooltip) {
+                wrapperTooltip.dispose();
+            }
+            
+            // Ajouter les attributs au wrapper
+            wrapper.setAttribute('data-bs-toggle', 'tooltip');
+            wrapper.setAttribute('data-bs-title', reasons.join(' • '));
+            wrapper.setAttribute('data-bs-placement', 'top');
+            
+            // Initialiser le tooltip sur le wrapper
+            new bootstrap.Tooltip(wrapper);
         }
     }
 }
@@ -5142,8 +5246,22 @@ function proceedWithRollSave(status, destination, rollNumber, length, totalMass,
                     // Mettre à jour les métriques de production
                     updateProductionMetrics(data.session);
                     
+                    // Mettre à jour sessionData avec les longueurs du backend
+                    if (data.session.ok_length !== undefined) {
+                        sessionData.ok_length = data.session.ok_length;
+                        console.log('[DEBUG] ok_length mise à jour:', sessionData.ok_length);
+                    }
+                    if (data.session.total_length !== undefined) {
+                        sessionData.total_length = data.session.total_length;
+                    }
+                    
                     // Recalculer les métriques pour mettre à jour window.currentMetrics
-                    updateShiftMetrics();
+                    const newMetrics = calculateMetrics();
+                    updateShiftMetrics(newMetrics);
+                    
+                    // METTRE À JOUR LE TRS
+                    console.log('[DEBUG] Avant updateTRS - sessionData.ok_length:', sessionData.ok_length);
+                    updateTRS();
                     
                     // 1. NUMÉRO DE ROULEAU (depuis le backend)
                     const newRollNumber = data.session.roll_number || data.session.current_roll?.info?.roll_number || '';
