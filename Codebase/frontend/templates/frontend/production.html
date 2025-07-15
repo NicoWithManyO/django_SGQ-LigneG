@@ -5046,14 +5046,30 @@ function updateActionButton(status) {
     // Activer le bouton principal
     actionBtn.disabled = false;
     
-    // Compter le nombre d'épaisseurs remplies
-    const thicknessInputs = document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)');
-    let filledThicknessCount = 0;
-    thicknessInputs.forEach(input => {
+    // Compter le nombre d'épaisseurs remplies (normales + rattrapages)
+    const normalThicknessInputs = document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)');
+    const rattrapageInputs = document.querySelectorAll('.thickness-input.thickness-rattrapage');
+    
+    let filledNormalCount = 0;
+    let filledRattrapageCount = 0;
+    let visibleRattrapageCount = 0;
+    
+    normalThicknessInputs.forEach(input => {
         if (input.value && input.value.trim() !== '') {
-            filledThicknessCount++;
+            filledNormalCount++;
         }
     });
+    
+    rattrapageInputs.forEach(input => {
+        if (input.style.display !== 'none') {
+            visibleRattrapageCount++;
+            if (input.value && input.value.trim() !== '') {
+                filledRattrapageCount++;
+            }
+        }
+    });
+    
+    const filledThicknessCount = filledNormalCount + filledRattrapageCount;
     
     if (status === 'NON_CONFORME') {
         // NON CONFORME : bouton "Vers Découpe" - pas besoin de toutes les épaisseurs
@@ -5074,10 +5090,30 @@ function updateActionButton(status) {
         let canSave = true;
         let reasons = [];
         
-        // Vérifier les épaisseurs
-        if (filledThicknessCount < 6) {
+        // Calculer le nombre total d'épaisseurs requises
+        const targetLength = parseFloat(document.getElementById('target-length')?.value) || 0;
+        const stickyLength = parseFloat(document.getElementById('sticky-roll-length')?.value) || 0;
+        const displayLength = (stickyLength > targetLength) ? stickyLength : targetLength;
+        
+        // Calculer le nombre de lignes de mesure selon la logique métier
+        let measurementRows = 0;
+        if (displayLength < 3) {
+            measurementRows = 1;
+        } else {
+            measurementRows = 1; // Mètre 3
+            let nextMeter = 8;
+            while (nextMeter <= displayLength) {
+                measurementRows++;
+                nextMeter += 5;
+            }
+        }
+        
+        const totalRequiredThickness = (measurementRows * 6) + visibleRattrapageCount;
+        
+        // Vérifier qu'on a TOUTES les épaisseurs (normales + rattrapages visibles)
+        if (filledThicknessCount < totalRequiredThickness) {
             canSave = false;
-            reasons.push(`${filledThicknessCount}/6 épaisseurs minimum`);
+            reasons.push(`EP manquant ${filledThicknessCount}/${totalRequiredThickness}`);
         }
         
         // Vérifier la longueur
@@ -7081,14 +7117,19 @@ function updateMassDisplay(data) {
 
 // Fonction pour mettre à jour les résumés épaisseurs et défauts
 function updateSummaries() {
-    // Compter les épaisseurs
-    const allThicknessInputs = document.querySelectorAll('.thickness-input');
-    let filledCount = 0;
+    // Compter les épaisseurs normales et rattrapages séparément
+    const normalThicknessInputs = document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)');
+    const rattrapageInputs = document.querySelectorAll('.thickness-input.thickness-rattrapage');
+    
+    let filledNormalCount = 0;
+    let filledRattrapageCount = 0;
+    let visibleRattrapageCount = 0;
     let nokCount = 0;
     
-    allThicknessInputs.forEach(input => {
+    // Compter les épaisseurs normales
+    normalThicknessInputs.forEach(input => {
         if (input.value && input.value.trim() !== '') {
-            filledCount++;
+            filledNormalCount++;
             // Vérifier si NOK (fond rouge)
             if (input.style.backgroundColor === 'rgb(255, 23, 68)' || 
                 input.style.backgroundColor === '#ff1744') {
@@ -7097,16 +7138,45 @@ function updateSummaries() {
         }
     });
     
+    // Compter les rattrapages visibles et remplis
+    rattrapageInputs.forEach(input => {
+        if (input.style.display !== 'none') {
+            visibleRattrapageCount++;
+            if (input.value && input.value.trim() !== '') {
+                filledRattrapageCount++;
+            }
+        }
+    });
+    
+    const filledCount = filledNormalCount + filledRattrapageCount;
+    
     // Calculer le nombre total de cellules d'épaisseur possibles
     const targetLength = parseFloat(document.getElementById('target-length')?.value) || 0;
     const stickyLength = parseFloat(document.getElementById('sticky-roll-length')?.value) || 0;
     const displayLength = (stickyLength > targetLength) ? stickyLength : targetLength;
-    const totalPossibleCells = displayLength * 6; // 6 cellules par ligne
+    
+    // Calculer le nombre de lignes de mesure selon la logique métier
+    let measurementRows = 0;
+    if (displayLength < 3) {
+        // Si < 3m : mesure au mètre 1 seulement
+        measurementRows = 1;
+    } else {
+        // Si >= 3m : mesure au mètre 3, puis tous les 5m
+        measurementRows = 1; // Mètre 3
+        let nextMeter = 8; // Premier point après 3 : 3 + 5 = 8
+        while (nextMeter <= displayLength) {
+            measurementRows++;
+            nextMeter += 5;
+        }
+    }
+    
+    const totalPossibleCells = measurementRows * 6; // 6 cellules par ligne de mesure
+    const totalRequiredCells = totalPossibleCells + visibleRattrapageCount; // Ajouter les rattrapages visibles
     
     // Mettre à jour les épaisseurs dans la zone au-dessus du rouleau
     const thicknessProgress = document.getElementById('thickness-progress');
     if (thicknessProgress) {
-        thicknessProgress.textContent = `Epaisseurs : ${filledCount}/${totalPossibleCells}`;
+        thicknessProgress.textContent = `Epaisseurs : ${filledCount}/${totalRequiredCells}`;
     }
     
     const nokCountElement = document.getElementById('nok-count');
