@@ -4849,8 +4849,8 @@ window.updateShiftMetrics = function(metrics) {
         tdElement.textContent = metrics.td_formatted || '--';
     }
     
-    // Calculer et afficher le nouveau TRS (doit être appelé APRÈS le calcul des métriques)
-    updateTRS();
+    // Ne pas appeler updateTRS() ici car il sera appelé depuis d'autres endroits
+    // updateTRS();
     
     // ANIMATION DE LA JAUGE SPECTACULAIRE
     updateSpectacularGauge();
@@ -4925,17 +4925,19 @@ function updateProductionMetrics(data) {
     }
     
     // Rendement (déjà calculé côté serveur)
+    console.log('[DEBUG] Rendement reçu du backend:', data.rendement);
     const rendementElement = document.getElementById('temps-rendement');
     if (rendementElement && data.rendement !== undefined) {
+        console.log('[DEBUG] Mise à jour du rendement:', data.rendement + '%');
         rendementElement.textContent = data.rendement + '%';
         // Mettre à jour la jauge
         updateSmallGauge(data.rendement);
+    } else {
+        console.log('[DEBUG] Élément rendement non trouvé ou rendement undefined');
     }
     
-    console.log('[DEBUG] Avant appel updateTRS');
-    // Le TRS est maintenant calculé dans updateTRS() avec la nouvelle formule
-    updateTRS();
-    console.log('[DEBUG] Après appel updateTRS');
+    // Ne pas appeler updateTRS() ici car on vient de recevoir le rendement calculé par le backend
+    // updateTRS() est pour les calculs côté frontend quand l'utilisateur modifie des valeurs
 }
 
 // Fonction pour mettre à jour la petite jauge TRS
@@ -5335,6 +5337,8 @@ function proceedWithRollSave(status, destination, rollNumber, length, totalMass,
                 if (data.session) {
                     // METTRE À JOUR sessionData GLOBAL
                     sessionData = data.session;
+                    console.log('[DEBUG] sessionData après save roll:', sessionData);
+                    console.log('[DEBUG] rendement dans sessionData:', sessionData.rendement);
                     
                     // Mettre à jour les métriques de production
                     updateProductionMetrics(data.session);
@@ -5352,9 +5356,8 @@ function proceedWithRollSave(status, destination, rollNumber, length, totalMass,
                     const newMetrics = calculateMetrics();
                     updateShiftMetrics(newMetrics);
                     
-                    // METTRE À JOUR LE TRS
-                    console.log('[DEBUG] Avant updateTRS - sessionData.ok_length:', sessionData.ok_length);
-                    updateTRS();
+                    // Ne pas appeler updateTRS() ici car le rendement vient d'être mis à jour par updateProductionMetrics
+                    // avec la valeur calculée par le backend
                     
                     // 1. NUMÉRO DE ROULEAU (depuis le backend)
                     const newRollNumber = data.session.roll_number || data.session.current_roll?.info?.roll_number || '';

@@ -744,11 +744,14 @@ def update_production_metrics(current_session, new_roll, session_key):
     
     # Calculer le rendement si on a la longueur enroulable
     length_enroulable = current_session.session_data.get('length_enroulable', 0)
+    print(f"[DEBUG] Calcul rendement - length_enroulable: {length_enroulable}, ok_length: {ok_length}")
     if length_enroulable and length_enroulable > 0:
         rendement = (ok_length / length_enroulable) * 100
         current_session.session_data['rendement'] = round(rendement, 1)
+        print(f"[DEBUG] Rendement calculé: {current_session.session_data['rendement']}%")
     else:
         current_session.session_data['rendement'] = 0
+        print(f"[DEBUG] Rendement à 0 car length_enroulable = {length_enroulable}")
     
     # Calculer la longueur enroulable avec TO (temps d'ouverture)
     # TO = temps total du poste sans déduire les temps perdus
