@@ -467,6 +467,9 @@ const sessionAPI = {
 
 // Wrapper pour compatibilité avec l'ancien code
 async function saveShiftField(fieldName, value, fromVacation = false) {
+    // Debug pour voir ce qui est passé
+    console.log(`[DEBUG] saveShiftField: ${fieldName} = ${value} (type: ${typeof value})`);
+    
     // Convertir les chaînes vides en null pour les dates
     if (fieldName === 'date' && value === '') {
         value = null;
@@ -681,7 +684,7 @@ function toggleMeterReadingFields(isUserAction = false) {
             // Mettre à 0 seulement si c'est une action utilisateur
             if (isUserAction && meterStartInput) {
                 meterStartInput.value = '0';
-                saveShiftField('meter_reading_start', '0');
+                saveShiftField('meter_reading_start', 0); // Passer 0 comme nombre, pas string
                 // Mettre à jour les métriques
                 if (typeof updateProductionMetricsFromSession === 'function') {
                     updateProductionMetricsFromSession();
@@ -701,7 +704,7 @@ function toggleMeterReadingFields(isUserAction = false) {
             // Mettre à 0 seulement si c'est une action utilisateur
             if (isUserAction && meterEndInput) {
                 meterEndInput.value = '0';
-                saveShiftField('meter_reading_end', '0');
+                saveShiftField('meter_reading_end', 0); // Passer 0 comme nombre, pas string
                 // Mettre à jour les métriques
                 if (typeof updateProductionMetricsFromSession === 'function') {
                     updateProductionMetricsFromSession();

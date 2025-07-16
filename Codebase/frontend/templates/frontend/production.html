@@ -2001,8 +2001,9 @@ window.editCurrentOrder = function() {
                 if (data) sessionData = {...sessionData, ...data};
                 // Mettre à jour l'ID du rouleau
                 updateRollIdDisplay();
-                // Mettre à jour le bouton d'action comme pour le numéro de rouleau
-                updateActionButton();
+                // Mettre à jour le bouton d'action avec le statut actuel
+                const currentStatus = getRollStatus();
+                updateActionButton(currentStatus);
             })
             .catch(error => {
                 console.error('Erreur:', error);
@@ -3690,8 +3691,7 @@ function autoSaveRollData() {
             console.log('Rouleau sauvegardé dans current-session');
             // Mettre à jour le statut du rouleau
             updateRollStatus();
-            // Mettre à jour le bouton d'action
-            updateActionButton();
+            // Ne pas appeler updateActionButton ici car updateRollStatus le fait déjà
         });
         
         // Code désactivé - à migrer
@@ -5122,8 +5122,7 @@ function updateActionButton(status) {
     // Bouton déchet toujours disponible
     if (wasteBtn) wasteBtn.disabled = false;
     
-    // Activer le bouton principal
-    actionBtn.disabled = false;
+    // Ne pas activer le bouton par défaut - on va le gérer selon le statut
     
     // Compter le nombre d'épaisseurs remplies (normales + rattrapages)
     const normalThicknessInputs = document.querySelectorAll('.thickness-input:not(.thickness-rattrapage)');
@@ -5192,7 +5191,8 @@ function updateActionButton(status) {
         // Pour CONFORME uniquement : vérifier qu'on a TOUTES les épaisseurs
         if (status === 'CONFORME' && filledThicknessCount < totalRequiredThickness) {
             canSave = false;
-            reasons.push(`EP manquant ${filledThicknessCount}/${totalRequiredThickness}`);
+            const missingCount = totalRequiredThickness - filledThicknessCount;
+            reasons.push(`Epaisseur Manquante (${missingCount}/${totalRequiredThickness})`);
         }
         // Pour NON_CONFORME : pas besoin de toutes les épaisseurs
         
