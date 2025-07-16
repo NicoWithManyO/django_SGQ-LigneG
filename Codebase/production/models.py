@@ -2,6 +2,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
 from core.models import Operator
+from wcm.models import ChecklistItem
 
 
 class Shift(models.Model):

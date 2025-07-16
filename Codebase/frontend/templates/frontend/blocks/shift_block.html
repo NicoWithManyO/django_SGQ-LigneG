@@ -160,8 +160,8 @@
                                             {{ form.meter_reading_start.label }}
                                         </label>
                                         <input type="number" name="meter_reading_start" id="id_meter_reading_start" class="form-control form-control-sm" step="0.01" 
-                                               onchange="saveShiftField('meter_reading_start', this.value);"
-                                               oninput="if (this.value === '') { saveShiftField('meter_reading_start', null); }">
+                                               onchange="saveShiftField('meter_reading_start', this.value); updateProductionMetricsFromSession();"
+                                               oninput="if (this.value === '') { saveShiftField('meter_reading_start', null); updateProductionMetricsFromSession(); }">
                                         {% if form.meter_reading_start.errors %}
                                             <div class="text-danger small">{{ form.meter_reading_start.errors.0 }}</div>
                                         {% endif %}
@@ -682,6 +682,10 @@ function toggleMeterReadingFields(isUserAction = false) {
             if (isUserAction && meterStartInput) {
                 meterStartInput.value = '0';
                 saveShiftField('meter_reading_start', '0');
+                // Mettre à jour les métriques
+                if (typeof updateProductionMetricsFromSession === 'function') {
+                    updateProductionMetricsFromSession();
+                }
             }
         }
     }
@@ -698,6 +702,10 @@ function toggleMeterReadingFields(isUserAction = false) {
             if (isUserAction && meterEndInput) {
                 meterEndInput.value = '0';
                 saveShiftField('meter_reading_end', '0');
+                // Mettre à jour les métriques
+                if (typeof updateProductionMetricsFromSession === 'function') {
+                    updateProductionMetricsFromSession();
+                }
             }
         }
     }

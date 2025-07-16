@@ -87,6 +87,11 @@ class CurrentSessionSerializer(serializers.Serializer):
         required=False,
         allow_blank=True
     )
+    rolls_count_in_shift = serializers.IntegerField(
+        required=False,
+        default=0,
+        min_value=0
+    )
     
     # === DONNÉES DU POSTE EN COURS ===
     operator = serializers.PrimaryKeyRelatedField(

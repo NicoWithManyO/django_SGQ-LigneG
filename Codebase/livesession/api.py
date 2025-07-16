@@ -293,20 +293,23 @@ def create_quality_controls(shift, quality_controls):
 
 def create_checklist_responses(shift, checklist_responses):
     """Crée les réponses de checklist pour le shift"""
+    from wcm.models import ChecklistResponse
+    
     for item_id, response in checklist_responses.items():
-        if response in ['ok', 'nok']:  # Ignorer 'na'
-            # Extraire l'ID numérique de la chaîne (format: "item-15" ou "item_15")
-            numeric_id = item_id.replace('item-', '').replace('item_', '')
-            try:
-                numeric_id = int(numeric_id)
-                ChecklistResponse.objects.create(
-                    shift=shift,
-                    item_id=numeric_id,
-                    response=response
-                )
-            except ValueError:
-                # Si ce n'est pas un nombre valide, on ignore
-                continue
+        # On sauvegarde toutes les réponses (ok, nok, na)
+        # Extraire l'ID numérique de la chaîne (format: "item-15" ou "item_15")
+        numeric_id = item_id.replace('item-', '').replace('item_', '')
+        try:
+            numeric_id = int(numeric_id)
+            ChecklistResponse.objects.create(
+                shift=shift,
+                item_id=numeric_id,
+                response=response
+            )
+        except (ValueError, Exception) as e:
+            # Si ce n'est pas un nombre valide ou autre erreur, on ignore
+            print(f"Erreur lors de la création de ChecklistResponse: {e}")
+            continue
 
 
 def link_rolls_to_shift(shift, session_key):
@@ -338,6 +341,12 @@ def link_rolls_to_shift(shift, session_key):
             elif roll.status == 'NON_CONFORME':
                 nok_length += float(roll.length or 0)
         
+        # Soustraire le meter_reading_start (longueur du poste précédent)
+        if shift.meter_reading_start:
+            meter_start = float(shift.meter_reading_start)
+            total_length = max(0, total_length - meter_start)
+            ok_length = max(0, ok_length - meter_start)
+        
         shift.total_length = total_length
         shift.ok_length = ok_length
         shift.nok_length = nok_length
@@ -363,16 +372,27 @@ def reset_session_after_save(current_data):
     # Créer la nouvelle session avec les données à garder
     new_data = {field: current_data.get(field) for field in keep_fields if field in current_data}
     
+    # Réinitialiser le compteur de rouleaux
+    new_data['rolls_count_in_shift'] = 0
+    
     # Conserver aussi les infos du rouleau en cours (sticky)
-    if current_data.get('current_roll') and current_data['current_roll'].get('info'):
+    if current_data.get('current_roll'):
+        current_roll = current_data['current_roll']
         new_data['current_roll'] = {
             'info': {
-                'roll_number': current_data['current_roll']['info'].get('roll_number', ''),
-                'tube_mass': current_data['current_roll']['info'].get('tube_mass', ''),
-                'next_tube_mass': current_data['current_roll']['info'].get('next_tube_mass', ''),
-                'total_mass': current_data['current_roll']['info'].get('total_mass', ''),
-                'length': current_data['current_roll']['info'].get('length', '')  # Utiliser 'length' pas 'roll_length'
-            }
+                'roll_number': current_roll.get('info', {}).get('roll_number', ''),
+                'tube_mass': current_roll.get('info', {}).get('tube_mass', ''),
+                'next_tube_mass': current_roll.get('info', {}).get('next_tube_mass', ''),
+                'total_mass': current_roll.get('info', {}).get('total_mass', ''),
+                'length': current_roll.get('info', {}).get('length', '')
+            },
+            # Conserver les défauts
+            'defects': current_roll.get('defects', []),
+            # Conserver les épaisseurs
+            'thickness': current_roll.get('thickness', {
+                'measurements': [],
+                'rattrapage': []
+            })
         }
     
     # Reporter l'état de fin de poste au début du nouveau poste
@@ -551,6 +571,10 @@ def save_roll(request):
         # Effacer next_tube_mass du niveau supérieur aussi
         current_session.session_data['next_tube_mass'] = ''
         
+        # Incrémenter le compteur de rouleaux du poste
+        rolls_count = current_session.session_data.get('rolls_count_in_shift', 0)
+        current_session.session_data['rolls_count_in_shift'] = rolls_count + 1
+        
         # 6b. Calculer et mettre à jour les métriques de production
         update_production_metrics(current_session, roll, session_key)
         
@@ -713,15 +737,6 @@ def update_production_metrics(current_session, new_roll, session_key):
         elif roll.destination == 'DECHETS':
             waste_length += length
     
-    # Pour le premier rouleau uniquement, retirer le métrage de début
-    if session_rolls.count() == 1 and new_roll:
-        meter_reading_start = current_session.session_data.get('meter_reading_start', 0)
-        if meter_reading_start:
-            # Cette longueur a été enroulée sur le poste précédent
-            adjustment = float(meter_reading_start)
-            # Pour l'instant, on retire toujours de OK pour tester
-            total_length = max(0, total_length - adjustment)
-            ok_length = max(0, ok_length - adjustment)
     
     # Ajouter la production non déclarée en rouleaux basée sur le métrage fin
     meter_reading_start = current_session.session_data.get('meter_reading_start', 0)

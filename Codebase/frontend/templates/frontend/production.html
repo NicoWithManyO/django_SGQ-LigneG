@@ -1904,7 +1904,11 @@ function calculateAndSaveProductivityMetrics(savedBeltSpeed = null) {
     // Mettre à jour l'affichage
     const lengthEnroulableSpan = document.getElementById('lg-enroulable');
     if (lengthEnroulableSpan) {
-        lengthEnroulableSpan.textContent = lengthEnroulable + 'm';
+        if (lengthEnroulable > 0) {
+            lengthEnroulableSpan.textContent = lengthEnroulable + 'm';
+        } else {
+            lengthEnroulableSpan.textContent = '--';
+        }
     }
     
     const lengthLostSpan = document.getElementById('lg-perdue');
@@ -4648,6 +4652,9 @@ function saveLostTimeToDraft() {
         console.log('[DEBUG] Mise à jour des métriques suite à changement des temps perdus');
         updateShiftMetrics();
         
+        // Recalculer le TRS car la longueur enroulable a changé
+        updateTRS();
+        
         // Debug: Afficher toutes les données de session
         console.log('[DEBUG] Session après save temps perdus:', {
             lost_times: data.lost_times,
@@ -4862,11 +4869,15 @@ function updateTRS() {
     console.log('[DEBUG] sessionData:', sessionData);
     console.log('[DEBUG] window.currentMetrics:', window.currentMetrics);
     
-    const okLength = sessionData?.ok_length || 0;
+    // Récupérer les meter_reading pour les inclure dans le calcul
+    const meterReadingStart = parseFloat(document.getElementById('id_meter_reading_start')?.value) || 0;
+    const meterReadingEnd = parseFloat(document.getElementById('id_meter_reading_end')?.value) || 0;
+    
+    const okLength = (sessionData?.ok_length || 0) - meterReadingStart + meterReadingEnd;
     const lengthEnroulable = window.currentMetrics?.length_enroulable || 0;
     
-    let trsPercentage = 0;
-    if (lengthEnroulable > 0) {
+    let trsPercentage = null;
+    if (lengthEnroulable > 0 && okLength >= 0) {
         // Nouveau calcul : Longueur OK / Longueur enroulable
         trsPercentage = Math.round((okLength / lengthEnroulable) * 100 * 10) / 10;
     }
@@ -4882,28 +4893,49 @@ function updateTRS() {
     const rendementElement = document.getElementById('temps-rendement');
     console.log('[DEBUG] Element rendement trouvé:', !!rendementElement);
     if (rendementElement) {
-        console.log('[DEBUG] Mise à jour du texte:', trsPercentage + '%');
-        rendementElement.textContent = trsPercentage + '%';
+        if (trsPercentage !== null) {
+            console.log('[DEBUG] Mise à jour du texte:', trsPercentage + '%');
+            rendementElement.textContent = trsPercentage + '%';
+        } else {
+            console.log('[DEBUG] Mise à jour du texte: --');
+            rendementElement.textContent = '--';
+        }
     }
     
     // Mettre à jour la jauge
     updateSmallGauge(trsPercentage);
 };
 
+// Fonction appelée quand meter_reading_end change
+function updateProductionMetricsFromSession() {
+    // Utiliser les données de session actuelles
+    if (sessionData) {
+        updateProductionMetrics(sessionData);
+        // Recalculer le TRS car meter_reading_end affecte la longueur OK
+        updateTRS();
+    }
+}
+
 // Fonction pour mettre à jour les métriques de production (longueurs)
 function updateProductionMetrics(data) {
     console.log('[DEBUG] updateProductionMetrics appelée avec:', data);
     
+    // Récupérer les valeurs de meter_reading
+    const meterReadingStart = parseFloat(document.getElementById('id_meter_reading_start')?.value) || 0;
+    const meterReadingEnd = parseFloat(document.getElementById('id_meter_reading_end')?.value) || 0;
+    
     // Longueur totale
     const totalLengthElement = document.getElementById('longueur-totale');
     if (totalLengthElement && data.total_length !== undefined) {
-        totalLengthElement.textContent = Math.round(data.total_length) + 'm';
+        const totalWithMeter = data.total_length - meterReadingStart + meterReadingEnd;
+        totalLengthElement.textContent = Math.round(totalWithMeter) + 'm';
     }
     
     // Longueur OK (dans la card principale)
     const okLengthElement = document.getElementById('lg-ok-principal');
     if (okLengthElement && data.ok_length !== undefined) {
-        okLengthElement.textContent = Math.round(data.ok_length) + 'm';
+        const okWithMeter = data.ok_length - meterReadingStart + meterReadingEnd;
+        okLengthElement.textContent = Math.round(okWithMeter) + 'm';
     }
     
     // Longueur NOK
@@ -4929,9 +4961,13 @@ function updateProductionMetrics(data) {
     const rendementElement = document.getElementById('temps-rendement');
     if (rendementElement && data.rendement !== undefined) {
         console.log('[DEBUG] Mise à jour du rendement:', data.rendement + '%');
-        rendementElement.textContent = data.rendement + '%';
-        // Mettre à jour la jauge
-        updateSmallGauge(data.rendement);
+        if (data.rendement === null || data.rendement < 1) {
+            rendementElement.textContent = '--';
+            updateSmallGauge(null);
+        } else {
+            rendementElement.textContent = data.rendement + '%';
+            updateSmallGauge(data.rendement);
+        }
     } else {
         console.log('[DEBUG] Élément rendement non trouvé ou rendement undefined');
     }
@@ -4942,6 +4978,28 @@ function updateProductionMetrics(data) {
 
 // Fonction pour mettre à jour la petite jauge TRS
 window.updateSmallGauge = function(percentage) {
+    // Si pas de valeur valide, afficher --
+    if (percentage === null || percentage === undefined || isNaN(percentage)) {
+        const value = document.getElementById('gauge-value');
+        if (value) {
+            value.textContent = '--';
+            value.setAttribute('fill', '#6c757d'); // Gris
+        }
+        
+        // Remettre l'aiguille à 0
+        const needle = document.getElementById('gauge-needle');
+        if (needle) {
+            needle.style.transform = 'rotate(-90 50 50)';
+        }
+        
+        // Remettre l'arc à 0
+        const arc = document.getElementById('gauge-arc');
+        if (arc) {
+            arc.setAttribute('stroke-dasharray', '0 126');
+        }
+        return;
+    }
+    
     // Limiter le pourcentage entre 0 et 100
     const clampedPercentage = Math.max(0, Math.min(100, percentage));
     
@@ -5831,7 +5889,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.length_enroulable !== undefined) {
                 const lengthEnroulableSpan = document.getElementById('lg-enroulable');
                 if (lengthEnroulableSpan) {
-                    lengthEnroulableSpan.textContent = data.length_enroulable + 'm';
+                    if (data.length_enroulable > 0) {
+                        lengthEnroulableSpan.textContent = data.length_enroulable + 'm';
+                    } else {
+                        lengthEnroulableSpan.textContent = '--';
+                    }
                 }
             }
             
@@ -7630,6 +7692,43 @@ window.fillChecklistRandomly = function() {
                 }
             }
         }, 500);
+    });
+}
+
+// Fonction pour effacer partiellement la session (garde profil, OF et cible)
+window.clearSessionPartial = function() {
+    if (!confirm('Êtes-vous sûr de vouloir réinitialiser la session ?\n\nSeront conservés : profil, OF et longueur cible')) {
+        return;
+    }
+    
+    // Sauvegarder les valeurs à conserver
+    const toKeep = {
+        selected_profile: sessionData?.selected_profile,
+        current_of: sessionData?.current_of,
+        cutting_of: sessionData?.cutting_of,
+        target_length: sessionData?.target_length
+    };
+    
+    // Réinitialiser la session côté serveur
+    fetch('/livesession/api/current-session/', {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    }).then(() => {
+        // Restaurer les valeurs à conserver
+        return fetch('/livesession/api/current-session/', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(toKeep)
+        });
+    }).then(() => {
+        console.log('Session réinitialisée partiellement');
+        // Recharger la page
+        window.location.reload();
     });
 }
 
