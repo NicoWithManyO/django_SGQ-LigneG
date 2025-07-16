@@ -1,3 +1,5 @@
+refacto
+
 # SGQ Ligne G - Système de Gestion de Production
 
 [![Django](https://img.shields.io/badge/Django-5.2-green.svg)](https://djangoproject.com/)
