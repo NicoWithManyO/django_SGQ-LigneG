@@ -1,0 +1,489 @@
+<!-- Modal de confirmation réutilisable avec transformation en succès -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <!-- État de confirmation -->
+            <div id="confirmState">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title w-100 text-center" id="confirmModalTitle">Confirmer l'action</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body text-center px-4">
+                    <!-- Animation checkmark (utilisée pour les deux états) -->
+                    <div class="success-checkmark mb-3">
+                        <div class="check-icon check-icon-gray" id="confirmCheckIcon">
+                            <span class="icon-line line-tip" style="display: none;"></span>
+                            <span class="icon-line line-long" style="display: none;"></span>
+                            <div class="icon-circle"></div>
+                            <div class="icon-fix"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Message principal -->
+                    <p class="fs-5 mb-3" id="confirmModalMessage">Êtes-vous sûr de vouloir continuer ?</p>
+                    
+                    <!-- Détails (optionnel) -->
+                    <div id="confirmModalDetails" class="mb-3" style="display: none;">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body py-3">
+                                <div id="confirmModalDetailsContent"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sous-message d'avertissement (optionnel) -->
+                    <p class="text-muted small mb-0" id="confirmModalWarning"></p>
+                </div>
+                
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Annuler
+                    </button>
+                    <button type="button" class="btn btn-primary px-4" id="confirmModalConfirmBtn">
+                        <i class="bi bi-check-circle me-2"></i>Confirmer
+                    </button>
+                </div>
+            </div>
+            
+            <!-- État de succès (caché par défaut) -->
+            <div id="successState" style="display: none;">
+                <div class="modal-body text-center p-4">
+                    <!-- Icône de succès animée -->
+                    <div class="success-checkmark mb-3">
+                        <div class="check-icon">
+                            <span class="icon-line line-tip"></span>
+                            <span class="icon-line line-long"></span>
+                            <div class="icon-circle"></div>
+                            <div class="icon-fix"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Titre de succès -->
+                    <h4 class="modal-title mb-3" id="successTitle">Sauvegarde réussie !</h4>
+                    
+                    <!-- Message de succès -->
+                    <div class="mb-3">
+                        <p class="text-muted mb-2" id="successMessage">L'opération a été effectuée avec succès</p>
+                        
+                        <!-- ID ou détails de succès -->
+                        <div id="successDetails" class="alert alert-light border-0 py-2 px-3 d-inline-block" style="display: none;">
+                            <code class="text-primary fw-bold" id="successId"></code>
+                        </div>
+                    </div>
+                    
+                    <!-- Sous-message de succès -->
+                    <p class="text-muted small mb-0" id="successSubMessage"></p>
+                </div>
+                
+                <div class="modal-footer border-0 justify-content-center pb-4">
+                    <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Animation de transition */
+.modal-content {
+    transition: all 0.3s ease;
+}
+
+#confirmState, #successState {
+    transition: opacity 0.3s ease;
+}
+
+/* Hauteur minimale pour garder la taille constante */
+.modal-body {
+    min-height: 350px;
+}
+
+.modal-footer {
+    min-height: 80px;
+    transition: opacity 0.3s ease;
+}
+
+/* Animation checkmark */
+.success-checkmark {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.check-icon {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    border-radius: 50%;
+    box-sizing: content-box;
+    border: 4px solid #4CAF50;
+    transition: border-color 0.3s ease;
+}
+
+/* État gris pour la confirmation */
+.check-icon-gray {
+    border-color: #6c757d !important;
+}
+
+.check-icon-gray .icon-circle {
+    border-color: rgba(108, 117, 125, 0.5) !important;
+}
+
+.check-icon::before {
+    top: 3px;
+    left: -2px;
+    width: 30px;
+    transform-origin: 100% 50%;
+    border-radius: 100px 0 0 100px;
+}
+
+.check-icon::after {
+    top: 0;
+    left: 30px;
+    width: 60px;
+    transform-origin: 0 50%;
+    border-radius: 0 100px 100px 0;
+    animation: rotate-circle 4.25s ease-in;
+}
+
+.check-icon::before, .check-icon::after {
+    content: '';
+    height: 100px;
+    position: absolute;
+    background: #FFFFFF;
+    transform: rotate(-45deg);
+}
+
+.icon-line {
+    height: 5px;
+    background-color: #4CAF50;
+    display: block;
+    border-radius: 2px;
+    position: absolute;
+    z-index: 10;
+}
+
+.icon-line.line-tip {
+    top: 46px;
+    left: 14px;
+    width: 25px;
+    transform: rotate(45deg);
+    animation: icon-line-tip 0.75s;
+}
+
+.icon-line.line-long {
+    top: 38px;
+    right: 8px;
+    width: 47px;
+    transform: rotate(-45deg);
+    animation: icon-line-long 0.75s;
+}
+
+.icon-circle {
+    top: -4px;
+    left: -4px;
+    z-index: 10;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    position: absolute;
+    box-sizing: content-box;
+    border: 4px solid rgba(76, 175, 80, .5);
+}
+
+.icon-fix {
+    top: 8px;
+    width: 5px;
+    left: 26px;
+    z-index: 1;
+    height: 85px;
+    position: absolute;
+    transform: rotate(-45deg);
+    background-color: #FFFFFF;
+}
+
+@keyframes rotate-circle {
+    0% {
+        transform: rotate(-45deg);
+    }
+    5% {
+        transform: rotate(-45deg);
+    }
+    12% {
+        transform: rotate(-405deg);
+    }
+    100% {
+        transform: rotate(-405deg);
+    }
+}
+
+@keyframes icon-line-tip {
+    0% {
+        width: 0;
+        left: 1px;
+        top: 19px;
+    }
+    54% {
+        width: 0;
+        left: 1px;
+        top: 19px;
+    }
+    70% {
+        width: 50px;
+        left: -8px;
+        top: 37px;
+    }
+    84% {
+        width: 17px;
+        left: 21px;
+        top: 48px;
+    }
+    100% {
+        width: 25px;
+        left: 14px;
+        top: 45px;
+    }
+}
+
+@keyframes icon-line-long {
+    0% {
+        width: 0;
+        right: 46px;
+        top: 54px;
+    }
+    65% {
+        width: 0;
+        right: 46px;
+        top: 54px;
+    }
+    84% {
+        width: 55px;
+        right: 0px;
+        top: 35px;
+    }
+    100% {
+        width: 47px;
+        right: 8px;
+        top: 38px;
+    }
+}
+</style>
+
+<script>
+// Variable pour stocker la fonction callback et les options
+let confirmModalCallback = null;
+let confirmModalOptions = {};
+let currentModalBS = null;
+
+// Fonction globale pour afficher la modal de confirmation
+function showConfirmModal(options = {}) {
+    const modal = document.getElementById('confirmModal');
+    const modalBS = new bootstrap.Modal(modal);
+    currentModalBS = modalBS;
+    
+    // Réinitialiser l'état
+    document.getElementById('confirmState').style.display = 'block';
+    document.getElementById('successState').style.display = 'none';
+    
+    // Définir les valeurs par défaut
+    const defaults = {
+        title: 'Confirmer l\'action',
+        message: 'Êtes-vous sûr de vouloir continuer ?',
+        details: null,
+        warning: '',
+        confirmText: 'Confirmer',
+        cancelText: 'Annuler',
+        confirmClass: 'btn-primary',
+        onConfirm: () => {},
+        // Options pour l'état de succès
+        successTitle: 'Opération réussie !',
+        successMessage: 'L\'opération a été effectuée avec succès',
+        successId: null,
+        successSubMessage: '',
+        autoCloseDelay: 3000
+    };
+    
+    // Fusionner avec les options fournies
+    const config = { ...defaults, ...options };
+    confirmModalOptions = config;
+    
+    // Mettre à jour le contenu de confirmation
+    document.getElementById('confirmModalTitle').textContent = config.title;
+    document.getElementById('confirmModalMessage').textContent = config.message;
+    document.getElementById('confirmModalWarning').textContent = config.warning;
+    
+    // Gérer l'affichage des détails
+    const detailsDiv = document.getElementById('confirmModalDetails');
+    const detailsContent = document.getElementById('confirmModalDetailsContent');
+    
+    if (config.details) {
+        detailsDiv.style.display = 'block';
+        
+        // Si details est un objet, le formater
+        if (typeof config.details === 'object') {
+            let html = '';
+            for (const [key, value] of Object.entries(config.details)) {
+                html += `<div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">${key}:</span>
+                    <span class="fw-bold">${value}</span>
+                </div>`;
+            }
+            detailsContent.innerHTML = html;
+        } else {
+            detailsContent.innerHTML = config.details;
+        }
+    } else {
+        detailsDiv.style.display = 'none';
+    }
+    
+    // Configurer le bouton de confirmation
+    const confirmBtn = document.getElementById('confirmModalConfirmBtn');
+    confirmBtn.innerHTML = `<i class="bi bi-check-circle me-2"></i>${config.confirmText}`;
+    confirmBtn.className = `btn ${config.confirmClass} px-4`;
+    
+    // Configurer le bouton d'annulation
+    const cancelBtn = modal.querySelector('.btn-secondary');
+    cancelBtn.innerHTML = `<i class="bi bi-x-circle me-2"></i>${config.cancelText}`;
+    
+    // Stocker le callback
+    confirmModalCallback = config.onConfirm;
+    
+    // Afficher la modal
+    modalBS.show();
+    
+    return modalBS;
+}
+
+// Fonction pour transformer la modal en état de succès
+function transformToSuccess(successData = {}) {
+    const config = { ...confirmModalOptions, ...successData };
+    
+    // Animation de transition
+    const confirmState = document.getElementById('confirmState');
+    const successState = document.getElementById('successState');
+    
+    // Fade out confirmation
+    confirmState.style.opacity = '0';
+    
+    setTimeout(() => {
+        // Cacher confirmation et montrer succès
+        confirmState.style.display = 'none';
+        successState.style.display = 'block';
+        successState.style.opacity = '0';
+        
+        // Mettre à jour le contenu de succès
+        document.getElementById('successTitle').textContent = config.successTitle;
+        document.getElementById('successMessage').textContent = config.successMessage;
+        document.getElementById('successSubMessage').textContent = config.successSubMessage;
+        
+        // Gérer l'affichage de l'ID
+        const detailsDiv = document.getElementById('successDetails');
+        const idSpan = document.getElementById('successId');
+        
+        if (config.successId) {
+            detailsDiv.style.display = 'inline-block';
+            idSpan.textContent = config.successId;
+        } else {
+            detailsDiv.style.display = 'none';
+        }
+        
+        // Fade in succès
+        setTimeout(() => {
+            successState.style.opacity = '1';
+            
+            // Réinitialiser l'animation checkmark
+            const checkIcon = successState.querySelector('.check-icon');
+            const lineElements = successState.querySelectorAll('.icon-line');
+            
+            checkIcon.style.animation = 'none';
+            lineElements.forEach(el => el.style.animation = 'none');
+            
+            setTimeout(() => {
+                checkIcon.style.animation = '';
+                lineElements.forEach(el => el.style.animation = '');
+            }, 10);
+            
+            // Auto-fermeture si configurée
+            if (config.autoCloseDelay > 0) {
+                setTimeout(() => {
+                    if (currentModalBS) {
+                        currentModalBS.hide();
+                    }
+                }, config.autoCloseDelay);
+            }
+        }, 50);
+    }, 300);
+}
+
+// Gestionnaire du bouton de confirmation
+document.getElementById('confirmModalConfirmBtn').addEventListener('click', function() {
+    const btn = this;
+    const footer = document.querySelector('#confirmModal .modal-footer');
+    const checkIcon = document.getElementById('confirmCheckIcon');
+    const lineElements = checkIcon.querySelectorAll('.icon-line');
+    
+    // Désactiver le bouton et montrer loading
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Traitement...';
+    
+    // Après un court délai, masquer les boutons et animer le checkmark
+    setTimeout(() => {
+        // Masquer les boutons avec fade
+        footer.style.opacity = '0';
+        
+        // Transformer le cercle gris en vert
+        checkIcon.classList.remove('check-icon-gray');
+        
+        // Afficher et animer le check
+        lineElements.forEach(el => {
+            el.style.display = 'block';
+            el.style.animation = 'none';
+            setTimeout(() => {
+                el.style.animation = '';
+            }, 10);
+        });
+        
+        // Mettre à jour le message
+        document.getElementById('confirmModalMessage').textContent = 'Confirmé !';
+        
+        // Exécuter le callback après l'animation
+        setTimeout(() => {
+            if (confirmModalCallback) {
+                confirmModalCallback();
+            }
+        }, 500);
+    }, 300);
+});
+
+// Réinitialiser quand la modal se ferme
+document.getElementById('confirmModal').addEventListener('hidden.bs.modal', function() {
+    confirmModalCallback = null;
+    confirmModalOptions = {};
+    currentModalBS = null;
+    
+    // Réinitialiser les états
+    document.getElementById('confirmState').style.display = 'block';
+    document.getElementById('confirmState').style.opacity = '1';
+    document.getElementById('successState').style.display = 'none';
+    document.getElementById('successState').style.opacity = '1';
+    
+    // Réinitialiser le footer
+    const footer = document.querySelector('#confirmModal .modal-footer');
+    footer.style.opacity = '1';
+    
+    // Réinitialiser le checkmark
+    const checkIcon = document.getElementById('confirmCheckIcon');
+    checkIcon.classList.add('check-icon-gray');
+    const lineElements = checkIcon.querySelectorAll('.icon-line');
+    lineElements.forEach(el => {
+        el.style.display = 'none';
+        el.style.animation = 'none';
+    });
+    
+    // Réinitialiser le bouton
+    const confirmBtn = document.getElementById('confirmModalConfirmBtn');
+    confirmBtn.disabled = false;
+});
+</script>

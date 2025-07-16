@@ -1,0 +1,744 @@
+<!-- Modal de sauvegarde de rouleau -->
+<div class="modal fade" id="rollSaveModal" tabindex="-1" aria-labelledby="rollSaveModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <!-- Header avec croix de fermeture -->
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title w-100 text-center">Sauvegarder le rouleau</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <!-- Block 1: Icône et message -->
+            <div class="modal-body text-center pt-0 pb-2">
+                
+                <!-- Container pour l'icône/animation -->
+                <div class="icon-container mb-3" style="height: 80px;">
+                    <!-- Point d'interrogation initial -->
+                    <div id="questionIcon">
+                        <i class="bi bi-question-circle text-primary" style="font-size: 4rem;"></i>
+                    </div>
+                    
+                    <!-- Animation de succès (cachée) -->
+                    <div id="successAnimation" style="display: none;">
+                        <div class="success-checkmark">
+                            <div class="check-icon">
+                                <span class="icon-line line-tip"></span>
+                                <span class="icon-line line-long"></span>
+                                <div class="icon-circle"></div>
+                                <div class="icon-fix"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="fs-5 mb-0" id="confirmMessage">Confirmez-vous la sauvegarde du rouleau ?</p>
+            </div>
+            
+            <!-- Block 2: Détails du rouleau -->
+            <div class="modal-body pt-2 pb-2">
+                <div class="card border-0 bg-light mx-3">
+                    <div class="card-body py-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">ID Rouleau :</span>
+                            <span class="fw-bold" id="rollDetailsID">--</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Longueur :</span>
+                            <span class="fw-bold" id="rollDetailsLength">--</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Masse nette :</span>
+                            <span class="fw-bold" id="rollDetailsMass">--</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Grammage :</span>
+                            <span class="fw-bold" id="rollDetailsGrammage">--</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Statut :</span>
+                            <span class="fw-bold" id="rollDetailsStatus">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Block 3: Container avec hauteur fixe pour boutons OU message -->
+            <div style="height: 80px; position: relative;">
+                <!-- Boutons -->
+                <div class="modal-footer border-0 justify-content-center position-absolute w-100" id="modalButtons" style="height: 80px;">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Annuler
+                    </button>
+                    <button type="button" class="btn btn-success px-4" id="saveRollBtn">
+                        <i class="bi bi-check-circle me-2"></i>Sauvegarder
+                    </button>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Empêcher le décalage quand la scrollbar disparaît */
+body.modal-open {
+    padding-right: 0 !important;
+    overflow: auto !important;
+}
+
+.modal-backdrop {
+    overflow-y: auto;
+}
+
+/* Modal moderne avec effets de glassmorphism */
+#rollSaveModal .modal-content {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Effet de gradient animé en arrière-plan */
+#rollSaveModal .modal-content::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+        45deg,
+        transparent,
+        rgba(13, 110, 253, 0.05),
+        transparent,
+        rgba(13, 110, 253, 0.05)
+    );
+    animation: gradientShift 8s ease-in-out infinite;
+    z-index: -1;
+}
+
+@keyframes gradientShift {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(180deg); }
+}
+
+
+/* Animation d'entrée de la modal */
+#rollSaveModal .modal-dialog {
+    animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalSlideIn {
+    0% {
+        transform: translateY(-50px) scale(0.9);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Header avec effet de profondeur */
+#rollSaveModal .modal-header {
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.05) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(13, 110, 253, 0.1);
+    padding: 1.5rem;
+}
+
+/* Titre avec effet de brillance */
+#rollSaveModal .modal-title {
+    font-weight: 600;
+    background: linear-gradient(135deg, #212529 0%, #495057 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    position: relative;
+}
+
+/* Card de détails avec effet de hover */
+#rollSaveModal .card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(13, 110, 253, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+#rollSaveModal .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(13, 110, 253, 0.15);
+    border-color: rgba(13, 110, 253, 0.2);
+}
+
+/* Animation pour l'icône */
+.icon-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#questionIcon {
+    animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Animation checkmark améliorée */
+.success-checkmark {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.check-icon {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    border-radius: 50%;
+    box-sizing: content-box;
+    border: 4px solid #4CAF50;
+}
+
+.check-icon::before {
+    top: 3px;
+    left: -2px;
+    width: 30px;
+    transform-origin: 100% 50%;
+    border-radius: 100px 0 0 100px;
+}
+
+.check-icon::after {
+    top: 0;
+    left: 30px;
+    width: 60px;
+    transform-origin: 0 50%;
+    border-radius: 0 100px 100px 0;
+    animation: rotate-circle 4.25s ease-in;
+}
+
+.check-icon::before, .check-icon::after {
+    content: '';
+    height: 100px;
+    position: absolute;
+    background: #FFFFFF;
+    transform: rotate(-45deg);
+}
+
+.icon-line {
+    height: 5px;
+    background-color: #4CAF50;
+    display: block;
+    border-radius: 2px;
+    position: absolute;
+    z-index: 10;
+}
+
+.icon-line.line-tip {
+    top: 46px;
+    left: 14px;
+    width: 25px;
+    transform: rotate(45deg);
+    animation: icon-line-tip 0.75s;
+}
+
+.icon-line.line-long {
+    top: 38px;
+    right: 8px;
+    width: 47px;
+    transform: rotate(-45deg);
+    animation: icon-line-long 0.75s;
+}
+
+.icon-circle {
+    top: -4px;
+    left: -4px;
+    z-index: 10;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    position: absolute;
+    box-sizing: content-box;
+    border: 4px solid rgba(76, 175, 80, .5);
+}
+
+.icon-fix {
+    top: 8px;
+    width: 5px;
+    left: 26px;
+    z-index: 1;
+    height: 85px;
+    position: absolute;
+    transform: rotate(-45deg);
+    background-color: #FFFFFF;
+}
+
+@keyframes rotate-circle {
+    0% { transform: rotate(-45deg); }
+    5% { transform: rotate(-45deg); }
+    12% { transform: rotate(-405deg); }
+    100% { transform: rotate(-405deg); }
+}
+
+@keyframes icon-line-tip {
+    0% { width: 0; left: 1px; top: 19px; }
+    54% { width: 0; left: 1px; top: 19px; }
+    70% { width: 50px; left: -8px; top: 37px; }
+    84% { width: 17px; left: 21px; top: 48px; }
+    100% { width: 25px; left: 14px; top: 45px; }
+}
+
+@keyframes icon-line-long {
+    0% { width: 0; right: 46px; top: 54px; }
+    65% { width: 0; right: 46px; top: 54px; }
+    84% { width: 55px; right: 0px; top: 35px; }
+    100% { width: 47px; right: 8px; top: 38px; }
+}
+
+/* Boutons avec effet moderne */
+#rollSaveModal .btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.5rem 1.5rem;
+}
+
+#rollSaveModal .btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+#rollSaveModal .btn:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+#rollSaveModal .btn-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    border: none;
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+#rollSaveModal .btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+}
+
+#rollSaveModal .btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+    border: none;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+#rollSaveModal .btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+#rollSaveModal .btn-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+#rollSaveModal .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+}
+
+/* Transitions fluides */
+#questionIcon, #successAnimation {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#modalButtons {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animation de transformation en succès */
+#successAnimation {
+    animation: successBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes successBounce {
+    0% {
+        transform: scale(0.3);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Effet de particules pour le succès */
+#rollSaveModal .modal-body {
+    position: relative;
+}
+
+.success-particles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #4CAF50;
+    border-radius: 50%;
+    animation: particleFloat 3s ease-out forwards;
+}
+
+@keyframes particleFloat {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--x), var(--y)) scale(0);
+        opacity: 0;
+    }
+}
+
+/* Animation de rotation continue pour les particules */
+@keyframes particlesRotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Animation de flottement continu pour les particules persistantes */
+.success-particles .particle.persistent {
+    animation: particleFloatLoop 6s ease-in-out infinite !important;
+}
+
+@keyframes particleFloatLoop {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.8;
+    }
+    25% {
+        transform: translate(calc(var(--x) * 0.5), calc(var(--y) * 0.5)) scale(1.2);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(var(--x), var(--y)) scale(0.8);
+        opacity: 0.6;
+    }
+    75% {
+        transform: translate(calc(var(--x) * 0.75), calc(var(--y) * 0.25)) scale(1.1);
+        opacity: 0.9;
+    }
+}
+
+/* Badge de statut avec animation */
+#rollDetailsStatus {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+}
+
+#rollDetailsStatus.text-success {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    border: 1px solid rgba(40, 167, 69, 0.2);
+}
+
+#rollDetailsStatus.text-danger {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+/* Effet de brillance sur les labels - limité à la modal */
+#rollSaveModal .text-muted {
+    position: relative;
+    font-size: 0.875rem;
+}
+
+/* Animation du backdrop */
+.modal-backdrop.show {
+    animation: backdropFadeIn 0.3s ease-out;
+}
+
+@keyframes backdropFadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 0.5; }
+}
+
+/* Feux d'artifice multicolores */
+.fireworks-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1000;
+}
+
+.firework-particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+@keyframes fireworkBurst {
+    0% {
+        transform: translate(0, 0) scale(0);
+        opacity: 1;
+    }
+    10% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--fx), var(--fy)) scale(0.2);
+        opacity: 0;
+    }
+}
+
+.firework-particle.burst {
+    animation: fireworkBurst 1.5s ease-out forwards;
+}
+</style>
+
+<script>
+// Variables globales
+let rollSaveCallback = null;
+window.rollSaveModalBS = null;
+let rollFireworksInterval = null;
+
+// Fonction pour afficher la modal
+function showRollSaveModal(rollData, onConfirm) {
+    const modal = document.getElementById('rollSaveModal');
+    window.rollSaveModalBS = new bootstrap.Modal(modal);
+    rollSaveCallback = onConfirm;
+    
+    // Réinitialiser l'état
+    document.getElementById('questionIcon').style.display = 'block';
+    document.getElementById('successAnimation').style.display = 'none';
+    document.getElementById('confirmMessage').textContent = 'Confirmez-vous la sauvegarde du rouleau ?';
+    document.getElementById('modalButtons').classList.remove('hiding');
+    document.getElementById('modalButtons').style.display = 'flex';
+    document.getElementById('saveRollBtn').disabled = false;
+    document.getElementById('saveRollBtn').innerHTML = '<i class="bi bi-check-circle me-2"></i>Sauvegarder';
+    
+    // Remplir les détails
+    document.getElementById('rollDetailsID').textContent = rollData.id || '--';
+    document.getElementById('rollDetailsLength').textContent = rollData.length || '--';
+    document.getElementById('rollDetailsMass').textContent = rollData.netMass || '--';
+    document.getElementById('rollDetailsGrammage').textContent = rollData.grammage || '--';
+    document.getElementById('rollDetailsStatus').textContent = rollData.status || '--';
+    
+    // Colorer le statut
+    const statusElement = document.getElementById('rollDetailsStatus');
+    if (rollData.status === 'CONFORME') {
+        statusElement.className = 'fw-bold text-success';
+    } else if (rollData.status === 'NON CONFORME') {
+        statusElement.className = 'fw-bold text-danger';
+    } else {
+        statusElement.className = 'fw-bold';
+    }
+    
+    // Afficher la modal
+    window.rollSaveModalBS.show();
+}
+
+// Fonction pour créer des feux d'artifice multicolores
+function createRollFireworks(container) {
+    const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#ff1493', '#00fa9a', '#ff69b4'];
+    
+    // Créer un burst de particules
+    const burstX = Math.random() * container.offsetWidth;
+    const burstY = Math.random() * container.offsetHeight;
+    
+    // Créer 12-20 particules par burst
+    const particleCount = 12 + Math.floor(Math.random() * 8);
+    
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'firework-particle burst';
+        
+        // Couleur aléatoire
+        particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        // Position initiale
+        particle.style.left = burstX + 'px';
+        particle.style.top = burstY + 'px';
+        
+        // Direction aléatoire
+        const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
+        const distance = 80 + Math.random() * 120;
+        const fx = Math.cos(angle) * distance;
+        const fy = Math.sin(angle) * distance;
+        
+        particle.style.setProperty('--fx', `${fx}px`);
+        particle.style.setProperty('--fy', `${fy}px`);
+        
+        // Ajouter une lueur
+        particle.style.boxShadow = `0 0 6px ${particle.style.backgroundColor}`;
+        
+        container.appendChild(particle);
+        
+        // Supprimer après l'animation
+        setTimeout(() => particle.remove(), 1500);
+    }
+}
+
+// Fonction pour afficher le succès
+function showRollSaveSuccess(responseData) {
+    // Masquer le point d'interrogation avec effet de fade
+    const questionIcon = document.getElementById('questionIcon');
+    questionIcon.style.transform = 'scale(0.8)';
+    questionIcon.style.opacity = '0';
+    
+    setTimeout(() => {
+        questionIcon.style.display = 'none';
+        
+        const successAnimation = document.getElementById('successAnimation');
+        successAnimation.style.display = 'block';
+        successAnimation.style.opacity = '0';
+        successAnimation.style.transform = 'scale(0.5)';
+        
+        // Forcer le reflow
+        successAnimation.offsetHeight;
+        
+        // Animation d'entrée
+        successAnimation.style.opacity = '1';
+        successAnimation.style.transform = 'scale(1)';
+        
+        // Créer le conteneur de feux d'artifice
+        const modalContent = document.querySelector('#rollSaveModal .modal-content');
+        let fireworksContainer = modalContent.querySelector('.fireworks-container');
+        if (!fireworksContainer) {
+            fireworksContainer = document.createElement('div');
+            fireworksContainer.className = 'fireworks-container';
+            modalContent.appendChild(fireworksContainer);
+        }
+        
+        // Lancer les feux d'artifice en continu
+        createRollFireworks(fireworksContainer); // Premier burst immédiat
+        rollFireworksInterval = setInterval(() => {
+            createRollFireworks(fireworksContainer);
+        }, 300); // Nouveau burst toutes les 300ms
+        
+        // Mettre à jour le message avec effet
+        const confirmMessage = document.getElementById('confirmMessage');
+        confirmMessage.style.opacity = '0';
+        setTimeout(() => {
+            confirmMessage.textContent = 'Rouleau sauvegardé avec succès !';
+            confirmMessage.style.opacity = '1';
+        }, 200);
+        
+        // Animer les boutons
+        const modalButtons = document.getElementById('modalButtons');
+        modalButtons.style.transform = 'translateY(10px)';
+        modalButtons.style.opacity = '0';
+        
+        setTimeout(() => {
+            modalButtons.innerHTML = `
+                <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal">
+                    <i class="bi bi-check-circle me-2"></i>Fermer
+                </button>
+            `;
+            modalButtons.style.transform = 'translateY(0)';
+            modalButtons.style.opacity = '1';
+        }, 300);
+        
+    }, 300);
+}
+
+// Gestionnaire du bouton sauvegarder
+document.getElementById('saveRollBtn').addEventListener('click', function() {
+    const btn = this;
+    
+    // Désactiver et montrer loading
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sauvegarde...';
+    
+    // Exécuter le callback
+    if (rollSaveCallback) {
+        rollSaveCallback();
+    }
+});
+
+// Réinitialiser à la fermeture
+document.getElementById('rollSaveModal').addEventListener('hidden.bs.modal', function() {
+    rollSaveCallback = null;
+    window.rollSaveModalBS = null;
+    
+    // Arrêter les feux d'artifice
+    if (rollFireworksInterval) {
+        clearInterval(rollFireworksInterval);
+        rollFireworksInterval = null;
+    }
+    
+    // Supprimer le conteneur de feux d'artifice
+    const fireworksContainer = this.querySelector('.fireworks-container');
+    if (fireworksContainer) {
+        fireworksContainer.remove();
+    }
+    
+    // Réinitialiser l'état visuel
+    document.getElementById('questionIcon').style.display = 'block';
+    document.getElementById('questionIcon').style.opacity = '1';
+    document.getElementById('successAnimation').style.display = 'none';
+    document.getElementById('confirmMessage').textContent = 'Confirmez-vous la sauvegarde du rouleau ?';
+    
+    // Réinitialiser les boutons
+    document.getElementById('modalButtons').style.display = 'flex';
+    document.getElementById('modalButtons').style.opacity = '1';
+    document.getElementById('modalButtons').innerHTML = `
+        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-2"></i>Annuler
+        </button>
+        <button type="button" class="btn btn-success px-4" id="saveRollBtn">
+            <i class="bi bi-check-circle me-2"></i>Sauvegarder
+        </button>
+    `;
+    
+    // Réattacher l'event listener au nouveau bouton
+    document.getElementById('saveRollBtn').addEventListener('click', function() {
+        const btn = this;
+        
+        // Désactiver et montrer loading
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sauvegarde...';
+        
+        // Exécuter le callback
+        if (rollSaveCallback) {
+            rollSaveCallback();
+        }
+    });
+});
+</script>

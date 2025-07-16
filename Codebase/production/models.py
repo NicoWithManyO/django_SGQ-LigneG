@@ -2,6 +2,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
 from core.models import Operator
+from wcm.models import ChecklistItem
 
 
 class Shift(models.Model):
@@ -194,28 +195,6 @@ class Shift(models.Model):
                 super().save(update_fields=['avg_thickness_left_shift', 'avg_thickness_right_shift', 'avg_grammage_shift'])
 
 
-class CurrentProd(models.Model):
-    """Modèle pour sauvegarder automatiquement les données en cours de saisie."""
-    
-    # Identifiant de session/utilisateur (pour différencier les saisies)
-    session_key = models.CharField(max_length=255, help_text="Clé de session pour identifier la saisie")
-    
-    # Données du formulaire sérialisées
-    form_data = models.JSONField(default=dict, help_text="Données du formulaire en JSON")
-    
-    # Timestamps
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        verbose_name = "Production en cours"
-        verbose_name_plural = "Productions en cours"
-        ordering = ['-updated_at']
-    
-    def __str__(self):
-        return f"Saisie {self.session_key} - {self.updated_at.strftime('%H:%M:%S')}"
-
-
 class LostTimeEntry(models.Model):
     """Modèle pour enregistrer les temps d'arrêt."""
     
@@ -395,6 +374,7 @@ class Roll(models.Model):
     DESTINATION_CHOICES = [
         ('PRODUCTION', 'Production'),
         ('DECOUPE', 'Découpe'),
+        ('DECOUPE_FORCEE', 'Découpe Forcée'),
         ('DECHETS', 'Déchets'),
     ]
     
@@ -416,6 +396,11 @@ class Roll(models.Model):
     avg_thickness_right = models.DecimalField(max_digits=5, decimal_places=2, 
                                             null=True, blank=True,
                                             verbose_name="Épaisseur moyenne droite (mm)")
+    
+    # Grammage calculé lors de la sauvegarde
+    grammage_calc = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True,
+                                       verbose_name="Grammage calculé",
+                                       help_text="Grammage calculé et sauvegardé (g/m)")
     
     # Masse nette calculée
     net_mass = models.DecimalField(max_digits=10, decimal_places=2, 

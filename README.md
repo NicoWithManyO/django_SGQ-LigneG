@@ -11,9 +11,9 @@ Système de gestion de production de feutre pour **Saint-Gobain Quartz SAS - Nem
 
 ### 📋 Gestion des Postes de Production
 - **Fiche de Poste** : Gestion complète des shifts (opérateur, vacation, horaires début/fin)
-- **Création Rapide** : Boutons "+" discrets pour ajouter opérateurs et OF via modales
+- **Création Rapide** : Boutons "+" pour opérateurs (endpoints à implémenter)
 - **Continuité Machine** : Report automatique des états machine entre postes
-- **Validation** : Contrôles obligatoires avant sauvegarde
+- **Validation** : Contrôles obligatoires avant sauvegarde avec info-bulles dynamiques
 - **Traçabilité** : ID unique dynamique `JJMMAA_PrenomNom_Vacation`
 
 ### 🏭 Suivi de Production
@@ -40,16 +40,20 @@ Système de gestion de production de feutre pour **Saint-Gobain Quartz SAS - Nem
 
 ### Structure des Applications Django
 ```
-├── core/           # Modèles partagés (Operator, FabricationOrder)
-├── production/     # Gestion des postes et production
-├── quality/        # Contrôles qualité (DefectType, RollDefect, ThicknessMeasurement)
+├── core/           # Modèles partagés (Operator, FabricationOrder, Profile, Mode, MoodCounter)
+├── production/     # Gestion des postes et production (Shift, Roll, QualityControl, LostTimeEntry, MachineParameters)
+├── quality/        # Contrôles qualité (DefectType, Specification, RollDefect, RollThickness)
+├── livesession/    # Gestion de session avec DRF (API unifiée, CurrentSession)
+├── wcm/            # Work Checklist Management (ChecklistTemplate, ChecklistItem, ChecklistResponse, LostTimeReason, MachineParametersHistory)
+├── frontend/       # Templates et composants UI (blocks, components, modals)
 └── reports/        # Génération documents Excel (à venir)
 ```
 
 ### Technologies Utilisées
-- **Backend** : Django 5.2, Python 3.11+
-- **Frontend** : Bootstrap 5.3, HTMX 2.0
-- **Base de données** : SQLite (développement)
+- **Backend** : Django 5.2, Python 3.11+, Django REST Framework
+- **Frontend** : Bootstrap 5.3, HTMX 2.0, JavaScript vanilla
+- **Base de données** : SQLite (développement), PostgreSQL (production recommandé)
+- **API** : DRF avec endpoint unifié `/livesession/api/current-session/`
 - **Styling** : CSS custom avec variables CSS
 
 ### Modèles de Données Clés
@@ -211,7 +215,7 @@ python manage.py runserver
 - [x] Visualisation rouleau avec champs défauts intégrés
 - [x] Sélection défauts depuis datalists
 - [x] Boutons d'effacement rapide des défauts
-- [x] Création rapide opérateurs et OF via modales
+- [ ] Création rapide opérateurs et OF via modales (interfaces présentes, endpoints manquants)
 - [x] Calcul automatique durée postes (support minuit)
 - [x] Vacation "Journée" avec horaires par défaut
 - [x] Sauvegarde rouleaux indépendante du poste
@@ -224,18 +228,32 @@ python manage.py runserver
 - [x] Check-list fin de poste avec boutons 3 états
 - [x] Calcul automatique moyennes épaisseur via signals
 - [x] Bouton cut pour forcer découpe rouleaux conformes
+- [x] Badge de statut contrôles qualité (Pending/Passed/Failed)
+- [x] Vérification conformité contrôles qualité automatique
+- [x] Sauvegarde rouleaux en base via API avec confirmation
+- [x] Navigation Tab intelligente dans tous les formulaires
+- [x] Affichage temps total déclaré dans le header
+- [x] Alignement labels spécifications qualité
+- [x] Correction code couleur grammage avec bonnes specs
+- [x] Modal de confirmation save poste avec métriques et sélecteur humeur
+- [x] Modal de confirmation save rouleau avec animations
+- [x] Système de comptage d'humeur anonyme (MoodCounter)
+- [x] Vérification contrôles qualité requis avant activation bouton Save Poste
+- [x] Auto-remplissage created_by dans QualityControl
+- [x] Info-bulles dynamiques indiquant les éléments manquants
 
 ### Phase 2 (À venir)
-- [ ] Intégration complète mesures d'épaisseur
-- [ ] Contrôles qualité par poste
-- [ ] Alertes dépassement seuils
-- [ ] Validation automatique des tolérances
+- [ ] Restauration endpoints création opérateurs/OF
+- [ ] Suppression complète du code legacy
+- [ ] Tests automatiques pour l'API DRF
+- [ ] Documentation OpenAPI/Swagger
 
 ### Phase 3 (Future)
 - [ ] Génération documents Excel
 - [ ] Certificats de conformité
 - [ ] Rapports de production
-- [ ] API REST pour intégrations
+- [ ] API REST pour intégrations externes
+- [ ] Authentification et permissions (actuellement AllowAny)
 
 ## 📞 Support
 **Conformité** : ISO 9001, ISO 14001, ISO 45001  

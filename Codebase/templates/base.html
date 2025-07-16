@@ -37,6 +37,7 @@
             <div class="navbar-nav">
                 <a class="nav-link" href="/admin/">Admin</a>
                 <a class="nav-link" href="/">PROD</a>
+                <a class="nav-link" href="/reporting/">Dashboard</a>
                 <button type="button" class="btn btn-secondary btn-sm ms-3" onclick="toggleAllBlocks()" title="Enrouler/Dérouler tous les blocs">
                     <i class="bi bi-layers"></i> Roll
                 </button>
@@ -46,11 +47,20 @@
                 <button type="button" class="btn btn-info btn-sm ms-2" onclick="fillRandomQualityControls()" title="Remplir les contrôles qualité avec des valeurs aléatoires">
                     <i class="bi bi-shuffle"></i> Random CTRL
                 </button>
+                <button type="button" class="btn btn-success btn-sm ms-2" onclick="fillChecklistRandomly()" title="Remplir la checklist aléatoirement">
+                    <i class="bi bi-check2-square"></i> Random CHECK
+                </button>
                 <button type="button" class="btn btn-danger btn-sm ms-2" onclick="clearAllThickness()" title="Effacer toutes les valeurs">
                     <i class="bi bi-x-circle"></i> Clear VAL
                 </button>
                 <button type="button" class="btn btn-danger btn-sm ms-2" onclick="clearAllFields()" title="Effacer tous les champs">
                     <i class="bi bi-trash"></i> Clear ALL
+                </button>
+                <button type="button" class="btn btn-warning btn-sm ms-2" onclick="clearSessionPartial()" title="Effacer la session (garde profil, OF et cible)">
+                    <i class="bi bi-arrow-clockwise"></i> Clear Session
+                </button>
+                <button type="button" class="btn btn-dark btn-sm ms-3" onclick="clearProductionDatabase()" title="Vider la base de données de production">
+                    <i class="bi bi-database-x"></i> Clear DB
                 </button>
             </div>
         </div>

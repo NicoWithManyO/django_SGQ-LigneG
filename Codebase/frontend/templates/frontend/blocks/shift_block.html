@@ -53,13 +53,12 @@
                     </div>
                 </div>
                 
-                
                 <!-- Ligne 2: Date et Vacation -->
                 <div class="row mb-2">
                     <div class="col-6">
                         <label class="form-label">{{ form.date.label }}</label>
                         <div class="input-group">
-                            <input type="date" name="date" id="id_date" class="form-control" onchange="saveShiftField('date', this.value)" required>
+                            <input type="date" name="date" id="id_date" class="form-control" onchange="saveShiftField('date', this.value)">
                             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setTodayDate()" title="Aujourd'hui">
                                 <i class="bi bi-calendar-day"></i>
                             </button>
@@ -70,7 +69,7 @@
                     </div>
                     <div class="col-6">
                         <label class="form-label">{{ form.vacation.label }}</label>
-                        <select name="vacation" id="id_vacation" class="form-select" onchange="saveShiftField('vacation', this.value); setDefaultTimesForVacation(this.value);" required>
+                        <select name="vacation" id="id_vacation" class="form-select" onchange="saveShiftField('vacation', this.value); setDefaultTimesForVacation(this.value);">
                             <option value="">---------</option>
                             <option value="Matin">Matin</option>
                             <option value="ApresMidi">Après-midi</option>
@@ -83,23 +82,46 @@
                     </div>
                 </div>
                 
+                <!-- ID du poste -->
+                <div class="d-flex align-items-center mb-2">
+                    <div style="width: 20px; text-align: center;">
+                        <i class="bi bi-check-circle text-success" 
+                           id="shift-id-check" 
+                           style="display: none; font-size: 0.75rem;"></i>
+                        <i class="bi bi-exclamation-triangle-fill" 
+                           id="shift-id-warning-icon" 
+                           style="color: #ff9800; font-size: 0.75rem; display: none; cursor: help;"
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Un poste avec cet ID existe déjà">
+                        </i>
+                    </div>
+                    <small class="text-muted" style="font-size: 0.75rem;">
+                        <span>ID Poste : </span>
+                        <span id="shift-id-display">--</span>
+                    </small>
+                </div>
+                
                 <!-- Ligne 3: Heures début et fin -->
                 <div class="row mb-2">
-                    <div class="col-5">
-                        <label class="form-label">{{ form.start_time.label }}</label>
-                        <input type="time" name="start_time" id="id_start_time" class="form-control" onchange="saveShiftField('start_time', this.value)">
+                    <div class="col-6">
+                        <label class="form-label">Prise de poste</label>
+                        <input type="time" 
+                               name="start_time" 
+                               id="id_start_time" 
+                               class="form-control"
+                               onchange="saveShiftField('start_time', this.value)">
                         {% if form.start_time.errors %}
                             <div class="text-danger small">{{ form.start_time.errors.0 }}</div>
                         {% endif %}
                     </div>
-                    <div class="col-2 d-flex align-items-end justify-content-center">
-                        <div class="text-center" id="duration-display">
-                            
-                        </div>
-                    </div>
-                    <div class="col-5">
-                        <label class="form-label">{{ form.end_time.label }}</label>
-                        <input type="time" name="end_time" id="id_end_time" class="form-control" onchange="saveShiftField('end_time', this.value)">
+                    <div class="col-6">
+                        <label class="form-label">Fin de poste</label>
+                        <input type="time" 
+                               name="end_time" 
+                               id="id_end_time" 
+                               class="form-control"
+                               onchange="saveShiftField('end_time', this.value)">
                         {% if form.end_time.errors %}
                             <div class="text-danger small">{{ form.end_time.errors.0 }}</div>
                         {% endif %}
@@ -120,10 +142,13 @@
                             <div class="row align-items-center">
                                 <div class="col-md-6">
                                     <div class="form-check">
-                                        <input type="checkbox" name="started_at_beginning" id="id_started_at_beginning" class="form-check-input" onchange="saveShiftField('started_at_beginning', this.checked); toggleMeterReadingFields();">
+                                        <input type="checkbox" name="started_at_beginning" id="id_started_at_beginning" class="form-check-input" onchange="saveShiftField('started_at_beginning', this.checked); toggleMeterReadingFields(true);">
                                         <label class="form-check-label fw-bold small" for="{{ form.started_at_beginning.id_for_label }}">
                                             {{ form.started_at_beginning.label }}
                                         </label>
+                                        <button type="button" class="btn btn-sm btn-link p-0 ms-2" onclick="refreshMeterReading()" title="Actualiser le métrage">
+                                            <i class="bi bi-arrow-clockwise small"></i>
+                                        </button>
                                     </div>
                                     {% if form.started_at_beginning.errors %}
                                         <div class="text-danger small">{{ form.started_at_beginning.errors.0 }}</div>
@@ -134,7 +159,9 @@
                                         <label class="form-label small">
                                             {{ form.meter_reading_start.label }}
                                         </label>
-                                        <input type="number" name="meter_reading_start" id="id_meter_reading_start" class="form-control form-control-sm" step="0.01" onchange="saveShiftField('meter_reading_start', this.value)">
+                                        <input type="number" name="meter_reading_start" id="id_meter_reading_start" class="form-control form-control-sm" step="0.01" 
+                                               onchange="saveShiftField('meter_reading_start', this.value); updateProductionMetricsFromSession();"
+                                               oninput="if (this.value === '') { saveShiftField('meter_reading_start', null); updateProductionMetricsFromSession(); }">
                                         {% if form.meter_reading_start.errors %}
                                             <div class="text-danger small">{{ form.meter_reading_start.errors.0 }}</div>
                                         {% endif %}
@@ -162,7 +189,7 @@
                             <div class="row align-items-center">
                                 <div class="col-md-6">
                                     <div class="form-check">
-                                        <input type="checkbox" name="started_at_end" id="id_started_at_end" class="form-check-input" onchange="saveShiftField('started_at_end', this.checked); toggleMeterReadingFields();">
+                                        <input type="checkbox" name="started_at_end" id="id_started_at_end" class="form-check-input" onchange="saveShiftField('started_at_end', this.checked); toggleMeterReadingFields(true);">
                                         <label class="form-check-label fw-bold small" for="{{ form.started_at_end.id_for_label }}">
                                             {{ form.started_at_end.label }}
                                         </label>
@@ -173,7 +200,9 @@
                                 </div>
                                 <div class="col-md-6" id="meter-reading-end-field" style="visibility: hidden;">
                                     <label class="form-label small">{{ form.meter_reading_end.label }}</label>
-                                    <input type="number" name="meter_reading_end" id="id_meter_reading_end" class="form-control form-control-sm" step="0.01" onchange="saveShiftField('meter_reading_end', this.value)">
+                                    <input type="number" name="meter_reading_end" id="id_meter_reading_end" class="form-control form-control-sm" step="0.01" 
+                                           onchange="saveShiftField('meter_reading_end', this.value); updateProductionMetricsFromSession();"
+                                           oninput="if (this.value === '') { saveShiftField('meter_reading_end', null); updateProductionMetricsFromSession(); }">
                                     {% if form.meter_reading_end.errors %}
                                         <div class="text-danger small">{{ form.meter_reading_end.errors.0 }}</div>
                                     {% endif %}
@@ -248,9 +277,11 @@
                 type="button" 
                 id="save-shift-btn"
                 onclick="confirmSaveShift()"
-                class="btn btn-success btn-sm fibrage-action-btn conforme"
+                class="btn btn-primary btn-sm fibrage-action-btn"
+                style="background-color: #0d6efd !important; border-color: #0d6efd !important;"
+                title="Cliquer pour sauvegarder le poste"
             >
-                <i class="bi bi-save"></i> Enregistrer le Poste
+                <i class="bi bi-save"></i> Save Poste
             </button>
         </div>
     </div>
@@ -258,27 +289,253 @@
 </div>
 
 
+
 <script>
 // Fonctions basiques uniquement
 
-// Fonction pour sauvegarder un champ dans le draft
-function saveShiftField(fieldName, value) {
-    const formData = new FormData();
-    formData.append('field', 'shift_' + fieldName);
-    formData.append('value', value);
-    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+// Variables pour le debounce des changements d'heures
+let pendingTimeUpdates = {};
+let timeUpdateTimeout = null;
+
+// API DRF pour la session courante
+const sessionAPI = {
+    endpoint: '/livesession/api/current-session/',
     
-    fetch('/livesession/update-field/', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log(`${fieldName} sauvegardé:`, data);
-    })
-    .catch(error => {
-        console.error('Erreur:', error);
-    });
+    async updateField(fieldName, value) {
+        try {
+            // Ajouter la classe updating si c'est un changement d'heure
+            const durationDisplay = document.getElementById('duration-display');
+            if ((fieldName === 'start_time' || fieldName === 'end_time') && durationDisplay) {
+                durationDisplay.classList.add('updating');
+            }
+            
+            const response = await fetch(this.endpoint, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    [fieldName]: value
+                })
+            });
+            
+            const data = await response.json();
+            
+            // Mettre à jour sessionData si elle existe (depuis production.html)
+            if (typeof window.sessionData !== 'undefined' && data) {
+                window.sessionData = data;
+            }
+            
+            // Si les horaires ont changé, recalculer le TO directement ici
+            if (fieldName === 'start_time' || fieldName === 'end_time') {
+                console.log('[DEBUG] Changement horaire détecté:', fieldName, '=', value);
+                
+                // Calculer le TO localement
+                const startTime = data.start_time || document.getElementById('id_start_time')?.value;
+                const endTime = data.end_time || document.getElementById('id_end_time')?.value;
+                
+                if (startTime && endTime) {
+                    const start = new Date(`2000-01-01T${startTime}`);
+                    const end = new Date(`2000-01-01T${endTime}`);
+                    if (end < start) {
+                        end.setDate(end.getDate() + 1);
+                    }
+                    const toMinutes = Math.floor((end - start) / 60000);
+                    
+                    // Formater le temps
+                    let toFormatted = '--';
+                    if (toMinutes > 0) {
+                        const hours = Math.floor(toMinutes / 60);
+                        const mins = toMinutes % 60;
+                        if (hours === 0) toFormatted = `${mins}min`;
+                        else if (mins === 0) toFormatted = `${hours}h`;
+                        else toFormatted = `${hours}h${mins.toString().padStart(2, '0')}`;
+                    }
+                    
+                    // Mettre à jour l'affichage du TO
+                    const toElement = document.getElementById('temps-ouverture');
+                    if (toElement) {
+                        console.log('[DEBUG] Mise à jour TO:', toFormatted);
+                        toElement.textContent = toFormatted;
+                    }
+                    
+                    // Calculer et mettre à jour le TD
+                    // TD = TO - TP
+                    const tpMinutes = window.lostTimeEntries ? 
+                        window.lostTimeEntries.reduce((sum, lt) => sum + (lt.duration || 0), 0) : 0;
+                    const tdMinutes = Math.max(0, toMinutes - tpMinutes);
+                    
+                    // Formater le TD
+                    let tdFormatted = '--';
+                    if (tdMinutes >= 0) {
+                        const tdHours = Math.floor(tdMinutes / 60);
+                        const tdMins = tdMinutes % 60;
+                        if (tdHours === 0) tdFormatted = `${tdMins}min`;
+                        else if (tdMins === 0) tdFormatted = `${tdHours}h`;
+                        else tdFormatted = `${tdHours}h${tdMins.toString().padStart(2, '0')}`;
+                    }
+                    
+                    // Mettre à jour l'affichage du TD
+                    const tdElement = document.getElementById('temps-disponible');
+                    if (tdElement) {
+                        console.log('[DEBUG] Mise à jour TD:', tdFormatted, '(TO:', toMinutes, '- TP:', tpMinutes, ')');
+                        tdElement.textContent = tdFormatted;
+                    }
+                    
+                    // Mettre à jour aussi la longueur enroulable si on a la vitesse
+                    const beltSpeed = window.sessionData?.belt_speed || 0;
+                    if (beltSpeed > 0) {
+                        const lengthEnroulable = Math.round(tdMinutes * beltSpeed);
+                        const lgEnroulableElement = document.getElementById('lg-enroulable');
+                        if (lgEnroulableElement) {
+                            lgEnroulableElement.textContent = lengthEnroulable > 0 ? `${lengthEnroulable}m` : '--';
+                        }
+                        
+                        // Mettre à jour la longueur enroulable avec TO (temps d'ouverture)
+                        const lengthEnroulableTo = Math.round(toMinutes * beltSpeed);
+                        const lgEnroulableToElement = document.getElementById('lg-enroulable-to');
+                        if (lgEnroulableToElement) {
+                            lgEnroulableToElement.textContent = lengthEnroulableTo > 0 ? `(${lengthEnroulableTo}m)` : '(--)';
+                        }
+                        
+                        // Mettre à jour le TRS aussi
+                        const okLength = window.sessionData?.ok_length || 0;
+                        if (lengthEnroulable > 0) {
+                            const trsPercentage = Math.round((okLength / lengthEnroulable) * 100 * 10) / 10;
+                            const rendementElement = document.getElementById('temps-rendement');
+                            if (rendementElement) {
+                                rendementElement.textContent = trsPercentage + '%';
+                            }
+                            // Mettre à jour la jauge si la fonction existe
+                            if (typeof window.updateSmallGauge === 'function') {
+                                window.updateSmallGauge(trsPercentage);
+                            }
+                        }
+                    }
+                }
+                
+                // NE PAS appeler updateShiftMetrics car elle utilise les anciennes valeurs
+            }
+            
+            // Gérer les erreurs de validation
+            if (data.validation && !data.validation.is_valid) {
+                console.error('Erreurs de validation:', data.validation.errors);
+                // Ne pas afficher les erreurs de format d'heure et de date
+                Object.entries(data.validation.errors).forEach(([field, errors]) => {
+                    // Ignorer les erreurs sur start_time, end_time et date
+                    if (field === 'start_time' || field === 'end_time' || field === 'date') {
+                        return;
+                    }
+                    
+                    const fieldElement = document.getElementById(`id_${field}`);
+                    if (fieldElement) {
+                        // Afficher l'erreur sous le champ
+                        const errorDiv = fieldElement.parentElement.querySelector('.text-danger') || document.createElement('div');
+                        errorDiv.className = 'text-danger small mt-1';
+                        errorDiv.textContent = Array.isArray(errors) ? errors.join(', ') : errors;
+                        if (!fieldElement.parentElement.querySelector('.text-danger')) {
+                            fieldElement.parentElement.appendChild(errorDiv);
+                        }
+                    }
+                });
+            }
+            
+            return data;
+        } catch (error) {
+            console.error('Erreur API:', error);
+        }
+    },
+    
+    async getShiftData() {
+        try {
+            const response = await fetch(this.endpoint, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Erreur API:', error);
+            return {};
+        }
+    }
+};
+
+
+// Wrapper pour compatibilité avec l'ancien code
+async function saveShiftField(fieldName, value, fromVacation = false) {
+    // Convertir les chaînes vides en null pour les dates
+    if (fieldName === 'date' && value === '') {
+        value = null;
+    }
+    
+    // Si c'est une heure et qu'on vient du changement de vacation, grouper les mises à jour
+    if ((fieldName === 'start_time' || fieldName === 'end_time') && fromVacation) {
+        pendingTimeUpdates[fieldName] = value;
+        
+        // Annuler le timeout précédent
+        if (timeUpdateTimeout) {
+            clearTimeout(timeUpdateTimeout);
+        }
+        
+        // Attendre un peu pour voir si l'autre heure va changer aussi
+        timeUpdateTimeout = setTimeout(async () => {
+            // Calculer le TO localement avec les deux heures
+            const startTime = pendingTimeUpdates.start_time || document.getElementById('id_start_time').value;
+            const endTime = pendingTimeUpdates.end_time || document.getElementById('id_end_time').value;
+            
+            if (startTime && endTime) {
+                const [startHours, startMinutes] = startTime.split(':').map(Number);
+                const [endHours, endMinutes] = endTime.split(':').map(Number);
+                
+                let startTotalMinutes = startHours * 60 + startMinutes;
+                let endTotalMinutes = endHours * 60 + endMinutes;
+                
+                if (endTotalMinutes < startTotalMinutes) {
+                    endTotalMinutes += 24 * 60;
+                }
+                
+                // Le TO est maintenant affiché uniquement dans la carte des métriques
+            }
+            
+            // Envoyer toutes les mises à jour en une fois
+            for (const [field, val] of Object.entries(pendingTimeUpdates)) {
+                await sessionAPI.updateField(field, val);
+            }
+            pendingTimeUpdates = {};
+            
+            // Vérifier l'état du bouton Save Poste après les changements
+            checkSaveShiftButtonState();
+        }, 100); // 100ms devrait suffire pour recevoir les deux changements
+        
+        return;
+    }
+    
+    // Si c'est une heure normale (pas depuis vacation)
+    if (fieldName === 'start_time' || fieldName === 'end_time') {
+        // Convertir les heures vides en null pour les sauvegarder
+        if (value === '') {
+            value = null;
+        }
+    }
+    
+    const data = await sessionAPI.updateField(fieldName, value);
+    
+    // Si l'opérateur change, revalider la signature de la checklist
+    if (fieldName === 'operator') {
+        // Revalider la signature existante avec le nouvel opérateur
+        if (typeof validateSignature === 'function') {
+            validateSignature();
+        }
+    }
+    
+    // Vérifier l'état du bouton Save Poste après chaque changement
+    checkSaveShiftButtonState();
+    
+    return data;
 }
 
 function setTodayDate() {
@@ -349,45 +606,7 @@ function calculateAvailabilityTime() {
     }
 }
 
-function updateDurationDisplay() {
-    const startTimeField = document.querySelector('input[name="start_time"]');
-    const endTimeField = document.querySelector('input[name="end_time"]');
-    const durationDisplay = document.getElementById('duration-display');
-    
-    if (!startTimeField || !endTimeField || !durationDisplay) {
-        return;
-    }
-    
-    const startTimeValue = startTimeField.value;
-    const endTimeValue = endTimeField.value;
-    
-    if (startTimeValue && endTimeValue) {
-        const [startHours, startMinutes] = startTimeValue.split(':').map(Number);
-        const [endHours, endMinutes] = endTimeValue.split(':').map(Number);
-        
-        let startTotalMinutes = startHours * 60 + startMinutes;
-        let endTotalMinutes = endHours * 60 + endMinutes;
-        
-        if (endTotalMinutes < startTotalMinutes) {
-            endTotalMinutes += 24 * 60;
-        }
-        
-        const durationMinutes = endTotalMinutes - startTotalMinutes;
-        const durationHours = Math.floor(durationMinutes / 60);
-        const remainingMinutes = durationMinutes % 60;
-        
-        const durationTimeStr = `${durationHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}`;
-        
-        durationDisplay.innerHTML = `
-            <div style="line-height: 1.1;">
-                <span class="fw-bold">${durationTimeStr}</span><br>
-                <small class="text-muted">(${durationMinutes}&nbsp;min)</small>
-            </div>
-        `;
-    } else {
-        durationDisplay.innerHTML = '';
-    }
-}
+// Le TO est maintenant affiché uniquement dans la carte des métriques
 
 function setDefaultTimesForVacation(vacation) {
     const startTimeField = document.querySelector('input[name="start_time"]');
@@ -421,18 +640,29 @@ function setDefaultTimesForVacation(vacation) {
             return;
     }
     
+    // Mettre les valeurs dans les champs
     startTimeField.value = defaultStartTime;
     endTimeField.value = defaultEndTime;
     
-    // Sauvegarder les heures automatiquement
-    saveShiftField('start_time', defaultStartTime);
-    saveShiftField('end_time', defaultEndTime);
+    // Calculer et afficher le TO immédiatement
+    const [startHours, startMinutes] = defaultStartTime.split(':').map(Number);
+    const [endHours, endMinutes] = defaultEndTime.split(':').map(Number);
     
-    calculateAvailabilityTime();
-    updateDurationDisplay();
+    let startTotalMinutes = startHours * 60 + startMinutes;
+    let endTotalMinutes = endHours * 60 + endMinutes;
+    
+    if (endTotalMinutes < startTotalMinutes) {
+        endTotalMinutes += 24 * 60;
+    }
+    
+    // Le TO est maintenant affiché uniquement dans la carte des métriques
+    
+    // Sauvegarder les deux heures via l'API (avec le flag fromVacation)
+    saveShiftField('start_time', defaultStartTime, true);
+    saveShiftField('end_time', defaultEndTime, true);
 }
 
-function toggleMeterReadingFields() {
+function toggleMeterReadingFields(isUserAction = false) {
     const startedAtBeginning = document.querySelector('input[name="started_at_beginning"]');
     const startedAtEnd = document.querySelector('input[name="started_at_end"]');
     const meterStartField = document.getElementById('meter-reading-start-field');
@@ -441,33 +671,241 @@ function toggleMeterReadingFields() {
     const shutdownMessageEnd = document.getElementById('shutdown-message-end');
     
     if (startedAtBeginning && meterStartField && startupMessageStart) {
+        const meterStartInput = document.getElementById('id_meter_reading_start');
         if (startedAtBeginning.checked) {
             meterStartField.style.visibility = 'visible';
             startupMessageStart.style.visibility = 'hidden';
         } else {
             meterStartField.style.visibility = 'hidden';
             startupMessageStart.style.visibility = 'visible';
+            // Mettre à 0 seulement si c'est une action utilisateur
+            if (isUserAction && meterStartInput) {
+                meterStartInput.value = '0';
+                saveShiftField('meter_reading_start', '0');
+                // Mettre à jour les métriques
+                if (typeof updateProductionMetricsFromSession === 'function') {
+                    updateProductionMetricsFromSession();
+                }
+            }
         }
     }
     
     if (startedAtEnd && meterEndField && shutdownMessageEnd) {
+        const meterEndInput = document.getElementById('id_meter_reading_end');
         if (startedAtEnd.checked) {
             meterEndField.style.visibility = 'visible';
             shutdownMessageEnd.style.visibility = 'hidden';
         } else {
             meterEndField.style.visibility = 'hidden';
             shutdownMessageEnd.style.visibility = 'visible';
+            // Mettre à 0 seulement si c'est une action utilisateur
+            if (isUserAction && meterEndInput) {
+                meterEndInput.value = '0';
+                saveShiftField('meter_reading_end', '0');
+                // Mettre à jour les métriques
+                if (typeof updateProductionMetricsFromSession === 'function') {
+                    updateProductionMetricsFromSession();
+                }
+            }
         }
     }
 }
 
 function confirmSaveShift() {
-    // Soumettre le formulaire via HTMX sans vérifications
-    const form = document.getElementById('shift-form');
-    if (form) {
-        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-        form.dispatchEvent(submitEvent);
+    // Récupérer les métriques depuis l'interface
+    const rendementElement = document.querySelector('.productivity-display');
+    const tauxOKElement = document.querySelector('[data-metric="ok_rate"]');
+    const longueurOKElement = document.querySelector('[data-metric="length_ok"]');
+    const toElement = document.querySelector('#availability-time-display');
+    const qualityBadge = document.querySelector('.quality-badge-passed, .quality-badge-pending');
+    
+    // Préparer les données pour la modal
+    const shiftData = {
+        id: document.getElementById('shift-id-display')?.textContent || 'Non défini',
+        duration: calculateShiftDuration() || '--',
+        rendement: rendementElement?.textContent || '--',
+        tauxOK: tauxOKElement?.textContent || '--',
+        longueurOK: longueurOKElement?.textContent || '--',
+        to: toElement?.textContent || '--',
+        qcPassed: qualityBadge?.classList.contains('quality-badge-passed') || false
+    };
+    
+    // Afficher la modal avec les données
+    if (typeof showShiftSaveModal === 'function') {
+        showShiftSaveModal(shiftData, () => {
+            // Callback pour la sauvegarde
+            saveShiftToAPI();
+        });
+    } else {
+        // Fallback si la modal n'est pas disponible
+        if (confirm('Confirmez-vous la sauvegarde du poste ?')) {
+            saveShiftToAPI();
+        }
     }
+}
+
+function calculateShiftDuration() {
+    const startTime = document.getElementById('id_start_time')?.value;
+    const endTime = document.getElementById('id_end_time')?.value;
+    
+    if (startTime && endTime) {
+        const [startHours, startMinutes] = startTime.split(':').map(Number);
+        const [endHours, endMinutes] = endTime.split(':').map(Number);
+        
+        let startTotalMinutes = startHours * 60 + startMinutes;
+        let endTotalMinutes = endHours * 60 + endMinutes;
+        
+        if (endTotalMinutes < startTotalMinutes) {
+            endTotalMinutes += 24 * 60;
+        }
+        
+        const durationMinutes = endTotalMinutes - startTotalMinutes;
+        const hours = Math.floor(durationMinutes / 60);
+        const minutes = durationMinutes % 60;
+        
+        return `${hours}h${minutes.toString().padStart(2, '0')}`;
+    }
+    
+    return null;
+}
+
+function saveShiftToAPI() {
+    // Récupérer l'humeur sélectionnée depuis la variable globale de la modal
+    const moodValue = window.selectedMood || 'no_response';
+    
+    // Appeler l'API DRF pour sauvegarder le shift avec l'humeur
+    fetch('/livesession/api/current-session/save-shift/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            mood: moodValue
+        }),
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.shift_id) {
+            // Succès - Appliquer le nouvel état depuis le backend
+            if (data.session) {
+                // METTRE À JOUR sessionData GLOBAL (si accessible)
+                if (typeof sessionData !== 'undefined') {
+                    window.sessionData = data.session;
+                }
+                
+                // Mettre à jour les champs avec le nouvel état
+                updateShiftFieldsFromSession(data.session);
+            }
+            
+            // Afficher l'animation de succès dans la modal
+            if (typeof showShiftSaveSuccess === 'function') {
+                showShiftSaveSuccess(data);
+                // NE PAS recharger automatiquement - laisser l'utilisateur fermer la modal
+            } else {
+                // Fallback
+                alert(`Poste enregistré avec succès !\nID: ${data.shift_id}`);
+                // Recharger seulement après que l'utilisateur ait fermé l'alerte
+                window.location.reload();
+            }
+        } else {
+            // Erreur
+            alert('Erreur lors de l\'enregistrement : ' + (data.error || 'Erreur inconnue'));
+            
+            // Fermer la modal en cas d'erreur
+            if (window.shiftSaveModalBS) {
+                window.shiftSaveModalBS.hide();
+            }
+            
+            // Réactiver le bouton
+            const saveBtn = document.getElementById('save-shift-btn');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Poste';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la sauvegarde du poste');
+        
+        // Fermer la modal en cas d'erreur
+        if (window.shiftSaveModalBS) {
+            window.shiftSaveModalBS.hide();
+        }
+        
+        // Réactiver le bouton
+        const saveBtn = document.getElementById('save-shift-btn');
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Poste';
+        }
+    });
+}
+
+// Fonction pour mettre à jour les champs du shift depuis l'état de session
+function updateShiftFieldsFromSession(sessionData) {
+    // Réinitialiser les champs du shift avec les nouvelles valeurs
+    
+    // Opérateur (réinitialisé à vide)
+    const operatorField = document.getElementById('id_operator');
+    if (operatorField) operatorField.value = sessionData.operator || '';
+    
+    // Date (nouvelle date)
+    const dateField = document.getElementById('id_date');
+    if (dateField) dateField.value = sessionData.date || '';
+    
+    // Vacation (vacation suivante)
+    const vacationField = document.getElementById('id_vacation');
+    if (vacationField) vacationField.value = sessionData.vacation || '';
+    
+    // Heures (nouvelles heures par défaut)
+    const startTimeField = document.getElementById('id_start_time');
+    if (startTimeField) startTimeField.value = sessionData.start_time || '';
+    
+    const endTimeField = document.getElementById('id_end_time');
+    if (endTimeField) endTimeField.value = sessionData.end_time || '';
+    
+    // Machine start/end
+    const startedAtBeginning = document.getElementById('id_started_at_beginning');
+    if (startedAtBeginning) startedAtBeginning.checked = sessionData.started_at_beginning || false;
+    
+    const meterReadingStart = document.getElementById('id_meter_reading_start');
+    if (meterReadingStart) meterReadingStart.value = sessionData.meter_reading_start || '';
+    
+    const startedAtEnd = document.getElementById('id_started_at_end');
+    if (startedAtEnd) startedAtEnd.checked = sessionData.started_at_end || false;
+    
+    const meterReadingEnd = document.getElementById('id_meter_reading_end');
+    if (meterReadingEnd) meterReadingEnd.value = sessionData.meter_reading_end || '';
+    
+    // Commentaires (vider)
+    const comments = document.getElementById('id_operator_comments');
+    if (comments) comments.value = sessionData.operator_comments || '';
+    
+    // Réinitialiser l'ID du shift
+    const shiftIdDisplay = document.getElementById('shift-id-display');
+    if (shiftIdDisplay) shiftIdDisplay.textContent = sessionData.shift_id || '--';
+    
+    // Mettre à jour les métriques si disponibles
+    if (sessionData.metrics) {
+        // TO
+        const toElement = document.getElementById('temps-ouverture');
+        if (toElement) toElement.textContent = sessionData.metrics.to_formatted || '--';
+        
+        // TD
+        const tdElement = document.getElementById('temps-disponible');
+        if (tdElement) tdElement.textContent = sessionData.metrics.td_formatted || '--';
+        
+        // TP
+        const tpElement = document.getElementById('temps-perdu-total');
+        if (tpElement) tpElement.textContent = sessionData.metrics.tp_formatted || '--';
+    }
+    
+    // Vérifier l'état des boutons
+    toggleMeterReadingFields();
+    checkSaveShiftButtonState();
 }
 
 function addOperator() {
@@ -487,79 +925,492 @@ document.body.addEventListener('change', function(e) {
     if (e.target && (e.target.name === 'started_at_beginning' || e.target.name === 'started_at_end')) {
         toggleMeterReadingFields();
     }
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-        toggleMeterReadingFields();
-    }, 500);
-});
-
-document.body.addEventListener('htmx:afterSwap', function() {
-    setTimeout(function() {
-        toggleMeterReadingFields();
-    }, 200);
+    
+    // Les métriques sont maintenant mises à jour automatiquement par sessionAPI.updateField()
+    // uniquement pour les champs pertinents (start_time, end_time, lost_times)
 });
 
 // Restaurer le brouillon au chargement
 document.addEventListener('DOMContentLoaded', function() {
-    const shiftData = JSON.parse('{{ shift_data_json|escapejs }}');
+    // Nettoyer les messages d'erreur des heures et de la date
+    const startTimeError = document.querySelector('#id_start_time').parentElement.querySelector('.text-danger');
+    const endTimeError = document.querySelector('#id_end_time').parentElement.querySelector('.text-danger');
+    const dateError = document.querySelector('#id_date').parentElement.querySelector('.text-danger');
+    if (startTimeError) startTimeError.remove();
+    if (endTimeError) endTimeError.remove();
+    if (dateError) dateError.remove();
     
-    // Restaurer chaque champ
-    if (shiftData.operator) {
-        const operatorField = document.getElementById('id_operator');
-        if (operatorField) operatorField.value = shiftData.operator;
+    // Charger les données depuis l'API DRF
+    fetch('/livesession/api/current-session/')
+        .then(response => response.json())
+        .then(shiftData => {
+            // Restaurer chaque champ
+            if (shiftData.operator) {
+                const operatorField = document.getElementById('id_operator');
+                if (operatorField) operatorField.value = shiftData.operator;
+            }
+            
+            if (shiftData.date) {
+                const dateField = document.getElementById('id_date');
+                if (dateField) dateField.value = shiftData.date;
+            }
+            
+            if (shiftData.vacation) {
+                const vacationField = document.getElementById('id_vacation');
+                if (vacationField) vacationField.value = shiftData.vacation;
+            }
+            
+            if (shiftData.start_time) {
+                const startTimeField = document.getElementById('id_start_time');
+                if (startTimeField) startTimeField.value = shiftData.start_time;
+            }
+            
+            if (shiftData.end_time) {
+                const endTimeField = document.getElementById('id_end_time');
+                if (endTimeField) endTimeField.value = shiftData.end_time;
+            }
+            
+            if (shiftData.started_at_beginning !== undefined) {
+                const startedBeginning = document.getElementById('id_started_at_beginning');
+                if (startedBeginning) startedBeginning.checked = shiftData.started_at_beginning;
+            }
+            
+            if (shiftData.meter_reading_start) {
+                const meterStart = document.getElementById('id_meter_reading_start');
+                if (meterStart) meterStart.value = shiftData.meter_reading_start;
+            }
+            
+            if (shiftData.started_at_end !== undefined) {
+                const startedEnd = document.getElementById('id_started_at_end');
+                if (startedEnd) {
+                    startedEnd.checked = shiftData.started_at_end;
+                }
+            }
+            
+            if (shiftData.meter_reading_end !== undefined) {
+                const meterEnd = document.getElementById('id_meter_reading_end');
+                if (meterEnd) meterEnd.value = shiftData.meter_reading_end || '';
+            }
+            
+            if (shiftData.operator_comments) {
+                const comments = document.getElementById('id_operator_comments');
+                if (comments) comments.value = shiftData.operator_comments;
+            }
+            
+            // Afficher l'ID du poste s'il existe
+            if (shiftData.shift_id) {
+                const shiftIdDisplay = document.getElementById('shift-id-display');
+                const shiftIdCheck = document.getElementById('shift-id-check');
+                if (shiftIdDisplay) {
+                    shiftIdDisplay.textContent = shiftData.shift_id;
+                }
+                if (shiftIdCheck) {
+                    shiftIdCheck.style.display = 'inline';
+                }
+            }
+            
+            // Mettre à jour l'affichage après restauration
+            calculateAvailabilityTime();
+            
+            // Ne pas appeler updateShiftMetrics depuis la fiche de poste
+            
+            // Appeler toggleMeterReadingFields après un court délai pour s'assurer que tout est chargé
+            setTimeout(function() {
+                toggleMeterReadingFields();
+                // Mettre à jour l'ID du poste après chargement
+                updateShiftIdDisplay();
+                
+                // Charger les données de session pour avoir lost_times
+                fetch('/livesession/api/current-session/')
+                    .then(response => response.json())
+                    .then(sessionData => {
+                        // Stocker globalement pour usage ultérieur
+                        window.sessionData = sessionData;
+                        
+                        // DEBUG: Afficher les temps perdus trouvés
+                        console.log('=== DEBUG TEMPS PERDUS AU CHARGEMENT ===');
+                        console.log('window.lostTimeEntries:', window.lostTimeEntries);
+                        console.log('window.sessionData:', window.sessionData);
+                        if (window.sessionData && window.sessionData.lost_times) {
+                            console.log('sessionData.lost_times:', window.sessionData.lost_times);
+                            window.sessionData.lost_times.forEach((lt, index) => {
+                                console.log(`Temps perdu ${index}: reason=${lt.reason}, duration=${lt.duration}, comment="${lt.comment || ''}"`);
+                            });
+                        }
+                        console.log('=== FIN DEBUG ===');
+                        
+                        // Vérifier l'état du bouton après chargement complet
+                        checkSaveShiftButtonState();
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors du chargement de la session complète:', error);
+                        checkSaveShiftButtonState();
+                    });
+            }, 100);
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement du draft:', error);
+        });
+});
+
+// Support HTMX - réactiver les fonctions après un swap
+document.body.addEventListener('htmx:afterSwap', function() {
+    setTimeout(function() {
+        toggleMeterReadingFields();
+    }, 100);
+});
+
+// Fonction pour actualiser le métrage
+function refreshMeterReading() {
+    console.log('Actualisation du métrage...');
+    // TODO: Implémenter la logique d'actualisation
+}
+
+// Fonction pour calculer l'ID du poste
+function calculateShiftId() {
+    const operatorSelect = document.getElementById('id_operator');
+    const dateInput = document.getElementById('id_date');
+    const vacationSelect = document.getElementById('id_vacation');
+    
+    if (!operatorSelect?.value || !dateInput?.value || !vacationSelect?.value) {
+        return null;
     }
     
-    if (shiftData.date) {
-        const dateField = document.getElementById('id_date');
-        if (dateField) dateField.value = shiftData.date;
+    // Format date: JJMMAA
+    const date = new Date(dateInput.value);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    const dateStr = `${day}${month}${year}`;
+    
+    // Extraire prénom et nom de l'opérateur
+    const operatorText = operatorSelect.options[operatorSelect.selectedIndex].text;
+    const [firstName, ...lastNameParts] = operatorText.split(' ');
+    const lastName = lastNameParts.join(' ');
+    
+    // Format: JJMMAA_PrenomNom_Vacation
+    return `${dateStr}_${firstName}${lastName}_${vacationSelect.value}`;
+}
+
+// Fonction pour mettre à jour l'affichage de l'ID du poste
+async function updateShiftIdDisplay() {
+    const shiftIdDisplay = document.getElementById('shift-id-display');
+    const shiftIdCheck = document.getElementById('shift-id-check');
+    const shiftIdError = document.getElementById('shift-id-error');
+    const warningIcon = document.getElementById('shift-id-warning-icon');
+    if (!shiftIdDisplay) return;
+    
+    const shiftId = calculateShiftId();
+    if (shiftId) {
+        shiftIdDisplay.textContent = shiftId;
+        
+        // Vérifier si l'ID existe déjà via l'API
+        try {
+            const response = await fetch(`/livesession/api/check-shift-id/${encodeURIComponent(shiftId)}/`);
+            const data = await response.json();
+            const idAlreadyExists = data.exists;
+            
+            if (idAlreadyExists) {
+                // Afficher l'icône d'avertissement orange
+                if (warningIcon) {
+                    warningIcon.style.display = 'inline';
+                    // Initialiser le tooltip Bootstrap si pas déjà fait
+                    if (!warningIcon._tooltip) {
+                        new bootstrap.Tooltip(warningIcon);
+                    }
+                }
+                // Cacher les anciennes icônes
+                if (shiftIdCheck) shiftIdCheck.style.display = 'none';
+                if (shiftIdError) shiftIdError.style.display = 'none';
+            } else {
+                // Cacher l'icône d'avertissement
+                if (warningIcon) {
+                    warningIcon.style.display = 'none';
+                    // Détruire le tooltip s'il existe
+                    if (warningIcon._tooltip) {
+                        warningIcon._tooltip.dispose();
+                        warningIcon._tooltip = null;
+                    }
+                }
+                // Afficher l'icône de succès
+                if (shiftIdCheck) shiftIdCheck.style.display = 'inline';
+                // Cacher l'icône d'erreur
+                if (shiftIdError) shiftIdError.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Erreur lors de la vérification du shift_id:', error);
+            // En cas d'erreur, ne pas afficher d'icône
+            if (shiftIdCheck) shiftIdCheck.style.display = 'none';
+            if (shiftIdError) shiftIdError.style.display = 'none';
+            if (warningIcon) warningIcon.style.display = 'none';
+        }
+        
+        // Sauvegarder dans la session
+        if (typeof updateFieldViaAPI === 'function') {
+            updateFieldViaAPI('shift_id', shiftId);
+        }
+    } else {
+        shiftIdDisplay.textContent = '--';
+        // Cacher toutes les icônes
+        if (shiftIdCheck) shiftIdCheck.style.display = 'none';
+        if (shiftIdError) shiftIdError.style.display = 'none';
+        if (warningIcon) warningIcon.style.display = 'none';
+    }
+}
+
+// Fonction pour vérifier si le bouton Save Poste peut être activé
+function checkSaveShiftButtonState() {
+    const saveBtn = document.getElementById('save-shift-btn');
+    if (!saveBtn) return;
+    
+    let canSave = true;
+    let reasons = [];
+    
+    // 1. Vérifier les champs essentiels
+    const operator = document.getElementById('id_operator')?.value;
+    const date = document.getElementById('id_date')?.value;
+    const vacation = document.getElementById('id_vacation')?.value;
+    const startTime = document.getElementById('id_start_time')?.value;
+    const endTime = document.getElementById('id_end_time')?.value;
+    
+    if (!operator) { canSave = false; reasons.push('Opérateur manquant'); }
+    if (!date) { canSave = false; reasons.push('Date manquante'); }
+    if (!vacation) { canSave = false; reasons.push('Vacation manquante'); }
+    if (!startTime) { canSave = false; reasons.push('Heure début manquante'); }
+    if (!endTime) { canSave = false; reasons.push('Heure fin manquante'); }
+    
+    // 2. Vérifier la cohérence des checkboxes machine
+    const startedAtBeginning = document.getElementById('id_started_at_beginning')?.checked;
+    const meterReadingStart = document.getElementById('id_meter_reading_start')?.value;
+    const startedAtEnd = document.getElementById('id_started_at_end')?.checked;
+    const meterReadingEnd = document.getElementById('id_meter_reading_end')?.value;
+    
+    if (startedAtBeginning && (!meterReadingStart || parseFloat(meterReadingStart) <= 0)) {
+        canSave = false;
+        reasons.push('Métrage début manquant ou invalide (doit être > 0)');
     }
     
-    if (shiftData.vacation) {
-        const vacationField = document.getElementById('id_vacation');
-        if (vacationField) vacationField.value = shiftData.vacation;
+    if (startedAtEnd && (!meterReadingEnd || parseFloat(meterReadingEnd) <= 0)) {
+        canSave = false;
+        reasons.push('Métrage fin manquant ou invalide (doit être > 0)');
     }
     
-    if (shiftData.start_time) {
-        const startTimeField = document.getElementById('id_start_time');
-        if (startTimeField) startTimeField.value = shiftData.start_time;
+    // 3. Vérifier la signature de la checklist
+    // La checklist ne peut être signée que si elle est complète, donc on vérifie juste la signature
+    const signatureField = document.getElementById('operator-signature');
+    if (signatureField && !signatureField.classList.contains('is-valid')) {
+        canSave = false;
+        reasons.push('Checklist non signée');
     }
     
-    if (shiftData.end_time) {
-        const endTimeField = document.getElementById('id_end_time');
-        if (endTimeField) endTimeField.value = shiftData.end_time;
+    // 3.5. NOUVEAU - Vérifier le temps de démarrage si machine non démarrée
+    if (!startedAtBeginning) {
+        // Si la machine n'était pas démarrée, il faut du temps de démarrage déclaré
+        let hasStartupTime = false;
+        
+        // D'abord essayer avec lostTimeEntries (variable globale dans production.html)
+        if (window.lostTimeEntries && window.lostTimeEntries.length > 0) {
+            // Chercher si un temps perdu avec reason = 1 existe
+            hasStartupTime = window.lostTimeEntries.some(entry => {
+                return entry.reason == 1;
+            });
+        }
+        
+        // Sinon essayer avec sessionData.lost_times
+        if (!hasStartupTime && window.sessionData && window.sessionData.lost_times && window.sessionData.lost_times.length > 0) {
+            const lostTimes = window.sessionData.lost_times;
+            // Chercher simplement si un temps perdu avec reason ID = 1 existe
+            hasStartupTime = lostTimes.some(lt => {
+                // Le motif "Démarrage machine" a l'ID 1
+                return lt.reason == 1;
+            });
+        }
+        
+        // Gérer l'affichage du message de démarrage
+        const startupMessage = document.getElementById('startup-message-start');
+        if (startupMessage) {
+            if (hasStartupTime) {
+                // Cacher le message si du temps de démarrage est déclaré
+                startupMessage.style.visibility = 'hidden';
+            } else {
+                // Afficher le message si pas de temps de démarrage
+                startupMessage.style.visibility = 'visible';
+            }
+        }
+        
+        if (!hasStartupTime) {
+            canSave = false;
+            reasons.push('Temps de démarrage requis (machine non démarrée)');
+        }
+    } else {
+        // Si la machine était démarrée, cacher le message
+        const startupMessage = document.getElementById('startup-message-start');
+        if (startupMessage) {
+            startupMessage.style.visibility = 'hidden';
+        }
     }
     
-    if (shiftData.started_at_beginning !== undefined) {
-        const startedBeginning = document.getElementById('id_started_at_beginning');
-        if (startedBeginning) startedBeginning.checked = shiftData.started_at_beginning;
+    // 4. Vérifier les contrôles qualité
+    let qualityControlsIncomplete = false;
+    
+    // Extrait sec
+    const extraitSec = document.getElementById('sizing-bath-input')?.value;
+    if (!extraitSec || extraitSec.trim() === '') {
+        qualityControlsIncomplete = true;
     }
     
-    if (shiftData.meter_reading_start) {
-        const meterStart = document.getElementById('id_meter_reading_start');
-        if (meterStart) meterStart.value = shiftData.meter_reading_start;
+    // Moyennes micronnaires (min 2 valeurs pour chaque côté)
+    const leftInputs = document.querySelectorAll('.micronnaire-left');
+    const leftValues = Array.from(leftInputs)
+        .map(input => input.value)
+        .filter(val => val && val.trim() !== '');
+    if (leftValues.length < 2) {
+        qualityControlsIncomplete = true;
     }
     
-    if (shiftData.started_at_end !== undefined) {
-        const startedEnd = document.getElementById('id_started_at_end');
-        if (startedEnd) startedEnd.checked = shiftData.started_at_end;
+    const rightInputs = document.querySelectorAll('.micronnaire-right');
+    const rightValues = Array.from(rightInputs)
+        .map(input => input.value)
+        .filter(val => val && val.trim() !== '');
+    if (rightValues.length < 2) {
+        qualityControlsIncomplete = true;
     }
     
-    if (shiftData.meter_reading_end) {
-        const meterEnd = document.getElementById('id_meter_reading_end');
-        if (meterEnd) meterEnd.value = shiftData.meter_reading_end;
+    // Moyennes masses surfaciques (vérifier les IDs corrects)
+    const ggValue = document.getElementById('gg-input')?.value;
+    const gcValue = document.getElementById('gc-input')?.value;
+    if (!ggValue || !gcValue || ggValue.trim() === '' || gcValue.trim() === '') {
+        qualityControlsIncomplete = true;
     }
     
-    if (shiftData.operator_comments) {
-        const comments = document.getElementById('id_operator_comments');
-        if (comments) comments.value = shiftData.operator_comments;
+    const dcValue = document.getElementById('dc-input')?.value;
+    const ddValue = document.getElementById('dd-input')?.value;
+    if (!dcValue || !ddValue || dcValue.trim() === '' || ddValue.trim() === '') {
+        qualityControlsIncomplete = true;
     }
     
-    // Mettre à jour l'affichage après restauration
-    toggleMeterReadingFields();
-    calculateAvailabilityTime();
-    updateDurationDisplay();
+    // LOI - le switch doit juste être manipulé (l'heure sera présente si c'est le cas)
+    const loiTimeElement = document.getElementById('loi-time');
+    const loiHasTime = loiTimeElement && loiTimeElement.textContent && loiTimeElement.textContent !== '--';
+    if (!loiHasTime) {
+        qualityControlsIncomplete = true;
+    }
+    
+    if (qualityControlsIncomplete) {
+        canSave = false;
+        reasons.push('Contrôles qualité incomplets');
+    }
+    
+    // 5. Vérifier si l'ID du shift existe déjà
+    const warningIcon = document.getElementById('shift-id-warning-icon');
+    if (warningIcon && warningIcon.style.display !== 'none') {
+        canSave = false;
+        reasons.push('ID du poste existe déjà');
+    }
+    
+    // Mettre à jour l'état du bouton
+    // D'abord, nettoyer tout tooltip existant
+    const existingTooltip = bootstrap.Tooltip.getInstance(saveBtn);
+    if (existingTooltip) {
+        existingTooltip.dispose();
+    }
+    
+    if (canSave) {
+        saveBtn.disabled = false;
+        saveBtn.className = 'btn btn-primary btn-sm fibrage-action-btn';
+        saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Poste';
+        saveBtn.style.pointerEvents = 'auto';
+        
+        // Retirer l'infobulle si tout est OK
+        saveBtn.removeAttribute('data-bs-toggle');
+        saveBtn.removeAttribute('data-bs-placement');
+        saveBtn.removeAttribute('title');
+        
+        // Si le bouton est dans un wrapper, le retirer
+        const wrapper = saveBtn.parentElement;
+        if (wrapper && wrapper.classList.contains('d-inline-block') && wrapper.hasAttribute('data-bs-toggle')) {
+            // Détruire le tooltip du wrapper
+            const wrapperTooltip = bootstrap.Tooltip.getInstance(wrapper);
+            if (wrapperTooltip) {
+                wrapperTooltip.dispose();
+            }
+            // Sortir le bouton du wrapper
+            wrapper.parentNode.insertBefore(saveBtn, wrapper);
+            wrapper.remove();
+        }
+    } else {
+        saveBtn.disabled = true;
+        saveBtn.className = 'btn btn-secondary btn-sm fibrage-action-btn';
+        saveBtn.innerHTML = '<i class="bi bi-x-circle"></i> Save Poste';
+        
+        // Pour les boutons désactivés, on doit utiliser un conteneur parent
+        // Vérifier si on a déjà un wrapper
+        let wrapper = saveBtn.parentElement;
+        if (!wrapper || !wrapper.classList.contains('d-inline-block')) {
+            // Créer un wrapper si nécessaire
+            wrapper = document.createElement('span');
+            wrapper.className = 'd-inline-block';
+            wrapper.setAttribute('tabindex', '0');
+            wrapper.style.cursor = 'not-allowed';
+            saveBtn.parentNode.insertBefore(wrapper, saveBtn);
+            wrapper.appendChild(saveBtn);
+        }
+        
+        saveBtn.style.pointerEvents = 'none';
+        
+        // Ajouter l'infobulle sur le wrapper
+        wrapper.setAttribute('data-bs-toggle', 'tooltip');
+        wrapper.setAttribute('data-bs-placement', 'top');
+        wrapper.setAttribute('title', reasons.join(' • '));
+        
+        // Initialiser le tooltip sur le wrapper
+        new bootstrap.Tooltip(wrapper);
+    }
+    
+    return canSave;
+}
+
+// Ajouter les listeners pour mettre à jour l'ID quand les champs changent
+document.addEventListener('DOMContentLoaded', function() {
+    // Écouter les changements sur les champs qui affectent l'ID
+    ['id_operator', 'id_date', 'id_vacation'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('change', () => {
+                updateShiftIdDisplay();
+                checkSaveShiftButtonState();
+            });
+        }
+    });
+    
+    // Écouter les changements sur les heures
+    ['id_start_time', 'id_end_time'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('change', checkSaveShiftButtonState);
+        }
+    });
+    
+    // Écouter les changements sur les checkboxes et métrages
+    ['id_started_at_beginning', 'id_started_at_end'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('change', checkSaveShiftButtonState);
+        }
+    });
+    
+    ['id_meter_reading_start', 'id_meter_reading_end'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('input', checkSaveShiftButtonState);
+        }
+    });
+    
+    // Mettre à jour l'ID au chargement initial
+    setTimeout(() => {
+        updateShiftIdDisplay();
+        checkSaveShiftButtonState();
+    }, 200);
 });
 
 </script>

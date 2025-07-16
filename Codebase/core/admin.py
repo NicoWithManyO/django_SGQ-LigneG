@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Operator, FabricationOrder, Profile, Mode
+from .models import Operator, FabricationOrder, Profile, Mode, MoodCounter
 
 
 @admin.register(Operator)
@@ -112,3 +112,25 @@ class ModeAdmin(admin.ModelAdmin):
     )
     
     readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(MoodCounter)
+class MoodCounterAdmin(admin.ModelAdmin):
+    """Configuration admin pour le modèle MoodCounter."""
+    
+    list_display = ('mood_type', 'count')
+    readonly_fields = ('mood_type', 'count')
+    
+    def has_add_permission(self, request):
+        """Empêche l'ajout manuel."""
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        """Empêche la suppression."""
+        return False
+    
+    def changelist_view(self, request, extra_context=None):
+        """Ajoute les pourcentages au contexte."""
+        extra_context = extra_context or {}
+        extra_context['mood_percentages'] = MoodCounter.get_percentages()
+        return super().changelist_view(request, extra_context=extra_context)

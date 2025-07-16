@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Shift, CurrentProd, QualityControl, Roll, RollDefect, RollThickness, LostTimeEntry, MachineParameters
+from .models import Shift, QualityControl, Roll, RollDefect, RollThickness, LostTimeEntry, MachineParameters
+from core.admin_filters import RelatedCountedFilter, BooleanCountedFilter, ChoiceCountedFilter
 
 
 class LostTimeInline(admin.TabularInline):
@@ -14,12 +15,34 @@ class LostTimeInline(admin.TabularInline):
         return False
 
 
+# Filtre personnalisé pour vacation avec comptage
+class VacationCountedFilter(admin.SimpleListFilter):
+    title = 'vacation'
+    parameter_name = 'vacation'
+    
+    def lookups(self, request, model_admin):
+        queryset = model_admin.get_queryset(request)
+        choices = []
+        
+        for vacation, label in [('Matin', 'Matin'), ('ApresMidi', 'Après-midi'), ('Nuit', 'Nuit'), ('Journee', 'Journée')]:
+            count = queryset.filter(vacation=vacation).count()
+            if count > 0:
+                choices.append((vacation, f'{label} ({count})'))
+        
+        return choices
+    
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(vacation=self.value())
+        return queryset
+
+
 @admin.register(Shift)
 class ShiftAdmin(admin.ModelAdmin):
     """Configuration admin pour le modèle Shift."""
     
     list_display = ('shift_id', 'operator', 'date', 'vacation', 'total_length', 'ok_length')
-    list_filter = ('vacation', 'date', 'operator')
+    list_filter = (VacationCountedFilter, 'date', ('operator', RelatedCountedFilter))
     search_fields = ('shift_id', 'operator__first_name', 'operator__last_name', 'operator_comments')
     readonly_fields = ('shift_id', 'checklist_signed', 'checklist_signed_time', 'created_at', 'updated_at')
     inlines = [LostTimeInline]
@@ -72,44 +95,6 @@ class ShiftAdmin(admin.ModelAdmin):
         finally:
             # Reconnecter le signal
             signals.post_delete.connect(update_shift_lost_time, sender=LostTimeEntry)
-
-
-@admin.register(CurrentProd)
-class CurrentProdAdmin(admin.ModelAdmin):
-    """Configuration admin pour le modèle CurrentProd - LECTURE SEULE."""
-    
-    list_display = ('session_key', 'updated_at', 'has_data')
-    list_filter = ('created_at', 'updated_at')
-    search_fields = ('session_key',)
-    readonly_fields = ('session_key', 'created_at', 'updated_at', 'form_data')
-    
-    fieldsets = (
-        ('Session', {
-            'fields': ('session_key', 'created_at', 'updated_at')
-        }),
-        ('Données (Lecture seule)', {
-            'fields': ('form_data',),
-            'description': 'Données temporaires d\'auto-sauvegarde - Ne pas modifier manuellement'
-        }),
-    )
-    
-    def has_data(self, obj):
-        """Indique si l'objet contient des données."""
-        return bool(obj.form_data and len(obj.form_data) > 0)
-    has_data.boolean = True
-    has_data.short_description = "Contient des données"
-    
-    def has_add_permission(self, request):
-        """Empêcher la création manuelle."""
-        return False
-    
-    def has_change_permission(self, request, obj=None):
-        """Lecture seule - pas de modification."""
-        return True  # True pour voir, mais tous les champs sont readonly
-    
-    def has_delete_permission(self, request, obj=None):
-        """Autoriser la suppression pour nettoyer les sessions obsolètes."""
-        return True
 
 
 @admin.register(QualityControl)

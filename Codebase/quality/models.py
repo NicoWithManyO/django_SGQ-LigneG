@@ -118,13 +118,19 @@ class Specification(models.Model):
     
     def get_status(self, measured_value):
         """Retourne le statut d'une mesure."""
-        if self.value_min is not None and measured_value < self.value_min:
+        # Convertir la valeur mesurée en float pour la comparaison
+        try:
+            value = float(measured_value)
+        except (TypeError, ValueError):
+            return 'ok'
+            
+        if self.value_min is not None and value < float(self.value_min):
             return 'critical_low'
-        elif self.value_min_alert is not None and measured_value < self.value_min_alert:
+        elif self.value_min_alert is not None and value < float(self.value_min_alert):
             return 'warning_low'
-        elif self.value_max is not None and measured_value > self.value_max:
+        elif self.value_max is not None and value > float(self.value_max):
             return 'critical_high'
-        elif self.value_max_alert is not None and measured_value > self.value_max_alert:
+        elif self.value_max_alert is not None and value > float(self.value_max_alert):
             return 'warning_high'
         else:
             return 'ok'
