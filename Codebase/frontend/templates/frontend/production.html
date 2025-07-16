@@ -315,14 +315,19 @@
     transition: all 0.3s ease;
 }
 
-.cut-button:hover {
+.cut-button:hover:not(:disabled) {
     background-color: #fd7e14 !important;
     border: none !important;
     color: white !important;
 }
 
-.cut-button:hover i {
+.cut-button:hover:not(:disabled) i {
     color: white !important;
+}
+
+.cut-button:disabled {
+    opacity: 0.3 !important;
+    cursor: not-allowed !important;
 }
 
 /* Styles pour les boutons de la check-list */
@@ -5097,8 +5102,24 @@ function updateActionButton(status) {
         return;
     }
     
-    // Réactiver les boutons si on a les données
-    if (cutBtn) cutBtn.disabled = false;
+    // Gérer le bouton ciseaux selon le statut
+    if (cutBtn) {
+        if (status === 'NON_CONFORME') {
+            // Désactiver le bouton ciseaux pour les NON CONFORME
+            cutBtn.disabled = true;
+            cutBtn.style.opacity = '0.3';
+            cutBtn.style.cursor = 'not-allowed';
+            cutBtn.title = 'Rouleau déjà non conforme';
+        } else {
+            // Activer le bouton ciseaux pour les CONFORME
+            cutBtn.disabled = false;
+            cutBtn.style.opacity = '';
+            cutBtn.style.cursor = '';
+            cutBtn.title = 'Forcer vers la découpe';
+        }
+    }
+    
+    // Bouton déchet toujours disponible
     if (wasteBtn) wasteBtn.disabled = false;
     
     // Activer le bouton principal
@@ -5168,11 +5189,12 @@ function updateActionButton(status) {
         
         const totalRequiredThickness = (measurementRows * 6) + visibleRattrapageCount;
         
-        // Vérifier qu'on a TOUTES les épaisseurs (normales + rattrapages visibles)
-        if (filledThicknessCount < totalRequiredThickness) {
+        // Pour CONFORME uniquement : vérifier qu'on a TOUTES les épaisseurs
+        if (status === 'CONFORME' && filledThicknessCount < totalRequiredThickness) {
             canSave = false;
             reasons.push(`EP manquant ${filledThicknessCount}/${totalRequiredThickness}`);
         }
+        // Pour NON_CONFORME : pas besoin de toutes les épaisseurs
         
         // Vérifier la longueur
         const lengthValue = document.getElementById('sticky-roll-length')?.value;
