@@ -1,0 +1,259 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'management/css/checklists.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" x-data="checklistReview()" x-init="init()">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">{{ title }}</h1>
+            <p class="text-muted">Toutes les checklists des {{ days }} derniers jours</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group" role="group">
+                <a href="?days=1" class="btn btn-sm {% if days == 1 %}btn-primary{% else %}btn-outline-primary{% endif %}">Aujourd'hui</a>
+                <a href="?days=7" class="btn btn-sm {% if days == 7 %}btn-primary{% else %}btn-outline-primary{% endif %}">7 jours</a>
+                <a href="?days=30" class="btn btn-sm {% if days == 30 %}btn-primary{% else %}btn-outline-primary{% endif %}">30 jours</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">En attente</h5>
+                    <h2 class="text-danger" x-text="pendingCount">{{ pending_checklists|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Visées aujourd'hui</h5>
+                    <h2 class="text-success" x-text="signedToday">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Temps moyen signature</h5>
+                    <h2 class="text-info" x-text="avgSignatureTime">--</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Taux conformité</h5>
+                    <h2 class="text-primary" x-text="conformityRate + '%'">--</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des checklists -->
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Checklists à viser</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Poste</th>
+                                    <th>Date</th>
+                                    <th>Vacation</th>
+                                    <th>Opérateur</th>
+                                    <th>Signature Op.</th>
+                                    <th>Complétude</th>
+                                    <th>Non-conformités</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for checklist in pending_checklists %}
+                                <tr class="checklist-pending">
+                                    <td>
+                                        <a href="{% url 'management:checklist-detail' checklist.id %}" 
+                                           class="text-decoration-none fw-bold">
+                                            {{ checklist.shift.shift_id }}
+                                        </a>
+                                    </td>
+                                    <td>{{ checklist.shift.date|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ checklist.shift.vacation }}</span>
+                                    </td>
+                                    <td>{{ checklist.operator.first_name }} {{ checklist.operator.last_name }}</td>
+                                    <td>
+                                        <div class="small">
+                                            <div class="fw-bold">{{ checklist.operator_signature }}</div>
+                                            <div class="text-muted">{{ checklist.operator_signature_date|date:"H:i" }}</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-info" 
+                                                 style="width: 100%">
+                                                100%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger">0</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary"
+                                                @click="openVisaModal({{ checklist.id }}, '{{ checklist.shift.shift_id }}')">
+                                            <i class="bi bi-pencil-square me-1"></i>Viser
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        Aucune checklist en attente de validation
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checklists déjà visées -->
+    {% if signed_checklists %}
+    <div class="row mt-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Checklists visées ({{ signed_checklists|length }})</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Poste</th>
+                                    <th>Date</th>
+                                    <th>Vacation</th>
+                                    <th>Opérateur</th>
+                                    <th>Signature Op.</th>
+                                    <th>Visa Management</th>
+                                    <th>Non-conformités</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for checklist in signed_checklists %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'management:checklist-detail' checklist.id %}" 
+                                           class="text-decoration-none">
+                                            {{ checklist.shift.shift_id }}
+                                        </a>
+                                    </td>
+                                    <td>{{ checklist.shift.date|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ checklist.shift.vacation }}</span>
+                                    </td>
+                                    <td>{{ checklist.operator.first_name }} {{ checklist.operator.last_name }}</td>
+                                    <td>
+                                        <div class="small">
+                                            <div class="fw-bold">{{ checklist.operator_signature }}</div>
+                                            <div class="text-muted">{{ checklist.operator_signature_date|date:"H:i" }}</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="small">
+                                            <div class="fw-bold text-success">{{ checklist.management_visa }}</div>
+                                            <div class="text-muted">{{ checklist.management_visa_date|date:"d/m H:i" }}</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger">0</span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'management:checklist-detail' checklist.id %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i> Voir
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Modal de visa -->
+    <div class="modal fade" id="visaModal" tabindex="-1" x-ref="visaModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Viser la checklist</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Poste concerné</label>
+                        <input type="text" class="form-control-plaintext" :value="currentShiftId" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="visaInput" class="form-label">Vos initiales <span class="text-danger">*</span></label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="visaInput"
+                               x-model="visa"
+                               @keyup.enter="submitVisa()"
+                               placeholder="Ex: JD"
+                               maxlength="5"
+                               required>
+                        <div class="form-text">Minimum 2 caractères</div>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        En signant cette checklist, vous confirmez avoir vérifié tous les points de contrôle.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" 
+                            class="btn btn-primary" 
+                            @click="submitVisa()"
+                            :disabled="!visa || visa.length < 2 || isSubmitting">
+                        <span x-show="!isSubmitting">
+                            <i class="bi bi-check-lg me-2"></i>Valider
+                        </span>
+                        <span x-show="isSubmitting">
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                            Validation...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'management/js/checklist-review.js' %}"></script>
+{% endblock %}

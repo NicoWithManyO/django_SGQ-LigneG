@@ -1,0 +1,190 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'management/css/reports.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" x-data="shiftReports()" x-init="init()">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">{{ title }}</h1>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <form class="row g-3" @submit.prevent="applyFilters()">
+                        <div class="col-md-3">
+                            <label class="form-label">Date début</label>
+                            <input type="date" class="form-control" x-model="filters.dateFrom">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Date fin</label>
+                            <input type="date" class="form-control" x-model="filters.dateTo">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Opérateur</label>
+                            <select class="form-select" x-model="filters.operator">
+                                <option value="">Tous</option>
+                                <template x-for="operator in operators" :key="operator.id">
+                                    <option :value="operator.id" x-text="operator.full_name"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Vacation</label>
+                            <select class="form-select" x-model="filters.vacation">
+                                <option value="">Toutes</option>
+                                <option value="Matin">Matin</option>
+                                <option value="ApresMidi">Après-midi</option>
+                                <option value="Nuit">Nuit</option>
+                                <option value="Journee">Journée</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search me-2"></i>Filtrer
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary ms-2" @click="resetFilters()">
+                                <i class="bi bi-x-circle me-2"></i>Réinitialiser
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des rapports -->
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Rapports de poste</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary" @click="exportToExcel()">
+                            <i class="bi bi-file-earmark-excel me-2"></i>Exporter Excel
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID Poste</th>
+                                    <th>Date</th>
+                                    <th>Vacation</th>
+                                    <th>Opérateur</th>
+                                    <th>Production</th>
+                                    <th>TRS</th>
+                                    <th>Qualité</th>
+                                    <th>Checklist</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="shift in shifts" :key="shift.id">
+                                    <tr>
+                                        <td>
+                                            <a :href="`/management/reports/${shift.id}/`" 
+                                               class="text-decoration-none fw-bold"
+                                               x-text="shift.shift_id"></a>
+                                        </td>
+                                        <td x-text="formatDate(shift.date)"></td>
+                                        <td>
+                                            <span class="badge bg-secondary" x-text="shift.vacation"></span>
+                                        </td>
+                                        <td x-text="shift.operator?.full_name || 'N/A'"></td>
+                                        <td>
+                                            <div class="small">
+                                                <div x-text="formatNumber(shift.total_length) + ' m'"></div>
+                                                <div class="text-muted" x-text="shift.rolls_count + ' rouleaux'"></div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge" 
+                                                  :class="getTRSClass(shift.trs)"
+                                                  x-text="shift.trs ? shift.trs + '%' : 'N/A'"></span>
+                                        </td>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar bg-success" 
+                                                     :style="`width: ${getQualityRate(shift)}%`"
+                                                     x-text="getQualityRate(shift) + '%'"></div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <i class="bi fs-5"
+                                               :class="shift.has_checklist_visa ? 'bi-check-circle-fill text-success' : 'bi-exclamation-circle-fill text-warning'"
+                                               :title="shift.has_checklist_visa ? 'Checklist visée' : 'En attente de visa'"></i>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a :href="`/management/reports/${shift.id}/`" 
+                                                   class="btn btn-outline-primary"
+                                                   title="Voir le rapport">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <button class="btn btn-outline-secondary"
+                                                        @click="downloadPDF(shift.id)"
+                                                        title="Télécharger PDF">
+                                                    <i class="bi bi-file-pdf"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="loading">
+                                    <td colspan="9" class="text-center py-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Chargement...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr x-show="!loading && shifts.length === 0">
+                                    <td colspan="9" class="text-center text-muted py-4">
+                                        Aucun rapport trouvé
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav x-show="totalPages > 1" class="mt-3">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item" :class="{'disabled': currentPage === 1}">
+                                <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                            <template x-for="page in pageNumbers" :key="page">
+                                <li class="page-item" :class="{'active': page === currentPage}">
+                                    <a class="page-link" href="#" @click.prevent="changePage(page)" x-text="page"></a>
+                                </li>
+                            </template>
+                            <li class="page-item" :class="{'disabled': currentPage === totalPages}">
+                                <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'management/js/shift-reports.js' %}"></script>
+{% endblock %}

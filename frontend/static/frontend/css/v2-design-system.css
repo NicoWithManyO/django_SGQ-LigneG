@@ -1,0 +1,710 @@
+/* ===================================
+   SYSTÈME DE DESIGN V2 - SGQ LIGNE G
+   =================================== */
+
+/* Variables CSS - Modifier ici pour changer tout le design */
+:root {
+    /* === COULEURS DE FOND === */
+    --v2-body-bg: #9da1a8;  /* Fond gris du body */
+    --v2-block-bg: #f8f9fa; /* Fond des blocs/cards */
+    /* === COULEURS PRINCIPALES === */
+    --v2-primary: #0d6efd;
+    --v2-primary-dark: #0a58ca;
+    --v2-primary-light: #3d8bfd;
+    --v2-primary-bg: #cfe2ff;
+    
+    --v2-success: #198754;
+    --v2-success-dark: #146c43;
+    --v2-success-light: #20c997;
+    --v2-success-bg: #d1e7dd;
+    
+    --v2-danger: #dc3545;
+    --v2-danger-dark: #b02a37;
+    --v2-danger-light: #e35d6a;
+    --v2-danger-bg: #f8d7da;
+    
+    --v2-warning: #ffc107;
+    --v2-warning-dark: #cc9a06;
+    --v2-warning-light: #ffca2c;
+    --v2-warning-bg: #fff3cd;
+    
+    --v2-info: #0dcaf0;
+    --v2-info-dark: #0aa2c0;
+    --v2-info-light: #31d2f2;
+    --v2-info-bg: #cff4fc;
+    
+    /* === COULEURS NEUTRES === */
+    --v2-dark: #212529;
+    --v2-gray-900: #343a40;
+    --v2-gray-800: #495057;
+    --v2-gray-700: #6c757d;
+    --v2-gray-600: #adb5bd;
+    --v2-gray-500: #ced4da;
+    --v2-gray-400: #dee2e6;
+    --v2-gray-300: #e9ecef;
+    --v2-gray-200: #f8f9fa;
+    --v2-gray-100: #f8f9fa;
+    --v2-white: #ffffff;
+    
+    /* === COULEURS D'ÉTAT DES INPUTS === */
+    --v2-input-bg-waiting: #e3f2fd;  /* Bleu clair pour inputs en attente */
+    --v2-input-bg-filled: #e8f5e9;   /* Vert clair pour inputs remplis */
+    --v2-input-bg-error: #ffebee;    /* Rouge clair pour inputs en erreur */
+    --v2-input-bg-disabled: #f5f5f5; /* Gris clair pour inputs désactivés */
+    
+    --v2-input-border-waiting: #90caf9;
+    --v2-input-border-filled: #81c784;
+    --v2-input-border-error: #ef5350;
+    --v2-input-border-disabled: #bdbdbd;
+    --v2-input-border-focus: #e3f2fd;
+    
+    /* === ESPACEMENTS === */
+    --v2-spacing-xs: 0.25rem;
+    --v2-spacing-sm: 0.5rem;
+    --v2-spacing-md: 1rem;
+    --v2-spacing-lg: 1.5rem;
+    --v2-spacing-xl: 2rem;
+    --v2-spacing-xxl: 3rem;
+    
+    /* === TYPOGRAPHIE === */
+    --v2-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --v2-font-size-xs: 0.75rem;
+    --v2-font-size-sm: 0.875rem;
+    --v2-font-size-base: 1rem;
+    --v2-font-size-lg: 1.125rem;
+    --v2-font-size-xl: 1.25rem;
+    --v2-font-size-xxl: 1.5rem;
+    --v2-font-size-xxxl: 2rem;
+    
+    --v2-font-weight-light: 300;
+    --v2-font-weight-normal: 400;
+    --v2-font-weight-medium: 500;
+    --v2-font-weight-semibold: 600;
+    --v2-font-weight-bold: 700;
+    
+    --v2-line-height-tight: 1.25;
+    --v2-line-height-normal: 1.5;
+    --v2-line-height-relaxed: 1.75;
+    
+    /* === BORDURES & RADIUS === */
+    --v2-border-width: 1px;
+    --v2-border-width-thick: 2px;
+    --v2-border-color: var(--v2-gray-400);
+    
+    --v2-radius-sm: 0.25rem;
+    --v2-radius-md: 0.375rem;
+    --v2-radius-lg: 0.5rem;
+    --v2-radius-xl: 1rem;
+    --v2-radius-round: 50%;
+    --v2-radius-pill: 9999px;
+    
+    /* === OMBRES === */
+    --v2-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --v2-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --v2-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --v2-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --v2-shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+    --v2-shadow-focus: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    
+    /* === TRANSITIONS === */
+    --v2-transition-fast: 150ms ease-in-out;
+    --v2-transition-base: 200ms ease-in-out;
+    --v2-transition-slow: 300ms ease-in-out;
+    
+    /* === Z-INDEX === */
+    --v2-z-dropdown: 1000;
+    --v2-z-sticky: 1020;
+    --v2-z-fixed: 1030;
+    --v2-z-modal-backdrop: 1040;
+    --v2-z-modal: 1050;
+    --v2-z-popover: 1060;
+    --v2-z-tooltip: 1070;
+}
+
+/* === DARK MODE === */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --v2-input-bg-waiting: #1a237e;
+        --v2-input-bg-filled: #1b5e20;
+        --v2-input-bg-error: #b71c1c;
+        --v2-input-bg-disabled: #424242;
+    }
+}
+
+/* ===================================
+   COMPOSANTS DE BASE
+   =================================== */
+
+/* Reset de base */
+.v2-container * {
+    box-sizing: border-box;
+}
+
+/* Container principal */
+.v2-container {
+    font-family: var(--v2-font-family);
+    color: var(--v2-dark);
+    line-height: var(--v2-line-height-normal);
+}
+
+/* === CARDS / COMPOSANTS === */
+.v2-card {
+    background: var(--v2-block-bg);
+    border: var(--v2-border-width) solid var(--v2-border-color);
+    border-radius: var(--v2-radius-lg);
+    padding: 1rem; /* Taille Bootstrap standard */
+    margin-bottom: 1rem; /* Taille Bootstrap standard */
+    box-shadow: var(--v2-shadow-sm);
+    transition: box-shadow var(--v2-transition-fast);
+}
+
+.v2-card:hover {
+    box-shadow: var(--v2-shadow-md);
+}
+
+.v2-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0;
+    padding-bottom: 0.5rem; /* Taille Bootstrap standard */
+    border-bottom: var(--v2-border-width) solid var(--v2-gray-300);
+}
+
+.v2-card-body {
+    padding-top: 0.5rem; /* Taille Bootstrap standard */
+}
+
+.v2-card-title {
+    font-size: 1rem; /* Taille Bootstrap standard au lieu de 1.25rem */
+    font-weight: var(--v2-font-weight-semibold);
+    color: var(--v2-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--v2-spacing-sm);
+}
+
+.v2-card-title i {
+    font-size: 1rem; /* Même taille que le titre */
+}
+
+/* === FORMULAIRES === */
+.v2-form-group {
+    margin-bottom: var(--v2-spacing-md);
+}
+
+.v2-form-label {
+    display: block;
+    font-size: var(--v2-font-size-sm);
+    font-weight: var(--v2-font-weight-medium);
+    color: var(--v2-gray-700);
+    margin-bottom: var(--v2-spacing-xs);
+}
+
+/* Inputs avec états visuels */
+.v2-input {
+    background-color: var(--v2-input-bg-waiting) !important;
+    border: 1px solid #90caf9 !important;
+    color: #0d6efd !important;
+    transition: all var(--v2-transition-fast);
+}
+
+.v2-input:focus {
+    border: 1px solid #0d6efd !important;
+    box-shadow: var(--v2-shadow-focus) !important;
+    background-color: var(--v2-white) !important;
+    color: #0d6efd !important;
+}
+
+.v2-input-filled {
+    background-color: var(--v2-input-bg-waiting) !important;
+    border: 1px solid #90caf9 !important;
+    color: #0d6efd !important;
+}
+
+.v2-input.v2-input--error {
+    background-color: var(--v2-input-bg-error);
+    border-color: var(--v2-input-border-error);
+}
+
+.v2-input:disabled {
+    background-color: var(--v2-input-bg-disabled);
+    border-color: var(--v2-input-border-disabled);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Input verrouillé avec bouton édition */
+.v2-input-locked {
+    background-color: var(--v2-input-bg-waiting) !important;
+    border: 1px solid #90caf9 !important;
+    cursor: not-allowed;
+    color: #0d6efd !important;
+}
+
+.v2-input-locked:focus {
+    background-color: var(--v2-input-bg-waiting) !important;
+    border-color: var(--v2-input-border-waiting) !important;
+}
+
+/* Labels en gris pour tous les formulaires dans les cards V2 */
+.v2-card .form-label {
+    color: var(--v2-gray-600);
+    margin-bottom: 0.25rem; /* Réduit l'espace entre label et champ */
+}
+
+/* Bouton unlock sans bordure gauche */
+.btn-unlock {
+    border-left: none !important;
+    border-color: var(--v2-input-border-waiting) !important;
+    color: var(--v2-input-border-waiting) !important;
+}
+
+.btn-unlock:hover {
+    background-color: var(--v2-input-bg-waiting) !important;
+    border-color: var(--v2-input-border-waiting) !important;
+    color: #0d6efd !important;
+}
+
+/* Select */
+.v2-select {
+    width: 100%;
+    padding: var(--v2-spacing-sm) var(--v2-spacing-md);
+    font-size: var(--v2-font-size-base);
+    font-family: var(--v2-font-family);
+    border: 1px solid #90caf9;
+    border-radius: var(--v2-radius-md);
+    background-color: var(--v2-input-bg-waiting);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right var(--v2-spacing-sm) center;
+    background-size: 16px 12px;
+    appearance: none;
+    transition: all var(--v2-transition-fast);
+    cursor: pointer;
+}
+
+.v2-select:focus {
+    border: 1px solid #0d6efd;
+    box-shadow: var(--v2-shadow-focus);
+    background-color: var(--v2-white);
+}
+
+.v2-select:not([value=""]):not([value="0"]) {
+    background-color: var(--v2-input-bg-filled);
+    border: 1px solid #90caf9;
+}
+
+/* Textarea */
+.v2-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: var(--v2-spacing-sm) var(--v2-spacing-md);
+    font-size: var(--v2-font-size-base);
+    font-family: var(--v2-font-family);
+    border: var(--v2-border-width) solid var(--v2-input-border-waiting);
+    border-radius: var(--v2-radius-md);
+    background-color: var(--v2-input-bg-waiting);
+    resize: vertical;
+    transition: all var(--v2-transition-fast);
+}
+
+/* Checkbox & Radio */
+.v2-checkbox,
+.v2-radio {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--v2-spacing-sm);
+    cursor: pointer;
+}
+
+.v2-checkbox input[type="checkbox"],
+.v2-radio input[type="radio"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+}
+
+/* === BOUTONS === */
+.v2-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--v2-spacing-xs);
+    padding: var(--v2-spacing-sm) var(--v2-spacing-lg);
+    font-size: var(--v2-font-size-base);
+    font-weight: var(--v2-font-weight-medium);
+    font-family: var(--v2-font-family);
+    border: var(--v2-border-width) solid transparent;
+    border-radius: var(--v2-radius-md);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all var(--v2-transition-fast);
+    outline: none;
+}
+
+.v2-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--v2-shadow-md);
+}
+
+.v2-btn:active {
+    transform: translateY(0);
+}
+
+.v2-btn:focus {
+    box-shadow: var(--v2-shadow-focus);
+}
+
+/* Variantes de boutons */
+.v2-btn-primary {
+    background-color: var(--v2-primary);
+    color: var(--v2-white);
+    border-color: var(--v2-primary);
+}
+
+.v2-btn-primary:hover {
+    background-color: var(--v2-primary-dark);
+    border-color: var(--v2-primary-dark);
+}
+
+.v2-btn-success {
+    background-color: var(--v2-success);
+    color: var(--v2-white);
+    border-color: var(--v2-success);
+}
+
+.v2-btn-success:hover {
+    background-color: var(--v2-success-dark);
+    border-color: var(--v2-success-dark);
+}
+
+.v2-btn-danger {
+    background-color: var(--v2-danger);
+    color: var(--v2-white);
+    border-color: var(--v2-danger);
+}
+
+.v2-btn-danger:hover {
+    background-color: var(--v2-danger-dark);
+    border-color: var(--v2-danger-dark);
+}
+
+.v2-btn-outline {
+    background-color: transparent;
+    color: var(--v2-primary);
+    border-color: var(--v2-primary);
+}
+
+.v2-btn-outline:hover {
+    background-color: var(--v2-primary);
+    color: var(--v2-white);
+}
+
+/* === BADGES === */
+.v2-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--v2-spacing-xs) var(--v2-spacing-sm);
+    font-size: var(--v2-font-size-xs);
+    font-weight: var(--v2-font-weight-semibold);
+    border-radius: var(--v2-radius-pill);
+    white-space: nowrap;
+}
+
+.v2-badge-primary {
+    background-color: var(--v2-primary-bg);
+    color: var(--v2-primary-dark);
+}
+
+.v2-badge-success {
+    background-color: var(--v2-success-bg);
+    color: var(--v2-success-dark);
+}
+
+.v2-badge-danger {
+    background-color: var(--v2-danger-bg);
+    color: var(--v2-danger-dark);
+}
+
+.v2-badge-warning {
+    background-color: var(--v2-warning-bg);
+    color: var(--v2-warning-dark);
+}
+
+/* === ALERTS === */
+.v2-alert {
+    padding: var(--v2-spacing-md);
+    border-radius: var(--v2-radius-md);
+    border: var(--v2-border-width) solid;
+    margin-bottom: var(--v2-spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--v2-spacing-sm);
+}
+
+.v2-alert-info {
+    background-color: var(--v2-info-bg);
+    border-color: var(--v2-info);
+    color: var(--v2-info-dark);
+}
+
+.v2-alert-success {
+    background-color: var(--v2-success-bg);
+    border-color: var(--v2-success);
+    color: var(--v2-success-dark);
+}
+
+.v2-alert-warning {
+    background-color: var(--v2-warning-bg);
+    border-color: var(--v2-warning);
+    color: var(--v2-warning-dark);
+}
+
+.v2-alert-danger {
+    background-color: var(--v2-danger-bg);
+    border-color: var(--v2-danger);
+    color: var(--v2-danger-dark);
+}
+
+/* === GRILLES === */
+.v2-grid {
+    display: grid;
+    gap: var(--v2-spacing-md);
+}
+
+.v2-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.v2-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.v2-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 768px) {
+    .v2-grid-2,
+    .v2-grid-3,
+    .v2-grid-4 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* === LOADING === */
+.v2-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--v2-spacing-md);
+    padding: var(--v2-spacing-xl);
+    color: var(--v2-gray-600);
+}
+
+.v2-spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid var(--v2-gray-300);
+    border-top-color: var(--v2-primary);
+    border-radius: var(--v2-radius-round);
+    animation: v2-spin 1s linear infinite;
+}
+
+@keyframes v2-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* === UTILITIES === */
+.v2-text-center { text-align: center; }
+.v2-text-left { text-align: left; }
+.v2-text-right { text-align: right; }
+
+.v2-mt-sm { margin-top: var(--v2-spacing-sm); }
+.v2-mt-md { margin-top: var(--v2-spacing-md); }
+.v2-mt-lg { margin-top: var(--v2-spacing-lg); }
+
+.v2-mb-sm { margin-bottom: var(--v2-spacing-sm); }
+.v2-mb-md { margin-bottom: var(--v2-spacing-md); }
+.v2-mb-lg { margin-bottom: var(--v2-spacing-lg); }
+
+.v2-hidden { display: none !important; }
+.v2-visible { display: block !important; }
+
+/* ==============================
+   COMPOSANT PROFIL V2
+   ============================== */
+.v2-profile-selector {
+    padding: 0;
+}
+
+
+.v2-profile-details {
+    margin-top: 1.5rem;
+}
+
+/* Sections du profil */
+.v2-section {
+    margin-bottom: 1.5rem;
+}
+
+.v2-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--v2-gray-800);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--v2-primary);
+}
+
+/* Grille d'informations */
+.v2-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.v2-info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.v2-info-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.v2-info-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--v2-gray-700);
+    margin-bottom: 0.25rem;
+}
+
+.v2-info-value {
+    font-size: 1rem;
+    color: var(--v2-dark);
+}
+
+/* Grille des spécifications */
+.v2-specs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.v2-spec-item {
+    background: var(--v2-gray-100);
+    padding: 0.75rem;
+    border-radius: var(--v2-radius);
+    border: 1px solid var(--v2-gray-300);
+}
+
+.v2-spec-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--v2-gray-700);
+    margin-bottom: 0.25rem;
+}
+
+.v2-spec-values {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.v2-spec-alert-min,
+.v2-spec-alert-max {
+    color: var(--v2-danger);
+    font-weight: 600;
+}
+
+.v2-spec-min,
+.v2-spec-max {
+    color: var(--v2-warning);
+    font-weight: 600;
+}
+
+.v2-spec-nominal {
+    color: var(--v2-success);
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.v2-spec-unit {
+    color: var(--v2-gray-700);
+    font-size: 0.75rem;
+}
+
+/* Grille des paramètres */
+.v2-params-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+}
+
+.v2-param-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.v2-param-label {
+    font-size: 0.875rem;
+    color: var(--v2-gray-700);
+}
+
+.v2-param-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--v2-dark);
+}
+
+/* Grille des modes */
+.v2-modes-grid {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-around;
+    flex-wrap: wrap;
+}
+
+.v2-mode-item {
+    background: var(--v2-gray-100);
+    padding: 1rem;
+    border-radius: var(--v2-radius);
+    border: 1px solid var(--v2-gray-300);
+    transition: all 0.2s ease;
+}
+
+.v2-mode-item:hover {
+    border-color: var(--v2-primary);
+    background: var(--v2-white);
+}
+
+.v2-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--v2-dark);
+}
+
+.v2-checkbox {
+    width: 1.2rem;
+    height: 1.2rem;
+    cursor: pointer;
+}
+
+.v2-mode-description {
+    display: block;
+    margin-top: 0.5rem;
+    margin-left: 1.7rem;
+    font-size: 0.875rem;
+    color: var(--v2-gray-700);
+    line-height: 1.4;
+}

@@ -1,0 +1,437 @@
+[
+{
+  "model": "catalog.profiletemplate",
+  "pk": 1,
+  "fields": {
+    "name": "std 80gr/m²",
+    "description": "",
+    "is_active": true,
+    "is_default": true,
+    "belt_speed_m_per_minute": "0.29",
+    "oee_target": "85.00",
+    "created_at": "2025-07-16T23:07:56.844Z",
+    "updated_at": "2025-07-25T20:49:23.053Z"
+  }
+},
+{
+  "model": "catalog.profiletemplate",
+  "pk": 3,
+  "fields": {
+    "name": "40gr/m²",
+    "description": "",
+    "is_active": true,
+    "is_default": false,
+    "belt_speed_m_per_minute": "0.58",
+    "oee_target": "85.00",
+    "created_at": "2025-07-17T19:31:20.008Z",
+    "updated_at": "2025-07-25T20:49:20.770Z"
+  }
+},
+{
+  "model": "catalog.profiletemplate",
+  "pk": 4,
+  "fields": {
+    "name": "temp",
+    "description": "",
+    "is_active": true,
+    "is_default": false,
+    "belt_speed_m_per_minute": "1.67",
+    "oee_target": "85.00",
+    "created_at": "2025-07-17T19:39:39.096Z",
+    "updated_at": "2025-07-23T18:54:13.460Z"
+  }
+},
+{
+  "model": "catalog.specitem",
+  "pk": 1,
+  "fields": {
+    "name": "Micronaire",
+    "display_name": "Micronaire",
+    "unit": "mlAir/min",
+    "description": "",
+    "order": 0,
+    "is_active": true,
+    "created_at": "2025-07-16T23:05:29.338Z",
+    "updated_at": "2025-07-17T15:03:58.202Z"
+  }
+},
+{
+  "model": "catalog.specitem",
+  "pk": 2,
+  "fields": {
+    "name": "Épaisseur",
+    "display_name": "Épaisseur",
+    "unit": "mm",
+    "description": "",
+    "order": 0,
+    "is_active": true,
+    "created_at": "2025-07-17T15:03:47.700Z",
+    "updated_at": "2025-07-17T15:03:47.700Z"
+  }
+},
+{
+  "model": "catalog.specitem",
+  "pk": 3,
+  "fields": {
+    "name": "Masse Surfacique",
+    "display_name": "Masse Surfacique",
+    "unit": "g/25cm²",
+    "description": "",
+    "order": 0,
+    "is_active": true,
+    "created_at": "2025-07-17T15:09:13.903Z",
+    "updated_at": "2025-07-17T15:09:13.903Z"
+  }
+},
+{
+  "model": "catalog.specitem",
+  "pk": 4,
+  "fields": {
+    "name": "Masse Surfacique Globale",
+    "display_name": "Masse Surfacique Globale",
+    "unit": "g/m2",
+    "description": "",
+    "order": 0,
+    "is_active": true,
+    "created_at": "2025-07-17T15:09:36.714Z",
+    "updated_at": "2025-07-17T15:09:36.714Z"
+  }
+},
+{
+  "model": "catalog.specitem",
+  "pk": 5,
+  "fields": {
+    "name": "Extrait Sec",
+    "display_name": "Extrait Sec",
+    "unit": "%",
+    "description": "",
+    "order": 0,
+    "is_active": true,
+    "created_at": "2025-07-17T15:09:56.481Z",
+    "updated_at": "2025-07-17T15:09:56.481Z"
+  }
+},
+{
+  "model": "catalog.paramitem",
+  "pk": 1,
+  "fields": {
+    "name": "Vitesse Tapis",
+    "display_name": "Vitesse Tapis m/h",
+    "category": "ensimeuse",
+    "unit": "m/h",
+    "description": "",
+    "default_value": "0.00",
+    "order": 0,
+    "is_active": true,
+    "created_at": "2025-07-16T23:04:14.232Z",
+    "updated_at": "2025-07-16T23:04:14.232Z"
+  }
+},
+{
+  "model": "catalog.paramitem",
+  "pk": 2,
+  "fields": {
+    "name": "Propane Primaire",
+    "display_name": "Propane Primaire",
+    "category": "fibrage",
+    "unit": "",
+    "description": "",
+    "default_value": "0.00",
+    "order": 0,
+    "is_active": true,
+    "created_at": "2025-07-17T15:14:54.667Z",
+    "updated_at": "2025-07-17T15:15:19.032Z"
+  }
+},
+{
+  "model": "catalog.paramitem",
+  "pk": 3,
+  "fields": {
+    "name": "Propane Secondaire",
+    "display_name": "Propane Secondaire",
+    "category": "fibrage",
+    "unit": "",
+    "description": "",
+    "default_value": "0.00",
+    "order": 0,
+    "is_active": true,
+    "created_at": "2025-07-17T15:15:30.747Z",
+    "updated_at": "2025-07-17T15:15:30.747Z"
+  }
+},
+{
+  "model": "catalog.paramitem",
+  "pk": 4,
+  "fields": {
+    "name": "Oxygène Primaire",
+    "display_name": "Oxygène Primaire",
+    "category": "fibrage",
+    "unit": "",
+    "description": "",
+    "default_value": "0.00",
+    "order": 0,
+    "is_active": true,
+    "created_at": "2025-07-17T15:15:42.764Z",
+    "updated_at": "2025-07-17T15:15:42.764Z"
+  }
+},
+{
+  "model": "catalog.paramitem",
+  "pk": 5,
+  "fields": {
+    "name": "Oxygène Secondaire",
+    "display_name": "Oxygène Secondaire",
+    "category": "fibrage",
+    "unit": "",
+    "description": "",
+    "default_value": "0.00",
+    "order": 0,
+    "is_active": true,
+    "created_at": "2025-07-17T15:15:59.128Z",
+    "updated_at": "2025-07-17T15:15:59.128Z"
+  }
+},
+{
+  "model": "catalog.paramitem",
+  "pk": 6,
+  "fields": {
+    "name": "Vitesse Rouleaux Primaire",
+    "display_name": "Vitesse Primaire",
+    "category": "fibrage",
+    "unit": "m/h",
+    "description": "",
+    "default_value": "0.00",
+    "order": 0,
+    "is_active": true,
+    "created_at": "2025-07-17T15:16:24.499Z",
+    "updated_at": "2025-07-17T15:17:21.929Z"
+  }
+},
+{
+  "model": "catalog.paramitem",
+  "pk": 7,
+  "fields": {
+    "name": "Vitesse Rouleaux Secondaire",
+    "display_name": "Vitesse Secondaire",
+    "category": "fibrage",
+    "unit": "m/h",
+    "description": "",
+    "default_value": "0.00",
+    "order": 0,
+    "is_active": true,
+    "created_at": "2025-07-17T15:16:36.552Z",
+    "updated_at": "2025-07-17T15:17:26.313Z"
+  }
+},
+{
+  "model": "catalog.paramitem",
+  "pk": 9,
+  "fields": {
+    "name": "Vitesse Convoyeur",
+    "display_name": "Vitesse Convoyeur",
+    "category": "ensimeuse",
+    "unit": "m/h",
+    "description": "",
+    "default_value": "0.00",
+    "order": 0,
+    "is_active": true,
+    "created_at": "2025-07-19T19:51:56.078Z",
+    "updated_at": "2025-07-19T19:52:02.089Z"
+  }
+},
+{
+  "model": "catalog.qualitydefecttype",
+  "pk": 1,
+  "fields": {
+    "name": "Trou",
+    "description": "",
+    "severity": "blocking",
+    "threshold_value": null,
+    "is_active": true,
+    "created_at": "2025-07-16T22:08:23.919Z",
+    "updated_at": "2025-07-16T22:08:23.919Z"
+  }
+},
+{
+  "model": "catalog.qualitydefecttype",
+  "pk": 2,
+  "fields": {
+    "name": "Insectes",
+    "description": "",
+    "severity": "blocking",
+    "threshold_value": null,
+    "is_active": true,
+    "created_at": "2025-07-17T15:07:41.369Z",
+    "updated_at": "2025-07-17T15:07:41.369Z"
+  }
+},
+{
+  "model": "catalog.qualitydefecttype",
+  "pk": 3,
+  "fields": {
+    "name": "Marque Tapis",
+    "description": "",
+    "severity": "blocking",
+    "threshold_value": null,
+    "is_active": true,
+    "created_at": "2025-07-17T15:07:55.318Z",
+    "updated_at": "2025-07-17T15:07:55.318Z"
+  }
+},
+{
+  "model": "catalog.qualitydefecttype",
+  "pk": 4,
+  "fields": {
+    "name": "Infibré",
+    "description": "",
+    "severity": "threshold",
+    "threshold_value": 3,
+    "is_active": true,
+    "created_at": "2025-07-17T15:08:17.069Z",
+    "updated_at": "2025-07-19T19:34:22.342Z"
+  }
+},
+{
+  "model": "catalog.qualitydefecttype",
+  "pk": 5,
+  "fields": {
+    "name": "Autre",
+    "description": "",
+    "severity": "non_blocking",
+    "threshold_value": null,
+    "is_active": true,
+    "created_at": "2025-07-17T15:08:33.587Z",
+    "updated_at": "2025-07-17T15:08:33.587Z"
+  }
+},
+{
+  "model": "catalog.qualitydefecttype",
+  "pk": 6,
+  "fields": {
+    "name": "Shot",
+    "description": "",
+    "severity": "threshold",
+    "threshold_value": 3,
+    "is_active": true,
+    "created_at": "2025-07-19T20:15:02.285Z",
+    "updated_at": "2025-07-19T20:15:02.285Z"
+  }
+},
+{
+  "model": "catalog.qualitydefecttype",
+  "pk": 7,
+  "fields": {
+    "name": "Epaisseurs",
+    "description": "",
+    "severity": "threshold",
+    "threshold_value": 3,
+    "is_active": true,
+    "created_at": "2025-07-19T22:53:15.565Z",
+    "updated_at": "2025-07-19T22:53:15.565Z"
+  }
+},
+{
+  "model": "planification.operator",
+  "pk": 1,
+  "fields": {
+    "first_name": "Nicolas",
+    "last_name": "Boulais",
+    "employee_id": "NicolasBOULAIS",
+    "training_completed": true,
+    "is_active": true,
+    "created_at": "2025-07-16T21:05:39.117Z",
+    "updated_at": "2025-07-16T21:05:49.608Z"
+  }
+},
+{
+  "model": "planification.operator",
+  "pk": 2,
+  "fields": {
+    "first_name": "Thomas",
+    "last_name": "Nau",
+    "employee_id": "ThomasNAU",
+    "training_completed": true,
+    "is_active": true,
+    "created_at": "2025-07-16T21:05:46.406Z",
+    "updated_at": "2025-07-16T21:05:46.406Z"
+  }
+},
+{
+  "model": "planification.operator",
+  "pk": 3,
+  "fields": {
+    "first_name": "Houy",
+    "last_name": "David",
+    "employee_id": "HouyDAVID",
+    "training_completed": true,
+    "is_active": true,
+    "created_at": "2025-07-16T21:06:08.024Z",
+    "updated_at": "2025-07-16T21:06:08.024Z"
+  }
+},
+{
+  "model": "planification.operator",
+  "pk": 4,
+  "fields": {
+    "first_name": "Jonathan",
+    "last_name": "Nestoret",
+    "employee_id": "JonathanNESTORET",
+    "training_completed": false,
+    "is_active": true,
+    "created_at": "2025-07-16T21:12:07.372Z",
+    "updated_at": "2025-07-23T19:16:45.201Z"
+  }
+},
+{
+  "model": "planification.operator",
+  "pk": 5,
+  "fields": {
+    "first_name": "Morgan",
+    "last_name": "Houy",
+    "employee_id": "MorganHOUY",
+    "training_completed": true,
+    "is_active": true,
+    "created_at": "2025-07-23T19:17:01.497Z",
+    "updated_at": "2025-07-23T19:17:01.497Z"
+  }
+},
+{
+  "model": "planification.operator",
+  "pk": 6,
+  "fields": {
+    "first_name": "Jerry",
+    "last_name": "Babet",
+    "employee_id": "JerryBABET",
+    "training_completed": false,
+    "is_active": true,
+    "created_at": "2025-07-23T19:17:06.916Z",
+    "updated_at": "2025-07-23T19:17:06.916Z"
+  }
+},
+{
+  "model": "planification.operator",
+  "pk": 7,
+  "fields": {
+    "first_name": "Nicolas",
+    "last_name": "Fougerard",
+    "employee_id": "NicolasFOUGERARD",
+    "training_completed": false,
+    "is_active": true,
+    "created_at": "2025-07-23T19:17:13.944Z",
+    "updated_at": "2025-07-23T19:17:18.596Z"
+  }
+},
+{
+  "model": "planification.operator",
+  "pk": 8,
+  "fields": {
+    "first_name": "Demba",
+    "last_name": "Haïdara",
+    "employee_id": "DembaHAÏDARA",
+    "training_completed": false,
+    "is_active": true,
+    "created_at": "2025-07-23T19:17:27.704Z",
+    "updated_at": "2025-07-23T19:17:27.704Z"
+  }
+}
+]

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SGQ Ligne G V3{% endblock %}</title>
+    
+    {% load static %}
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.0/dist/cdn.min.js"></script>
+    
+    <!-- CSS V3 -->
+    <link rel="stylesheet" href="{% static 'frontendv3/css/main.css' %}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body style="background-color: #9da1a8;">
+    
+    {% block content %}{% endblock %}
+    
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Données de session -->
+    <script>
+        window.sessionData = {{ session_data|safe|default:'{}' }};
+        window.csrfToken = '{{ csrf_token }}';
+    </script>
+    
+    <!-- JavaScript V3 -->
+    <script src="{% static 'frontendv3/js/utils/session.js' %}"></script>
+    <script src="{% static 'frontendv3/js/main.js' %}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

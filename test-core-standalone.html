@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Core System Standalone - SGQ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; }
+        .console { 
+            background: #000; 
+            color: #0f0; 
+            padding: 10px; 
+            font-family: monospace; 
+            height: 300px; 
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        .test-pass { color: #28a745; }
+        .test-fail { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>Test Core System - Mode Standalone</h1>
+    
+    <div class="alert alert-info">
+        Cette page teste le nouveau système core SANS Django. Ouvrir dans le navigateur directement.
+    </div>
+    
+    <button class="btn btn-primary" onclick="runTests()">Lancer les tests</button>
+    <button class="btn btn-secondary" onclick="location.reload()">Recharger</button>
+    
+    <div class="console" id="console">Console ready...<br></div>
+    
+    <div id="results"></div>
+
+    <script>
+        // Console personnalisée
+        function log(msg, type = 'info') {
+            const console = document.getElementById('console');
+            const time = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#f00' : type === 'success' ? '#0f0' : '#fff';
+            console.innerHTML += `<span style="color:${color}">[${time}] ${msg}</span><br>`;
+            console.scrollTop = console.scrollHeight;
+        }
+
+        // Mock de l'API
+        window.api = {
+            saveToSession: async (data) => {
+                log('API Mock: saveToSession ' + JSON.stringify(data));
+                return { success: true };
+            },
+            get: async (url) => {
+                log('API Mock: GET ' + url);
+                return { exists: false };
+            },
+            post: async (url, data) => {
+                log('API Mock: POST ' + url);
+                return { id: Date.now() };
+            }
+        };
+
+        // Charger les modules
+        async function loadModules() {
+            log('Chargement des modules...');
+            
+            const modules = [
+                'state-manager.js',
+                'command-bus.js', 
+                'sync-engine.js',
+                'validation-engine.js',
+                'event-bus.js'
+            ];
+
+            for (const module of modules) {
+                try {
+                    const script = document.createElement('script');
+                    script.src = `frontend/static/frontend/js/core/${module}`;
+                    document.head.appendChild(script);
+                    await new Promise(resolve => script.onload = resolve);
+                    log(`✓ ${module} chargé`, 'success');
+                } catch (e) {
+                    log(`✗ Erreur chargement ${module}: ${e.message}`, 'error');
+                }
+            }
+        }
+
+        // Tests
+        async function runTests() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h3>Résultats des tests</h3>';
+            
+            // Test 1: Modules chargés
+            const moduleTest = () => {
+                return window.stateManager && 
+                       window.commandBus && 
+                       window.syncEngine &&
+                       window.validationEngine && 
+                       window.eventBus;
+            };
+            
+            addTestResult('Tous les modules chargés', moduleTest());
+            
+            // Test 2: StateManager
+            try {
+                window.stateManager.setState('test.value', 123);
+                const value = window.stateManager.getState('test.value');
+                addTestResult('StateManager set/get', value === 123);
+            } catch (e) {
+                addTestResult('StateManager set/get', false, e.message);
+            }
+            
+            // Test 3: Subscribe
+            try {
+                let received = null;
+                const unsub = window.stateManager.subscribe('test.sub', (val) => {
+                    received = val;
+                });
+                window.stateManager.setState('test.sub', 'OK');
+                unsub();
+                addTestResult('StateManager subscribe', received === 'OK');
+            } catch (e) {
+                addTestResult('StateManager subscribe', false, e.message);
+            }
+            
+            // Test 4: CommandBus
+            try {
+                window.commandBus.register('TEST_CMD', 
+                    (payload) => ({ result: payload.value * 2 })
+                );
+                const result = await window.commandBus.execute('TEST_CMD', { value: 21 });
+                addTestResult('CommandBus execute', result.result === 42);
+            } catch (e) {
+                addTestResult('CommandBus execute', false, e.message);
+            }
+            
+            // Test 5: ValidationEngine
+            try {
+                window.validationEngine.defineRules('test.field', [
+                    { type: 'required' },
+                    { type: 'numeric' }
+                ]);
+                
+                const v1 = window.validationEngine.validate('test.field', '');
+                const v2 = window.validationEngine.validate('test.field', '42');
+                
+                addTestResult('ValidationEngine', !v1.valid && v2.valid);
+            } catch (e) {
+                addTestResult('ValidationEngine', false, e.message);
+            }
+            
+            // Test 6: EventBus
+            try {
+                let eventReceived = false;
+                const unsub = window.eventBus.on('test:event', () => {
+                    eventReceived = true;
+                });
+                window.eventBus.emit('test:event', {});
+                unsub();
+                addTestResult('EventBus emit/on', eventReceived);
+            } catch (e) {
+                addTestResult('EventBus emit/on', false, e.message);
+            }
+            
+            // Test 7: SyncEngine
+            try {
+                window.syncEngine.sync('test.sync', 'value');
+                const state = window.syncEngine.getSyncState();
+                addTestResult('SyncEngine', state.pending >= 0);
+            } catch (e) {
+                addTestResult('SyncEngine', false, e.message);
+            }
+            
+            // Test d'intégration
+            try {
+                // Commande qui change l'état et émet un event
+                window.commandBus.register('INTEGRATION_TEST',
+                    (payload, state) => {
+                        state.setState('integration.value', payload.value);
+                        return { success: true };
+                    },
+                    null,
+                    [
+                        (result) => {
+                            window.eventBus.emit('integration:done', result);
+                        }
+                    ]
+                );
+                
+                let eventFired = false;
+                window.eventBus.once('integration:done', () => {
+                    eventFired = true;
+                });
+                
+                await window.commandBus.execute('INTEGRATION_TEST', { value: 'TEST' });
+                
+                const stateValue = window.stateManager.getState('integration.value');
+                addTestResult('Test intégration complète', 
+                    stateValue === 'TEST' && eventFired
+                );
+            } catch (e) {
+                addTestResult('Test intégration', false, e.message);
+            }
+        }
+        
+        function addTestResult(name, passed, error) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = 'p-2 m-1 border rounded';
+            
+            if (passed) {
+                div.innerHTML = `<span class="test-pass">✓ ${name}</span>`;
+                log(`✓ Test réussi: ${name}`, 'success');
+            } else {
+                div.innerHTML = `<span class="test-fail">✗ ${name}</span>`;
+                if (error) div.innerHTML += `<br><small>${error}</small>`;
+                log(`✗ Test échoué: ${name} ${error || ''}`, 'error');
+            }
+            
+            results.appendChild(div);
+        }
+        
+        // Charger au démarrage
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadModules();
+            log('Système prêt pour les tests', 'success');
+        });
+    </script>
+</body>
+</html>
