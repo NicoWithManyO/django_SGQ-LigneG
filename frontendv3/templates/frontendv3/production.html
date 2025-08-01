@@ -193,7 +193,6 @@
                         <!-- Commentaires -->
                         <div class="row">
                             <div class="col-12">
-                                <label class="form-label">Commentaires opérateur</label>
                                 <textarea class="form-control mx-auto" 
                                           style="width: 90%;"
                                           rows="3"
@@ -836,52 +835,58 @@
 <div class="sticky-bar" x-data="stickyBar()">
     <div class="container-fluid">
         <div class="row align-items-center">
-            <!-- Logo -->
+            <!-- Colonne gauche : Logo -->
             <div class="col-auto">
                 <img src="{% static 'frontendv3/img/logo-white-text.svg' %}" alt="SGQ" height="40">
             </div>
             
-            <!-- Date/Heure -->
-            <div class="col-auto">
-                <div class="text-white">
-                    <i class="bi bi-clock"></i>
-                    <span x-text="currentDateTime"></span>
-                </div>
-            </div>
-            
-            <!-- ID Rouleau -->
-            <div class="col-auto">
-                <div class="d-flex align-items-center gap-2">
-                    <label class="text-white mb-0">Rouleau:</label>
-                    <input type="text" 
-                           class="form-control form-control-sm" 
-                           x-model="rollId"
-                           readonly
-                           style="width: 150px;">
-                </div>
-            </div>
-            
-            <!-- Statut OF -->
+            <!-- Colonne centrale : Champs et texte -->
             <div class="col text-center">
-                <div class="text-white">
-                    <strong>OF: </strong>
-                    <span x-text="ofStatus"></span>
+                <div class="row justify-content-center">
+                    <div class="col-auto">
+                        <div class="text-white-50 small text-start">N° rouleau</div>
+                        <input type="text" class="form-control form-control-sm" style="width: 100px;" x-model="rollNumber" @focus="$event.target.select()" @keypress="$event.key !== 'e' && !isNaN($event.key) || $event.preventDefault()">
+                    </div>
+                    <div class="col-auto">
+                        <div class="text-white-50 small text-start">ID rouleau</div>
+                        <div class="form-control form-control-sm text-white fw-bold text-start" style="background: transparent; border: 1px solid transparent; cursor: default;">3249_001</div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="text-white-50 small text-start">Masse tube (g)</div>
+                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" @focus="$event.target.select()" @keypress="$event.key !== 'e' && !isNaN($event.key) || $event.preventDefault()">
+                    </div>
+                    <div class="col-auto">
+                        <div class="text-white-50 small text-start">Longueur (m)</div>
+                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" @focus="$event.target.select()" @keypress="$event.key !== 'e' && !isNaN($event.key) || $event.preventDefault()">
+                    </div>
+                    <div class="col-auto">
+                        <div class="text-white-50 small text-start">Masse totale (g)</div>
+                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" @focus="$event.target.select()" @keypress="$event.key !== 'e' && !isNaN($event.key) || $event.preventDefault()">
+                    </div>
+                    <div class="col-auto">
+                        <div class="text-white-50 small text-start">-- g</div>
+                        <div class="text-white fw-bold">-- g/m²</div>
+                    </div>
+                    <div class="col-auto d-flex align-items-center mx-3">
+                        <button class="btn btn-success px-3 py-1">
+                            <i class="bi bi-save me-2"></i>Sauvegarder 3249_001
+                        </button>
+                    </div>
+                    <div class="col-auto">
+                        <div class="text-white-50 small text-start">Tube suivant (g)</div>
+                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" @focus="$event.target.select()" @keypress="$event.key !== 'e' && !isNaN($event.key) || $event.preventDefault()">
+                    </div>
                 </div>
             </div>
             
-            <!-- Boutons -->
+            <!-- Colonne droite : Boutons -->
             <div class="col-auto">
-                <div class="btn-group">
-                    <button class="btn btn-success btn-sm" @click="saveAll()">
-                        <i class="bi bi-save"></i> Sauvegarder
-                    </button>
-                    <button class="btn btn-info btn-sm" @click="exportData()">
-                        <i class="bi bi-file-earmark-excel"></i> Export
-                    </button>
-                    <button class="btn btn-secondary btn-sm" @click="toggleDebug()" title="Debug">
-                        <i class="bi bi-bug"></i>
-                    </button>
-                </div>
+                <button class="btn btn-warning btn-sm me-2" style="padding: 0.25rem 0.5rem;">
+                    <i class="bi bi-scissors"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" style="padding: 0.25rem 0.5rem;">
+                    <i class="bi bi-trash"></i>
+                </button>
             </div>
         </div>
     </div>

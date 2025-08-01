@@ -570,11 +570,14 @@ body {
     font-weight: bold;
     height: 31px;
     padding: 0.25rem 0.5rem;
+    color: #0d6efd;
+    cursor: pointer;
 }
 
 .sticky-bar .form-control:focus {
     background-color: white;
     box-shadow: none;
+    color: #0d6efd;
 }
 
 /* Utilities */
