@@ -96,6 +96,10 @@ function stickyBar() {
                 this.ofNumber = event.detail.ofNumber || '';
                 this.updateRollId();
                 this.updateOFStatus();
+                // Appliquer automatiquement la baguette magique au changement d'OF
+                if (this.ofNumber) {
+                    this.fetchNextRollNumber();
+                }
             });
             
             // Écouter les changements de numéro de rouleau

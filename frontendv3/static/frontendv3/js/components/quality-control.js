@@ -29,22 +29,59 @@ window.qualityControl = function() {
         moyenneMasseSurfaciqueG: '--',
         moyenneMasseSurfaciqueD: '--',
         
+        // Moyennes globales pour affichage header
+        moyenneGlobaleMicromaire: '--',
+        moyenneGlobaleMasseSurf: '--',
+        
         // Session
         saveTimeout: null,
+        
+        // Specs du profil
+        profileSpecs: null,
+        qcBadgeStatus: 'pending', // pending, passed, nok
+        
+        // Unités
+        micromaireUnit: 'mlAir/min',
+        masseSurfUnit: 'g/25cm²',
+        extraitSecUnit: '%',
         
         init() {
             // Charger depuis la session
             this.loadFromSession();
             
+            // Écouter les changements de profil
+            window.addEventListener('profile-changed', (event) => {
+                if (event.detail && event.detail.profileSpecs) {
+                    this.profileSpecs = event.detail.profileSpecs;
+                    // Mettre à jour les unités depuis les specs
+                    const specMicromaire = this.profileSpecs.find(s => s.name === 'micromaire_g' || s.name === 'micromaire' || s.name === 'Micronaire');
+                    const specMasseSurf = this.profileSpecs.find(s => s.name === 'masse_surfacique' || s.name === 'Masse Surfacique');
+                    const specExtraitSec = this.profileSpecs.find(s => s.name === 'extrait_sec' || s.name === 'Extrait Sec');
+                    
+                    if (specMicromaire && specMicromaire.unit) this.micromaireUnit = specMicromaire.unit;
+                    if (specMasseSurf && specMasseSurf.unit) this.masseSurfUnit = specMasseSurf.unit;
+                    if (specExtraitSec && specExtraitSec.unit) this.extraitSecUnit = specExtraitSec.unit;
+                    
+                    this.checkQCStatus(); // Recalculer avec les nouvelles specs
+                    this.updateGlobalAverages(); // Mettre à jour les moyennes avec les nouvelles unités
+                }
+            });
+            
+            // Vérifier le statut initial
+            this.checkQCStatus();
+            this.updateGlobalAverages();
+            
             // Watchers pour calcul automatique des moyennes
             this.$watch('micromaireG', () => {
                 this.moyenneMicromaireG = this.calculateAverage(this.micromaireG);
+                this.updateGlobalAverages();
                 this.checkQCStatus();
                 this.autoSave();
             });
             
             this.$watch('micromaireD', () => {
                 this.moyenneMicromaireD = this.calculateAverage(this.micromaireD);
+                this.updateGlobalAverages();
                 this.checkQCStatus();
                 this.autoSave();
             });
@@ -52,23 +89,30 @@ window.qualityControl = function() {
             // Watchers pour masse surfacique
             this.$watch('masseSurfaciqueGG', () => {
                 this.moyenneMasseSurfaciqueG = this.calculateAverageMasse('G');
+                this.updateGlobalAverages();
                 this.autoSave();
             });
             this.$watch('masseSurfaciqueGC', () => {
                 this.moyenneMasseSurfaciqueG = this.calculateAverageMasse('G');
+                this.updateGlobalAverages();
                 this.autoSave();
             });
             this.$watch('masseSurfaciqueDC', () => {
                 this.moyenneMasseSurfaciqueD = this.calculateAverageMasse('D');
+                this.updateGlobalAverages();
                 this.autoSave();
             });
             this.$watch('masseSurfaciqueDD', () => {
                 this.moyenneMasseSurfaciqueD = this.calculateAverageMasse('D');
+                this.updateGlobalAverages();
                 this.autoSave();
             });
             
             // Watchers pour extrait sec et LOI
-            this.$watch('extraitSec', () => this.autoSave());
+            this.$watch('extraitSec', () => {
+                this.updateGlobalAverages();
+                this.autoSave();
+            });
             this.$watch('extraitTime', () => this.autoSave());
             this.$watch('loi', () => this.autoSave());
             this.$watch('loiTime', () => this.autoSave());
@@ -146,22 +190,136 @@ window.qualityControl = function() {
         
         // Vérification du statut QC
         checkQCStatus() {
-            // Compter les champs remplis
-            const micromaireGFilled = this.micromaireG.filter(v => v).length;
-            const micromaireDFilled = this.micromaireD.filter(v => v).length;
-            
-            // Si au moins une mesure de chaque côté
-            if (micromaireGFilled > 0 && micromaireDFilled > 0) {
-                this.qcStatus = 'ok';
-                // TODO: Vérifier les limites de spécification pour déterminer ok/nok
-            } else if (micromaireGFilled + micromaireDFilled > 0) {
-                this.qcStatus = 'pending';
-            } else {
-                this.qcStatus = 'pending';
+            // Si pas de specs, on reste en pending
+            if (!this.profileSpecs) {
+                this.qcBadgeStatus = 'pending';
+                window.dispatchEvent(new CustomEvent('qc-badge-changed', { 
+                    detail: { status: this.qcBadgeStatus }
+                }));
+                return;
             }
             
-            // Émettre l'événement
+            // Compter les mesures remplies
+            const micromaireGFilled = this.micromaireG.filter(v => v).length;
+            const micromaireDFilled = this.micromaireD.filter(v => v).length;
+            const masseSurfFilled = [
+                this.masseSurfaciqueGG,
+                this.masseSurfaciqueGC,
+                this.masseSurfaciqueDC,
+                this.masseSurfaciqueDD
+            ].filter(v => v).length;
+            
+            // Si aucune mesure, on est en pending
+            if (micromaireGFilled === 0 && micromaireDFilled === 0 && masseSurfFilled === 0) {
+                this.qcBadgeStatus = 'pending';
+                window.dispatchEvent(new CustomEvent('qc-badge-changed', { 
+                    detail: { status: this.qcBadgeStatus }
+                }));
+                return;
+            }
+            
+            // Vérifier les moyennes contre les specs
+            let hasFailure = false;
+            let hasData = false;
+            
+            // Vérifier Micromaire G
+            if (micromaireGFilled >= 3) {
+                hasData = true;
+                const avgG = parseFloat(this.moyenneMicromaireG);
+                const specMicromaireG = this.profileSpecs.find(s => s.name === 'micromaire_g');
+                if (specMicromaireG && !isNaN(avgG)) {
+                    if (avgG < specMicromaireG.value_min || avgG > specMicromaireG.value_max) {
+                        hasFailure = true;
+                    }
+                }
+            }
+            
+            // Vérifier Micromaire D
+            if (micromaireDFilled >= 3) {
+                hasData = true;
+                const avgD = parseFloat(this.moyenneMicromaireD);
+                const specMicromaireD = this.profileSpecs.find(s => s.name === 'micromaire_d');
+                if (specMicromaireD && !isNaN(avgD)) {
+                    if (avgD < specMicromaireD.value_min || avgD > specMicromaireD.value_max) {
+                        hasFailure = true;
+                    }
+                }
+            }
+            
+            // Vérifier Masse Surfacique
+            if (masseSurfFilled === 4) {
+                hasData = true;
+                const avgG = parseFloat(this.moyenneMasseSurfaciqueG);
+                const avgD = parseFloat(this.moyenneMasseSurfaciqueD);
+                const specMasseSurf = this.profileSpecs.find(s => s.name === 'masse_surfacique');
+                if (specMasseSurf) {
+                    if (!isNaN(avgG) && (avgG < specMasseSurf.value_min || avgG > specMasseSurf.value_max)) {
+                        hasFailure = true;
+                    }
+                    if (!isNaN(avgD) && (avgD < specMasseSurf.value_min || avgD > specMasseSurf.value_max)) {
+                        hasFailure = true;
+                    }
+                }
+            }
+            
+            // Déterminer le statut final
+            if (hasFailure) {
+                this.qcBadgeStatus = 'nok';
+            } else if (hasData) {
+                this.qcBadgeStatus = 'passed';
+            } else {
+                this.qcBadgeStatus = 'pending';
+            }
+            
+            // Maintenir l'ancien qcStatus pour compatibilité
+            this.qcStatus = hasFailure ? 'nok' : (hasData ? 'ok' : 'pending');
+            
+            // Émettre les événements
             this.$dispatch('qc-status-changed', { status: this.qcStatus });
+            window.dispatchEvent(new CustomEvent('qc-badge-changed', { 
+                detail: { status: this.qcBadgeStatus }
+            }));
+        },
+        
+        // Mettre à jour les moyennes globales
+        updateGlobalAverages() {
+            // Calculer moyenne globale micromaire
+            if (this.moyenneMicromaireG !== '--' && this.moyenneMicromaireD !== '--') {
+                const avgG = parseFloat(this.moyenneMicromaireG);
+                const avgD = parseFloat(this.moyenneMicromaireD);
+                if (!isNaN(avgG) && !isNaN(avgD)) {
+                    this.moyenneGlobaleMicromaire = ((avgG + avgD) / 2).toFixed(2);
+                } else {
+                    this.moyenneGlobaleMicromaire = '--';
+                }
+            } else {
+                this.moyenneGlobaleMicromaire = '--';
+            }
+            
+            // Calculer moyenne globale masse surfacique
+            if (this.moyenneMasseSurfaciqueG !== '--' && this.moyenneMasseSurfaciqueD !== '--') {
+                const avgG = parseFloat(this.moyenneMasseSurfaciqueG);
+                const avgD = parseFloat(this.moyenneMasseSurfaciqueD);
+                if (!isNaN(avgG) && !isNaN(avgD)) {
+                    this.moyenneGlobaleMasseSurf = ((avgG + avgD) / 2).toFixed(1);
+                } else {
+                    this.moyenneGlobaleMasseSurf = '--';
+                }
+            } else {
+                this.moyenneGlobaleMasseSurf = '--';
+            }
+            
+            // Émettre l'événement avec les moyennes et unités
+            window.dispatchEvent(new CustomEvent('qc-averages-changed', { 
+                detail: { 
+                    micromaire: this.moyenneGlobaleMicromaire,
+                    micromaireUnit: this.micromaireUnit,
+                    masseSurf: this.moyenneGlobaleMasseSurf,
+                    masseSurfUnit: this.masseSurfUnit,
+                    extraitSec: this.extraitSec || '--',
+                    extraitSecUnit: this.extraitSecUnit
+                }
+            }));
         },
         
         // Validation numérique
@@ -190,6 +348,7 @@ window.qualityControl = function() {
             this.loi = false;
             this.loiTime = '--:--';
             this.qcStatus = 'pending';
+            this.qcBadgeStatus = 'pending';
             this.moyenneMicromaireG = '--';
             this.moyenneMicromaireD = '--';
             this.moyenneMasseSurfaciqueG = '--';

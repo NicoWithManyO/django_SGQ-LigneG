@@ -635,22 +635,64 @@
             </div>
             
             <!-- Rouleaux -->
-            <div class="card" x-data="{ ...collapsibleMixin(true), init() { this.initCollapsible(); } }">
+            <div class="card" x-data="{ 
+                ...collapsibleMixin(true), 
+                qcBadgeStatus: 'pending',
+                qcMicromaire: '--',
+                qcMasseSurf: '--',
+                qcExtraitSec: '--',
+                qcMicromaireUnit: 'mg/min',
+                qcMasseSurfUnit: 'g/m²',
+                qcExtraitSecUnit: '%',
+                init() { 
+                    this.initCollapsible();
+                    // Écouter les changements de badge QC
+                    window.addEventListener('qc-badge-changed', (event) => {
+                        this.qcBadgeStatus = event.detail.status;
+                    });
+                    // Écouter les changements de moyennes QC
+                    window.addEventListener('qc-averages-changed', (event) => {
+                        this.qcMicromaire = event.detail.micromaire;
+                        this.qcMasseSurf = event.detail.masseSurf;
+                        this.qcExtraitSec = event.detail.extraitSec;
+                        this.qcMicromaireUnit = event.detail.micromaireUnit || 'mg/min';
+                        this.qcMasseSurfUnit = event.detail.masseSurfUnit || 'g/m²';
+                        this.qcExtraitSecUnit = event.detail.extraitSecUnit || '%';
+                    });
+                } 
+            }">
                 <div class="card-header" @click="toggleExpanded()" style="cursor: pointer;">
                     <h5 class="mb-0 text-primary d-flex justify-content-between align-items-center">
                         <span>
                             <i class="bi bi-stack"></i> Rouleaux
+                            <span class="text-muted ms-3" style="font-size: 0.85rem; font-weight: normal; text-transform: none;">
+                                <span x-text="qcMicromaire"></span> <span x-text="qcMicromaireUnit"></span> | 
+                                <span x-text="qcMasseSurf"></span> <span x-text="qcMasseSurfUnit"></span> | 
+                                <span x-text="qcExtraitSec"></span> <span x-text="qcExtraitSecUnit"></span>
+                            </span>
                         </span>
-                        <i class="bi" :class="chevronClass"></i>
+                        <div class="d-flex align-items-center">
+                            <span class="badge rounded-pill me-2" 
+                                  style="font-size: 0.7rem; line-height: 1; padding: 0.2rem 0.4rem; transform: rotate(15deg);"
+                                  :class="{
+                                      'bg-secondary': qcBadgeStatus === 'pending',
+                                      'bg-success': qcBadgeStatus === 'passed',
+                                      'bg-danger': qcBadgeStatus === 'nok'
+                                  }">
+                                <span x-text="qcBadgeStatus === 'pending' ? 'En attente' : 
+                                              (qcBadgeStatus === 'passed' ? 'QC Passed' : 'NOK')"></span>
+                            </span>
+                            <i class="bi" :class="chevronClass"></i>
+                        </div>
                     </h5>
                 </div>
                 <div class="card-body">
                     <!-- Block 3 colonnes -->
-                    <div class="mb-3" style="max-width: 1024px; margin: 0 auto;" x-data="qualityControl()" x-show="isExpanded" x-transition>
+                    <div class="mb-3" style="max-width: 1024px; margin: 0 auto;" x-data="qualityControl()"  x-show="isExpanded" x-transition>
                         <div style="display: grid; grid-template-columns: 1fr auto 1fr; position: relative;">
                             <!-- Colonne gauche -->
                             <div>
-                                <div class="small text-muted mb-2 text-center">Micromaire G (mg/min)</div>
+                                <div class="small text-muted mb-2 text-center">Micromaire G (<span x-text="micromaireUnit || 'mlAir/min'"></span>)</div>
                                 <div class="d-flex flex-column align-items-center">
                                     <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[0]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[0] = v">
                                     <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[1]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[1] = v">
@@ -679,7 +721,7 @@
                             
                             <!-- Colonne droite -->
                             <div>
-                                <div class="small text-muted mb-2 text-center">Micromaire D (mg/min)</div>
+                                <div class="small text-muted mb-2 text-center">Micromaire D (<span x-text="micromaireUnit || 'mlAir/min'"></span>)</div>
                                 <div class="d-flex flex-column align-items-center">
                                     <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[0]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[0] = v">
                                     <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[1]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[1] = v">
@@ -961,7 +1003,7 @@
                         <div class="text-white fw-bold d-flex align-items-center" style="height: 31px; font-size: 1.1rem;"><span x-text="grammage">--</span>&nbsp;g/m²</div>
                     </div>
                     <div class="col-auto d-flex align-items-center mx-3">
-                        <button class="btn btn-success px-3 py-1">
+                        <button class="btn btn-success px-3 py-2">
                             <i class="bi bi-save me-2"></i>Sauvegarder <span x-text="rollId"></span>
                         </button>
                     </div>
