@@ -150,6 +150,18 @@ window.qualityControl = function() {
             window.addEventListener('new-roll', () => {
                 this.resetQC();
             });
+            
+            // Écouter la réinitialisation après sauvegarde du shift
+            window.addEventListener('shift-reset', () => {
+                debug('Réinitialisation du contrôle qualité après sauvegarde du shift');
+                this.resetQC();
+                showNotification('info', 'Contrôle qualité réinitialisé pour le prochain poste');
+            });
+            
+            // Écouter l'événement pour remplir avec des valeurs aléatoires
+            window.addEventListener('fill-qc-random', () => {
+                this.fillWithRandomValues();
+            });
         },
         
         // Chargement depuis la session
@@ -404,6 +416,16 @@ window.qualityControl = function() {
             this.moyenneMicromaireD = '--';
             this.moyenneMasseSurfaciqueG = '--';
             this.moyenneMasseSurfaciqueD = '--';
+        },
+        
+        // Remplir avec des valeurs aléatoires conformes
+        fillWithRandomValues() {
+            // Utiliser la fonction de test si disponible
+            if (window.testHelpers && window.testHelpers.fillQualityControl) {
+                window.testHelpers.fillQualityControl(this);
+            } else {
+                showNotification('warning', 'Fonction de test non disponible');
+            }
         },
         
         // Obtenir les données pour sauvegarde

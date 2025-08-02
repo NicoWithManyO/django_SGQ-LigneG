@@ -4,8 +4,8 @@
  */
 
 function downtimeTracker() {
-    // Charger depuis la session Django
-    const savedData = window.sessionData?.downtimes || [];
+    // Charger depuis la session Django (utiliser la clé attendue par le backend)
+    const savedData = window.sessionData?.lost_time_entries || window.sessionData?.downtimes || [];
     
     return {
         // État local
@@ -37,6 +37,33 @@ function downtimeTracker() {
                     detail: { hasStartupDowntime: newValue }
                 }));
             });
+            
+            // Écouter la réinitialisation après sauvegarde du shift
+            window.addEventListener('shift-reset', () => {
+                debug('Réinitialisation des temps perdus après sauvegarde du shift');
+                this.downtimes = [];
+                this.showAddForm = false;
+                this.newDowntime = {
+                    reason: '',
+                    motif: '',
+                    comment: '',
+                    duration: ''
+                };
+                this.saveToSession();
+                
+                // Notifier que plus de temps de démarrage
+                window.dispatchEvent(new CustomEvent('downtime-startup-changed', {
+                    detail: { hasStartupDowntime: false }
+                }));
+            });
+            
+            // Émettre l'événement initial si on a déjà un temps de démarrage
+            if (this.hasStartupDowntime) {
+                console.log('Initial hasStartupDowntime:', this.hasStartupDowntime);
+                window.dispatchEvent(new CustomEvent('downtime-startup-changed', { 
+                    detail: { hasStartupDowntime: true }
+                }));
+            }
         },
         
         // Vérifier s'il y a un temps perdu de type "démarrage"
@@ -69,9 +96,9 @@ function downtimeTracker() {
         
         // Sauvegarder dans la session Django
         saveToSession() {
-            // Utiliser la même méthode que les autres composants
-            window.saveToSession('downtimes', this.downtimes);
-            debug('Downtimes saved to session:', this.downtimes.length);
+            // Sauvegarder sous la clé attendue par le backend
+            window.saveToSession('lost_time_entries', this.downtimes);
+            debug('Downtimes saved to session as lost_time_entries:', this.downtimes.length);
         },
         
         // Charger les motifs depuis l'API
@@ -140,7 +167,8 @@ function downtimeTracker() {
             const newEntry = {
                 id: Date.now(), // ID temporaire unique
                 reason: this.currentDowntime.reason,
-                motif_name: selectedReason ? selectedReason.name : '',
+                motif: selectedReason ? selectedReason.name : '', // Le backend attend 'motif'
+                motif_name: selectedReason ? selectedReason.name : '', // Pour l'affichage
                 category: selectedReason ? selectedReason.category : '',
                 comment: this.currentDowntime.comment,
                 duration: duration,

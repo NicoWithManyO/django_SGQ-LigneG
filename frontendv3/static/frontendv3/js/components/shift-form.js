@@ -80,42 +80,54 @@ function shiftForm() {
                 return '';
             }
             
-            // Vérifier les conditions dans l'ordre de priorité
+            // Collecter toutes les raisons de désactivation
+            const reasons = [];
+            
+            // Vérifier les champs obligatoires
             if (!this.operatorId || !this.date || !this.vacation) {
-                return "Veuillez remplir tous les champs obligatoires (opérateur, date, vacation)";
+                reasons.push("Remplir tous les champs obligatoires (opérateur, date, vacation)");
             }
             
+            // Vérifier l'ID de poste
             if (this.shiftIdExists === null || this.checkingShiftId) {
-                return "Vérification de l'ID de poste en cours...";
+                return "Remplir les champs"; // Cas spécial : on retourne directement
             }
             
             if (this.shiftIdExists === true) {
-                return "L'ID de poste existe déjà dans la base de données";
+                reasons.push("L'ID de poste existe déjà dans la base de données");
             }
             
+            // Vérifier la check-list
             if (!this.checklistSigned) {
-                return "La check-list de prise de poste doit être complétée et signée";
+                reasons.push("La check-list doit être complétée et signée");
             }
             
+            // Vérifier le contrôle qualité
             if (this.qcBadgeStatus === 'pending') {
-                return "Le contrôle qualité doit être effectué (badge QC en attente)";
+                reasons.push("Le contrôle qualité doit être effectué");
             }
             
-            // Conditions machine
+            // Vérifier les conditions machine
             if (!this.machineStartedStart && !this.hasStartupDowntime) {
-                return "Machine non démarrée : vous devez déclarer un temps perdu de type 'démarrage'";
+                reasons.push("Déclarer un temps de démarrage (machine non démarrée)");
             }
             
             if (this.machineStartedStart && (!this.lengthStart || parseFloat(this.lengthStart) <= 0)) {
-                return "Machine démarrée : la longueur de début doit être supérieure à 0";
+                reasons.push("Indiquer une longueur de début > 0 (machine démarrée)");
             }
             
             if (this.machineStartedEnd && (!this.lengthEnd || parseFloat(this.lengthEnd) <= 0)) {
-                return "Machine démarrée en fin : la longueur de fin doit être supérieure à 0";
+                reasons.push("Indiquer une longueur de fin > 0 (machine démarrée)");
             }
             
-            // Si on arrive ici, c'est un cas non géré
-            return "Conditions de sauvegarde non remplies";
+            // Construire le message final
+            if (reasons.length === 0) {
+                return "Conditions de sauvegarde non remplies";
+            } else if (reasons.length === 1) {
+                return reasons[0];
+            } else {
+                return "• " + reasons.join("\n• ");
+            }
         },
         
         
@@ -391,19 +403,48 @@ function shiftForm() {
                 return;
             }
             
+            // Trouver l'opérateur dans la liste pour récupérer son ID Django
+            let operatorId = null;
+            if (this.operatorId) {
+                const operator = this.operators.find(op => op.employee_id === this.operatorId);
+                if (!operator || !operator.id) {
+                    showNotification('error', 'Opérateur non trouvé');
+                    return;
+                }
+                operatorId = operator.id;
+            }
+            
             const data = {
                 shift_id: this.shiftId,
-                operator_id: this.operatorId,
+                operator: operatorId, // Le backend attend un ID numérique
                 date: this.date,
                 vacation: this.vacation,
                 start_time: this.startTime,
                 end_time: this.endTime,
                 started_at_beginning: this.machineStartedStart,
-                meter_reading_start: this.lengthStart || null,
+                meter_reading_start: this.lengthStart ? parseFloat(this.lengthStart) : null,
                 started_at_end: this.machineStartedEnd,
-                meter_reading_end: this.lengthEnd || null,
+                meter_reading_end: this.lengthEnd ? parseFloat(this.lengthEnd) : null,
                 operator_comments: this.comments || ''
             };
+            
+            // Ajouter les données de signature checklist depuis la session
+            const sessionData = window.sessionData || {};
+            const checklistSignature = sessionData.checklist_signature;
+            const checklistSignatureTime = sessionData.checklist_signature_time;
+            
+            if (checklistSignature) {
+                data.checklist_signed = checklistSignature;
+            }
+            if (checklistSignatureTime) {
+                data.checklist_signed_time = checklistSignatureTime;
+            }
+            
+            if (window.DEBUG) {
+                console.log('Données envoyées pour sauvegarde:', data);
+                console.log('Session actuelle:', window.sessionData);
+                console.log('Temps perdus dans la session:', window.sessionData?.lost_time_entries);
+            }
             
             try {
                 const response = await fetch('/production/api/shifts/', {
@@ -414,18 +455,119 @@ function shiftForm() {
                     },
                     body: JSON.stringify(data)
                 });
-                const result = await response.json();
-                showNotification('success', 'Poste sauvegardé avec succès');
                 
-                // Émettre un événement
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Erreur API:', errorData);
+                    
+                    // Afficher les erreurs de validation spécifiques
+                    if (errorData.error) {
+                        showNotification('error', errorData.error);
+                    } else {
+                        // Formater les erreurs de champs
+                        const errors = Object.entries(errorData)
+                            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+                            .join('\n');
+                        showNotification('error', `Erreur de validation:\n${errors}`);
+                    }
+                    return;
+                }
+                
+                const result = await response.json();
+                console.log('Réponse sauvegarde:', result);
+                
+                // Vérifier qu'on a bien un ID de shift créé
+                if (!result.id || !result.shift_id) {
+                    throw new Error('Réponse invalide du serveur');
+                }
+                
+                showNotification('success', `Poste ${result.shift_id} sauvegardé avec succès`);
+                
+                // Émettre un événement avec les détails complets
                 window.dispatchEvent(new CustomEvent('shift-saved', { 
-                    detail: { shift: result }
+                    detail: { 
+                        shift: result,
+                        nextShiftData: result.next_shift_data || null
+                    }
                 }));
+                
+                // Si on a des données pour le prochain poste, les appliquer SEULEMENT si tout est OK
+                if (result.next_shift_data) {
+                    try {
+                        this.applyNextShiftData(result.next_shift_data);
+                    } catch (resetError) {
+                        console.error('Erreur lors de la réinitialisation:', resetError);
+                        showNotification('warning', 'Poste sauvegardé mais erreur lors de la réinitialisation');
+                    }
+                }
                 
             } catch (error) {
                 console.error('Erreur sauvegarde poste:', error);
                 showNotification('error', 'Erreur lors de la sauvegarde du poste');
             }
+        },
+        
+        // Appliquer les données du prochain poste après sauvegarde
+        applyNextShiftData(nextShiftData) {
+            console.log('Application des données du prochain poste:', nextShiftData);
+            
+            // Réinitialiser le formulaire avec les nouvelles données
+            this.operatorId = '';
+            this.date = nextShiftData.shift_date || '';
+            this.vacation = nextShiftData.vacation || 'Matin';
+            this.startTime = nextShiftData.start_time || '';
+            this.endTime = nextShiftData.end_time || '';
+            this.machineStartedStart = nextShiftData.machine_started_start || false;
+            this.lengthStart = nextShiftData.length_start || '';
+            this.machineStartedEnd = nextShiftData.machine_started_end || true;
+            this.lengthEnd = '';
+            this.comments = '';
+            
+            // Réinitialiser les états de validation
+            this.shiftIdExists = null;
+            this.checkingShiftId = false;
+            this.hasStartupDowntime = false;
+            
+            // Mettre à jour visuellement les champs
+            this.$nextTick(() => {
+                // Mettre à jour les classes CSS des champs remplis
+                const fieldsToUpdate = {
+                    'date': this.date,
+                    'vacation': this.vacation,
+                    'startTime': this.startTime,
+                    'endTime': this.endTime,
+                    'lengthStart': this.lengthStart
+                };
+                
+                Object.entries(fieldsToUpdate).forEach(([model, value]) => {
+                    const input = this.$el.querySelector(`[x-model="${model}"]`);
+                    if (input) {
+                        input.classList.toggle('filled', !!value);
+                    }
+                });
+                
+                // Focus sur le champ opérateur
+                const operatorSelect = this.$el.querySelector('[x-model="operatorId"]');
+                if (operatorSelect) {
+                    operatorSelect.focus();
+                }
+            });
+            
+            // Émettre un événement pour notifier les autres composants
+            window.dispatchEvent(new CustomEvent('shift-reset', { 
+                detail: { nextShiftData }
+            }));
+            
+            // Sauvegarder en session
+            window.saveToSession('shift_date', this.date);
+            window.saveToSession('vacation', this.vacation);
+            window.saveToSession('start_time', this.startTime);
+            window.saveToSession('end_time', this.endTime);
+            window.saveToSession('machine_started_start', this.machineStartedStart);
+            window.saveToSession('length_start', this.lengthStart);
+            window.saveToSession('machine_started_end', this.machineStartedEnd);
+            
+            showNotification('info', 'Formulaire réinitialisé pour le prochain poste');
         },
         
         // Récupérer la longueur du dernier poste

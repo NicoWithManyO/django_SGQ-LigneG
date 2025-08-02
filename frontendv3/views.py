@@ -50,6 +50,7 @@ def production_view(request):
         'current_profile_id': current_profile['id'] if current_profile else None,
         'session_data': json.dumps(session_data),
         'operators_json': json.dumps([{
+            'id': op.id,  # ID Django pour l'API
             'employee_id': op.employee_id,
             'first_name': op.first_name,
             'last_name': op.last_name,

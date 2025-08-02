@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action, api_view
 from rest_framework.views import APIView
 from django.db import transaction
+from django.conf import settings
 from .models import Roll, Shift, CurrentProfile
 from .serializers import RollSerializer, ShiftSerializer
 from .services import roll_service, shift_service
@@ -305,14 +306,24 @@ class ShiftViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         
         # Récupérer toutes les données de session nécessaires
+        # Les données V3 sont stockées dans request.session['v3_production']
+        v3_data = request.session.get('v3_production', {})
+        
         session_data = {
             'session_key': request.session.session_key,
-            'checklist_responses': request.session.get('checklist_responses', {}),
-            'checklist_signature': request.session.get('checklist_signature'),
-            'checklist_signature_time': request.session.get('checklist_signature_time'),
-            'quality_control': request.session.get('quality_control', {}),
-            'lost_time_entries': request.session.get('lost_time_entries', []),
+            'checklist_responses': v3_data.get('checklist_responses', {}),
+            'checklist_signature': v3_data.get('checklist_signature'),
+            'checklist_signature_time': v3_data.get('checklist_signature_time'),
+            'quality_control': v3_data.get('quality_control', {}),
+            'lost_time_entries': v3_data.get('lost_time_entries', []),
         }
+        
+        # Debug : logger ce qu'on a dans la session
+        if settings.DEBUG:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Session data for shift creation: {session_data}")
+            logger.info(f"Lost time entries from session: {session_data['lost_time_entries']}")
         
         # Ajouter les données de signature de checklist si présentes
         if session_data['checklist_signature']:

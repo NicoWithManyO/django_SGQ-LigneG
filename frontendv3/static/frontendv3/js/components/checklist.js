@@ -70,6 +70,27 @@ function checklist() {
                 }
             });
             
+            // Écouter la réinitialisation après sauvegarde du shift
+            window.addEventListener('shift-reset', () => {
+                debug('Réinitialisation de la checklist après sauvegarde du shift');
+                // Réinitialiser toutes les réponses
+                this.items.forEach(item => {
+                    this.responses[item.id] = '';
+                });
+                this.signature = '';
+                this.signatureTime = '';
+                this.signatureError = false;
+                this.lastOperatorId = null;
+                
+                // Émettre l'événement
+                window.dispatchEvent(new CustomEvent('checklist-signed-changed', { 
+                    detail: { signed: false }
+                }));
+                
+                this.saveToSession();
+                showNotification('info', 'Checklist réinitialisée pour le prochain poste');
+            });
+            
             // Mémoriser l'opérateur actuel
             this.lastOperatorId = window.sessionData?.shift?.operatorId;
         },

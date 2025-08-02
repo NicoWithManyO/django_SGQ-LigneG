@@ -377,10 +377,12 @@ function rollGrid() {
                 });
             });
             
-            // Sauvegarder
-            this.saveToSession();
+            // Réinitialiser les défauts
+            this.defects = {};
+            this.$el.querySelectorAll('.defect-count').forEach(el => el.textContent = '0');
             
-            debug('Cleared all thickness values and rattrapages');
+            this.saveToSession();
+            showNotification('info', 'Grille de rouleau réinitialisée');
         },
         
         // Afficher la popup de sélection de défauts
