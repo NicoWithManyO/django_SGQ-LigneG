@@ -120,14 +120,14 @@
                                        :class="{ 'filled': startTime }">
                             </div>
                             <div class="col-6">
-                                <label class="form-label d-block" style="height: 24px;">
+                                <label class="form-label d-block text-nowrap" style="height: 24px;">
                                     <input type="checkbox" 
-                                           class="form-check-input me-2" 
+                                           class="form-check-input me-1" 
                                            id="machine-started-start"
                                            x-model="machineStartedStart"
                                            @change="handleMachineStartChange($event)">
                                     Machine démarrée
-                                    <i class="bi bi-magic text-warning ms-2" 
+                                    <i class="bi bi-magic text-warning ms-1" 
                                        style="cursor: pointer;" 
                                        @click="fetchLastShiftLength()"
                                        title="Récupérer la longueur du dernier poste"></i>
@@ -152,12 +152,12 @@
                         <div class="row mb-4">
                             <div class="col-6">
                                 <label class="form-label d-block text-end" style="height: 24px;">
-                                    Machine démarrée
                                     <input type="checkbox" 
-                                           class="form-check-input ms-2" 
+                                           class="form-check-input me-1" 
                                            id="machine-started-end"
                                            x-model="machineStartedEnd"
                                            @change="handleMachineEndChange($event)">
+                                    Machine démarrée
                                 </label>
                                 <input type="number" 
                                        class="form-control mx-auto" 
@@ -238,7 +238,7 @@
                         <!-- Longueur cible -->
                         <div class="row mb-3">
                             <div class="col-4">
-                                <label class="form-label">Longueur cible (m.)</label>
+                                <label class="form-label text-nowrap">Longueur cible (m.)</label>
                                 <input type="number" 
                                        class="form-control" 
                                        x-model="targetLength"
@@ -631,13 +631,91 @@
             </div>
             
             <!-- Rouleaux -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0 text-primary">
-                        <i class="bi bi-stack"></i> Rouleaux
+            <div class="card" x-data="{ ...collapsibleMixin(true), init() { this.initCollapsible(); } }">
+                <div class="card-header" @click="toggleExpanded()" style="cursor: pointer;">
+                    <h5 class="mb-0 text-primary d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-stack"></i> Rouleaux
+                        </span>
+                        <i class="bi" :class="chevronClass"></i>
                     </h5>
                 </div>
                 <div class="card-body">
+                    <!-- Block 3 colonnes -->
+                    <div class="mb-3" style="max-width: 1024px; margin: 0 auto;" x-data="qualityControl()" x-show="isExpanded" x-transition>
+                        <div style="display: grid; grid-template-columns: 1fr auto 1fr; position: relative;">
+                            <!-- Colonne gauche -->
+                            <div>
+                                <div class="small text-muted mb-2 text-center">Micromaire G (mg/min)</div>
+                                <div class="d-flex flex-column align-items-center">
+                                    <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[0]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[0] = v">
+                                    <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[1]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[1] = v">
+                                    <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[2]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[2] = v">
+                                </div>
+                                <div class="small text-muted text-center">Moyenne : <span x-text="moyenneMicromaireG"></span></div>
+                                
+                                <div class="small text-muted mt-3 text-center">Masse Surfacique G (g/25cm²)</div>
+                                <div class="d-flex justify-content-center mt-1" style="gap: 60px;">
+                                    <div class="text-center">
+                                        <div class="small text-muted">GG</div>
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="masseSurfaciqueGG" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; masseSurfaciqueGG = v">
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="small text-muted">GC</div>
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="masseSurfaciqueGC" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; masseSurfaciqueGC = v">
+                                    </div>
+                                </div>
+                                <div class="small text-muted text-center mt-1">Moyenne : <span x-text="moyenneMasseSurfaciqueG"></span></div>
+                            </div>
+                            
+                            <!-- Colonne centrale (largeur métrage) -->
+                            <div style="text-align: center;">
+                                <span class="cell-number" style="color: transparent;">20</span>
+                            </div>
+                            
+                            <!-- Colonne droite -->
+                            <div>
+                                <div class="small text-muted mb-2 text-center">Micromaire D (mg/min)</div>
+                                <div class="d-flex flex-column align-items-center">
+                                    <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[0]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[0] = v">
+                                    <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[1]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[1] = v">
+                                    <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[2]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[2] = v">
+                                </div>
+                                <div class="small text-muted text-center">Moyenne : <span x-text="moyenneMicromaireD"></span></div>
+                                
+                                <div class="small text-muted mt-3 text-center">Masse Surfacique D (g/25cm²)</div>
+                                <div class="d-flex justify-content-center mt-1" style="gap: 60px;">
+                                    <div class="text-center">
+                                        <div class="small text-muted">DC</div>
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="masseSurfaciqueDC" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; masseSurfaciqueDC = v">
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="small text-muted">DD</div>
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="masseSurfaciqueDD" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; masseSurfaciqueDD = v">
+                                    </div>
+                                </div>
+                                <div class="small text-muted text-center mt-1">Moyenne : <span x-text="moyenneMasseSurfaciqueD"></span></div>
+                            </div>
+                            
+                            <!-- Extrait Sec et LOI en position absolute -->
+                            <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 30px; width: 150px;">
+                                <div class="small text-muted mb-1 text-center">Extrait Sec (%)</div>
+                                <div class="d-flex justify-content-center">
+                                    <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="extraitSec" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; extraitSec = v; if(v) { const now = new Date(); extraitTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); } else { extraitTime = '--:--'; }">
+                                </div>
+                                <div class="small text-muted text-center mt-1" x-text="extraitTime">--:--</div>
+                            </div>
+                            
+                            <div style="position: absolute; left: 50%; transform: translateX(-50%); bottom: 50px; text-align: center;">
+                                <div class="small text-muted mb-1">LOI</div>
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    <input class="form-check-input" type="checkbox" id="loiSwitch" style="cursor: pointer;" x-model="loi" @change="loi = $event.target.checked; if(loi) { const now = new Date(); loiTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); } else { loiTime = '--:--'; }">
+                                </div>
+                                <div class="small text-muted mt-1" x-text="loiTime">--:--</div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Composant roll-grid -->
                     <div x-data="rollGrid()" id="roll-grid-component">
                         <!-- Section conformité -->
@@ -844,37 +922,40 @@
             <div class="col text-center">
                 <div class="row justify-content-center">
                     <div class="col-auto">
-                        <div class="text-white-50 small text-start">N° rouleau</div>
-                        <input type="text" class="form-control form-control-sm" style="width: 100px;" x-model="rollNumber" @focus="$event.target.select()" @keypress="$event.key !== 'e' && !isNaN($event.key) || $event.preventDefault()">
+                        <div class="text-white-50 small text-start d-flex align-items-center">N° rouleau<i class="bi bi-magic ms-1 text-warning" style="font-size: 0.8rem;"></i></div>
+                        <input type="text" class="form-control form-control-sm" style="width: 100px;" x-model="rollNumber" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="handleRollNumberChange()">
                     </div>
                     <div class="col-auto">
                         <div class="text-white-50 small text-start">ID rouleau</div>
-                        <div class="form-control form-control-sm text-white fw-bold text-start" style="background: transparent; border: 1px solid transparent; cursor: default;">3249_001</div>
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-info-circle text-info me-n1" style="font-size: 0.9rem;" title="Vérification ID"></i>
+                            <div class="form-control form-control-sm text-white fw-bold text-start" style="background: transparent; border: 1px solid transparent; cursor: default;" x-text="rollId">--</div>
+                        </div>
                     </div>
                     <div class="col-auto">
                         <div class="text-white-50 small text-start">Masse tube (g)</div>
-                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" @focus="$event.target.select()" @keypress="$event.key !== 'e' && !isNaN($event.key) || $event.preventDefault()">
+                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" x-model="tubeMass" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); tubeMass = v">
                     </div>
                     <div class="col-auto">
                         <div class="text-white-50 small text-start">Longueur (m)</div>
-                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" @focus="$event.target.select()" @keypress="$event.key !== 'e' && !isNaN($event.key) || $event.preventDefault()">
+                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" x-model="length" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); length = v">
                     </div>
                     <div class="col-auto">
                         <div class="text-white-50 small text-start">Masse totale (g)</div>
-                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" @focus="$event.target.select()" @keypress="$event.key !== 'e' && !isNaN($event.key) || $event.preventDefault()">
+                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" x-model="totalMass" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); totalMass = v">
                     </div>
                     <div class="col-auto">
-                        <div class="text-white-50 small text-start">-- g</div>
-                        <div class="text-white fw-bold">-- g/m²</div>
+                        <div class="text-white-50 small text-start"><span x-text="netMass">--</span> g</div>
+                        <div class="text-white fw-bold d-flex align-items-center" style="height: 31px; font-size: 1.1rem;"><span x-text="grammage">--</span> g/m²</div>
                     </div>
                     <div class="col-auto d-flex align-items-center mx-3">
                         <button class="btn btn-success px-3 py-1">
-                            <i class="bi bi-save me-2"></i>Sauvegarder 3249_001
+                            <i class="bi bi-save me-2"></i>Sauvegarder <span x-text="rollId"></span>
                         </button>
                     </div>
                     <div class="col-auto">
                         <div class="text-white-50 small text-start">Tube suivant (g)</div>
-                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" @focus="$event.target.select()" @keypress="$event.key !== 'e' && !isNaN($event.key) || $event.preventDefault()">
+                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" x-model="nextTubeMass" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); nextTubeMass = v">
                     </div>
                 </div>
             </div>
@@ -913,6 +994,7 @@
 <script src="{% static 'frontendv3/js/components/shift-form.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/production-order.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/profile-selector.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/quality-control.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/roll-grid.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/downtime-tracker.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/checklist.js' %}"></script>

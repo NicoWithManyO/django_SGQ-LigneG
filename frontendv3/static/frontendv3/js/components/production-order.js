@@ -86,6 +86,11 @@ function productionOrder() {
             
             // Utiliser la sauvegarde simple
             window.saveToSession('of', data);
+            
+            // Émettre l'événement pour la sticky bar
+            window.dispatchEvent(new CustomEvent('of-changed', {
+                detail: { ofNumber: this.ofEnCours }
+            }));
         },
         
         // Handlers pour les changements

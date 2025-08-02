@@ -139,6 +139,14 @@ body {
     grid-template-columns: 1fr 1fr 1fr auto 1fr 1fr 1fr;
 }
 
+/* Grille QC - mêmes colonnes que roll-grid */
+.qc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto 1fr 1fr 1fr;
+    max-width: 1024px;
+    margin: 0 auto;
+}
+
 .grid-cell {
     position: relative;
     height: 40px;
@@ -177,7 +185,7 @@ body {
     max-width: 65px;
     text-align: center;
     background-color: #e3f2fd;
-    border: none;
+    border: 1px solid transparent;
     color: #0d6efd;
     padding: 0.25rem 0.5rem;
     font-size: 0.9rem;
@@ -190,6 +198,7 @@ body {
     background-color: #fff;
     box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
     outline: none;
+    border-color: #0d6efd;
 }
 
 /* États de validation des épaisseurs */
@@ -234,15 +243,19 @@ body {
     width: 18px;
     height: 18px;
     padding: 0;
-    border: 1px solid #dee2e6;
-    background-color: transparent;
-    color: #6c757d;
+    border: 1px solid #dc3545;
+    background-color: #fff;
+    color: #dc3545;
     font-size: 12px;
-    line-height: 1;
+    line-height: 16px;
+    font-weight: bold;
     border-radius: 3px;
     cursor: pointer;
     opacity: 0;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Dans les cellules avec épaisseur, décaler le bouton */
@@ -256,9 +269,9 @@ body {
 }
 
 .defect-add-btn:hover {
-    color: #dc3545;
+    color: #fff;
     border-color: #dc3545;
-    background-color: #fff;
+    background-color: #dc3545;
 }
 
 /* Badges de défauts */
@@ -360,7 +373,7 @@ body {
 /* Badge de rattrapage d'épaisseur */
 .rattrapage-badge {
     position: absolute;
-    left: calc(100% - var(--cell-position-with-thickness));
+    left: calc(100% - var(--cell-position-with-thickness) - 10px);
     top: 50%;
     transform: translate(-50%, -50%);
     font-size: 0.65rem;
@@ -368,9 +381,52 @@ body {
     line-height: 1.2;
 }
 
+/* Rendre les défauts semi-transparents quand on focus une épaisseur */
+.grid-cell:has(.thickness-input:focus) .defect-badges .defect-badge {
+    opacity: 0.3;
+}
+
 /* Cacher x-cloak */
 [x-cloak] {
     display: none !important;
+}
+
+/* Section Contrôle Qualité */
+.qc-section {
+    padding: 0 15px;
+    margin-bottom: 1.5rem;
+}
+
+/* Alignement des colonnes QC avec la grille */
+.qc-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto 1fr 1fr 1fr;
+    gap: 0.5rem;
+    align-items: start;
+    max-width: 1024px;
+    margin: 0 auto;
+}
+
+/* Colonnes micromaire */
+.qc-micromaire {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Colonnes masse surfacique */
+.qc-masse-surfacique {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Section centrale */
+.qc-centrale {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 100px;
 }
 
 /* Onglets du profil */
