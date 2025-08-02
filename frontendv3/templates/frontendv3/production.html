@@ -13,11 +13,6 @@
             </h1>
             <p class="text-muted">Système de gestion de production - Ligne G</p>
         </div>
-        <div class="col-auto">
-            <span class="badge bg-info">
-                <i class="bi bi-cloud-check"></i> Connecté
-            </span>
-        </div>
     </div>
     
     <!-- Layout principal -->
@@ -1001,6 +996,7 @@
                     </div>
                 </div>
             </div>
+            
         </div>
     </div>
 </div>
@@ -1009,9 +1005,12 @@
 <div class="sticky-bar" x-data="stickyBar()">
     <div class="container-fluid">
         <div class="row align-items-center">
-            <!-- Colonne gauche : Logo -->
+            <!-- Colonne gauche : Logos -->
             <div class="col-auto">
-                <img src="{% static 'frontendv3/img/logo-white-text.svg' %}" alt="SGQ" height="40">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="{% static 'frontendv3/img/logo-white-text.svg' %}" alt="SGQ" height="40">
+                    <img src="{% static 'frontendv3/img/last_wcm.png' %}" alt="WCM" height="40" style="height: 40px; width: auto;">
+                </div>
             </div>
             
             <!-- Colonne centrale : Champs et texte -->
@@ -1076,6 +1075,65 @@
         </div>
     </div>
 </div>
+
+<!-- Modale de confirmation réutilisable -->
+<div x-data="confirmModal()" class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title w-100 text-center" id="confirmModalLabel">
+                    <span x-text="modalConfig.title"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            
+            <div class="modal-body text-center">
+                <!-- Icône principale -->
+                <div class="mb-4">
+                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center" 
+                         style="width: 80px; height: 80px;">
+                        <i class="bi bi-question-lg text-primary" style="font-size: 3rem;"></i>
+                    </div>
+                </div>
+                
+                <!-- Question -->
+                <h5 class="mb-4">Confirmez-vous la sauvegarde du poste ?</h5>
+                
+                <!-- Contenu dynamique -->
+                <div x-html="modalConfig.content"></div>
+                
+                <!-- Zone d'avertissement optionnelle -->
+                <div x-show="modalConfig.warning" class="alert alert-warning mt-3 mb-0" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <span x-text="modalConfig.warning"></span>
+                </div>
+            </div>
+            
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" 
+                        class="btn btn-secondary px-4" 
+                        data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>
+                    Annuler
+                </button>
+                <button type="button" 
+                        class="btn btn-primary px-4"
+                        @click="executeConfirm()"
+                        :disabled="modalProcessing">
+                    <span x-show="!modalProcessing">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Sauvegarder
+                    </span>
+                    <span x-show="modalProcessing">
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Sauvegarde...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -1094,6 +1152,7 @@
 <!-- Utilitaires -->
 <script src="{% static 'frontendv3/js/utils/collapsible.js' %}"></script>
 <script src="{% static 'frontendv3/js/utils/tooltip.js' %}"></script>
+<script src="{% static 'frontendv3/js/utils/modal-builders.js' %}"></script>
 
 <!-- Composants Alpine.js -->
 <script src="{% static 'frontendv3/js/components/shift-form.js' %}"></script>
@@ -1104,6 +1163,7 @@
 <script src="{% static 'frontendv3/js/components/downtime-tracker.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/checklist.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/sticky-bar.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/confirm-modal.js' %}"></script>
 
 <!-- Utilitaires de test -->
 <script src="{% static 'frontendv3/js/utils/test-helpers.js' %}"></script>

@@ -395,7 +395,7 @@ function shiftForm() {
             this.comments = event.target.value;
         },
         
-        // Sauvegarder le poste
+        // Sauvegarder le poste - Afficher la modale de confirmation
         async saveShift() {
             // Validation basique
             if (!this.operatorId || !this.date || !this.vacation) {
@@ -403,6 +403,48 @@ function shiftForm() {
                 return;
             }
             
+            // Préparer les données pour la modale
+            const confirmData = this.prepareShiftDataForConfirmation();
+            
+            // Construire la configuration de la modale
+            const modalConfig = window.modalBuilders.buildShiftConfirmation(confirmData);
+            
+            // Ajouter l'action de confirmation
+            modalConfig.confirmAction = async () => {
+                await this.performShiftSave();
+            };
+            
+            // Afficher la modale
+            const modal = Alpine.$data(document.querySelector('[x-data="confirmModal()"]'));
+            modal.show(modalConfig);
+        },
+        
+        // Préparer les données pour l'affichage dans la modale
+        prepareShiftDataForConfirmation() {
+            const operator = this.operators.find(op => op.employee_id === this.operatorId);
+            
+            // Compter les temps perdus
+            const lostTimeCount = window.sessionData?.lost_time_entries?.length || 0;
+            
+            return {
+                operatorName: operator?.display_name || 'Non défini',
+                shiftId: this.shiftId,
+                date: this.date,
+                vacation: this.vacation,
+                startTime: this.startTime,
+                endTime: this.endTime,
+                machineStartedStart: this.machineStartedStart,
+                lengthStart: this.lengthStart,
+                machineStartedEnd: this.machineStartedEnd,
+                lengthEnd: this.lengthEnd,
+                lostTimeCount: lostTimeCount,
+                comments: this.comments,
+                hasIncompleteRolls: false // TODO: Vérifier si des rouleaux sont en cours
+            };
+        },
+        
+        // Effectuer la sauvegarde réelle
+        async performShiftSave() {
             // Trouver l'opérateur dans la liste pour récupérer son ID Django
             let operatorId = null;
             if (this.operatorId) {
@@ -413,6 +455,10 @@ function shiftForm() {
                 }
                 operatorId = operator.id;
             }
+            
+            // Récupérer l'humeur depuis la modale
+            const modal = Alpine.$data(document.querySelector('[x-data="confirmModal()"]'));
+            const mood = modal.selectedMood || 'happy';
             
             const data = {
                 shift_id: this.shiftId,
@@ -425,7 +471,8 @@ function shiftForm() {
                 meter_reading_start: this.lengthStart ? parseFloat(this.lengthStart) : null,
                 started_at_end: this.machineStartedEnd,
                 meter_reading_end: this.lengthEnd ? parseFloat(this.lengthEnd) : null,
-                operator_comments: this.comments || ''
+                operator_comments: this.comments || '',
+                operator_mood: mood // Ajouter l'humeur
             };
             
             // Ajouter les données de signature checklist depuis la session

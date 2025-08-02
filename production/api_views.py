@@ -425,7 +425,27 @@ class ShiftViewSet(viewsets.ModelViewSet):
     
     def _clean_session(self, request):
         """Nettoie les données de session après sauvegarde du poste."""
-        # Liste des clés à supprimer
+        # Nettoyer les données V3 qui sont dans request.session['v3_production']
+        if 'v3_production' in request.session:
+            v3_data = request.session['v3_production']
+            
+            # Clés à supprimer dans v3_production
+            v3_keys_to_remove = [
+                'lost_time_entries',      # Temps perdus à réinitialiser
+                'checklist_responses',
+                'checklist_signature',
+                'checklist_signature_time',
+                'quality_control',
+                'qc_status',
+                # Note: Ne pas nettoyer les données du rouleau en cours
+            ]
+            
+            for key in v3_keys_to_remove:
+                v3_data.pop(key, None)
+            
+            request.session['v3_production'] = v3_data
+        
+        # Liste des clés à supprimer au niveau racine de la session
         keys_to_remove = [
             'shift_id',
             'operator_id',
@@ -438,13 +458,6 @@ class ShiftViewSet(viewsets.ModelViewSet):
             'length_start',
             'length_end',
             'comment',
-            'checklist_responses',
-            'checklist_signature',
-            'checklist_signature_time',
-            'lost_time_entries',
-            # 'roll_data',  # NE PAS nettoyer les données du rouleau en cours !
-            'quality_control',
-            'qc_status',
             'has_startup_time',
             # Nettoyer aussi les données de session du formulaire
             'shift_form',
