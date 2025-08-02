@@ -37,52 +37,46 @@
                 <div class="card-body" x-show="isExpanded" x-transition>
                     <!-- Composant shift-form -->
                     <div x-data="shiftForm()">
-                        <div class="row">
-                            <!-- Colonne Opérateur -->
-                            <div class="col-7">
-                                <div class="mb-3">
-                                    <label class="form-label">Opérateur</label>
-                                    <select class="form-select" 
-                                            x-model="operatorId"
-                                            @change="handleOperatorChange($event)"
-                                            :class="{ 'filled': operatorId }">
-                                        <option value="">Sélectionner un opérateur</option>
-                                        <template x-for="operator in operators" :key="operator.employee_id">
-                                            <option :value="operator.employee_id" x-text="operator.display_name"></option>
-                                        </template>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <!-- Colonne Date -->
-                            <div class="col-5">
-                                <div class="mb-3">
-                                    <label class="form-label">
-                                        Date 
-                                        <span x-show="date" class="text-muted small">
-                                            (<span x-text="(() => {
-                                                if (!date) return '';
-                                                const d = new Date(date);
-                                                const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-                                                const dayName = days[d.getDay()];
-                                                const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
-                                                const weekNum = Math.ceil((dayOfYear + new Date(d.getFullYear(), 0, 1).getDay() + 1) / 7);
-                                                return `${dayName} | J${dayOfYear} | S${weekNum}`;
-                                            })()"></span>)
-                                        </span>
-                                    </label>
-                                    <input type="date" 
-                                           class="form-control" 
-                                           x-model="date"
-                                           @change="handleDateChange($event)"
-                                           :class="{ 'filled': date }">
-                                </div>
+                        <!-- Ligne 1: Opérateur seul -->
+                        <div class="row mb-3">
+                            <div class="col-8">
+                                <label class="form-label">Opérateur</label>
+                                <select class="form-select" 
+                                        x-model="operatorId"
+                                        @change="handleOperatorChange($event)"
+                                        :class="{ 'filled': operatorId }">
+                                    <option value="">Sélectionner un opérateur</option>
+                                    <template x-for="operator in operators" :key="operator.employee_id">
+                                        <option :value="operator.employee_id" x-text="operator.display_name"></option>
+                                    </template>
+                                </select>
                             </div>
                         </div>
                         
-                        <!-- Vacation seule -->
-                        <div class="row mb-4">
-                            <div class="col-4">
+                        <!-- Ligne 2: Date et Vacation -->
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label class="form-label">
+                                    Date 
+                                    <span x-show="date" class="text-muted small">
+                                        (<span x-text="(() => {
+                                            if (!date) return '';
+                                            const d = new Date(date);
+                                            const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+                                            const dayName = days[d.getDay()];
+                                            const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+                                            const weekNum = Math.ceil((dayOfYear + new Date(d.getFullYear(), 0, 1).getDay() + 1) / 7);
+                                            return `${dayName} | J${dayOfYear} | S${weekNum}`;
+                                        })()"></span>)
+                                    </span>
+                                </label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       x-model="date"
+                                       @change="handleDateChange($event)"
+                                       :class="{ 'filled': date }">
+                            </div>
+                            <div class="col-6">
                                 <label class="form-label">Vacation</label>
                                 <select class="form-select" 
                                         x-model="vacation"
@@ -94,21 +88,21 @@
                                     </template>
                                 </select>
                             </div>
-                            
-                            <!-- ID Shift -->
-                            <div class="col-8">
-                                <div class="text-center text-secondary small d-flex align-items-center justify-content-center" style="height: 62px;">
-                                    <i class="bi me-1" style="font-size: 0.9rem;"
-                                       x-show="shiftId"
-                                       :class="{
-                                           'bi-hourglass-split text-warning': checkingShiftId,
-                                           'bi-check-circle-fill': !checkingShiftId && shiftIdExists === false,
-                                           'bi-x-circle-fill': !checkingShiftId && shiftIdExists === true
-                                       }"
-                                       :style="!checkingShiftId && shiftIdExists === false ? 'color: #198754;' : (!checkingShiftId && shiftIdExists === true ? 'color: #dc3545;' : '')"
-                                       :title="checkingShiftId ? 'Vérification...' : (shiftIdExists === true ? 'ID déjà existant !' : 'ID disponible')"></i>
-                                    <span x-text="shiftId || 'Pas de données'"></span>
-                                </div>
+                        </div>
+                        
+                        <!-- Ligne 3: ID Poste centré -->
+                        <div class="mb-4">
+                            <div class="text-center text-secondary small d-flex align-items-center justify-content-center">
+                                <i class="bi me-1" style="font-size: 0.9rem;"
+                                   x-show="shiftId"
+                                   :class="{
+                                       'bi-hourglass-split text-warning': checkingShiftId,
+                                       'bi-check-circle-fill': !checkingShiftId && shiftIdExists === false,
+                                       'bi-exclamation-triangle-fill': !checkingShiftId && shiftIdExists === true
+                                   }"
+                                   :style="!checkingShiftId && shiftIdExists === false ? 'color: #198754;' : (!checkingShiftId && shiftIdExists === true ? 'color: #ffc107;' : '')"
+                                   :title="checkingShiftId ? 'Vérification...' : (shiftIdExists === true ? 'ID déjà existant !' : 'ID disponible')"></i>
+                                <span x-text="shiftId || 'Pas de données'"></span>
                             </div>
                         </div>
                         
@@ -188,7 +182,9 @@
                         <!-- Bouton sauvegarder -->
                         <div class="row mb-3">
                             <div class="col-12 text-center">
-                                <button class="btn btn-primary px-4 py-2" @click="saveShift()">
+                                <button class="btn btn-primary px-4 py-2" 
+                                        @click="saveShift()"
+                                        :disabled="!canSaveShift">
                                     <i class="bi bi-save me-2"></i>Sauvegarder Poste
                                 </button>
                             </div>
@@ -369,7 +365,17 @@
                                 <div x-show="isExpanded" x-transition>
                                     <div class="row mt-3" x-data="downtimeTracker()">
                                     <div class="col-12">
-                                        <h6 class="text-muted mb-2">Temps perdus</h6>
+                                        <div class="row g-2 align-items-center mb-2">
+                                            <div class="col-9">
+                                                <h6 class="text-muted mb-0">Temps perdus</h6>
+                                            </div>
+                                            <div class="col-2 text-center">
+                                                <span x-show="totalDowntime > 0" class="text-muted small">
+                                                    Total: <span x-text="formatDuration(totalDowntime)"></span>
+                                                </span>
+                                            </div>
+                                            <div class="col-1"></div>
+                                        </div>
                                         <div class="row g-2 align-items-end">
                                             <div class="col-3">
                                                 <select x-model="currentDowntime.reason" 
@@ -455,18 +461,6 @@
                                         <!-- Liste des temps perdus -->
                                         <div class="mt-3 mx-auto" x-show="downtimes.length > 0" style="width: 90%;">
                                             <table class="table table-sm table-hover">
-                                                <thead>
-                                                    <tr class="table-light">
-                                                        <td class="col-3 border-0 pb-0"></td>
-                                                        <td class="col-6 border-0 pb-0 text-end">Total :</td>
-                                                        <td class="col-2 border-0 pb-0 text-center">
-                                                            <span x-text="formatDuration(totalDowntime)"></span>
-                                                            <small class="text-secondary ms-1">(<span x-text="totalDowntime"></span> min)</small>
-                                                        </td>
-                                                        <td class="col-1 border-0 pb-0 text-center">
-                                                        </td>
-                                                    </tr>
-                                                </thead>
                                                 <tbody>
                                                     <template x-for="dt in downtimes" :key="dt.id">
                                                         <tr>
@@ -1026,9 +1020,9 @@
                                :class="{
                                    'bi-hourglass-split text-warning': checkingRollId,
                                    'bi-check-circle-fill': !checkingRollId && rollIdExists === false,
-                                   'bi-x-circle-fill': !checkingRollId && rollIdExists === true
+                                   'bi-exclamation-triangle-fill': !checkingRollId && rollIdExists === true
                                }"
-                               :style="!checkingRollId && rollIdExists === false ? 'color: #198754;' : (!checkingRollId && rollIdExists === true ? 'color: #dc3545;' : '')"
+                               :style="!checkingRollId && rollIdExists === false ? 'color: #198754;' : (!checkingRollId && rollIdExists === true ? 'color: #ffc107;' : '')"
                                :title="checkingRollId ? 'Vérification...' : (rollIdExists === true ? 'ID déjà existant !' : 'ID disponible')"></i>
                             <div class="form-control form-control-sm text-white fw-bold text-start" style="background: transparent; border: 1px solid transparent; cursor: default;" x-text="rollId">--</div>
                         </div>
@@ -1100,4 +1094,6 @@
 <script src="{% static 'frontendv3/js/components/downtime-tracker.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/checklist.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/sticky-bar.js' %}"></script>
+
+
 {% endblock %}

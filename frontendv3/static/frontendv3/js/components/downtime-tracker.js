@@ -24,6 +24,13 @@ function downtimeTracker() {
             
             // Charger les temps perdus existants
             await this.loadDowntimes();
+            
+            // Observer les changements de hasStartupDowntime
+            this.$watch('hasStartupDowntime', (newValue) => {
+                window.dispatchEvent(new CustomEvent('downtime-startup-changed', { 
+                    detail: { hasStartupDowntime: newValue }
+                }));
+            });
         },
         
         // Charger les motifs depuis l'API
@@ -122,6 +129,13 @@ function downtimeTracker() {
                     detail: { entry: newEntry }
                 }));
                 
+                // Vérifier si c'est un temps perdu de démarrage
+                this.$nextTick(() => {
+                    window.dispatchEvent(new CustomEvent('downtime-startup-changed', { 
+                        detail: { hasStartupDowntime: this.hasStartupDowntime }
+                    }));
+                });
+                
                 showNotification('success', 'Temps perdu enregistré');
                 
             } catch (error) {
@@ -153,6 +167,13 @@ function downtimeTracker() {
                 window.dispatchEvent(new CustomEvent('downtime-removed', { 
                     detail: { id: id }
                 }));
+                
+                // Vérifier si c'était un temps perdu de démarrage
+                this.$nextTick(() => {
+                    window.dispatchEvent(new CustomEvent('downtime-startup-changed', { 
+                        detail: { hasStartupDowntime: this.hasStartupDowntime }
+                    }));
+                });
                 
                 showNotification('success', 'Temps perdu supprimé');
                 
@@ -215,6 +236,24 @@ function downtimeTracker() {
                 grouped[category].reasons.push(reason);
             });
             return Object.values(grouped);
+        },
+        
+        // Vérifier s'il y a un temps perdu de type "démarrage"
+        get hasStartupDowntime() {
+            return this.downtimes.some(dt => {
+                if (!dt.reason) return false;
+                
+                // Chercher la raison dans la liste des raisons
+                const reason = this.reasons.find(r => r.id === dt.reason);
+                if (!reason) return false;
+                
+                // Vérifier si le nom contient "démarrage" ou "startup" (insensible à la casse)
+                const name = reason.name.toLowerCase();
+                return name.includes('démarrage') || 
+                       name.includes('demarrage') || 
+                       name.includes('startup') ||
+                       name.includes('mise en route');
+            });
         }
     };
 }

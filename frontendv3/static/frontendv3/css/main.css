@@ -644,6 +644,22 @@ body {
     color: var(--v3-gray-600) !important;
 }
 
+/* Boutons désactivés */
+.btn:disabled,
+.btn[disabled],
+button:disabled,
+button[disabled] {
+    cursor: not-allowed !important;
+    opacity: 0.65;
+}
+
+/* Forcer le curseur sur les boutons Bootstrap désactivés */
+.btn.btn-primary:disabled,
+.btn.btn-primary[disabled] {
+    cursor: not-allowed !important;
+}
+
+
 /* Responsive */
 @media (max-width: 991.98px) {
     .col-lg-4, .col-lg-8 {

@@ -28,6 +28,13 @@ function checklist() {
             // Charger les items de check-list
             this.loadChecklistItems();
             
+            // Émettre l'état initial
+            this.$nextTick(() => {
+                window.dispatchEvent(new CustomEvent('checklist-signed-changed', { 
+                    detail: { signed: !!this.signature && this.isComplete }
+                }));
+            });
+            
             // Observer les changements pour sauvegarder
             this.$watch('responses', () => {
                 // Si la check-list n'est plus complète, vider la signature
@@ -35,6 +42,10 @@ function checklist() {
                     this.signature = '';
                     this.signatureTime = '';
                     this.signatureError = false;
+                    // Émettre l'événement
+                    window.dispatchEvent(new CustomEvent('checklist-signed-changed', { 
+                        detail: { signed: false }
+                    }));
                 }
                 this.saveToSession();
             }, { deep: true });
@@ -48,6 +59,10 @@ function checklist() {
                     this.signature = '';
                     this.signatureTime = '';
                     this.signatureError = false;
+                    // Émettre l'événement
+                    window.dispatchEvent(new CustomEvent('checklist-signed-changed', { 
+                        detail: { signed: false }
+                    }));
                     this.saveToSession();
                     if (this.signature || this.signatureTime) {
                         showNotification('info', 'Signature réinitialisée (changement d\'opérateur)');
@@ -169,6 +184,11 @@ function checklist() {
             this.signatureTime = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
             this.saveToSession();
             showNotification('success', 'Check-list signée');
+            
+            // Émettre l'événement de signature
+            window.dispatchEvent(new CustomEvent('checklist-signed-changed', { 
+                detail: { signed: true }
+            }));
         }
     };
 }

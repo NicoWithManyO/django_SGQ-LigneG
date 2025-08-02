@@ -17,6 +17,12 @@ function shiftForm() {
         shiftIdExists: null, // null, true, false
         checkingShiftId: false,
         
+        // État de la check-list
+        checklistSigned: false,
+        
+        // État du temps perdu démarrage
+        hasStartupDowntime: false,
+        
         // Nouveaux champs pour prise de poste
         startTime: savedData.startTime || '',
         machineStartedStart: savedData.machineStartedStart || false,
@@ -37,6 +43,32 @@ function shiftForm() {
             { value: 'Nuit', label: 'Nuit' },
             { value: 'Journee', label: 'Journée' }
         ],
+        
+        // Computed: peut-on sauvegarder le poste ?
+        get canSaveShift() {
+            // Conditions de base
+            if (this.shiftIdExists !== false || !this.checklistSigned) {
+                return false;
+            }
+            
+            // Si machine PAS démarrée au début, il faut OBLIGATOIREMENT un temps perdu démarrage
+            if (!this.machineStartedStart && !this.hasStartupDowntime) {
+                return false;
+            }
+            
+            // Si machine démarrée en début, il faut une longueur > 0
+            if (this.machineStartedStart && (!this.lengthStart || parseFloat(this.lengthStart) <= 0)) {
+                return false;
+            }
+            
+            // Si machine démarrée en fin, il faut une longueur > 0
+            if (this.machineStartedEnd && (!this.lengthEnd || parseFloat(this.lengthEnd) <= 0)) {
+                return false;
+            }
+            
+            return true;
+        },
+        
         
         // Initialisation
         init() {
@@ -88,6 +120,17 @@ function shiftForm() {
             
             // Observer les commentaires
             this.$watch('comments', () => this.saveToSession());
+            
+            // Écouter l'événement de signature de la check-list
+            window.addEventListener('checklist-signed-changed', (event) => {
+                this.checklistSigned = event.detail.signed;
+            });
+            
+            // Écouter l'événement de temps perdu démarrage
+            window.addEventListener('downtime-startup-changed', (event) => {
+                this.hasStartupDowntime = event.detail.hasStartupDowntime;
+                debug('Startup downtime changed:', this.hasStartupDowntime);
+            });
             
             // Appliquer les styles initiaux après le rendu
             this.$nextTick(() => {

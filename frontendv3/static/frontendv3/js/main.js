@@ -40,3 +40,4 @@ document.addEventListener('DOMContentLoaded', () => {
     // Alpine.js devrait être initialisé automatiquement
     // Les composants se chargeront via x-data
 });
+
