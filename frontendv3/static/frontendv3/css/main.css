@@ -284,6 +284,7 @@ body {
     flex-wrap: wrap;
     justify-content: center;
     gap: 2px;
+    z-index: 2;
 }
 
 /* Dans les cellules avec épaisseur, décaler les badges */
@@ -297,6 +298,8 @@ body {
     cursor: pointer;
     line-height: 1.2;
     position: relative;
+    transform: rotate(-15deg);
+    z-index: 2;
 }
 
 /* Compteur de défauts */

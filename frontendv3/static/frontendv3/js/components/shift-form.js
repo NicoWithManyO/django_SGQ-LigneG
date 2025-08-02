@@ -14,6 +14,8 @@ function shiftForm() {
         vacation: savedData.vacation || '',
         shiftId: savedData.shiftId || '',
         operators: window.operatorsData || [],
+        shiftIdExists: null, // null, true, false
+        checkingShiftId: false,
         
         // Nouveaux champs pour prise de poste
         startTime: savedData.startTime || '',
@@ -45,6 +47,10 @@ function shiftForm() {
                 return a.display_name.localeCompare(b.display_name, 'fr-FR');
             });
             
+            // Vérifier l'ID existant au chargement
+            if (this.shiftId) {
+                this.checkShiftIdExists();
+            }
             
             // Observer les changements pour la génération automatique ET la sauvegarde
             this.$watch('operatorId', () => {
@@ -118,6 +124,7 @@ function shiftForm() {
         tryGenerateShiftId() {
             if (!this.canGenerateId()) {
                 this.shiftId = '';
+                this.shiftIdExists = null;
                 return;
             }
             
@@ -135,15 +142,18 @@ function shiftForm() {
                 // Si ça ne match pas, utiliser tel quel
                 this.shiftId = `${dateStr}_${operator.employee_id}_${this.vacation}`;
                 debug('Shift ID generated (fallback):', this.shiftId);
+                this.checkShiftIdExists();
                 this.saveToSession();
                 return;
             }
             
             const [_, prenom, nom] = match;
-            const nomFormate = nom ? (nom.charAt(0) + nom.slice(1).toLowerCase()) : '';
             
-            this.shiftId = `${dateStr}_${prenom}${nomFormate}_${this.vacation}`;
+            this.shiftId = `${dateStr}_${prenom}${nom || ''}_${this.vacation}`;
             debug('Shift ID generated:', this.shiftId);
+            
+            // Vérifier si l'ID existe
+            this.checkShiftIdExists();
             
             // Sauvegarder
             this.saveToSession();
@@ -314,6 +324,28 @@ function shiftForm() {
             } catch (error) {
                 console.error('Erreur récupération longueur:', error);
                 showNotification('error', 'Erreur lors de la récupération');
+            }
+        },
+        
+        // Vérifier si l'ID shift existe en base
+        async checkShiftIdExists() {
+            if (!this.shiftId) {
+                this.shiftIdExists = null;
+                return;
+            }
+            
+            this.checkingShiftId = true;
+            try {
+                const response = await fetch(`/production/api/shifts/check-id/?shift_id=${this.shiftId}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                this.shiftIdExists = data.exists;
+            } catch (error) {
+                console.error('Erreur vérification ID shift:', error);
+                this.shiftIdExists = null;
+            } finally {
+                this.checkingShiftId = false;
             }
         }
     };

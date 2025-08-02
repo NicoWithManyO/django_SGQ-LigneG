@@ -105,14 +105,22 @@ class RollViewSet(viewsets.ModelViewSet):
             )
         
         # Récupérer tous les numéros de rouleaux existants pour cet OF
-        existing_numbers = Roll.objects.filter(
+        existing_rolls = Roll.objects.filter(
             roll_id__startswith=f"{of_number}_"
-        ).exclude(
-            roll_number__isnull=True
-        ).values_list('roll_number', flat=True).order_by('roll_number')
+        ).values_list('roll_id', flat=True)
         
-        # Convertir en liste d'entiers
-        existing_numbers = [int(num) for num in existing_numbers if num is not None]
+        # Extraire les numéros existants
+        existing_numbers = []
+        for roll_id in existing_rolls:
+            try:
+                # Format: OF_NNN
+                parts = roll_id.split('_')
+                if len(parts) == 2:
+                    existing_numbers.append(int(parts[1]))
+            except (ValueError, IndexError):
+                continue
+        
+        existing_numbers.sort()
         
         # Trouver le premier numéro manquant
         next_number = 1
@@ -120,13 +128,15 @@ class RollViewSet(viewsets.ModelViewSet):
             if num == next_number:
                 next_number += 1
             elif num > next_number:
-                # On a trouvé un trou dans la séquence
                 break
+        
+        # Formater avec 3 chiffres
+        formatted_number = str(next_number).zfill(3)
         
         return Response({
             'of_number': of_number,
-            'next_number': next_number,
-            'existing_numbers': existing_numbers
+            'next_number': formatted_number,
+            'roll_id': f"{of_number}_{formatted_number}"
         })
     
     @action(detail=False, methods=['GET'], url_path='check-id')

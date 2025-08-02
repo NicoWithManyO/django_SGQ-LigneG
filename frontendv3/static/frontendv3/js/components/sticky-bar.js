@@ -9,12 +9,14 @@ function stickyBar() {
         currentDateTime: '',
         rollId: '',
         ofStatus: '',
-        rollNumber: '001',
+        rollNumber: '',
         ofNumber: '',
         shiftId: '',
         rollSaved: false,
         shiftSaved: false,
         rollStatus: '', // '', 'ok', 'nok'
+        rollIdExists: null, // null, true, false
+        checkingRollId: false,
         
         // Données du rouleau
         tubeMass: '',
@@ -41,8 +43,7 @@ function stickyBar() {
             // Écouter les changements globaux
             this.listenToGlobalEvents();
             
-            // Watchers pour auto-save
-            this.$watch('rollNumber', () => this.handleRollNumberChange());
+            // Watchers pour auto-save (pas pour rollNumber, il se fait au blur)
             this.$watch('tubeMass', () => this.handleDataChange());
             this.$watch('length', () => this.handleDataChange());
             this.$watch('totalMass', () => this.handleDataChange());
@@ -58,7 +59,7 @@ function stickyBar() {
             const shiftData = window.sessionData?.shift || {};
             
             this.ofNumber = ofData.ofEnCours || '';
-            this.rollNumber = window.sessionData?.sticky_roll_number || rollData.rollNumber || '001';
+            this.rollNumber = window.sessionData?.sticky_roll_number || rollData.rollNumber || '';
             this.shiftId = shiftData.shiftId || '';
             
             // Charger les données du rouleau
@@ -99,7 +100,7 @@ function stickyBar() {
             
             // Écouter les changements de numéro de rouleau
             window.addEventListener('roll-number-changed', (event) => {
-                this.rollNumber = event.detail.rollNumber || '001';
+                this.rollNumber = event.detail.rollNumber || '';
                 this.updateRollId();
             });
             
@@ -126,12 +127,36 @@ function stickyBar() {
         
         // Mettre à jour l'ID rouleau
         updateRollId() {
-            if (this.ofNumber && this.rollNumber) {
+            if (this.ofNumber && this.rollNumber && this.rollNumber.toString().trim() !== '') {
                 // Formater le numéro de rouleau avec padding
                 const paddedRollNumber = this.rollNumber.toString().padStart(3, '0');
                 this.rollId = `${this.ofNumber}_${paddedRollNumber}`;
+                this.checkRollIdExists();
             } else {
-                this.rollId = '';
+                this.rollId = '--';
+                this.rollIdExists = null;
+            }
+        },
+        
+        // Vérifier si l'ID rouleau existe en base
+        async checkRollIdExists() {
+            if (!this.rollId) {
+                this.rollIdExists = null;
+                return;
+            }
+            
+            this.checkingRollId = true;
+            try {
+                const response = await fetch(`/production/api/rolls/check-id/?roll_id=${this.rollId}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                this.rollIdExists = data.exists;
+            } catch (error) {
+                console.error('Erreur vérification ID:', error);
+                this.rollIdExists = null;
+            } finally {
+                this.checkingRollId = false;
             }
         },
         
@@ -153,6 +178,28 @@ function stickyBar() {
                 }
             } else {
                 this.ofStatus = 'Aucun OF sélectionné';
+            }
+        },
+        
+        // Récupérer le prochain numéro de rouleau disponible
+        async fetchNextRollNumber() {
+            if (!this.ofNumber) {
+                showNotification('warning', 'Aucun OF sélectionné');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/production/api/rolls/next-number/?of=${this.ofNumber}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                this.rollNumber = data.next_number;
+                this.handleRollNumberChange();
+                
+                showNotification('success', `Prochain numéro : ${data.next_number}`);
+            } catch (error) {
+                showNotification('error', 'Erreur lors de la récupération du numéro');
+                if (window.DEBUG) console.error('Fetch next number error:', error);
             }
         },
         
@@ -202,7 +249,7 @@ function stickyBar() {
                 // Utiliser fetch directement comme dans les autres composants V3
                 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || window.csrfToken || '';
                 
-                const response = await fetch('/api/rolls/', {
+                const response = await fetch('/production/api/rolls/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -239,9 +286,12 @@ function stickyBar() {
         
         // Gérer le changement du numéro de rouleau
         handleRollNumberChange() {
-            // Formater avec padding si c'est un nombre
-            if (this.rollNumber && !isNaN(this.rollNumber)) {
-                this.rollNumber = this.rollNumber.toString().padStart(3, '0');
+            // Ne formater que si le champ n'est pas vide
+            if (this.rollNumber && this.rollNumber.toString().trim() !== '') {
+                // Formater avec padding si c'est un nombre
+                if (!isNaN(this.rollNumber)) {
+                    this.rollNumber = this.rollNumber.toString().padStart(3, '0');
+                }
             }
             
             window.session.save('sticky_roll_number', this.rollNumber);

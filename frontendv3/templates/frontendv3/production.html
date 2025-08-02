@@ -97,13 +97,17 @@
                             
                             <!-- ID Shift -->
                             <div class="col-8">
-                                <div>
-                                    <label class="form-label text-center d-block" style="margin-bottom: 0;">
-                                        <span class="badge bg-success" style="position: relative; top: 10px;">
-                                            <i class="bi bi-check-circle"></i> OK
-                                        </span>
-                                    </label>
-                                    <div class="text-center text-secondary small" style="height: 38px; display: flex; align-items: center; justify-content: center;" x-text="shiftId || 'Pas de données'"></div>
+                                <div class="text-center text-secondary small d-flex align-items-center justify-content-center" style="height: 62px;">
+                                    <i class="bi me-1" style="font-size: 0.9rem;"
+                                       x-show="shiftId"
+                                       :class="{
+                                           'bi-hourglass-split text-warning': checkingShiftId,
+                                           'bi-check-circle-fill': !checkingShiftId && shiftIdExists === false,
+                                           'bi-x-circle-fill': !checkingShiftId && shiftIdExists === true
+                                       }"
+                                       :style="!checkingShiftId && shiftIdExists === false ? 'color: #198754;' : (!checkingShiftId && shiftIdExists === true ? 'color: #dc3545;' : '')"
+                                       :title="checkingShiftId ? 'Vérification...' : (shiftIdExists === true ? 'ID déjà existant !' : 'ID disponible')"></i>
+                                    <span x-text="shiftId || 'Pas de données'"></span>
                                 </div>
                             </div>
                         </div>
@@ -922,13 +926,21 @@
             <div class="col text-center">
                 <div class="row justify-content-center">
                     <div class="col-auto">
-                        <div class="text-white-50 small text-start d-flex align-items-center">N° rouleau<i class="bi bi-magic ms-1 text-warning" style="font-size: 0.8rem;"></i></div>
-                        <input type="text" class="form-control form-control-sm" style="width: 100px;" x-model="rollNumber" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="handleRollNumberChange()">
+                        <div class="text-white-50 small text-start d-flex align-items-center">N° rouleau<i class="bi bi-magic ms-1 text-warning" style="font-size: 0.8rem; cursor: pointer;" @click="fetchNextRollNumber()" title="Obtenir le prochain numéro disponible"></i></div>
+                        <input type="text" class="form-control form-control-sm" style="width: 100px;" x-model="rollNumber" placeholder="--" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="handleRollNumberChange()">
                     </div>
                     <div class="col-auto">
                         <div class="text-white-50 small text-start">ID rouleau</div>
                         <div class="d-flex align-items-center">
-                            <i class="bi bi-info-circle text-info me-n1" style="font-size: 0.9rem;" title="Vérification ID"></i>
+                            <i class="bi me-n1" style="font-size: 0.9rem;" 
+                               x-show="rollId && rollId !== '--'"
+                               :class="{
+                                   'bi-hourglass-split text-warning': checkingRollId,
+                                   'bi-check-circle-fill': !checkingRollId && rollIdExists === false,
+                                   'bi-x-circle-fill': !checkingRollId && rollIdExists === true
+                               }"
+                               :style="!checkingRollId && rollIdExists === false ? 'color: #198754;' : (!checkingRollId && rollIdExists === true ? 'color: #dc3545;' : '')"
+                               :title="checkingRollId ? 'Vérification...' : (rollIdExists === true ? 'ID déjà existant !' : 'ID disponible')"></i>
                             <div class="form-control form-control-sm text-white fw-bold text-start" style="background: transparent; border: 1px solid transparent; cursor: default;" x-text="rollId">--</div>
                         </div>
                     </div>
@@ -946,7 +958,7 @@
                     </div>
                     <div class="col-auto">
                         <div class="text-white-50 small text-start"><span x-text="netMass">--</span> g</div>
-                        <div class="text-white fw-bold d-flex align-items-center" style="height: 31px; font-size: 1.1rem;"><span x-text="grammage">--</span> g/m²</div>
+                        <div class="text-white fw-bold d-flex align-items-center" style="height: 31px; font-size: 1.1rem;"><span x-text="grammage">--</span>&nbsp;g/m²</div>
                     </div>
                     <div class="col-auto d-flex align-items-center mx-3">
                         <button class="btn btn-success px-3 py-1">
