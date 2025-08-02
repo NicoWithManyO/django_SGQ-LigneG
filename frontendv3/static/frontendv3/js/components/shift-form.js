@@ -23,6 +23,9 @@ function shiftForm() {
         // État du temps perdu démarrage
         hasStartupDowntime: false,
         
+        // État du contrôle qualité
+        qcBadgeStatus: 'pending',
+        
         // Nouveaux champs pour prise de poste
         startTime: savedData.startTime || '',
         machineStartedStart: savedData.machineStartedStart || false,
@@ -44,10 +47,11 @@ function shiftForm() {
             { value: 'Journee', label: 'Journée' }
         ],
         
+        
         // Computed: peut-on sauvegarder le poste ?
         get canSaveShift() {
             // Conditions de base
-            if (this.shiftIdExists !== false || !this.checklistSigned) {
+            if (this.shiftIdExists !== false || !this.checklistSigned || this.qcBadgeStatus === 'pending') {
                 return false;
             }
             
@@ -67,6 +71,51 @@ function shiftForm() {
             }
             
             return true;
+        },
+        
+        // Computed: message du tooltip pour le bouton sauvegarder
+        get saveButtonTooltip() {
+            // Si le bouton est actif, pas de tooltip
+            if (this.canSaveShift) {
+                return '';
+            }
+            
+            // Vérifier les conditions dans l'ordre de priorité
+            if (!this.operatorId || !this.date || !this.vacation) {
+                return "Veuillez remplir tous les champs obligatoires (opérateur, date, vacation)";
+            }
+            
+            if (this.shiftIdExists === null || this.checkingShiftId) {
+                return "Vérification de l'ID de poste en cours...";
+            }
+            
+            if (this.shiftIdExists === true) {
+                return "L'ID de poste existe déjà dans la base de données";
+            }
+            
+            if (!this.checklistSigned) {
+                return "La check-list de prise de poste doit être complétée et signée";
+            }
+            
+            if (this.qcBadgeStatus === 'pending') {
+                return "Le contrôle qualité doit être effectué (badge QC en attente)";
+            }
+            
+            // Conditions machine
+            if (!this.machineStartedStart && !this.hasStartupDowntime) {
+                return "Machine non démarrée : vous devez déclarer un temps perdu de type 'démarrage'";
+            }
+            
+            if (this.machineStartedStart && (!this.lengthStart || parseFloat(this.lengthStart) <= 0)) {
+                return "Machine démarrée : la longueur de début doit être supérieure à 0";
+            }
+            
+            if (this.machineStartedEnd && (!this.lengthEnd || parseFloat(this.lengthEnd) <= 0)) {
+                return "Machine démarrée en fin : la longueur de fin doit être supérieure à 0";
+            }
+            
+            // Si on arrive ici, c'est un cas non géré
+            return "Conditions de sauvegarde non remplies";
         },
         
         
@@ -132,9 +181,44 @@ function shiftForm() {
                 debug('Startup downtime changed:', this.hasStartupDowntime);
             });
             
+            // Écouter l'événement de changement du badge QC
+            window.addEventListener('qc-badge-changed', (event) => {
+                this.qcBadgeStatus = event.detail.status;
+                debug('QC badge status changed:', this.qcBadgeStatus);
+            });
+            
             // Appliquer les styles initiaux après le rendu
             this.$nextTick(() => {
                 this.updateFieldStyles();
+            });
+            
+            // Observer les changements d'état du bouton pour gérer le tooltip
+            this.$watch('canSaveShift', (newValue) => {
+                this.$nextTick(() => {
+                    if (this.$refs.saveButtonWrapper) {
+                        const existingTooltip = bootstrap.Tooltip.getInstance(this.$refs.saveButtonWrapper);
+                        
+                        if (newValue && existingTooltip) {
+                            // Si le bouton devient actif, détruire le tooltip
+                            existingTooltip.dispose();
+                        } else if (!newValue && !existingTooltip) {
+                            // Si le bouton devient inactif, créer le tooltip
+                            new bootstrap.Tooltip(this.$refs.saveButtonWrapper);
+                        }
+                    }
+                });
+            });
+            
+            // Observer les changements de tooltip pour mettre à jour l'instance Bootstrap
+            this.$watch('saveButtonTooltip', () => {
+                this.$nextTick(() => {
+                    if (this.$refs.saveButtonWrapper && !this.canSaveShift) {
+                        const tooltip = bootstrap.Tooltip.getInstance(this.$refs.saveButtonWrapper);
+                        if (tooltip) {
+                            tooltip.setContent({ '.tooltip-inner': this.saveButtonTooltip || '' });
+                        }
+                    }
+                });
             });
         },
         

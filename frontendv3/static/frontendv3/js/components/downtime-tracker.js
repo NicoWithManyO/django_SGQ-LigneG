@@ -4,9 +4,12 @@
  */
 
 function downtimeTracker() {
+    // Charger depuis la session Django
+    const savedData = window.sessionData?.downtimes || [];
+    
     return {
         // État local
-        downtimes: [],          // Liste des temps perdus de la session
+        downtimes: savedData,          // Liste des temps perdus de la session
         reasons: [],            // Motifs disponibles depuis l'API
         currentDowntime: {
             reason: '',         // ID du motif sélectionné
@@ -22,15 +25,53 @@ function downtimeTracker() {
             // Charger les motifs disponibles
             await this.loadReasons();
             
-            // Charger les temps perdus existants
-            await this.loadDowntimes();
+            // Ne charger depuis l'API que si on n'a rien en session
+            if (this.downtimes.length === 0) {
+                await this.loadDowntimes();
+            }
             
             // Observer les changements de hasStartupDowntime
             this.$watch('hasStartupDowntime', (newValue) => {
+                console.log('hasStartupDowntime changed:', newValue);
                 window.dispatchEvent(new CustomEvent('downtime-startup-changed', { 
                     detail: { hasStartupDowntime: newValue }
                 }));
             });
+        },
+        
+        // Vérifier s'il y a un temps perdu de type "démarrage"
+        get hasStartupDowntime() {
+            return this.downtimes.some(dt => {
+                // Vérifier le nom du motif directement (format local)
+                if (dt.motif_name) {
+                    const name = dt.motif_name.toLowerCase();
+                    return name.includes('démarrage') || 
+                           name.includes('demarrage') || 
+                           name.includes('startup') ||
+                           name.includes('mise en route');
+                }
+                
+                // Fallback : chercher dans les raisons (format API)
+                if (dt.reason) {
+                    const reason = this.reasons.find(r => r.id === parseInt(dt.reason));
+                    if (reason) {
+                        const name = reason.name.toLowerCase();
+                        return name.includes('démarrage') || 
+                               name.includes('demarrage') || 
+                               name.includes('startup') ||
+                               name.includes('mise en route');
+                    }
+                }
+                
+                return false;
+            });
+        },
+        
+        // Sauvegarder dans la session Django
+        saveToSession() {
+            // Utiliser la même méthode que les autres composants
+            window.saveToSession('downtimes', this.downtimes);
+            debug('Downtimes saved to session:', this.downtimes.length);
         },
         
         // Charger les motifs depuis l'API
@@ -79,7 +120,7 @@ function downtimeTracker() {
         },
         
         // Ajouter un temps perdu
-        async addDowntime() {
+        addDowntime() {
             // Validation
             if (!this.currentDowntime.reason || !this.currentDowntime.duration) {
                 showNotification('error', 'Veuillez sélectionner un motif et indiquer une durée');
@@ -92,95 +133,70 @@ function downtimeTracker() {
                 return;
             }
             
-            this.loading = true;
+            // Trouver le motif sélectionné pour récupérer son nom et sa catégorie
+            const selectedReason = this.reasons.find(r => r.id === parseInt(this.currentDowntime.reason));
             
-            try {
-                const response = await fetch('/wcm/api/lost-time-entries/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || window.csrfToken || ''
-                    },
-                    body: JSON.stringify({
-                        reason: this.currentDowntime.reason,
-                        comment: this.currentDowntime.comment,
-                        duration: duration
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const newEntry = await response.json();
-                
-                // Ajouter à la liste locale
-                this.downtimes.unshift(newEntry);
-                
-                // Réinitialiser le formulaire
-                this.currentDowntime = {
-                    reason: '',
-                    comment: '',
-                    duration: ''
-                };
-                
-                // Émettre un événement pour mettre à jour les KPIs
-                window.dispatchEvent(new CustomEvent('downtime-added', { 
-                    detail: { entry: newEntry }
+            // Créer la nouvelle entrée localement
+            const newEntry = {
+                id: Date.now(), // ID temporaire unique
+                reason: this.currentDowntime.reason,
+                motif_name: selectedReason ? selectedReason.name : '',
+                category: selectedReason ? selectedReason.category : '',
+                comment: this.currentDowntime.comment,
+                duration: duration,
+                created_at: new Date().toISOString()
+            };
+            
+            // Ajouter à la liste locale
+            this.downtimes.unshift(newEntry);
+            
+            // Sauvegarder dans la session
+            this.saveToSession();
+            
+            // Réinitialiser le formulaire
+            this.currentDowntime = {
+                reason: '',
+                comment: '',
+                duration: ''
+            };
+            
+            // Émettre un événement pour mettre à jour les KPIs
+            window.dispatchEvent(new CustomEvent('downtime-added', { 
+                detail: { entry: newEntry }
+            }));
+            
+            // Vérifier si c'est un temps perdu de démarrage
+            this.$nextTick(() => {
+                console.log('After add, hasStartupDowntime:', this.hasStartupDowntime);
+                window.dispatchEvent(new CustomEvent('downtime-startup-changed', { 
+                    detail: { hasStartupDowntime: this.hasStartupDowntime }
                 }));
-                
-                // Vérifier si c'est un temps perdu de démarrage
-                this.$nextTick(() => {
-                    window.dispatchEvent(new CustomEvent('downtime-startup-changed', { 
-                        detail: { hasStartupDowntime: this.hasStartupDowntime }
-                    }));
-                });
-                
-                showNotification('success', 'Temps perdu enregistré');
-                
-            } catch (error) {
-                if (window.DEBUG) console.error('Erreur ajout temps perdu:', error);
-                showNotification('error', 'Erreur lors de l\'enregistrement');
-            } finally {
-                this.loading = false;
-            }
+            });
+            
+            showNotification('success', 'Temps perdu enregistré');
         },
         
         // Supprimer un temps perdu
-        async removeDowntime(id) {
-            try {
-                const response = await fetch(`/wcm/api/lost-time-entries/${id}/`, {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || window.csrfToken || ''
-                    }
-                });
-                
-                if (!response.ok && response.status !== 204) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                // Retirer de la liste locale
-                this.downtimes = this.downtimes.filter(dt => dt.id !== id);
-                
-                // Émettre un événement
-                window.dispatchEvent(new CustomEvent('downtime-removed', { 
-                    detail: { id: id }
+        removeDowntime(id) {
+            // Retirer de la liste locale
+            this.downtimes = this.downtimes.filter(dt => dt.id !== id);
+            
+            // Sauvegarder dans la session
+            this.saveToSession();
+            
+            // Émettre un événement
+            window.dispatchEvent(new CustomEvent('downtime-removed', { 
+                detail: { id: id }
+            }));
+            
+            // Vérifier si c'était un temps perdu de démarrage
+            this.$nextTick(() => {
+                window.dispatchEvent(new CustomEvent('downtime-startup-changed', { 
+                    detail: { hasStartupDowntime: this.hasStartupDowntime }
                 }));
-                
-                // Vérifier si c'était un temps perdu de démarrage
-                this.$nextTick(() => {
-                    window.dispatchEvent(new CustomEvent('downtime-startup-changed', { 
-                        detail: { hasStartupDowntime: this.hasStartupDowntime }
-                    }));
-                });
-                
-                showNotification('success', 'Temps perdu supprimé');
-                
-            } catch (error) {
-                if (window.DEBUG) console.error('Erreur suppression temps perdu:', error);
-                showNotification('error', 'Erreur lors de la suppression');
-            }
+            });
+            
+            showNotification('success', 'Temps perdu supprimé');
         },
         
         // Obtenir le nom de la catégorie
@@ -238,23 +254,6 @@ function downtimeTracker() {
             return Object.values(grouped);
         },
         
-        // Vérifier s'il y a un temps perdu de type "démarrage"
-        get hasStartupDowntime() {
-            return this.downtimes.some(dt => {
-                if (!dt.reason) return false;
-                
-                // Chercher la raison dans la liste des raisons
-                const reason = this.reasons.find(r => r.id === dt.reason);
-                if (!reason) return false;
-                
-                // Vérifier si le nom contient "démarrage" ou "startup" (insensible à la casse)
-                const name = reason.name.toLowerCase();
-                return name.includes('démarrage') || 
-                       name.includes('demarrage') || 
-                       name.includes('startup') ||
-                       name.includes('mise en route');
-            });
-        }
     };
 }
 

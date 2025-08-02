@@ -182,11 +182,19 @@
                         <!-- Bouton sauvegarder -->
                         <div class="row mb-3">
                             <div class="col-12 text-center">
-                                <button class="btn btn-primary px-4 py-2" 
-                                        @click="saveShift()"
-                                        :disabled="!canSaveShift">
-                                    <i class="bi bi-save me-2"></i>Sauvegarder Poste
-                                </button>
+                                <span x-init="$nextTick(() => { if (!canSaveShift) new bootstrap.Tooltip($refs.saveButtonWrapper) })"
+                                      x-ref="saveButtonWrapper"
+                                      :data-bs-toggle="!canSaveShift ? 'tooltip' : ''"
+                                      data-bs-placement="top"
+                                      :data-bs-title="!canSaveShift ? saveButtonTooltip : ''"
+                                    <button class="btn btn-primary px-4 py-2" 
+                                            @click="saveShift()"
+                                            :disabled="!canSaveShift"
+                                            x-ref="saveButton"
+                                            style="pointer-events: auto;">
+                                        <i class="bi bi-save me-2"></i>Sauvegarder Poste
+                                    </button>
+                                </span>
                             </div>
                         </div>
                         
@@ -977,6 +985,11 @@
                                     </span>
                                 </template>
                             </div>
+                            <div class="ms-1">
+                                <i class="bi bi-check-circle-fill text-success" 
+                                   x-show="isComplete && signature && signatureTime"
+                                   style="font-size: 0.9rem;"></i>
+                            </div>
                             <div class="ms-2" style="width: 80px;">
                                 <div class="input-group input-group-sm">
                                     <input type="text" 
@@ -1084,6 +1097,7 @@
 
 <!-- Utilitaires -->
 <script src="{% static 'frontendv3/js/utils/collapsible.js' %}"></script>
+<script src="{% static 'frontendv3/js/utils/tooltip.js' %}"></script>
 
 <!-- Composants Alpine.js -->
 <script src="{% static 'frontendv3/js/components/shift-form.js' %}"></script>
