@@ -45,6 +45,27 @@ window.qualityControl = function() {
         masseSurfUnit: 'g/25cm²',
         extraitSecUnit: '%',
         
+        // Vérifier si une valeur individuelle est NOK
+        isValueNOK(value, type, position = null) {
+            if (!value || !this.profileSpecs) return false;
+            
+            const val = parseFloat(value);
+            if (isNaN(val)) return false;
+            
+            let spec = null;
+            if (type === 'micromaire') {
+                spec = this.profileSpecs.find(s => s.name === 'Micronaire');
+            } else if (type === 'masse_surfacique') {
+                spec = this.profileSpecs.find(s => s.name === 'Masse Surfacique');
+            } else if (type === 'extrait_sec') {
+                spec = this.profileSpecs.find(s => s.name === 'Extrait Sec');
+            }
+            
+            if (!spec) return false;
+            
+            return val < spec.value_min || val > spec.value_max;
+        },
+        
         init() {
             // Charger depuis la session
             this.loadFromSession();
@@ -90,31 +111,39 @@ window.qualityControl = function() {
             this.$watch('masseSurfaciqueGG', () => {
                 this.moyenneMasseSurfaciqueG = this.calculateAverageMasse('G');
                 this.updateGlobalAverages();
+                this.checkQCStatus();
                 this.autoSave();
             });
             this.$watch('masseSurfaciqueGC', () => {
                 this.moyenneMasseSurfaciqueG = this.calculateAverageMasse('G');
                 this.updateGlobalAverages();
+                this.checkQCStatus();
                 this.autoSave();
             });
             this.$watch('masseSurfaciqueDC', () => {
                 this.moyenneMasseSurfaciqueD = this.calculateAverageMasse('D');
                 this.updateGlobalAverages();
+                this.checkQCStatus();
                 this.autoSave();
             });
             this.$watch('masseSurfaciqueDD', () => {
                 this.moyenneMasseSurfaciqueD = this.calculateAverageMasse('D');
                 this.updateGlobalAverages();
+                this.checkQCStatus();
                 this.autoSave();
             });
             
             // Watchers pour extrait sec et LOI
             this.$watch('extraitSec', () => {
                 this.updateGlobalAverages();
+                this.checkQCStatus();
                 this.autoSave();
             });
             this.$watch('extraitTime', () => this.autoSave());
-            this.$watch('loi', () => this.autoSave());
+            this.$watch('loi', () => {
+                this.checkQCStatus();
+                this.autoSave();
+            });
             this.$watch('loiTime', () => this.autoSave());
             
             // Écouter les changements de rouleau
@@ -220,38 +249,41 @@ window.qualityControl = function() {
             
             // Vérifier les moyennes contre les specs
             let hasFailure = false;
-            let hasData = false;
+            let allComplete = true;
+            
+            // Récupérer la spec Micronaire (une seule pour G et D)
+            const specMicromaire = this.profileSpecs.find(s => s.name === 'Micronaire');
+            const specMasseSurf = this.profileSpecs.find(s => s.name === 'Masse Surfacique');
+            const specExtraitSec = this.profileSpecs.find(s => s.name === 'Extrait Sec');
             
             // Vérifier Micromaire G
             if (micromaireGFilled >= 3) {
-                hasData = true;
                 const avgG = parseFloat(this.moyenneMicromaireG);
-                const specMicromaireG = this.profileSpecs.find(s => s.name === 'micromaire_g');
-                if (specMicromaireG && !isNaN(avgG)) {
-                    if (avgG < specMicromaireG.value_min || avgG > specMicromaireG.value_max) {
+                if (specMicromaire && !isNaN(avgG)) {
+                    if (avgG < specMicromaire.value_min || avgG > specMicromaire.value_max) {
                         hasFailure = true;
                     }
                 }
+            } else {
+                allComplete = false;
             }
             
             // Vérifier Micromaire D
             if (micromaireDFilled >= 3) {
-                hasData = true;
                 const avgD = parseFloat(this.moyenneMicromaireD);
-                const specMicromaireD = this.profileSpecs.find(s => s.name === 'micromaire_d');
-                if (specMicromaireD && !isNaN(avgD)) {
-                    if (avgD < specMicromaireD.value_min || avgD > specMicromaireD.value_max) {
+                if (specMicromaire && !isNaN(avgD)) {
+                    if (avgD < specMicromaire.value_min || avgD > specMicromaire.value_max) {
                         hasFailure = true;
                     }
                 }
+            } else {
+                allComplete = false;
             }
             
             // Vérifier Masse Surfacique
             if (masseSurfFilled === 4) {
-                hasData = true;
                 const avgG = parseFloat(this.moyenneMasseSurfaciqueG);
                 const avgD = parseFloat(this.moyenneMasseSurfaciqueD);
-                const specMasseSurf = this.profileSpecs.find(s => s.name === 'masse_surfacique');
                 if (specMasseSurf) {
                     if (!isNaN(avgG) && (avgG < specMasseSurf.value_min || avgG > specMasseSurf.value_max)) {
                         hasFailure = true;
@@ -260,19 +292,38 @@ window.qualityControl = function() {
                         hasFailure = true;
                     }
                 }
+            } else {
+                allComplete = false;
+            }
+            
+            // Vérifier Extrait Sec
+            if (this.extraitSec) {
+                const val = parseFloat(this.extraitSec);
+                if (specExtraitSec && !isNaN(val)) {
+                    if (val < specExtraitSec.value_min || val > specExtraitSec.value_max) {
+                        hasFailure = true;
+                    }
+                }
+            } else {
+                allComplete = false;
+            }
+            
+            // Vérifier LOI
+            if (!this.loi) {
+                allComplete = false;
             }
             
             // Déterminer le statut final
             if (hasFailure) {
                 this.qcBadgeStatus = 'nok';
-            } else if (hasData) {
+            } else if (allComplete) {
                 this.qcBadgeStatus = 'passed';
             } else {
                 this.qcBadgeStatus = 'pending';
             }
             
             // Maintenir l'ancien qcStatus pour compatibilité
-            this.qcStatus = hasFailure ? 'nok' : (hasData ? 'ok' : 'pending');
+            this.qcStatus = hasFailure ? 'nok' : (allComplete ? 'ok' : 'pending');
             
             // Émettre les événements
             this.$dispatch('qc-status-changed', { status: this.qcStatus });
@@ -301,7 +352,7 @@ window.qualityControl = function() {
                 const avgG = parseFloat(this.moyenneMasseSurfaciqueG);
                 const avgD = parseFloat(this.moyenneMasseSurfaciqueD);
                 if (!isNaN(avgG) && !isNaN(avgD)) {
-                    this.moyenneGlobaleMasseSurf = ((avgG + avgD) / 2).toFixed(1);
+                    this.moyenneGlobaleMasseSurf = ((avgG + avgD) / 2).toFixed(4);
                 } else {
                     this.moyenneGlobaleMasseSurf = '--';
                 }

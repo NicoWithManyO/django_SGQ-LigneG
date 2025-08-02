@@ -694,21 +694,42 @@
                             <div>
                                 <div class="small text-muted mb-2 text-center">Micromaire G (<span x-text="micromaireUnit || 'mlAir/min'"></span>)</div>
                                 <div class="d-flex flex-column align-items-center">
-                                    <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[0]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[0] = v">
-                                    <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[1]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[1] = v">
-                                    <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[2]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[2] = v">
+                                    <div class="position-relative mb-1">
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[0]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[0] = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 50%; transform: translateY(-50%); font-size: 0.875rem;"
+                                           x-show="isValueNOK(micromaireG[0], 'micromaire')"></i>
+                                    </div>
+                                    <div class="position-relative mb-1">
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[1]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[1] = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 50%; transform: translateY(-50%); font-size: 0.875rem;"
+                                           x-show="isValueNOK(micromaireG[1], 'micromaire')"></i>
+                                    </div>
+                                    <div class="position-relative mb-1">
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[2]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[2] = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 50%; transform: translateY(-50%); font-size: 0.875rem;"
+                                           x-show="isValueNOK(micromaireG[2], 'micromaire')"></i>
+                                    </div>
                                 </div>
                                 <div class="small text-muted text-center">Moyenne : <span x-text="moyenneMicromaireG"></span></div>
                                 
                                 <div class="small text-muted mt-3 text-center">Masse Surfacique G (g/25cm²)</div>
                                 <div class="d-flex justify-content-center mt-1" style="gap: 60px;">
-                                    <div class="text-center">
+                                    <div class="text-center position-relative">
                                         <div class="small text-muted">GG</div>
                                         <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="masseSurfaciqueGG" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; masseSurfaciqueGG = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 28px; font-size: 0.875rem;"
+                                           x-show="isValueNOK(masseSurfaciqueGG, 'masse_surfacique')"></i>
                                     </div>
-                                    <div class="text-center">
+                                    <div class="text-center position-relative">
                                         <div class="small text-muted">GC</div>
                                         <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="masseSurfaciqueGC" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; masseSurfaciqueGC = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 28px; font-size: 0.875rem;"
+                                           x-show="isValueNOK(masseSurfaciqueGC, 'masse_surfacique')"></i>
                                     </div>
                                 </div>
                                 <div class="small text-muted text-center mt-1">Moyenne : <span x-text="moyenneMasseSurfaciqueG"></span></div>
@@ -723,21 +744,42 @@
                             <div>
                                 <div class="small text-muted mb-2 text-center">Micromaire D (<span x-text="micromaireUnit || 'mlAir/min'"></span>)</div>
                                 <div class="d-flex flex-column align-items-center">
-                                    <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[0]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[0] = v">
-                                    <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[1]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[1] = v">
-                                    <input type="text" class="form-control form-control-sm text-center mb-1" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[2]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[2] = v">
+                                    <div class="position-relative mb-1">
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[0]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[0] = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 50%; transform: translateY(-50%); font-size: 0.875rem;"
+                                           x-show="isValueNOK(micromaireD[0], 'micromaire')"></i>
+                                    </div>
+                                    <div class="position-relative mb-1">
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[1]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[1] = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 50%; transform: translateY(-50%); font-size: 0.875rem;"
+                                           x-show="isValueNOK(micromaireD[1], 'micromaire')"></i>
+                                    </div>
+                                    <div class="position-relative mb-1">
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[2]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[2] = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 50%; transform: translateY(-50%); font-size: 0.875rem;"
+                                           x-show="isValueNOK(micromaireD[2], 'micromaire')"></i>
+                                    </div>
                                 </div>
                                 <div class="small text-muted text-center">Moyenne : <span x-text="moyenneMicromaireD"></span></div>
                                 
                                 <div class="small text-muted mt-3 text-center">Masse Surfacique D (g/25cm²)</div>
                                 <div class="d-flex justify-content-center mt-1" style="gap: 60px;">
-                                    <div class="text-center">
+                                    <div class="text-center position-relative">
                                         <div class="small text-muted">DC</div>
                                         <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="masseSurfaciqueDC" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; masseSurfaciqueDC = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 28px; font-size: 0.875rem;"
+                                           x-show="isValueNOK(masseSurfaciqueDC, 'masse_surfacique')"></i>
                                     </div>
-                                    <div class="text-center">
+                                    <div class="text-center position-relative">
                                         <div class="small text-muted">DD</div>
                                         <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="masseSurfaciqueDD" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; masseSurfaciqueDD = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 28px; font-size: 0.875rem;"
+                                           x-show="isValueNOK(masseSurfaciqueDD, 'masse_surfacique')"></i>
                                     </div>
                                 </div>
                                 <div class="small text-muted text-center mt-1">Moyenne : <span x-text="moyenneMasseSurfaciqueD"></span></div>
@@ -747,7 +789,12 @@
                             <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 30px; width: 150px;">
                                 <div class="small text-muted mb-1 text-center">Extrait Sec (%)</div>
                                 <div class="d-flex justify-content-center">
-                                    <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="extraitSec" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; extraitSec = v; if(v) { const now = new Date(); extraitTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); } else { extraitTime = '--:--'; }">
+                                    <div class="position-relative">
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="extraitSec" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; extraitSec = v; if(v) { const now = new Date(); extraitTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); } else { extraitTime = '--:--'; }">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 50%; transform: translateY(-50%); font-size: 0.875rem;"
+                                           x-show="isValueNOK(extraitSec, 'extrait_sec')"></i>
+                                    </div>
                                 </div>
                                 <div class="small text-muted text-center mt-1" x-text="extraitTime">--:--</div>
                             </div>
