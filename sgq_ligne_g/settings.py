@@ -47,8 +47,8 @@ INSTALLED_APPS = [
     'wcm',
     'production',
     'quality',
-    'livesession',  # App pour gérer les sessions
-    # 'frontend',  # App désactivée - remplacée par frontendv3
+    # 'livesession',  # App archivée dans _archived/ - remplacée par frontendv3
+    # 'frontend',  # App archivée dans _archived/ - remplacée par frontendv3
     'frontendv3',  # Nouvelle app V3
     'exporting',  # App pour l'export des données
     'management',  # App pour le management et supervision

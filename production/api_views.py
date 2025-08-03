@@ -309,17 +309,8 @@ class ShiftViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         
         # Récupérer toutes les données de session nécessaires
-        # Les données V3 sont stockées dans request.session['v3_production']
-        v3_data = request.session.get('v3_production', {})
-        
-        session_data = {
-            'session_key': request.session.session_key,
-            'checklist_responses': v3_data.get('checklist_responses', {}),
-            'checklist_signature': v3_data.get('checklist_signature'),
-            'checklist_signature_time': v3_data.get('checklist_signature_time'),
-            'quality_control': v3_data.get('quality_control', {}),
-            'lost_time_entries': v3_data.get('lost_time_entries', []),
-        }
+        # Utiliser la méthode de mapping V3
+        session_data = self._prepare_session_data_v3(request)
         
         # Debug : logger ce qu'on a dans la session
         if settings.DEBUG:
@@ -614,6 +605,79 @@ class ShiftViewSet(viewsets.ModelViewSet):
                 {'error': f'Erreur lors du calcul des statistiques: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    def _prepare_session_data_v3(self, request):
+        """
+        Prépare les données de session V3 pour le service.
+        Mappe les clés V3 vers le format attendu par le backend.
+        """
+        v3_data = request.session.get('v3_production', {})
+        
+        # Mapper la checklist V3
+        checklist_data = v3_data.get('checklist', {})
+        
+        # Construire les données QC depuis les champs individuels V3
+        quality_control = {}
+        
+        # Vérifier si on a des données QC
+        has_qc_data = any([
+            v3_data.get('qc_micromaire_g'),
+            v3_data.get('qc_micromaire_d'),
+            v3_data.get('qc_masse_surfacique_gg'),
+            v3_data.get('qc_masse_surfacique_gc'),
+            v3_data.get('qc_masse_surfacique_dc'),
+            v3_data.get('qc_masse_surfacique_dd'),
+            v3_data.get('qc_extrait_sec'),
+            v3_data.get('qc_loi') is not None
+        ])
+        
+        if has_qc_data:
+            # Fonction helper pour calculer la moyenne
+            def calc_avg(values):
+                if not values:
+                    return None
+                valid_values = [float(v) for v in values if v]
+                return sum(valid_values) / len(valid_values) if valid_values else None
+            
+            # Mapper les données
+            quality_control = {
+                'micrometry': {
+                    'left': v3_data.get('qc_micromaire_g', []),
+                    'right': v3_data.get('qc_micromaire_d', []),
+                    'averageLeft': calc_avg(v3_data.get('qc_micromaire_g', [])),
+                    'averageRight': calc_avg(v3_data.get('qc_micromaire_d', []))
+                },
+                'surfaceMass': {
+                    'leftLeft': v3_data.get('qc_masse_surfacique_gg'),
+                    'leftCenter': v3_data.get('qc_masse_surfacique_gc'),
+                    'rightCenter': v3_data.get('qc_masse_surfacique_dc'),
+                    'rightRight': v3_data.get('qc_masse_surfacique_dd'),
+                    'averageLeft': calc_avg([
+                        v3_data.get('qc_masse_surfacique_gg'),
+                        v3_data.get('qc_masse_surfacique_gc')
+                    ]),
+                    'averageRight': calc_avg([
+                        v3_data.get('qc_masse_surfacique_dc'),
+                        v3_data.get('qc_masse_surfacique_dd')
+                    ])
+                },
+                'dryExtract': {
+                    'value': v3_data.get('qc_extrait_sec'),
+                    'timestamp': v3_data.get('qc_extrait_time'),
+                    'sample': v3_data.get('qc_loi'),
+                    'loiTimestamp': v3_data.get('qc_loi_time')
+                },
+                'status': v3_data.get('qc_status', 'pending')
+            }
+        
+        return {
+            'session_key': request.session.session_key,
+            'checklist_responses': checklist_data.get('responses', {}),
+            'checklist_signature': checklist_data.get('signature'),
+            'checklist_signature_time': checklist_data.get('signatureTime'),
+            'quality_control': quality_control,
+            'lost_time_entries': v3_data.get('lost_time_entries', []),
+        }
 
 
 # Vues API simples pour la vérification d'unicité

@@ -140,7 +140,8 @@ window.qualityControl = function() {
                 this.autoSave();
             });
             this.$watch('extraitTime', () => this.autoSave());
-            this.$watch('loi', () => {
+            this.$watch('loi', (newValue) => {
+                debug('LOI changed:', newValue);
                 this.checkQCStatus();
                 this.autoSave();
             });
@@ -176,7 +177,10 @@ window.qualityControl = function() {
                 if (window.sessionData.qc_masse_surfacique_dd) this.masseSurfaciqueDD = window.sessionData.qc_masse_surfacique_dd;
                 if (window.sessionData.qc_extrait_sec) this.extraitSec = window.sessionData.qc_extrait_sec;
                 if (window.sessionData.qc_extrait_time) this.extraitTime = window.sessionData.qc_extrait_time;
-                if (window.sessionData.qc_loi !== undefined) this.loi = window.sessionData.qc_loi;
+                if (window.sessionData.qc_loi !== undefined) {
+                    this.loi = window.sessionData.qc_loi;
+                    debug('LOI loaded from session:', this.loi);
+                }
                 if (window.sessionData.qc_loi_time) this.loiTime = window.sessionData.qc_loi_time;
                 if (window.sessionData.qc_status) this.qcStatus = window.sessionData.qc_status;
                 

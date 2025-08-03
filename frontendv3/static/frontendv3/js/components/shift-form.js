@@ -456,10 +456,6 @@ function shiftForm() {
                 operatorId = operator.id;
             }
             
-            // Récupérer l'humeur depuis la modale
-            const modal = Alpine.$data(document.querySelector('[x-data="confirmModal()"]'));
-            const mood = modal.selectedMood || 'happy';
-            
             const data = {
                 shift_id: this.shiftId,
                 operator: operatorId, // Le backend attend un ID numérique
@@ -471,8 +467,7 @@ function shiftForm() {
                 meter_reading_start: this.lengthStart ? parseFloat(this.lengthStart) : null,
                 started_at_end: this.machineStartedEnd,
                 meter_reading_end: this.lengthEnd ? parseFloat(this.lengthEnd) : null,
-                operator_comments: this.comments || '',
-                operator_mood: mood // Ajouter l'humeur
+                operator_comments: this.comments || ''
             };
             
             // Ajouter les données de signature checklist depuis la session

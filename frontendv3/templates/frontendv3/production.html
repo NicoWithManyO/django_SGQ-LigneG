@@ -801,7 +801,7 @@
                             <div style="position: absolute; left: 50%; transform: translateX(-50%); bottom: 50px; text-align: center;">
                                 <div class="small text-muted mb-1">LOI</div>
                                 <div class="form-check form-switch d-flex justify-content-center">
-                                    <input class="form-check-input" type="checkbox" id="loiSwitch" style="cursor: pointer;" x-model="loi" @change="loi = $event.target.checked; if(loi) { const now = new Date(); loiTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); } else { loiTime = '--:--'; }">
+                                    <input class="form-check-input" type="checkbox" id="loiSwitch" style="cursor: pointer;" x-model="loi" @change="if($event.target.checked) { const now = new Date(); loiTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); } else { loiTime = '--:--'; }">
                                 </div>
                                 <div class="small text-muted mt-1" x-text="loiTime">--:--</div>
                             </div>
@@ -919,7 +919,13 @@
                         <span>
                             <i class="bi bi-card-checklist"></i> Check-list
                         </span>
-                        <i class="bi" :class="chevronClass"></i>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-magic text-warning" 
+                               style="cursor: pointer; font-size: 1.1rem;" 
+                               @click.stop="if(window.testHelpers && window.testHelpers.fillChecklist) { window.testHelpers.fillChecklist($data); }"
+                               title="Remplir automatiquement la checklist"></i>
+                            <i class="bi" :class="chevronClass"></i>
+                        </div>
                     </h5>
                 </div>
                 <div class="card-body" x-show="isExpanded" x-transition>

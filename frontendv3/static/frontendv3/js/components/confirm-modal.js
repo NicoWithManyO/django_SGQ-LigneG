@@ -33,7 +33,27 @@ window.confirmModal = function() {
             });
             
             // Écouter l'événement de fermeture pour réinitialiser l'état
-            document.getElementById('confirmModal').addEventListener('hidden.bs.modal', () => {
+            document.getElementById('confirmModal').addEventListener('hidden.bs.modal', async () => {
+                // Incrémenter le compteur de mood si on a sélectionné un mood
+                if (this.selectedMood && this.saveSuccess) {
+                    try {
+                        const response = await fetch('/wcm/api/mood-counter/increment/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                            },
+                            body: JSON.stringify({ mood: this.selectedMood })
+                        });
+                        
+                        if (response.ok) {
+                            debug('Compteur mood incrémenté:', this.selectedMood);
+                        }
+                    } catch (error) {
+                        console.error('Erreur incrémentation mood:', error);
+                    }
+                }
+                
                 this.resetModal();
             });
         },

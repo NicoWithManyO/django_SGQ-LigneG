@@ -172,9 +172,42 @@ function fillRollGridRandom(component) {
     showNotification('success', 'Valeurs aléatoires générées dans les tolérances');
 }
 
+// Fonction pour remplir la checklist automatiquement
+function fillChecklistWithMagic(component) {
+    // Mettre tous les items en OK
+    component.items.forEach(item => {
+        component.responses[item.id] = 'OK';
+    });
+    
+    // Récupérer l'opérateur sélectionné
+    const operatorId = window.sessionData?.shift?.operatorId;
+    if (!operatorId) {
+        showNotification('error', 'Aucun opérateur sélectionné pour générer les initiales');
+        return;
+    }
+    
+    // Extraire les initiales de l'employee_id (ex: "MartinDUPONT" -> "MD")
+    const match = operatorId.match(/^([A-Z])[a-z]*([A-Z])/);
+    if (!match) {
+        showNotification('error', 'Format opérateur invalide pour générer les initiales');
+        return;
+    }
+    
+    const initials = match[1] + match[2]; // Ex: "MD"
+    
+    // Remplir la signature avec les bonnes initiales
+    component.signature = initials;
+    
+    // Simuler le clic sur le bouton de signature pour valider
+    component.saveSignature();
+    
+    showNotification('success', 'Checklist remplie automatiquement avec tous les items OK');
+}
+
 // Exposer les fonctions de test
 window.testHelpers = {
     fillQualityControl: fillQualityControlWithRandomValues,
     clearRollGrid: clearRollGrid,
-    fillRollGrid: fillRollGridRandom
+    fillRollGrid: fillRollGridRandom,
+    fillChecklist: fillChecklistWithMagic
 };
