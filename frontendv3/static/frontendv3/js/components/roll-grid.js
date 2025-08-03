@@ -17,6 +17,7 @@ function rollGrid() {
         thicknessSpec: null,
         _lastConformityStatus: null, // Pour tracker les changements de statut
         allDefectTypes: [], // Pour garder tous les types y compris "Epaisseurs"
+        grammageStatus: '', // Pour stocker le statut du grammage
         
         // État de la popup
         showPopup: false,
@@ -27,6 +28,7 @@ function rollGrid() {
         
         // Constantes de grille
         CELLS_PER_ROW: 7,
+        MIDDLE_COLUMN: 3,  // Colonne centrale qui sépare Gauche/Droite
         
         // Getters calculés
         get totalRows() {
@@ -134,11 +136,28 @@ function rollGrid() {
                 this.conformityStatus;
             });
             
+            // Écouter les changements de statut du grammage
+            window.addEventListener('grammage-status-changed', (event) => {
+                this.grammageStatus = event.detail.status || '';
+                // Forcer le recalcul de la conformité
+                this._lastConformityStatus = null;
+                this.conformityStatus;
+            });
+            
+            // Récupérer le statut initial du grammage
+            const stickyBarElement = document.querySelector('[x-data*="stickyBar"]');
+            if (stickyBarElement && stickyBarElement._x_dataStack) {
+                this.grammageStatus = stickyBarElement._x_dataStack[0].grammageStatus || '';
+            }
+            
             // Charger les types de défauts depuis l'API
             this.loadDefectTypes();
             
             // Exposer l'instance globalement pour l'accès externe
             window.rollGridInstance = this;
+            
+            // Exposer la méthode getCellInfo pour usage dans les templates
+            window.rollGridUtils.getCellInfo = (key) => this.getCellInfo(key);
             
             // Émettre l'événement initial des défauts
             this.$nextTick(() => {
@@ -205,6 +224,20 @@ function rollGrid() {
         // Utilitaire pour générer une clé unique pour une cellule
         getCellKey(row, col) {
             return `${row}-${col}`;
+        },
+        
+        // Helper pour obtenir les infos d'une cellule à partir de sa clé
+        getCellInfo(key) {
+            const [row, col] = key.split('-').map(Number);
+            const meter = row + 1;
+            const position = col < this.MIDDLE_COLUMN ? 'G' : 'D';
+            return { 
+                meter, 
+                position, 
+                posKey: `${position}${meter}m`,
+                row,
+                col
+            };
         },
         
         // Gestion de la saisie numérique pour les épaisseurs
@@ -645,6 +678,14 @@ function rollGrid() {
                 console.log('No NOK limit defined or limit = 0, staying CONFORME');
             }
             
+            // 5. Vérifier le grammage (depuis la sticky bar)
+            const grammageStatus = this.checkGrammageStatus();
+            console.log(`Grammage status: ${grammageStatus}`);
+            if (grammageStatus === 'nok') {
+                console.log('Grammage NOK -> NON CONFORME');
+                return 'NON_CONFORME';
+            }
+            
             // Si tous les critères sont OK, on est CONFORME
             return 'CONFORME';
         },
@@ -697,16 +738,57 @@ function rollGrid() {
             return { exceeded: false };
         },
         
+        // Vérifier le statut du grammage depuis la sticky bar
+        checkGrammageStatus() {
+            // Chercher l'instance de la sticky bar
+            const stickyBarElement = document.querySelector('[x-data*="stickyBar"]');
+            if (stickyBarElement && stickyBarElement._x_dataStack) {
+                const stickyBarInstance = stickyBarElement._x_dataStack[0];
+                return stickyBarInstance.grammageStatus || '';
+            }
+            return '';
+        },
+        
+        // Vérifier si toutes les épaisseurs sont remplies
+        areAllThicknessesFilled() {
+            // Compter le nombre de cellules d'épaisseur
+            let thicknessCells = 0;
+            let filledCells = 0;
+            
+            this.gridCells.forEach(cell => {
+                if (cell.isThickness) {
+                    thicknessCells++;
+                    const key = this.getCellKey(cell.row, cell.col);
+                    // Une cellule est remplie si elle a une valeur dans thicknessValues OU dans rattrapages
+                    if (this.thicknessValues[key] || this.rattrapages[key]) {
+                        filledCells++;
+                    }
+                }
+            });
+            
+            return thicknessCells > 0 && thicknessCells === filledCells;
+        },
+        
+        // Propriété computed pour savoir si toutes les épaisseurs sont remplies
+        get allThicknessesFilled() {
+            return this.areAllThicknessesFilled();
+        },
+        
         // Propriété computed pour le statut de conformité
         get conformityStatus() {
             try {
                 const status = this.calculateConformityStatus();
+                const allFilled = this.areAllThicknessesFilled();
                 
-                // Émettre l'événement si le statut a changé
-                if (this._lastConformityStatus !== status) {
+                // Émettre l'événement si le statut a changé ou si l'état de remplissage a changé
+                if (this._lastConformityStatus !== status || this._lastAllFilled !== allFilled) {
                     this._lastConformityStatus = status;
+                    this._lastAllFilled = allFilled;
                     window.dispatchEvent(new CustomEvent('roll-conformity-changed', {
-                        detail: { status }
+                        detail: { 
+                            status,
+                            allThicknessesFilled: allFilled
+                        }
                     }));
                 }
                 

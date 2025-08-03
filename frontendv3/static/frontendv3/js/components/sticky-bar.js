@@ -47,11 +47,12 @@ function stickyBar() {
             // Écouter les changements globaux
             this.listenToGlobalEvents();
             
-            // Watchers pour auto-save (pas pour rollNumber, il se fait au blur)
-            this.$watch('tubeMass', () => this.handleDataChange());
-            this.$watch('length', () => this.handleDataChange());
-            this.$watch('totalMass', () => this.handleDataChange());
-            this.$watch('nextTubeMass', () => this.handleDataChange());
+            // Watchers pour auto-save dans la session uniquement
+            // Le calcul et l'émission d'événements se feront au blur
+            this.$watch('tubeMass', () => window.session.save('sticky_tube_mass', this.tubeMass));
+            this.$watch('length', () => window.session.save('sticky_length', this.length));
+            this.$watch('totalMass', () => window.session.save('sticky_total_mass', this.totalMass));
+            this.$watch('nextTubeMass', () => window.session.save('sticky_next_tube_mass', this.nextTubeMass));
             
             // Cleanup se fera automatiquement quand le composant est détruit
         },
@@ -330,6 +331,11 @@ function stickyBar() {
             this.calculateValues();
         },
         
+        // Gérer le blur des champs (recalcul et émission d'événements)
+        handleFieldBlur() {
+            this.calculateValues();
+        },
+        
         // Calculer les valeurs dérivées
         calculateValues() {
             // Calculer la masse nette
@@ -369,7 +375,13 @@ function stickyBar() {
         checkGrammageStatus() {
             // Si pas de grammage calculé ou pas de specs
             if (this.grammage === '--' || !this.profileSpecs) {
-                this.grammageStatus = '';
+                // Si le statut change, émettre l'événement
+                if (this.grammageStatus !== '') {
+                    this.grammageStatus = '';
+                    window.dispatchEvent(new CustomEvent('grammage-status-changed', {
+                        detail: { status: '', value: null }
+                    }));
+                }
                 return;
             }
             
@@ -394,16 +406,23 @@ function stickyBar() {
             }
             
             // Vérifier selon les 4 seuils (comme pour les épaisseurs)
+            let newStatus = 'ok';
             if (spec.value_min !== null && value < spec.value_min) {
-                this.grammageStatus = 'nok';
+                newStatus = 'nok';
             } else if (spec.value_min_alert !== null && value < spec.value_min_alert) {
-                this.grammageStatus = 'alert';
+                newStatus = 'alert';
             } else if (spec.value_max !== null && value > spec.value_max) {
-                this.grammageStatus = 'nok';
+                newStatus = 'nok';
             } else if (spec.value_max_alert !== null && value > spec.value_max_alert) {
-                this.grammageStatus = 'alert';
-            } else {
-                this.grammageStatus = 'ok';
+                newStatus = 'alert';
+            }
+            
+            // Si le statut a changé, émettre un événement
+            if (this.grammageStatus !== newStatus) {
+                this.grammageStatus = newStatus;
+                window.dispatchEvent(new CustomEvent('grammage-status-changed', {
+                    detail: { status: newStatus, value: value }
+                }));
             }
             
             debug('Grammage status:', this.grammageStatus, 'for value:', value);
