@@ -149,14 +149,17 @@ function shiftForm() {
             this.$watch('operatorId', () => {
                 this.tryGenerateShiftId();
                 this.saveToSession();
+                this.emitShiftDataChanged();
             });
             this.$watch('date', () => {
                 this.tryGenerateShiftId();
                 this.saveToSession();
+                this.emitShiftDataChanged();
             });
             this.$watch('vacation', () => {
                 this.tryGenerateShiftId();
                 this.saveToSession();
+                this.emitShiftDataChanged();
             });
             
             // Observer les nouveaux champs
@@ -604,6 +607,19 @@ function shiftForm() {
             // Les données sont persistées via saveToSession dans handleFieldChange
             
             showNotification('info', 'Formulaire réinitialisé pour le prochain poste');
+        },
+        
+        // Émettre un événement quand les données du shift changent
+        emitShiftDataChanged() {
+            window.dispatchEvent(new CustomEvent('shift-data-changed', {
+                detail: {
+                    operatorId: this.operatorId,
+                    date: this.date,
+                    vacation: this.vacation,
+                    shiftId: this.shiftId,
+                    isComplete: this.canGenerateId()
+                }
+            }));
         },
         
         // Récupérer la longueur du dernier poste

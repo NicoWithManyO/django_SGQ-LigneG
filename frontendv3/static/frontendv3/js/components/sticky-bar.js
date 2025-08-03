@@ -33,6 +33,13 @@ function stickyBar() {
         // Timer pour l'horloge
         clockTimer: null,
         
+        // État pour le bouton de sauvegarde
+        rollConformityStatus: 'CONFORME',
+        allThicknessesFilled: false,
+        operatorId: '',
+        shiftDate: '',
+        vacation: '',
+        
         // Initialisation
         init() {
             debug('Sticky bar initialized');
@@ -66,6 +73,11 @@ function stickyBar() {
             this.ofNumber = ofData.ofEnCours || '';
             this.rollNumber = window.sessionData?.sticky_roll_number || rollData.rollNumber || '';
             this.shiftId = shiftData.shiftId || '';
+            
+            // Charger les données du shift
+            this.operatorId = shiftData.operatorId || '';
+            this.shiftDate = shiftData.date || '';
+            this.vacation = shiftData.vacation || '';
             
             // Charger les données du rouleau
             this.tubeMass = window.sessionData?.sticky_tube_mass || '';
@@ -139,6 +151,52 @@ function stickyBar() {
                     this.profileSpecs = event.detail.profileSpecs;
                     // Revérifier le statut du grammage avec les nouvelles specs
                     this.checkGrammageStatus();
+                }
+            });
+            
+            // Écouter les changements de conformité
+            window.addEventListener('roll-conformity-changed', (event) => {
+                console.log('Conformity changed:', event.detail);
+                
+                // Mettre à jour le statut de conformité et l'état des épaisseurs
+                this.rollConformityStatus = event.detail.status;
+                this.allThicknessesFilled = event.detail.allThicknessesFilled || false;
+                
+                // Si le statut passe à NON_CONFORME, changer l'ID en format OF découpe
+                if (event.detail.status === 'NON_CONFORME') {
+                    // Vérifier si on n'est pas déjà en format découpe
+                    if (!this.rollId.startsWith('9999_')) {
+                        // Sauvegarder l'OF et le numéro de rouleau originaux avant de changer
+                        window.session.save('original_of', this.ofNumber);
+                        window.session.save('original_roll_number', this.rollNumber);
+                        this.switchToDiscoveryRollId();
+                    }
+                }
+                // Si le statut repasse à CONFORME, restaurer l'ID normal
+                else if (event.detail.status === 'CONFORME') {
+                    // Restaurer l'OF et le numéro originaux depuis la session
+                    const originalOF = window.sessionData?.original_of;
+                    const originalRollNumber = window.sessionData?.original_roll_number;
+                    
+                    if (originalOF && originalRollNumber) {
+                        this.ofNumber = originalOF;
+                        this.rollNumber = originalRollNumber;
+                        this.updateRollId();
+                        this.rollStatus = 'ok';
+                        
+                        // Nettoyer les données temporaires
+                        window.session.remove('original_of');
+                        window.session.remove('original_roll_number');
+                    }
+                }
+            });
+            
+            // Écouter les changements de shift pour récupérer les données
+            window.addEventListener('shift-data-changed', (event) => {
+                if (event.detail) {
+                    this.operatorId = event.detail.operatorId || '';
+                    this.shiftDate = event.detail.date || '';
+                    this.vacation = event.detail.vacation || '';
                 }
             });
         },
@@ -371,6 +429,31 @@ function stickyBar() {
             this.checkGrammageStatus();
         },
         
+        // Basculer vers l'ID rouleau de découpe
+        switchToDiscoveryRollId() {
+            // Format : 9999_JJMMAA
+            const now = new Date();
+            const day = now.getDate().toString().padStart(2, '0');
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const year = now.getFullYear().toString().slice(-2);
+            
+            this.rollId = `9999_${day}${month}${year}`;
+            this.rollStatus = 'nok';
+            
+            // Sauvegarder dans la session
+            window.session.save('sticky_roll_id', this.rollId);
+            
+            // Émettre un événement pour informer les autres composants
+            window.dispatchEvent(new CustomEvent('roll-id-changed', {
+                detail: { 
+                    rollId: this.rollId,
+                    isDiscovery: true
+                }
+            }));
+            
+            debug(`Roll ID switched to discovery format: ${this.rollId}`);
+        },
+        
         // Vérifier le statut du grammage par rapport aux specs
         checkGrammageStatus() {
             // Si pas de grammage calculé ou pas de specs
@@ -426,6 +509,54 @@ function stickyBar() {
             }
             
             debug('Grammage status:', this.grammageStatus, 'for value:', value);
+        },
+        
+        // Propriétés calculées pour le bouton de sauvegarde
+        get hasRequiredShiftData() {
+            return this.operatorId && this.shiftDate && this.vacation;
+        },
+        
+        get hasGrammage() {
+            return this.grammage !== '--' && this.grammage !== '';
+        },
+        
+        get canSaveRoll() {
+            // Toujours besoin des données du poste et du grammage
+            if (!this.hasRequiredShiftData || !this.hasGrammage) {
+                return false;
+            }
+            
+            // Si conforme, besoin de toutes les épaisseurs
+            if (this.rollConformityStatus === 'CONFORME') {
+                debug(`Checking canSaveRoll: allThicknessesFilled=${this.allThicknessesFilled}`);
+                return this.allThicknessesFilled;
+            }
+            
+            // Si non conforme, on peut sauver même sans toutes les épaisseurs
+            return true;
+        },
+        
+        get saveButtonTooltip() {
+            // Si le bouton est actif, pas de tooltip
+            if (this.canSaveRoll) {
+                return '';
+            }
+            
+            // Sinon, lister ce qui manque
+            const missing = [];
+            
+            if (!this.operatorId) missing.push('Opérateur requis');
+            if (!this.shiftDate) missing.push('Date requise');
+            if (!this.vacation) missing.push('Vacation requise');
+            if (!this.hasGrammage) missing.push('Grammage requis (masse + longueur)');
+            
+            if (this.rollConformityStatus === 'CONFORME' && !this.allThicknessesFilled) {
+                debug(`Tooltip check: conformityStatus=${this.rollConformityStatus}, allThicknessesFilled=${this.allThicknessesFilled}`);
+                missing.push('Toutes les épaisseurs requises');
+            }
+            
+            debug(`SaveButtonTooltip: ${missing.join(' • ')}`);
+            return missing.join(' • ');
         }
     };
 }

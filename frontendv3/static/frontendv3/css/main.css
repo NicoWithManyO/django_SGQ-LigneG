@@ -293,13 +293,14 @@ body {
 }
 
 .defect-badge {
-    font-size: 0.65rem;
-    padding: 0.1rem 0.25rem;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.35rem;
     cursor: pointer;
     line-height: 1.2;
     position: relative;
     transform: rotate(-15deg);
     z-index: 2;
+    font-weight: normal !important;
 }
 
 /* Compteur de défauts */
@@ -346,8 +347,8 @@ body {
 }
 
 .defect-popup-btn {
-    font-size: 0.7rem !important;
-    padding: 0.15rem 0.4rem !important;
+    font-size: 0.85rem !important;
+    padding: 0.25rem 0.6rem !important;
     line-height: 1.2 !important;
     background-color: transparent !important;
     transition: all 0.2s;
@@ -379,8 +380,8 @@ body {
     left: calc(100% - var(--cell-position-with-thickness) - 10px);
     top: 50%;
     transform: translate(-50%, -50%);
-    font-size: 0.65rem;
-    padding: 0.1rem 0.25rem;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.35rem;
     line-height: 1.2;
 }
 
@@ -654,6 +655,13 @@ body {
     background-color: white;
     box-shadow: none;
     color: #0d6efd;
+}
+
+/* Sticky bar - bouton désactivé */
+.sticky-bar .btn:disabled,
+.sticky-bar .btn[disabled] {
+    cursor: not-allowed !important;
+    opacity: 0.65;
 }
 
 /* Utilities */

@@ -843,9 +843,9 @@
                                              window.addEventListener('defects-updated', calculateDefects);
                                          }
                                      }">
-                                    <div x-show="totalDefects > 0">
+                                    <div>
                                         <div class="small text-muted"><strong><span x-text="totalDefects"></span> Défaut<span x-text="totalDefects > 1 ? 's' : ''"></span></strong></div>
-                                        <div class="text-muted text-detail" x-text="(() => {
+                                        <div class="text-muted text-detail" x-show="totalDefects > 0" x-text="(() => {
                                             const defects = window.rollGridInstance?.defects || {};
                                             const defectsByType = {};
                                             
@@ -864,8 +864,21 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col text-center">
+                            <div class="col text-center"
+                                 x-data="{
+                                     qcStatus: 'pending',
+                                     init() {
+                                         // Écouter les changements du badge QC
+                                         window.addEventListener('qc-badge-changed', (event) => {
+                                             this.qcStatus = event.detail.status;
+                                         });
+                                     }
+                                 }">
                                 <div>
+                                    <!-- Affichage du QC NOK au-dessus du badge -->
+                                    <div x-show="qcStatus === 'nok'" class="mb-2">
+                                        <div class="small text-muted"><strong>Contrôle Qualité NOK</strong></div>
+                                    </div>
                                     <span class="badge conformity-badge mx-3" 
                                           :class="{
                                               'conformity-ok': conformityStatus === 'CONFORME' && !allThicknessesFilled,
@@ -883,10 +896,31 @@
                             </div>
                             <div class="col">
                                 <!-- Récap des épaisseurs NOK - directement depuis rollGrid -->
-                                <div class="text-start text-wrap-break">
-                                    <div x-show="Object.keys(rattrapages).length > 0">
-                                        <div class="small text-muted"><strong><span x-text="Object.keys(rattrapages).length"></span> Épaisseur<span x-text="Object.keys(rattrapages).length > 1 ? 's' : ''"></span> NOK</strong></div>
-                                        <div class="text-muted text-detail" x-text="(() => {
+                                <div class="text-start text-wrap-break"
+                                     x-data="{
+                                         get filledThicknessCount() {
+                                             // Compter les épaisseurs remplies (valeurs normales + rattrapages avec correction)
+                                             let count = 0;
+                                             gridCells.forEach(cell => {
+                                                 if (cell.isThickness) {
+                                                     const key = `${cell.row}-${cell.col}`;
+                                                     if (thicknessValues[key]) {
+                                                         count++;
+                                                     }
+                                                 }
+                                             });
+                                             return count;
+                                         },
+                                         get totalExpectedThickness() {
+                                             // Nombre de cellules d'épaisseur de base + rattrapages possibles
+                                             const baseCount = gridCells.filter(cell => cell.isThickness).length;
+                                             const rattrapageCount = Object.keys(rattrapages).length;
+                                             return baseCount + rattrapageCount;
+                                         }
+                                     }">
+                                    <div>
+                                        <div class="small text-muted"><strong>Ep : <span x-text="filledThicknessCount"></span> OK | <span x-text="Object.keys(rattrapages).length"></span> NOK / <span x-text="totalExpectedThickness"></span></strong></div>
+                                        <div class="text-muted text-detail" x-show="Object.keys(rattrapages).length > 0" x-text="(() => {
                                             const entries = Object.entries(rattrapages).map(([key, value]) => {
                                                 const info = window.rollGridUtils.getCellInfo(key);
                                                 const rattrapage = thicknessValues[key];
@@ -1134,13 +1168,17 @@
                             <i class="bi me-n1" style="font-size: 0.9rem;" 
                                x-show="rollId && rollId !== '--'"
                                :class="{
-                                   'bi-hourglass-split text-warning': checkingRollId,
-                                   'bi-check-circle-fill': !checkingRollId && rollIdExists === false,
-                                   'bi-exclamation-triangle-fill': !checkingRollId && rollIdExists === true
+                                   'bi-scissors': rollId.startsWith('9999_'),
+                                   'bi-hourglass-split text-warning': !rollId.startsWith('9999_') && checkingRollId,
+                                   'bi-check-circle-fill': !rollId.startsWith('9999_') && !checkingRollId && rollIdExists === false,
+                                   'bi-exclamation-triangle-fill': !rollId.startsWith('9999_') && !checkingRollId && rollIdExists === true
                                }"
-                               :style="!checkingRollId && rollIdExists === false ? 'color: #198754;' : (!checkingRollId && rollIdExists === true ? 'color: #ffc107;' : '')"
-                               :title="checkingRollId ? 'Vérification...' : (rollIdExists === true ? 'ID déjà existant !' : 'ID disponible')"></i>
-                            <div class="form-control form-control-sm text-white fw-bold text-start" style="background: transparent; border: 1px solid transparent; cursor: default;" x-text="rollId">--</div>
+                               :style="rollId.startsWith('9999_') ? 'color: #fd7e14;' : (!checkingRollId && rollIdExists === false ? 'color: #198754;' : (!checkingRollId && rollIdExists === true ? 'color: #ffc107;' : ''))"
+                               :title="rollId.startsWith('9999_') ? 'Rouleau de découpe' : (checkingRollId ? 'Vérification...' : (rollIdExists === true ? 'ID déjà existant !' : 'ID disponible'))"></i>
+                            <div class="form-control form-control-sm fw-bold text-start" 
+                                 :class="rollId.startsWith('9999_') ? '' : 'text-white'"
+                                 :style="rollId.startsWith('9999_') ? 'background: transparent; border: 1px solid transparent; cursor: default; color: #fd7e14;' : 'background: transparent; border: 1px solid transparent; cursor: default;'" 
+                                 x-text="rollId">--</div>
                         </div>
                     </div>
                     <div class="col-auto">
@@ -1167,9 +1205,58 @@
                         </div>
                     </div>
                     <div class="col-auto d-flex align-items-center mx-3">
-                        <button class="btn btn-success px-3 py-2">
-                            <i class="bi bi-save me-2"></i>Sauvegarder <span x-text="rollId"></span>
-                        </button>
+                        <span x-ref="saveRollButtonWrapper"
+                              x-data="{ 
+                                  tooltipInstance: null,
+                                  updateTooltip() {
+                                      // Toujours nettoyer l'ancien
+                                      if (this.tooltipInstance) {
+                                          this.tooltipInstance.dispose();
+                                          this.tooltipInstance = null;
+                                      }
+                                      
+                                      // Créer le nouveau si nécessaire
+                                      if (!canSaveRoll && saveButtonTooltip) {
+                                          this.$el.setAttribute('data-bs-toggle', 'tooltip');
+                                          this.$el.setAttribute('data-bs-placement', 'top');
+                                          this.$el.setAttribute('data-bs-title', saveButtonTooltip);
+                                          this.tooltipInstance = new bootstrap.Tooltip(this.$el);
+                                      } else {
+                                          this.$el.removeAttribute('data-bs-toggle');
+                                          this.$el.removeAttribute('data-bs-placement');
+                                          this.$el.removeAttribute('data-bs-title');
+                                      }
+                                  }
+                              }"
+                              x-init="
+                                  // Initialiser après un délai
+                                  setTimeout(() => updateTooltip(), 1000);
+                              "
+                              x-effect="
+                                  // Mettre à jour à chaque changement
+                                  updateTooltip();
+                              ">
+                            <button type="button" 
+                                    class="btn px-3 py-2"
+                                    :class="{
+                                        'btn-success': canSaveRoll && rollConformityStatus === 'CONFORME',
+                                        'btn-warning': canSaveRoll && rollConformityStatus !== 'CONFORME',
+                                        'btn-secondary': !canSaveRoll
+                                    }"
+                                    :disabled="!canSaveRoll"
+                                    @click="canSaveRoll && saveRoll()"
+                                    :title="!canSaveRoll ? saveButtonTooltip : ''"
+                                    style="pointer-events: auto;">
+                                <i class="bi me-2" 
+                                   :class="{
+                                       'bi-save': rollConformityStatus === 'CONFORME',
+                                       'bi-scissors': rollConformityStatus !== 'CONFORME'
+                                   }"></i>
+                                <span x-text="rollConformityStatus === 'CONFORME' ? 
+                                             ('Sauvegarder ' + rollId) : 
+                                             'Vers Découpe'"></span>
+                            </button>
+                        </span>
                     </div>
                     <div class="col-auto">
                         <div class="text-white-50 small text-start">Tube suivant (g)</div>

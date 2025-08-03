@@ -15,7 +15,7 @@ function rollGrid() {
         rattrapages: savedData.rattrapages || {},
         profileSpecs: null,
         thicknessSpec: null,
-        _lastConformityStatus: null, // Pour tracker les changements de statut
+        _lastConformityStatus: 'CONFORME', // Pour tracker les changements de statut (initialisé à CONFORME)
         allDefectTypes: [], // Pour garder tous les types y compris "Epaisseurs"
         grammageStatus: '', // Pour stocker le statut du grammage
         
@@ -162,6 +162,18 @@ function rollGrid() {
             // Émettre l'événement initial des défauts
             this.$nextTick(() => {
                 window.dispatchEvent(new CustomEvent('defects-updated'));
+                // Forcer le calcul initial de conformité
+                const initialStatus = this.conformityStatus;
+                if (initialStatus === 'NON_CONFORME') {
+                    // Si on démarre en NON_CONFORME, émettre l'événement
+                    window.dispatchEvent(new CustomEvent('roll-conformity-changed', {
+                        detail: { 
+                            status: 'NON_CONFORME',
+                            previousStatus: 'CONFORME',
+                            allThicknessesFilled: this.allThicknessesFilled
+                        }
+                    }));
+                }
             });
             
             // Appliquer la validation sur les valeurs existantes au prochain tick
@@ -283,7 +295,7 @@ function rollGrid() {
                 
                 // Ensuite vérifier si c'est un rattrapage selon les specs du profil
                 if (this.thicknessSpec && this.thicknessSpec.value_min !== null && numValue < this.thicknessSpec.value_min) {
-                    // Ne créer un rattrapage que s'il n'y en a pas déjà un
+                    // Si pas de rattrapage existant, créer un
                     if (!this.rattrapages[key]) {
                         // Première valeur NOK -> la déplacer vers rattrapages
                         this.rattrapages[key] = numValue.toString();
@@ -292,9 +304,11 @@ function rollGrid() {
                         event.target.value = '';
                         // Retirer toutes les classes de validation pour que la case reste bleue
                         event.target.classList.remove('thickness-min', 'thickness-alert-min', 'thickness-nominal', 'thickness-alert-max', 'thickness-max');
+                    } else {
+                        // Il y a déjà un rattrapage (badge rouge)
+                        // C'est une tentative de correction, elle reste dans l'input
+                        // Ne pas vider l'input dans ce cas
                     }
-                    // Si il y a déjà un rattrapage, c'est une tentative de correction
-                    // La valeur reste dans thicknessValues comme rattrapage
                 }
             } else {
                 // Valeur invalide, supprimer
@@ -759,9 +773,17 @@ function rollGrid() {
                 if (cell.isThickness) {
                     thicknessCells++;
                     const key = this.getCellKey(cell.row, cell.col);
-                    // Une cellule est remplie si elle a une valeur dans thicknessValues OU dans rattrapages
-                    if (this.thicknessValues[key] || this.rattrapages[key]) {
+                    // Une cellule est remplie si :
+                    // 1. Elle a une valeur dans thicknessValues (valeur normale ou correction)
+                    // 2. OU elle a un rattrapage ET une correction dans thicknessValues
+                    // Mais PAS si elle a seulement un rattrapage sans correction
+                    if (this.thicknessValues[key]) {
+                        // Il y a une valeur (normale ou correction)
                         filledCells++;
+                    } else if (this.rattrapages[key]) {
+                        // Il y a un rattrapage mais pas de correction
+                        // Ce n'est PAS considéré comme rempli
+                        // Ne pas incrémenter filledCells
                     }
                 }
             });
@@ -782,11 +804,13 @@ function rollGrid() {
                 
                 // Émettre l'événement si le statut a changé ou si l'état de remplissage a changé
                 if (this._lastConformityStatus !== status || this._lastAllFilled !== allFilled) {
+                    const previousStatus = this._lastConformityStatus;
                     this._lastConformityStatus = status;
                     this._lastAllFilled = allFilled;
                     window.dispatchEvent(new CustomEvent('roll-conformity-changed', {
                         detail: { 
                             status,
+                            previousStatus,
                             allThicknessesFilled: allFilled
                         }
                     }));
