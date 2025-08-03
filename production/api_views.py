@@ -672,7 +672,10 @@ class ShiftViewSet(viewsets.ModelViewSet):
         
         return {
             'session_key': request.session.session_key,
+            'checklist_items': checklist_data.get('items', {}),
+            'checklist_items_order': checklist_data.get('itemsOrder', []),
             'checklist_responses': checklist_data.get('responses', {}),
+            'checklist_comments': checklist_data.get('comments', {}),
             'checklist_signature': checklist_data.get('signature'),
             'checklist_signature_time': checklist_data.get('signatureTime'),
             'quality_control': quality_control,

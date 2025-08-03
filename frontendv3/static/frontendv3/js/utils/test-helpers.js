@@ -58,15 +58,16 @@ function fillQualityControlWithRandomValues(component) {
     }
     
     // Remplir Masse Surfacique avec variation cohérente
-    const baseMasseSurf = getRandomInSpec(masseSurfSpec, 0.8, 1.2, 4);
+    // Valeurs entre 0.0102 et 0.0116 g/25cm²
+    const baseMasseSurf = 0.0102 + Math.random() * (0.0116 - 0.0102);
     
     // Gauche avec légère variation
-    component.masseSurfaciqueGG = (baseMasseSurf + (Math.random() - 0.5) * 0.05).toFixed(4);
-    component.masseSurfaciqueGC = (baseMasseSurf + (Math.random() - 0.5) * 0.05).toFixed(4);
+    component.masseSurfaciqueGG = (baseMasseSurf + (Math.random() - 0.5) * 0.0002).toFixed(4);
+    component.masseSurfaciqueGC = (baseMasseSurf + (Math.random() - 0.5) * 0.0002).toFixed(4);
     
     // Droite avec légère variation
-    component.masseSurfaciqueDC = (baseMasseSurf + (Math.random() - 0.5) * 0.05).toFixed(4);
-    component.masseSurfaciqueDD = (baseMasseSurf + (Math.random() - 0.5) * 0.05).toFixed(4);
+    component.masseSurfaciqueDC = (baseMasseSurf + (Math.random() - 0.5) * 0.0002).toFixed(4);
+    component.masseSurfaciqueDD = (baseMasseSurf + (Math.random() - 0.5) * 0.0002).toFixed(4);
     
     // Extrait sec
     component.extraitSec = getRandomInSpec(extraitSecSpec, 18, 22, 2).toString();

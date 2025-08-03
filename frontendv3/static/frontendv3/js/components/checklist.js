@@ -12,6 +12,7 @@ function checklist() {
         
         // État local
         responses: savedData.responses || {},
+        comments: savedData.comments || {},
         signature: savedData.signature || '',
         signatureTime: savedData.signatureTime || '',
         signatureError: false,
@@ -50,6 +51,11 @@ function checklist() {
                 this.saveToSession();
             }, { deep: true });
             
+            // Observer les changements de commentaires
+            this.$watch('comments', () => {
+                this.saveToSession();
+            }, { deep: true });
+            
             // Observer les changements d'opérateur
             window.addEventListener('operator-changed', (event) => {
                 const newOperatorId = event.detail.operatorId;
@@ -73,10 +79,12 @@ function checklist() {
             // Écouter la réinitialisation après sauvegarde du shift
             window.addEventListener('shift-reset', () => {
                 debug('Réinitialisation de la checklist après sauvegarde du shift');
-                // Réinitialiser toutes les réponses
+                // Réinitialiser toutes les réponses et commentaires
                 this.items.forEach(item => {
                     this.responses[item.id] = '';
+                    delete this.comments[item.id];
                 });
+                this.comments = {};
                 this.signature = '';
                 this.signatureTime = '';
                 this.signatureError = false;
@@ -95,20 +103,32 @@ function checklist() {
             this.lastOperatorId = window.sessionData?.shift?.operatorId;
         },
         
-        // Charger les items depuis l'API ou données statiques
+        // Charger les items depuis l'API
         async loadChecklistItems() {
-            // Pour l'instant, utiliser des données statiques
-            this.items = [
-                { id: 1, text: "Les aspirations sont en cours et fonctionnent" },
-                { id: 2, text: "Les paramètres machine correspondent au profil" },
-                { id: 3, text: "Les soudures sont faites et correctes" },
-                { id: 4, text: "Baguettes retirées - cohérent" },
-                { id: 5, text: "Propreté du tambour" },
-                { id: 6, text: "État du tapis Ensimeuse" },
-                { id: 7, text: "4 buses du lavage tapis fonctionne" },
-                { id: 8, text: "Le feutre sort sec de l'ensimeuse et pas brulé" },
-                { id: 9, text: "Les découpes de l'enrouleur sont affutées" }
-            ];
+            try {
+                const response = await fetch('/wcm/api/checklist-template-default/');
+                if (!response.ok) throw new Error('Erreur chargement template');
+                
+                const data = await response.json();
+                
+                // Mapper les items pour le format attendu
+                this.items = data.items.map(item => ({
+                    id: item.id,
+                    text: item.text
+                }));
+                
+                debug('Checklist items loaded:', this.items);
+                
+                // Sauvegarder les items en session pour le backend
+                this.saveToSession();
+                
+            } catch (error) {
+                console.error('Erreur chargement checklist:', error);
+                // Fallback sur des items par défaut si erreur
+                this.items = [
+                    { id: 1, text: "Erreur de chargement - Item 1" }
+                ];
+            }
         },
         
         // Gérer le clic sur une option
@@ -121,8 +141,22 @@ function checklist() {
                 this.responses[itemId] = option;
             }
             
+            // Si on passe de NOK à autre chose, nettoyer le commentaire
+            if (option !== 'NOK' && this.comments[itemId]) {
+                delete this.comments[itemId];
+                this.comments = { ...this.comments };
+            }
+            
             // Forcer la mise à jour de l'UI
             this.responses = { ...this.responses };
+            
+            // Si on a cliqué sur NOK, focus le champ de commentaire
+            if (option === 'NOK') {
+                // Émettre un événement pour focus ce champ spécifique
+                window.dispatchEvent(new CustomEvent('focus-nok-comment', { 
+                    detail: { itemId: itemId }
+                }));
+            }
         },
         
         // Vérifier si une option est sélectionnée
@@ -161,8 +195,19 @@ function checklist() {
         
         // Sauvegarder dans la session
         saveToSession() {
+            // Créer un objet items avec id -> text ET garder l'ordre
+            const itemsMap = {};
+            const itemsOrder = [];
+            this.items.forEach(item => {
+                itemsMap[item.id] = item.text;
+                itemsOrder.push(item.id);
+            });
+            
             const data = {
+                items: itemsMap,
+                itemsOrder: itemsOrder,  // Garder l'ordre des items
                 responses: this.responses,
+                comments: this.comments,
                 signature: this.signature,
                 signatureTime: this.signatureTime
             };

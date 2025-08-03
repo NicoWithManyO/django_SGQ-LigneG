@@ -191,14 +191,30 @@ class ChecklistResponseAdmin(admin.ModelAdmin):
         from django.utils.safestring import mark_safe
         
         html = '<table class="table table-bordered" style="width:100%">'
-        html += '<thead><tr><th>Item</th><th>Réponse</th></tr></thead><tbody>'
+        html += '<thead><tr><th>#</th><th>Item</th><th>Réponse</th></tr></thead><tbody>'
         
-        for item_id, response in obj.responses.items():
-            try:
-                item = WcmChecklistItem.objects.get(id=item_id)
-                item_name = item.text
-            except WcmChecklistItem.DoesNotExist:
-                item_name = f"Item #{item_id} (supprimé)"
+        # Extraire les commentaires et items s'ils existent
+        comments = obj.responses.get('_comments', {})
+        items = obj.responses.get('_items', {})
+        items_order = obj.responses.get('_items_order', [])
+        
+        # N'afficher que les items qui sont dans _items (ceux réellement utilisés)
+        # Si on a l'ordre, l'utiliser, sinon utiliser l'ordre du dict
+        if items_order:
+            # Utiliser l'ordre sauvegardé
+            ordered_items = [(str(item_id), items.get(str(item_id), f"Item #{item_id}")) 
+                           for item_id in items_order if str(item_id) in items]
+        else:
+            # Fallback sur l'ordre du dict
+            ordered_items = list(items.items())
+        
+        for index, (item_id, item_text) in enumerate(ordered_items, 1):
+            # Vérifier si on a une réponse pour cet item
+            if item_id not in obj.responses:
+                continue
+                
+            response = obj.responses[item_id]
+            item_name = item_text
             
             # Couleur selon la réponse
             colors = {
@@ -209,8 +225,16 @@ class ChecklistResponseAdmin(admin.ModelAdmin):
             color = colors.get(response, 'black')
             
             html += f'<tr>'
-            html += f'<td style="width:70%">{item_name}</td>'
-            html += f'<td style="color:{color};font-weight:bold;">{response.upper()}</td>'
+            html += f'<td style="width:5%;text-align:center">{index}.</td>'
+            html += f'<td style="width:65%">{item_name}</td>'
+            html += f'<td style="color:{color};font-weight:bold;">'
+            html += f'{response.upper()}'
+            
+            # Ajouter le commentaire si présent
+            if str(item_id) in comments:
+                html += f'<br><small style="color:#666;">💬 {comments[str(item_id)]}</small>'
+            
+            html += '</td>'
             html += f'</tr>'
         
         html += '</tbody></table>'

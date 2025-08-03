@@ -26,6 +26,10 @@ function stickyBar() {
         grammage: '',
         nextTubeMass: '',
         
+        // Specs du profil et statut grammage
+        profileSpecs: null,
+        grammageStatus: '', // '', 'ok', 'alert', 'nok'
+        
         // Timer pour l'horloge
         clockTimer: null,
         
@@ -125,6 +129,15 @@ function stickyBar() {
             window.addEventListener('session-updated', (event) => {
                 if (event.detail.key === 'of' || event.detail.key === 'roll' || event.detail.key === 'shift') {
                     this.loadFromSession();
+                }
+            });
+            
+            // Écouter les changements de profil pour récupérer les specs
+            window.addEventListener('profile-changed', (event) => {
+                if (event.detail && event.detail.profileSpecs) {
+                    this.profileSpecs = event.detail.profileSpecs;
+                    // Revérifier le statut du grammage avec les nouvelles specs
+                    this.checkGrammageStatus();
                 }
             });
         },
@@ -337,16 +350,63 @@ function stickyBar() {
                 const net = parseFloat(this.netMass);
                 const len = parseFloat(this.length);
                 if (!isNaN(net) && !isNaN(len) && len > 0) {
-                    // Formule : (masse nette / longueur) / largeur
-                    // Largeur du profil à récupérer depuis la session
-                    const width = window.sessionData?.profile?.width || 1.35; // 1.35m par défaut
-                    this.grammage = ((net / len) / width).toFixed(1);
+                    // Formule : masse nette / longueur = g/m linéaire
+                    // Pour un produit en rouleau, le grammage est en g/m linéaire
+                    this.grammage = (net / len).toFixed(1);
+                    debug(`Grammage calc: ${net}g / ${len}m = ${this.grammage} g/m`);
                 } else {
                     this.grammage = '--';
                 }
             } else {
                 this.grammage = '--';
             }
+            
+            // Vérifier le statut du grammage
+            this.checkGrammageStatus();
+        },
+        
+        // Vérifier le statut du grammage par rapport aux specs
+        checkGrammageStatus() {
+            // Si pas de grammage calculé ou pas de specs
+            if (this.grammage === '--' || !this.profileSpecs) {
+                this.grammageStatus = '';
+                return;
+            }
+            
+            // Chercher la spec "Masse Surfacique Globale" (en g/m²)
+            // Ne PAS utiliser "Masse Surfacique" qui est en g/25cm²
+            const spec = this.profileSpecs.find(s => 
+                s.name === 'Masse Surfacique Globale'
+            );
+            
+            if (!spec) {
+                this.grammageStatus = '';
+                debug('Spec "Masse Surfacique Globale" non trouvée dans:', this.profileSpecs);
+                return;
+            }
+            
+            debug('Spec trouvée:', spec);
+            
+            const value = parseFloat(this.grammage);
+            if (isNaN(value)) {
+                this.grammageStatus = '';
+                return;
+            }
+            
+            // Vérifier selon les 4 seuils (comme pour les épaisseurs)
+            if (spec.value_min !== null && value < spec.value_min) {
+                this.grammageStatus = 'nok';
+            } else if (spec.value_min_alert !== null && value < spec.value_min_alert) {
+                this.grammageStatus = 'alert';
+            } else if (spec.value_max !== null && value > spec.value_max) {
+                this.grammageStatus = 'nok';
+            } else if (spec.value_max_alert !== null && value > spec.value_max_alert) {
+                this.grammageStatus = 'alert';
+            } else {
+                this.grammageStatus = 'ok';
+            }
+            
+            debug('Grammage status:', this.grammageStatus, 'for value:', value);
         }
     };
 }

@@ -167,7 +167,7 @@ class WcmChecklistTemplateItem(models.Model):
     
     item = models.ForeignKey(
         WcmChecklistItem,
-        on_delete=models.CASCADE,
+        on_delete=models.CASCADE,  # Si on supprime un item, supprimer ses associations aux templates
         verbose_name="Item"
     )
     

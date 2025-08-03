@@ -425,11 +425,26 @@ class ShiftService:
             # Créer un seul objet ChecklistResponse avec toutes les réponses
             checklist_data = {}
             
+            # Récupérer les items depuis la session
+            checklist_items = session_data.get('checklist_items', {})
+            checklist_items_order = session_data.get('checklist_items_order', [])
+            
+            # Stocker les items utilisés et leur ordre
+            if checklist_items:
+                checklist_data['_items'] = checklist_items
+            if checklist_items_order:
+                checklist_data['_items_order'] = checklist_items_order
+            
             # Récupérer toutes les réponses valides
             for item_id, response_value in session_data['checklist_responses'].items():
                 if response_value:
                     # response_value est toujours une string ('ok', 'nok', 'na')
-                    checklist_data[item_id] = response_value
+                    checklist_data[item_id] = response_value.lower()  # Normaliser en minuscules
+            
+            # Ajouter les commentaires pour les items NOK
+            checklist_comments = session_data.get('checklist_comments', {})
+            if checklist_comments:
+                checklist_data['_comments'] = checklist_comments
             
             if checklist_data:
                 # Récupérer les initiales depuis la session

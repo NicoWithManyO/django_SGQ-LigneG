@@ -150,6 +150,16 @@ function profileSelector() {
                 if (data.success) {
                     this.profileDetails = data.profile;
                     debug('Profile details loaded:', this.profileDetails);
+                    
+                    // Émettre un événement avec les specs pour les autres composants
+                    if (this.profileDetails.specifications) {
+                        window.dispatchEvent(new CustomEvent('profile-specs-changed', {
+                            detail: { 
+                                specifications: this.profileDetails.specifications,
+                                profileId: profileId 
+                            }
+                        }));
+                    }
                 } else {
                     if (window.DEBUG) console.error('Erreur chargement détails:', data.error);
                 }

@@ -15,6 +15,8 @@ function rollGrid() {
         rattrapages: savedData.rattrapages || {},
         profileSpecs: null,
         thicknessSpec: null,
+        _lastConformityStatus: null, // Pour tracker les changements de statut
+        allDefectTypes: [], // Pour garder tous les types y compris "Epaisseurs"
         
         // État de la popup
         showPopup: false,
@@ -108,14 +110,57 @@ function rollGrid() {
             // Observer les changements de thicknessValues pour sauvegarder
             this.$watch('thicknessValues', () => {
                 this.saveToSession();
+                // Recalculer la conformité
+                this.conformityStatus;
+                // Émettre le résumé des NOK (au cas où un rattrapage change)
+                window.dispatchEvent(new CustomEvent('nok-summary-changed', {
+                    detail: this.getNOKSummary()
+                }));
             }, { deep: true });
+            
+            // Observer les changements de rattrapages
+            this.$watch('rattrapages', () => {
+                // Recalculer la conformité
+                this.conformityStatus;
+                // Émettre le résumé des NOK
+                window.dispatchEvent(new CustomEvent('nok-summary-changed', {
+                    detail: this.getNOKSummary()
+                }));
+            }, { deep: true });
+            
+            // Observer les changements de specs
+            this.$watch('thicknessSpec', () => {
+                // Recalculer la conformité avec les nouvelles specs
+                this.conformityStatus;
+            });
             
             // Charger les types de défauts depuis l'API
             this.loadDefectTypes();
             
+            // Exposer l'instance globalement pour l'accès externe
+            window.rollGridInstance = this;
+            
+            // Émettre l'événement initial des défauts
+            this.$nextTick(() => {
+                window.dispatchEvent(new CustomEvent('defects-updated'));
+            });
+            
             // Appliquer la validation sur les valeurs existantes au prochain tick
             this.$nextTick(() => {
                 this.validateExistingThickness();
+            });
+            
+            // Écouter les changements de profil pour récupérer les specs
+            window.addEventListener('profile-specs-changed', (event) => {
+                this.profileSpecs = event.detail.specifications;
+                debug('Profile specs received:', this.profileSpecs);
+                // Recalculer la conformité avec les nouvelles specs
+                this.conformityStatus;
+            });
+            
+            // Déclencher le calcul initial de conformité après un délai
+            this.$nextTick(() => {
+                this.conformityStatus;
             });
         },
         
@@ -126,9 +171,19 @@ function rollGrid() {
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Filtrer pour retirer "Epaisseurs" du sélecteur
+                    // Garder tous les défauts pour avoir accès aux seuils
+                    this.allDefectTypes = data.defects;
+                    // Filtrer pour retirer "Epaisseurs" du sélecteur uniquement
                     this.defectTypes = data.defects.filter(d => d.name !== 'Epaisseurs');
-                    debug('Loaded defect types:', this.defectTypes);
+                    console.log('Loaded all defect types:', this.allDefectTypes);
+                    console.log('Filtered defect types for selector:', this.defectTypes);
+                    
+                    // Vérifier spécifiquement le défaut Epaisseurs
+                    const thicknessDefect = this.allDefectTypes.find(d => d.name === 'Epaisseurs');
+                    console.log('Thickness defect:', thicknessDefect);
+                    
+                    // Recalculer la conformité maintenant qu'on a les types
+                    this.conformityStatus;
                 } else {
                     console.error('Erreur chargement défauts:', data.error);
                 }
@@ -197,6 +252,7 @@ function rollGrid() {
                 if (this.thicknessSpec && this.thicknessSpec.value_min !== null && numValue < this.thicknessSpec.value_min) {
                     // Ne créer un rattrapage que s'il n'y en a pas déjà un
                     if (!this.rattrapages[key]) {
+                        // Première valeur NOK -> la déplacer vers rattrapages
                         this.rattrapages[key] = numValue.toString();
                         delete this.thicknessValues[key];
                         // Forcer la mise à jour de l'input
@@ -204,7 +260,8 @@ function rollGrid() {
                         // Retirer toutes les classes de validation pour que la case reste bleue
                         event.target.classList.remove('thickness-min', 'thickness-alert-min', 'thickness-nominal', 'thickness-alert-max', 'thickness-max');
                     }
-                    // Si il y a déjà un rattrapage, garder la valeur dans l'input
+                    // Si il y a déjà un rattrapage, c'est une tentative de correction
+                    // La valeur reste dans thicknessValues comme rattrapage
                 }
             } else {
                 // Valeur invalide, supprimer
@@ -250,6 +307,29 @@ function rollGrid() {
         getRattrapage(row, col) {
             const key = this.getCellKey(row, col);
             return this.rattrapages[key] || null;
+        },
+        
+        // Gérer la saisie d'un rattrapage
+        handleRattrapageBlur(row, col, event) {
+            const key = this.getCellKey(row, col);
+            let value = event.target.value;
+            
+            if (!value || value.trim() === '') {
+                delete this.rattrapages[key];
+                return;
+            }
+            
+            // Remplacer virgule par point
+            value = value.replace(',', '.');
+            
+            // Valider le format numérique
+            const numValue = parseFloat(value);
+            if (!isNaN(numValue)) {
+                this.rattrapages[key] = numValue.toString();
+                this.saveToSession();
+            } else {
+                delete this.rattrapages[key];
+            }
         },
         
         // Supprimer un rattrapage
@@ -414,6 +494,11 @@ function rollGrid() {
                 this.defects[key].push(defectName);
                 debug(`Added defect "${defectName}" to cell ${key}`);
                 this.saveToSession();
+                // Forcer le recalcul de la conformité
+                this._lastConformityStatus = null;
+                const newStatus = this.conformityStatus;
+                // Émettre l'événement de mise à jour des défauts
+                window.dispatchEvent(new CustomEvent('defects-updated'));
             }
             
             this.showPopup = false;
@@ -430,6 +515,11 @@ function rollGrid() {
                 }
                 debug(`Removed defect "${defectName}" from cell ${key}`);
                 this.saveToSession();
+                // Forcer le recalcul de la conformité
+                this._lastConformityStatus = null;
+                const newStatus = this.conformityStatus;
+                // Émettre l'événement de mise à jour des défauts
+                window.dispatchEvent(new CustomEvent('defects-updated'));
             }
         },
         
@@ -452,6 +542,212 @@ function rollGrid() {
         getDefectClass(defectName) {
             const defectType = this.defectTypes.find(d => d.name === defectName);
             return defectType ? `bg-${defectType.color}` : 'bg-secondary';
+        },
+        
+        // === Méthodes de conformité ===
+        
+        // Compter le nombre total d'épaisseurs NOK (rattrapées ou non)
+        countNonConformingThicknesses() {
+            // Compter simplement toutes les valeurs dans rattrapages
+            // Car toute valeur dans rattrapages est une NOK d'origine
+            return Object.keys(this.rattrapages).length;
+        },
+        
+        // Vérifier s'il y a des épaisseurs NOK non rattrapées
+        hasUnrecoveredNOK() {
+            debug('Checking unrecovered NOK. Rattrapages:', this.rattrapages);
+            debug('ThicknessValues:', this.thicknessValues);
+            debug('Thickness spec:', this.thicknessSpec);
+            
+            if (!this.thicknessSpec) return false;
+            
+            const min = this.thicknessSpec.value_min;
+            const max = this.thicknessSpec.value_max;
+            
+            // Les valeurs NOK sont dans rattrapages
+            // Les rattrapages (corrections) sont dans thicknessValues
+            for (const [key, nokValue] of Object.entries(this.rattrapages)) {
+                if (nokValue) {
+                    // On a une valeur NOK d'origine
+                    // Vérifier si elle a été rattrapée
+                    const rattrapageValue = this.thicknessValues[key];
+                    
+                    if (!rattrapageValue) {
+                        // Pas de rattrapage du tout -> c'est OK (juste une NOK seule)
+                        continue;
+                    }
+                    
+                    // Il y a un rattrapage, vérifier s'il est aussi NOK
+                    const rattrapageNum = parseFloat(rattrapageValue);
+                    if (!isNaN(rattrapageNum)) {
+                        if ((min !== null && rattrapageNum < min) || (max !== null && rattrapageNum > max)) {
+                            debug(`Found unrecovered NOK at ${key}: original=${nokValue}, rattrapage=${rattrapageNum}`);
+                            return true; // Rattrapage aussi NOK -> NON CONFORME
+                        }
+                    }
+                }
+            }
+            return false;
+        },
+        
+        // Récupérer la limite NOK depuis les types de défauts
+        getNOKLimit() {
+            // Chercher le défaut "Epaisseurs" dans TOUS les types (pas seulement ceux filtrés)
+            if (this.allDefectTypes && this.allDefectTypes.length > 0) {
+                const thicknessDefect = this.allDefectTypes.find(d => d.name === 'Epaisseurs');
+                if (thicknessDefect && thicknessDefect.threshold !== undefined && thicknessDefect.threshold !== null) {
+                    debug(`Found thickness defect limit: ${thicknessDefect.threshold}`);
+                    return thicknessDefect.threshold;
+                }
+            }
+            return null;
+        },
+        
+        // Calculer le statut de conformité
+        calculateConformityStatus() {
+            console.log('=== CALCULATING CONFORMITY STATUS ===');
+            
+            // 1. Vérifier s'il y a des NOK non rattrapés (rattrapage NOK)
+            const hasUnrecovered = this.hasUnrecoveredNOK();
+            console.log(`Has unrecovered NOK: ${hasUnrecovered}`);
+            if (hasUnrecovered) {
+                return 'NON_CONFORME';
+            }
+            
+            // 2. Vérifier les défauts bloquants
+            const blockingDefects = this.checkBlockingDefects();
+            console.log(`Has blocking defects: ${blockingDefects.hasBlocking}`);
+            if (blockingDefects.hasBlocking) {
+                console.log(`Blocking defect found: ${blockingDefects.defectName}`);
+                return 'NON_CONFORME';
+            }
+            
+            // 3. Vérifier les défauts avec seuil
+            const thresholdDefects = this.checkThresholdDefects();
+            console.log(`Threshold defects exceeded: ${thresholdDefects.exceeded}`);
+            if (thresholdDefects.exceeded) {
+                console.log(`Threshold exceeded for: ${thresholdDefects.defectName} (${thresholdDefects.count}/${thresholdDefects.threshold})`);
+                return 'NON_CONFORME';
+            }
+            
+            // 4. Vérifier la limite de NOK uniquement si elle est définie et > 0
+            const nokLimit = this.getNOKLimit();
+            console.log(`NOK limit from defect types: ${nokLimit}`);
+            
+            if (nokLimit !== null && nokLimit !== undefined && nokLimit > 0) {
+                const nokCount = this.countNonConformingThicknesses();
+                console.log(`NOK count: ${nokCount}, limit: ${nokLimit}`);
+                if (nokCount >= nokLimit) {  // >= au lieu de > pour que limite 1 = non conforme à partir de 1
+                    console.log('NOK count exceeds limit -> NON CONFORME');
+                    return 'NON_CONFORME';
+                }
+            } else {
+                console.log('No NOK limit defined or limit = 0, staying CONFORME');
+            }
+            
+            // Si tous les critères sont OK, on est CONFORME
+            return 'CONFORME';
+        },
+        
+        // Vérifier les défauts bloquants
+        checkBlockingDefects() {
+            if (!this.allDefectTypes) return { hasBlocking: false };
+            
+            // Parcourir tous les défauts enregistrés
+            for (const cellDefects of Object.values(this.defects)) {
+                for (const defectName of cellDefects) {
+                    // Trouver le type de défaut correspondant
+                    const defectType = this.allDefectTypes.find(d => d.name === defectName);
+                    if (defectType && defectType.severity === 'blocking') {
+                        return { hasBlocking: true, defectName: defectName };
+                    }
+                }
+            }
+            
+            return { hasBlocking: false };
+        },
+        
+        // Vérifier les défauts avec seuil
+        checkThresholdDefects() {
+            if (!this.allDefectTypes) return { exceeded: false };
+            
+            // Compter les occurrences de chaque type de défaut
+            const defectCounts = {};
+            for (const cellDefects of Object.values(this.defects)) {
+                for (const defectName of cellDefects) {
+                    defectCounts[defectName] = (defectCounts[defectName] || 0) + 1;
+                }
+            }
+            
+            // Vérifier les seuils
+            for (const [defectName, count] of Object.entries(defectCounts)) {
+                const defectType = this.allDefectTypes.find(d => d.name === defectName);
+                if (defectType && defectType.severity === 'threshold' && defectType.threshold !== undefined && defectType.threshold !== null) {
+                    if (count >= defectType.threshold) {
+                        return { 
+                            exceeded: true, 
+                            defectName: defectName,
+                            count: count,
+                            threshold: defectType.threshold
+                        };
+                    }
+                }
+            }
+            
+            return { exceeded: false };
+        },
+        
+        // Propriété computed pour le statut de conformité
+        get conformityStatus() {
+            try {
+                const status = this.calculateConformityStatus();
+                
+                // Émettre l'événement si le statut a changé
+                if (this._lastConformityStatus !== status) {
+                    this._lastConformityStatus = status;
+                    window.dispatchEvent(new CustomEvent('roll-conformity-changed', {
+                        detail: { status }
+                    }));
+                }
+                
+                return status;
+            } catch (error) {
+                console.error('Error calculating conformity status:', error);
+                return 'CONFORME'; // Par défaut
+            }
+        },
+        
+        // Récupérer le résumé des épaisseurs NOK
+        getNOKSummary() {
+            const details = [];
+            const count = Object.keys(this.rattrapages).length;
+            
+            // Parcourir les rattrapages (valeurs NOK d'origine)
+            Object.entries(this.rattrapages).forEach(([key, nokValue]) => {
+                if (nokValue) {
+                    // Extraire row et col de la clé
+                    const [row, col] = key.split('-').map(Number);
+                    const meter = row + 1; // Le mètre est row + 1
+                    
+                    // Vérifier s'il y a un rattrapage
+                    const rattrapageValue = this.thicknessValues[key];
+                    
+                    details.push({
+                        key: key,
+                        meter: meter,
+                        value: nokValue,
+                        rattrapage: rattrapageValue || null
+                    });
+                }
+            });
+            
+            // Trier par mètre
+            details.sort((a, b) => a.meter - b.meter);
+            
+            return {
+                count: count,
+                details: details
+            };
         },
         
         

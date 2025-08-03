@@ -600,12 +600,12 @@
                                 <div class="row mt-3 text-center">
                                     <div class="col-6">
                                         <h6 class="text-muted mb-2">Objectif TRS</h6>
-                                        <h4><span x-text="profileDetails?.oee_target || '-'"></span>%</h4>
+                                        <h4 style="color: #0d6efd;"><span x-text="profileDetails?.oee_target || '-'"></span>%</h4>
                                     </div>
                                     <div class="col-6">
                                         <h6 class="text-muted mb-2">Estimation</h6>
                                         <div x-show="profileDetails?.belt_speed && targetLength">
-                                            <h4>
+                                            <h4 style="color: #0d6efd;">
                                                 <span x-text="targetLength"></span> m. : 
                                                 <span x-text="(() => {
                                                     const minutes = Math.round(targetLength / profileDetails?.belt_speed);
@@ -619,7 +619,7 @@
                                             </h4>
                                         </div>
                                         <div x-show="!profileDetails?.belt_speed || !targetLength">
-                                            <h4>-</h4>
+                                            <h4 style="color: #0d6efd;">-</h4>
                                         </div>
                                     </div>
                                 </div>
@@ -812,13 +812,95 @@
                     <div x-data="rollGrid()" id="roll-grid-component">
                         <!-- Section conformité -->
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="col"></div>
-                            <div class="col text-center">
-                                <span class="badge conformity-badge conformity-ok">
-                                    CONFORME
+                            <div class="col">
+                                <!-- Compteur de défauts à gauche -->
+                                <div class="text-end" style="word-break: break-word; overflow-wrap: break-word;"
+                                     x-data="{
+                                         totalDefects: 0,
+                                         defectDetails: {},
+                                         init() {
+                                             // Fonction pour calculer les défauts
+                                             const calculateDefects = () => {
+                                                 const defects = window.rollGridInstance?.defects || {};
+                                                 let count = 0;
+                                                 const details = {};
+                                                 
+                                                 Object.values(defects).forEach(cellDefects => {
+                                                     cellDefects.forEach(defectName => {
+                                                         count++;
+                                                         details[defectName] = (details[defectName] || 0) + 1;
+                                                     });
+                                                 });
+                                                 
+                                                 this.totalDefects = count;
+                                                 this.defectDetails = details;
+                                             };
+                                             
+                                             // Calculer initialement
+                                             calculateDefects();
+                                             
+                                             // Écouter les changements
+                                             window.addEventListener('defects-updated', calculateDefects);
+                                         }
+                                     }">
+                                    <div x-show="totalDefects > 0">
+                                        <div class="small text-muted"><strong><span x-text="totalDefects"></span> Défaut<span x-text="totalDefects > 1 ? 's' : ''"></span></strong></div>
+                                        <div class="text-muted" style="font-size: 0.7rem;" x-text="(() => {
+                                            const defects = window.rollGridInstance?.defects || {};
+                                            const defectsByType = {};
+                                            
+                                            // Grouper par position avec défauts
+                                            const positionDefects = [];
+                                            
+                                            Object.entries(defects).forEach(([key, cellDefects]) => {
+                                                if (cellDefects.length > 0) {
+                                                    const [row, col] = key.split('-').map(Number);
+                                                    const meter = row + 1;
+                                                    const position = col < 3 ? 'G' : 'D';
+                                                    const posKey = `${position}${meter}m`;
+                                                    
+                                                    positionDefects.push(`${posKey}:${cellDefects.join(',')}`);
+                                                }
+                                            });
+                                            
+                                            return positionDefects.join(' | ');
+                                        })()"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col text-center" x-data="{ 
+                                conformityStatus: 'CONFORME',
+                                init() {
+                                    // Écouter les changements de conformité
+                                    window.addEventListener('roll-conformity-changed', (event) => {
+                                        this.conformityStatus = event.detail.status;
+                                    });
+                                }
+                            }">
+                                <span class="badge conformity-badge mx-3" 
+                                      :class="conformityStatus === 'CONFORME' ? 'conformity-ok' : 'conformity-nok'">
+                                    <span x-show="conformityStatus === 'CONFORME'">✓ </span>
+                                    <span x-text="conformityStatus === 'CONFORME' ? 'CONFORME' : 'NON CONFORME'"></span>
                                 </span>
                             </div>
-                            <div class="col"></div>
+                            <div class="col">
+                                <!-- Récap des épaisseurs NOK - directement depuis rollGrid -->
+                                <div class="text-start" style="word-break: break-word; overflow-wrap: break-word;">
+                                    <div x-show="Object.keys(rattrapages).length > 0">
+                                        <div class="small text-muted"><strong><span x-text="Object.keys(rattrapages).length"></span> Épaisseur<span x-text="Object.keys(rattrapages).length > 1 ? 's' : ''"></span> NOK</strong></div>
+                                        <div class="text-muted" style="font-size: 0.7rem;" x-text="(() => {
+                                            const entries = Object.entries(rattrapages).map(([key, value]) => {
+                                                const [row, col] = key.split('-').map(Number);
+                                                const meter = row + 1;
+                                                const position = col < 3 ? 'G' : 'D';
+                                                const rattrapage = thicknessValues[key];
+                                                return `${position}${meter}m:${value}${rattrapage ? `(${rattrapage})` : ''}`;
+                                            });
+                                            return entries.join(' | ');
+                                        })()"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Grille simple -->
@@ -931,31 +1013,49 @@
                 <div class="card-body" x-show="isExpanded" x-transition>
                     <!-- Liste des items -->
                     <ol class="list-unstyled mb-3">
-                        <template x-for="item in items" :key="item.id">
-                            <li class="mb-2 d-flex align-items-center justify-content-between">
-                                <span class="me-2 d-flex" style="font-size: 14px; flex: 1;">
-                                    <span x-text="item.id + '.'" style="min-width: 20px;"></span>
-                                    <span x-text="item.text" class="text-end" style="flex: 1;"></span>
-                                </span>
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" 
-                                            :class="getButtonClass(item.id, 'OK')"
-                                            @click="handleOptionClick(item.id, 'OK')"
-                                            style="min-width: 40px;">
-                                        OK
-                                    </button>
-                                    <button type="button" 
-                                            :class="getButtonClass(item.id, 'N/A')"
-                                            @click="handleOptionClick(item.id, 'N/A')"
-                                            style="min-width: 40px;">
-                                        N/A
-                                    </button>
-                                    <button type="button" 
-                                            :class="getButtonClass(item.id, 'NOK')"
-                                            @click="handleOptionClick(item.id, 'NOK')"
-                                            style="min-width: 45px;">
-                                        NOK
-                                    </button>
+                        <template x-for="(item, index) in items" :key="item.id">
+                            <li class="mb-2">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span class="me-2 d-flex" style="font-size: 14px; flex: 1;">
+                                        <span x-text="(index + 1) + '.'" style="min-width: 20px;"></span>
+                                        <span x-text="item.text" class="text-end" style="flex: 1;"></span>
+                                    </span>
+                                    <div class="btn-group" role="group" style="font-size: 0.75rem;">
+                                        <button type="button" 
+                                                :class="getButtonClass(item.id, 'OK')"
+                                                @click="handleOptionClick(item.id, 'OK')"
+                                                style="min-width: 32px; padding: 0.125rem 0.25rem; font-size: 0.75rem;">
+                                            OK
+                                        </button>
+                                        <button type="button" 
+                                                :class="getButtonClass(item.id, 'N/A')"
+                                                @click="handleOptionClick(item.id, 'N/A')"
+                                                style="min-width: 32px; padding: 0.125rem 0.25rem; font-size: 0.75rem;">
+                                            N/A
+                                        </button>
+                                        <button type="button" 
+                                                :class="getButtonClass(item.id, 'NOK')"
+                                                @click="handleOptionClick(item.id, 'NOK')"
+                                                style="min-width: 35px; padding: 0.125rem 0.25rem; font-size: 0.75rem;">
+                                            NOK
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Champ commentaire pour NOK -->
+                                <div x-show="responses[item.id] === 'NOK'" 
+                                     x-transition
+                                     class="ms-4 mt-1">
+                                    <input type="text" 
+                                           class="form-control"
+                                           placeholder="Préciser le problème..."
+                                           x-model="comments[item.id]"
+                                           @input="comments = { ...comments }"
+                                           style="font-size: 0.8rem; padding: 0.2rem 0.5rem; height: 26px;"
+                                           x-init="window.addEventListener('focus-nok-comment', (e) => {
+                                               if (e.detail.itemId === item.id) {
+                                                   $nextTick(() => $el.focus());
+                                               }
+                                           })">
                                 </div>
                             </li>
                         </template>
@@ -1061,7 +1161,14 @@
                     </div>
                     <div class="col-auto">
                         <div class="text-white-50 small text-start"><span x-text="netMass">--</span> g</div>
-                        <div class="text-white fw-bold d-flex align-items-center" style="height: 31px; font-size: 1.1rem;"><span x-text="grammage">--</span>&nbsp;g/m²</div>
+                        <div class="fw-bold d-flex align-items-center" style="height: 31px; font-size: 1.1rem;"
+                             :style="{
+                                 color: grammageStatus === 'ok' ? '#28a745' : 
+                                        grammageStatus === 'alert' ? '#ffc107' : 
+                                        grammageStatus === 'nok' ? '#dc3545' : 'white'
+                             }">
+                            <span x-text="grammage">--</span>&nbsp;g/m
+                        </div>
                     </div>
                     <div class="col-auto d-flex align-items-center mx-3">
                         <button class="btn btn-success px-3 py-2">
