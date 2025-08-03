@@ -23,7 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # path('', include('frontend.urls')),  # Désactivé - remplacé par frontendv3
     path('', include('frontendv3.urls')),
-    path('', include('livesession.urls')),
+    # path('', include('livesession.urls')),  # Désactivé - utilise l'ancienne API qui stocke à la racine
     path('catalog/', include('catalog.urls')),
     path('wcm/', include('wcm.urls')),
     path('production/', include('production.urls')),

@@ -414,9 +414,35 @@ class ShiftViewSet(viewsets.ModelViewSet):
             'comment': ''
         }
         
-        # Sauvegarder en session
-        for key, value in next_shift_data.items():
-            request.session[key] = value
+        # Sauvegarder en session V3 dans la structure shift
+        if 'v3_production' not in request.session:
+            request.session['v3_production'] = {}
+        
+        # Initialiser la structure shift si nécessaire
+        if 'shift' not in request.session['v3_production']:
+            request.session['v3_production']['shift'] = {}
+        
+        # Mapper les données vers la structure V3
+        v3_shift_mapping = {
+            'shift_date': 'date',
+            'vacation': 'vacation',
+            'start_time': 'startTime',
+            'end_time': 'endTime',
+            'machine_started_start': 'machineStartedStart',
+            'length_start': 'lengthStart',
+            'machine_started_end': 'machineStartedEnd',
+            'operator_id': 'operatorId',
+            'comment': 'comments'
+        }
+        
+        # Sauvegarder dans v3_production.shift
+        for old_key, new_key in v3_shift_mapping.items():
+            if old_key in next_shift_data:
+                request.session['v3_production']['shift'][new_key] = next_shift_data[old_key]
+        
+        # Ajouter les champs manquants
+        request.session['v3_production']['shift']['lengthEnd'] = ''
+        request.session['v3_production']['shift']['shiftId'] = ''
         
         request.session.save()
         
@@ -432,11 +458,33 @@ class ShiftViewSet(viewsets.ModelViewSet):
             # Clés à supprimer dans v3_production
             v3_keys_to_remove = [
                 'lost_time_entries',      # Temps perdus à réinitialiser
-                'checklist_responses',
+                'checklist',              # Check-list complète
+                'checklist_responses',    # Anciennes clés (au cas où)
                 'checklist_signature',
                 'checklist_signature_time',
                 'quality_control',
                 'qc_status',
+                # Nettoyer aussi les champs QC individuels
+                'qc_micromaire_g',
+                'qc_micromaire_d',
+                'qc_masse_surfacique_gg',
+                'qc_masse_surfacique_gc',
+                'qc_masse_surfacique_dc',
+                'qc_masse_surfacique_dd',
+                'qc_extrait_sec',
+                'qc_extrait_time',
+                'qc_loi',
+                'qc_loi_time',
+                # Supprimer les données dupliquées du shift
+                'shift_date',
+                'vacation',
+                'start_time',
+                'end_time',
+                'machine_started_start',
+                'machine_started_end',
+                'length_start',
+                'operator_id',
+                'comment',
                 # Note: Ne pas nettoyer les données du rouleau en cours
             ]
             
@@ -445,30 +493,16 @@ class ShiftViewSet(viewsets.ModelViewSet):
             
             request.session['v3_production'] = v3_data
         
-        # Liste des clés à supprimer au niveau racine de la session
-        keys_to_remove = [
-            'shift_id',
-            'operator_id',
-            'shift_date',
-            'vacation',
-            'start_time',
-            'end_time',
-            'machine_started_start',
-            'machine_started_end',
-            'length_start',
-            'length_end',
-            'comment',
-            'has_startup_time',
-            # Nettoyer aussi les données de session du formulaire
-            'shift_form',
-            # Réinitialiser les compteurs de production
-            'wound_length_ok',
-            'wound_length_nok',
-            'wound_length_total'
-        ]
+        # Nettoyer TOUTES les clés à la racine de la session sauf v3_production
+        # Ces clés viennent de l'ancienne implémentation V1/V2
+        root_keys_to_keep = ['v3_production', '_auth_user_id', '_auth_user_backend', '_auth_user_hash']
         
-        for key in keys_to_remove:
-            request.session.pop(key, None)
+        # Faire une copie des clés pour éviter les problèmes lors de la suppression
+        all_keys = list(request.session.keys())
+        
+        for key in all_keys:
+            if key not in root_keys_to_keep:
+                request.session.pop(key, None)
         
         request.session.save()
     

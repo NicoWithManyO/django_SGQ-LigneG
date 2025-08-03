@@ -605,14 +605,8 @@ function shiftForm() {
                 detail: { nextShiftData }
             }));
             
-            // Sauvegarder en session
-            window.saveToSession('shift_date', this.date);
-            window.saveToSession('vacation', this.vacation);
-            window.saveToSession('start_time', this.startTime);
-            window.saveToSession('end_time', this.endTime);
-            window.saveToSession('machine_started_start', this.machineStartedStart);
-            window.saveToSession('length_start', this.lengthStart);
-            window.saveToSession('machine_started_end', this.machineStartedEnd);
+            // Ne pas sauvegarder ici - le backend a déjà tout sauvegardé dans v3_production.shift
+            // Les données sont persistées via saveToSession dans handleFieldChange
             
             showNotification('info', 'Formulaire réinitialisé pour le prochain poste');
         },

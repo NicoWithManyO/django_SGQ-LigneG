@@ -25,10 +25,8 @@ function downtimeTracker() {
             // Charger les motifs disponibles
             await this.loadReasons();
             
-            // Ne charger depuis l'API que si on n'a rien en session
-            if (this.downtimes.length === 0) {
-                await this.loadDowntimes();
-            }
+            // Les temps perdus viennent uniquement de la session
+            // Pas de chargement depuis la base de données
             
             // Observer les changements de hasStartupDowntime
             this.$watch('hasStartupDowntime', (newValue) => {
@@ -124,27 +122,7 @@ function downtimeTracker() {
             }
         },
         
-        // Charger les temps perdus de la session
-        async loadDowntimes() {
-            try {
-                const response = await fetch('/wcm/api/lost-time-entries/', {
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || window.csrfToken || ''
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const data = await response.json();
-                this.downtimes = data.results || data;
-                debug('Loaded downtimes:', this.downtimes);
-                
-            } catch (error) {
-                if (window.DEBUG) console.error('Erreur chargement temps perdus:', error);
-            }
-        },
+        // SUPPRIMÉ - Les temps perdus viennent uniquement de la session, pas de la base
         
         // Ajouter un temps perdu
         addDowntime() {

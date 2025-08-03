@@ -42,6 +42,18 @@ def production_view(request):
     # Données de session V3
     session_data = request.session.get('v3_production', {})
     
+    # Nettoyer les anciennes clés dupliquées si elles existent
+    if 'v3_production' in request.session:
+        keys_to_remove = [
+            'shift_date', 'vacation', 'start_time', 'end_time',
+            'machine_started_start', 'machine_started_end', 
+            'length_start', 'operator_id', 'comment'
+        ]
+        for key in keys_to_remove:
+            session_data.pop(key, None)
+        request.session['v3_production'] = session_data
+        request.session.modified = True
+    
     context = {
         'operators': operators,
         'fabrication_orders': fabrication_orders,
