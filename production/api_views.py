@@ -279,16 +279,19 @@ class ShiftViewSet(viewsets.ModelViewSet):
         
         Retourne la longueur enroulée en fin de poste (wound_length_end).
         """
-        # Récupérer le dernier poste
-        last_shift = Shift.objects.order_by('-date', '-created_at').first()
+        # Récupérer le dernier poste qui a une longueur de fin renseignée
+        last_shift = Shift.objects.exclude(
+            meter_reading_end__isnull=True
+        ).order_by('-created_at').first()
         
         if last_shift:
             # Retourner les données essentielles
-            # Utiliser meter_reading_end qui contient la valeur saisie par l'utilisateur
+            # La baguette magique veut le meter_reading_end du dernier poste
             return Response({
                 'shift_id': last_shift.shift_id,
                 'date': last_shift.date,
                 'wound_length_end': last_shift.meter_reading_end,
+                'started_at_end': last_shift.started_at_end,  # Pour savoir si on doit cocher la case
                 'operator': f"{last_shift.operator.first_name} {last_shift.operator.last_name}" if last_shift.operator else None,
                 'vacation': last_shift.vacation
             })

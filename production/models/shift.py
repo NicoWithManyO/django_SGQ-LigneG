@@ -182,7 +182,7 @@ class Shift(models.Model):
         return self.shift_id
     
     def save(self, *args, **kwargs):
-        """Génère automatiquement le shift_id si non fourni."""
+        """Génère automatiquement le shift_id si non fourni et gère les contraintes métier."""
         # Générer le shift_id si non fourni
         if not self.shift_id:
             date_str = self.date.strftime('%d%m%y')
@@ -191,6 +191,14 @@ class Shift(models.Model):
             else:
                 operator_clean = "SansOperateur"
             self.shift_id = f"{date_str}_{operator_clean}_{self.vacation}"
+        
+        # Si machine pas démarrée en début, effacer le métrage début
+        if not self.started_at_beginning:
+            self.meter_reading_start = None
+        
+        # Si machine pas démarrée en fin, effacer le métrage fin
+        if not self.started_at_end:
+            self.meter_reading_end = None
         
         super().save(*args, **kwargs)
     

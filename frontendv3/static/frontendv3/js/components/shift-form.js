@@ -85,12 +85,12 @@ function shiftForm() {
             
             // Vérifier les champs obligatoires
             if (!this.operatorId || !this.date || !this.vacation) {
-                reasons.push("Remplir tous les champs obligatoires (opérateur, date, vacation)");
+                reasons.push("Renseigner les champs Opérateur, Date & Vacation");
             }
             
             // Vérifier l'ID de poste
             if (this.shiftIdExists === null || this.checkingShiftId) {
-                return "Remplir les champs"; // Cas spécial : on retourne directement
+                return "Renseigner les champs Opérateur, Date & Vacation"; // Cas spécial : on retourne directement
             }
             
             if (this.shiftIdExists === true) {
@@ -399,7 +399,7 @@ function shiftForm() {
         async saveShift() {
             // Validation basique
             if (!this.operatorId || !this.date || !this.vacation) {
-                showNotification('error', 'Veuillez remplir tous les champs obligatoires');
+                showNotification('error', 'Renseigner les champs Opérateur, Date & Vacation');
                 return;
             }
             
@@ -617,17 +617,26 @@ function shiftForm() {
                 // Récupérer la longueur
                 const response = await fetch('/production/api/shifts/last/');
                 const data = await response.json();
-                if (data && data.wound_length_end) {
+                console.log('Données du dernier poste:', data);
+                if (data && data.wound_length_end !== null && data.wound_length_end !== undefined) {
+                    // On a une valeur, on la met dans le champ
                     this.lengthStart = data.wound_length_end.toString();
-                    this.machineStartedStart = true; // Cocher la case si on a une valeur
+                    
+                    // On ne coche la case QUE si la valeur est > 0
+                    if (data.wound_length_end > 0) {
+                        this.machineStartedStart = true;
+                        showNotification('success', `Longueur récupérée : ${data.wound_length_end} m`);
+                    } else {
+                        // Valeur à 0, on ne coche PAS la case
+                        this.machineStartedStart = false;
+                        showNotification('info', 'Longueur à 0 - Machine arrêtée');
+                    }
                     
                     // Mettre à jour visuellement
                     this.$nextTick(() => {
                         const input = this.$el.querySelector('input[x-model="lengthStart"]');
                         if (input) input.classList.add('filled');
                     });
-                    
-                    showNotification('success', `Longueur récupérée : ${data.wound_length_end} m`);
                 } else {
                     showNotification('info', 'Aucune longueur trouvée pour le dernier poste');
                 }

@@ -113,18 +113,20 @@
                                        :class="{ 'filled': startTime }">
                             </div>
                             <div class="col">
-                                <label class="form-label d-block text-nowrap" style="height: 24px;">
+                                <div class="form-label d-flex align-items-center text-nowrap" style="height: 24px;">
                                     <input type="checkbox" 
                                            class="form-check-input me-1" 
                                            id="machine-started-start"
                                            x-model="machineStartedStart"
                                            @change="handleMachineStartChange($event)">
-                                    Machine démarrée
-                                    <i class="bi bi-magic text-warning ms-1" 
+                                    <label for="machine-started-start" class="mb-0 me-1" style="cursor: pointer;">
+                                        Machine démarrée
+                                    </label>
+                                    <i class="bi bi-magic text-warning" 
                                        style="cursor: pointer;" 
                                        @click="fetchLastShiftLength()"
                                        title="Récupérer la longueur du dernier poste"></i>
-                                </label>
+                                </div>
                                 <input type="number" 
                                        class="form-control" 
                                        style="width: 100px;"
@@ -152,15 +154,17 @@
                                        @change="handleEndTimeChange($event)"
                                        :class="{ 'filled': endTime }">
                             </div>
-                            <div class="col-auto">
-                                <label class="form-label d-block" style="height: 24px;">
+                            <div class="col">
+                                <div class="form-label d-flex align-items-center text-nowrap" style="height: 24px;">
                                     <input type="checkbox" 
                                            class="form-check-input me-1" 
                                            id="machine-started-end"
                                            x-model="machineStartedEnd"
                                            @change="handleMachineEndChange($event)">
-                                    Machine démarrée
-                                </label>
+                                    <label for="machine-started-end" class="mb-0 me-1" style="cursor: pointer;">
+                                        Machine démarrée
+                                    </label>
+                                </div>
                                 <input type="number" 
                                        class="form-control" 
                                        style="width: 100px;"
@@ -183,7 +187,7 @@
                                       data-bs-placement="top"
                                       :data-bs-title="!canSaveShift ? saveButtonTooltip : ''"
                                     <button class="btn btn-primary px-4 py-2" 
-                                            @click="saveShift()"
+                                            @click="canSaveShift && saveShift()"
                                             :disabled="!canSaveShift"
                                             x-ref="saveButton"
                                             style="pointer-events: auto;">
@@ -373,8 +377,8 @@
                                                 <h6 class="text-muted mb-0">Temps perdus</h6>
                                             </div>
                                             <div class="col-2 text-center">
-                                                <span x-show="totalDowntime > 0" class="text-muted small">
-                                                    Total: <span x-text="formatDuration(totalDowntime)"></span>
+                                                <span x-show="totalDowntime > 0" class="badge bg-secondary">
+                                                    <span x-text="formatDuration(totalDowntime)"></span>
                                                 </span>
                                             </div>
                                             <div class="col-1"></div>
@@ -462,8 +466,8 @@
                                         </div>
                                         
                                         <!-- Liste des temps perdus -->
-                                        <div class="mt-3 mx-auto" x-show="downtimes.length > 0" style="width: 90%;">
-                                            <table class="table table-sm table-hover">
+                                        <div class="mt-3" x-show="downtimes.length > 0">
+                                            <table class="table table-sm">
                                                 <tbody>
                                                     <template x-for="dt in downtimes" :key="dt.id">
                                                         <tr>
@@ -475,7 +479,9 @@
                                                                 <small x-text="dt.comment || ''"></small>
                                                             </td>
                                                             <td class="col-2 text-center">
-                                                                <span x-text="dt.duration"></span> min
+                                                                <span class="badge bg-secondary">
+                                                                    <span x-text="dt.duration"></span> min
+                                                                </span>
                                                             </td>
                                                             <td class="col-1 text-center">
                                                                 <button @click="removeDowntime(dt.id)" 
@@ -1113,22 +1119,29 @@
                 <button type="button" 
                         class="btn btn-secondary px-4" 
                         data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle me-2"></i>
-                    Annuler
+                    <i class="bi me-2" :class="saveSuccess ? 'bi-check-circle' : 'bi-x-circle'"></i>
+                    <span x-text="saveSuccess ? 'Fermer' : 'Annuler'"></span>
                 </button>
                 <button type="button" 
-                        class="btn btn-primary px-4"
+                        class="btn px-4"
+                        :class="modalConfig.confirmClass"
                         @click="executeConfirm()"
-                        :disabled="modalProcessing">
+                        :disabled="modalProcessing || saveSuccess"
+                        x-show="!saveSuccess">
                     <span x-show="!modalProcessing">
-                        <i class="bi bi-check-circle me-2"></i>
-                        Sauvegarder
+                        <i class="bi me-2" :class="modalConfig.confirmIcon"></i>
+                        <span x-text="modalConfig.confirmText"></span>
                     </span>
                     <span x-show="modalProcessing">
                         <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                         Sauvegarde...
                     </span>
                 </button>
+                <!-- Message de succès -->
+                <div x-show="saveSuccess" class="text-success fw-bold">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    Sauvegardé avec succès !
+                </div>
             </div>
         </div>
     </div>

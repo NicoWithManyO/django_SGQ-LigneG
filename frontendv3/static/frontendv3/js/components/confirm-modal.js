@@ -19,7 +19,8 @@ window.confirmModal = function() {
         // État
         modalProcessing: false,
         modalInstance: null,
-        selectedMood: 'happy', // Humeur par défaut
+        selectedMood: null, // Pas de sélection par défaut
+        saveSuccess: false, // État de succès après sauvegarde
         
         // Initialisation
         init() {
@@ -42,8 +43,10 @@ window.confirmModal = function() {
             // Fusionner la config
             Object.assign(this.modalConfig, config);
             
-            // Réinitialiser l'état de processing
+            // Réinitialiser l'état
             this.modalProcessing = false;
+            this.saveSuccess = false;
+            this.selectedMood = null; // Pas de mood sélectionné par défaut
             
             // Afficher
             this.modalInstance.show();
@@ -64,8 +67,15 @@ window.confirmModal = function() {
                 // Exécuter l'action
                 await this.modalConfig.confirmAction();
                 
+                // Marquer comme succès
+                this.saveSuccess = true;
+                
+                // Changer le texte du bouton
+                this.modalConfig.confirmText = 'Sauvegardé avec succès !';
+                this.modalConfig.confirmIcon = 'bi-check-circle-fill';
+                this.modalConfig.confirmClass = 'btn-success';
+                
                 // Ne pas fermer automatiquement - l'utilisateur doit fermer manuellement
-                // Cela permet de voir le résultat de l'action
                 
             } catch (error) {
                 console.error('Erreur lors de l\'exécution de l\'action:', error);

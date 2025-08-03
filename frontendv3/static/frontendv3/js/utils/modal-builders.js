@@ -99,21 +99,21 @@ function buildShiftSummaryHTML(data) {
                             class="btn rounded-circle d-flex align-items-center justify-content-center p-0" 
                             :class="selectedMood === 'sad' ? 'btn-danger' : 'btn-outline-danger'"
                             style="width: 60px; height: 60px;"
-                            @click="selectedMood = 'sad'">
+                            @click="selectedMood = selectedMood === 'sad' ? null : 'sad'">
                         <i class="bi bi-emoji-frown" style="font-size: 1.5rem;"></i>
                     </button>
                     <button type="button" 
                             class="btn rounded-circle d-flex align-items-center justify-content-center p-0" 
                             :class="selectedMood === 'neutral' ? 'btn-warning' : 'btn-outline-warning'"
                             style="width: 60px; height: 60px;"
-                            @click="selectedMood = 'neutral'">
+                            @click="selectedMood = selectedMood === 'neutral' ? null : 'neutral'">
                         <i class="bi bi-emoji-neutral" style="font-size: 1.5rem;"></i>
                     </button>
                     <button type="button" 
                             class="btn rounded-circle d-flex align-items-center justify-content-center p-0" 
                             :class="selectedMood === 'happy' ? 'btn-success' : 'btn-outline-success'"
                             style="width: 60px; height: 60px;"
-                            @click="selectedMood = 'happy'">
+                            @click="selectedMood = selectedMood === 'happy' ? null : 'happy'">
                         <i class="bi bi-emoji-smile" style="font-size: 1.5rem;"></i>
                     </button>
                 </div>
