@@ -18,9 +18,6 @@ function stickyBar() {
         rollIdExists: null, // null, true, false
         checkingRollId: false,
         
-        // Backup temporaire pour retour de découpe (pas en session)
-        backupBeforeDiscovery: null,
-        
         // Données du rouleau
         tubeMass: '',
         length: '',
@@ -477,30 +474,6 @@ function stickyBar() {
             this.checkGrammageStatus();
         },
         
-        // Basculer vers l'ID rouleau de découpe
-        switchToDiscoveryRollId() {
-            // Format : 9999_JJMMAA
-            const now = new Date();
-            const day = now.getDate().toString().padStart(2, '0');
-            const month = (now.getMonth() + 1).toString().padStart(2, '0');
-            const year = now.getFullYear().toString().slice(-2);
-            
-            this.rollId = `9999_${day}${month}${year}`;
-            this.rollStatus = 'nok';
-            
-            // Sauvegarder dans la session
-            window.session.save('sticky_roll_id', this.rollId);
-            
-            // Émettre un événement pour informer les autres composants
-            window.dispatchEvent(new CustomEvent('roll-id-changed', {
-                detail: { 
-                    rollId: this.rollId,
-                    isDiscovery: true
-                }
-            }));
-            
-            debug(`Roll ID switched to discovery format: ${this.rollId}`);
-        },
         
         // Vérifier le statut du grammage par rapport aux specs
         checkGrammageStatus() {
