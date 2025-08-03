@@ -190,6 +190,11 @@ class RollViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Ajouter les épaisseurs et défauts depuis la session V3
+        v3_roll_data = self._prepare_session_data_v3_roll(request)
+        serializer.validated_data['thicknesses'] = v3_roll_data['thicknesses']
+        serializer.validated_data['defects'] = v3_roll_data['defects']
+        
         try:
             # Créer le rouleau via le service
             roll = roll_service.create_roll_with_measurements(
@@ -203,6 +208,13 @@ class RollViewSet(viewsets.ModelViewSet):
             
             # Ajouter l'heure de création pour le timer
             response_data['created_at'] = roll.created_at.isoformat()
+            
+            # Nettoyer la session du rouleau
+            self._clean_roll_session(request)
+            
+            # Préparer les données du prochain rouleau
+            next_roll_data = self._prepare_next_roll_data(request, roll)
+            response_data['next_roll_data'] = next_roll_data
             
             return Response(
                 response_data,
@@ -237,6 +249,128 @@ class RollViewSet(viewsets.ModelViewSet):
             'exists': exists,
             'roll_id': roll_id
         })
+    
+    def _prepare_session_data_v3_roll(self, request):
+        """
+        Prépare les données V3 du rouleau pour le service.
+        Mappe les clés V3 vers le format attendu par le backend.
+        """
+        v3_data = request.session.get('v3_production', {})
+        
+        # Mapper rollGrid.thicknessData vers le format API
+        roll_grid = v3_data.get('rollGrid', {})
+        thickness_data = roll_grid.get('thicknessData', {})
+        
+        thicknesses = []
+        for key, data in thickness_data.items():
+            if data.get('value'):
+                thicknesses.append({
+                    'meter_position': int(data.get('meter', 0)),
+                    'measurement_point': data.get('point'),
+                    'thickness_value': float(data.get('value')),
+                    'is_catchup': data.get('isCatchup', False),
+                    'is_within_tolerance': data.get('status') != 'nok'
+                })
+        
+        # Mapper les défauts
+        defects = []
+        for defect in v3_data.get('defects', []):
+            defects.append({
+                'defect_type_id': defect.get('typeId'),
+                'meter_position': int(defect.get('meter', 0)),
+                'side_position': defect.get('position'),
+                'comment': defect.get('comment', '')
+            })
+        
+        return {
+            'thicknesses': thicknesses,
+            'defects': defects
+        }
+    
+    def _clean_roll_session(self, request):
+        """Nettoie les données du rouleau après sauvegarde."""
+        if 'v3_production' in request.session:
+            v3_data = request.session['v3_production']
+            
+            # Nettoyer uniquement les données du rouleau
+            v3_data.pop('rollGrid', None)
+            v3_data.pop('defects', None)
+            
+            # Nettoyer les champs sticky bar
+            v3_data.pop('sticky_tube_mass', None)
+            v3_data.pop('sticky_total_mass', None)
+            # Ne pas nettoyer sticky_roll_number ici, on va le mettre à jour dans _prepare_next_roll_data
+            
+            # Remettre la longueur cible pour le prochain rouleau
+            target_length = v3_data.get('of', {}).get('targetLength')
+            if target_length:
+                v3_data['sticky_length'] = str(target_length)
+            else:
+                v3_data.pop('sticky_length', None)
+            
+            # Nettoyer les anciennes valeurs inutiles
+            v3_data.pop('original_of', None)
+            v3_data.pop('original_roll_number', None)
+            v3_data.pop('sticky_roll_id', None)
+            
+            # Reporter next_tube_mass vers tube_mass
+            next_tube = v3_data.pop('sticky_next_tube_mass', None)
+            if next_tube:
+                v3_data['sticky_tube_mass'] = next_tube
+            
+            # Nettoyer aussi le commentaire du rouleau
+            if 'roll' in v3_data:
+                v3_data['roll'].pop('comment', None)
+                
+            request.session['v3_production'] = v3_data
+            request.session.save()
+    
+    def _prepare_next_roll_data(self, request, saved_roll):
+        """Prépare les données pour le prochain rouleau."""
+        v3_data = request.session.get('v3_production', {})
+        
+        # Reporter la masse tube suivante
+        next_tube_mass = v3_data.get('sticky_tube_mass', '')
+        
+        # Debug
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Préparation prochain rouleau - saved_roll.roll_id: {saved_roll.roll_id}, roll_number: {saved_roll.roll_number}")
+        
+        # Récupérer le numéro actuel depuis la session
+        current_roll_number = v3_data.get('sticky_roll_number', '')
+        
+        # Si on vient de sauver un CONFORME, on incrémente
+        if saved_roll.status == 'CONFORME':
+            if current_roll_number and current_roll_number.isdigit():
+                current_number = int(current_roll_number)
+            else:
+                current_number = int(saved_roll.roll_number) if saved_roll.roll_number else 0
+            next_roll_number = str(current_number + 1).zfill(3)
+            logger.info(f"Rouleau CONFORME sauvé - Incrémentation: {current_number} -> {next_roll_number}")
+        else:
+            # Si NON CONFORME, on garde le même numéro pour réessayer
+            next_roll_number = current_roll_number or '001'
+            logger.info(f"Rouleau NON CONFORME sauvé - On garde le numéro: {next_roll_number}")
+        
+        # L'OF reste celui en cours (pas 9999 même si on vient de sauver un non conforme)
+        if saved_roll.fabrication_order and saved_roll.fabrication_order.order_number != '9999':
+            of_number = saved_roll.fabrication_order.order_number
+        else:
+            # Si c'était un 9999, récupérer l'OF en cours depuis la session
+            of_number = v3_data.get('of', {}).get('ofEnCours', '')
+        
+        # Sauvegarder le nouveau numéro dans la session
+        v3_data['sticky_roll_number'] = next_roll_number
+        request.session['v3_production'] = v3_data
+        request.session.save()
+        
+        return {
+            'roll_number': next_roll_number,
+            'tube_mass': next_tube_mass,
+            'of_number': of_number,
+            'shift_id': saved_roll.shift_id_str
+        }
 
 
 class ShiftViewSet(viewsets.ModelViewSet):

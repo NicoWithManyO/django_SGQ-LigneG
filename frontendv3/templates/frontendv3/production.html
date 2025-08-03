@@ -1175,9 +1175,8 @@
                                }"
                                :style="rollId.startsWith('9999_') ? 'color: #fd7e14;' : (!checkingRollId && rollIdExists === false ? 'color: #198754;' : (!checkingRollId && rollIdExists === true ? 'color: #ffc107;' : ''))"
                                :title="rollId.startsWith('9999_') ? 'Rouleau de découpe' : (checkingRollId ? 'Vérification...' : (rollIdExists === true ? 'ID déjà existant !' : 'ID disponible'))"></i>
-                            <div class="form-control form-control-sm fw-bold text-start" 
-                                 :class="rollId.startsWith('9999_') ? '' : 'text-white'"
-                                 :style="rollId.startsWith('9999_') ? 'background: transparent; border: 1px solid transparent; cursor: default; color: #fd7e14;' : 'background: transparent; border: 1px solid transparent; cursor: default;'" 
+                            <div class="fw-bold text-start ms-2" 
+                                 :class="rollId.startsWith('9999_') ? 'text-warning' : 'text-white'"
                                  x-text="rollId">--</div>
                         </div>
                     </div>

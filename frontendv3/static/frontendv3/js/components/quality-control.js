@@ -88,6 +88,27 @@ window.qualityControl = function() {
                 }
             });
             
+            // Écouter l'événement de reset après sauvegarde d'un rouleau
+            window.addEventListener('roll-reset', () => {
+                debug('Roll reset received - clearing QC data');
+                // Réinitialiser toutes les données QC
+                this.micromaireG = ['', '', ''];
+                this.micromaireD = ['', '', ''];
+                this.masseSurfaciqueGG = '';
+                this.masseSurfaciqueGC = '';
+                this.masseSurfaciqueDC = '';
+                this.masseSurfaciqueDD = '';
+                this.extraitSec = '';
+                this.extraitTime = '--:--';
+                this.loi = false;
+                this.loiTime = '--:--';
+                // Recalculer les moyennes
+                this.updateGlobalAverages();
+                this.checkQCStatus();
+                // Sauvegarder en session
+                this.saveToSession();
+            });
+            
             // Vérifier le statut initial
             this.checkQCStatus();
             this.updateGlobalAverages();

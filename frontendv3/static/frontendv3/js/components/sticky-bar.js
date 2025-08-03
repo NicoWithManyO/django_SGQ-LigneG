@@ -18,6 +18,9 @@ function stickyBar() {
         rollIdExists: null, // null, true, false
         checkingRollId: false,
         
+        // Backup temporaire pour retour de découpe (pas en session)
+        backupBeforeDiscovery: null,
+        
         // Données du rouleau
         tubeMass: '',
         length: '',
@@ -71,7 +74,7 @@ function stickyBar() {
             const shiftData = window.sessionData?.shift || {};
             
             this.ofNumber = ofData.ofEnCours || '';
-            this.rollNumber = window.sessionData?.sticky_roll_number || rollData.rollNumber || '';
+            this.rollNumber = window.sessionData?.sticky_roll_number || '';
             this.shiftId = shiftData.shiftId || '';
             
             // Charger les données du shift
@@ -162,33 +165,8 @@ function stickyBar() {
                 this.rollConformityStatus = event.detail.status;
                 this.allThicknessesFilled = event.detail.allThicknessesFilled || false;
                 
-                // Si le statut passe à NON_CONFORME, changer l'ID en format OF découpe
-                if (event.detail.status === 'NON_CONFORME') {
-                    // Vérifier si on n'est pas déjà en format découpe
-                    if (!this.rollId.startsWith('9999_')) {
-                        // Sauvegarder l'OF et le numéro de rouleau originaux avant de changer
-                        window.session.save('original_of', this.ofNumber);
-                        window.session.save('original_roll_number', this.rollNumber);
-                        this.switchToDiscoveryRollId();
-                    }
-                }
-                // Si le statut repasse à CONFORME, restaurer l'ID normal
-                else if (event.detail.status === 'CONFORME') {
-                    // Restaurer l'OF et le numéro originaux depuis la session
-                    const originalOF = window.sessionData?.original_of;
-                    const originalRollNumber = window.sessionData?.original_roll_number;
-                    
-                    if (originalOF && originalRollNumber) {
-                        this.ofNumber = originalOF;
-                        this.rollNumber = originalRollNumber;
-                        this.updateRollId();
-                        this.rollStatus = 'ok';
-                        
-                        // Nettoyer les données temporaires
-                        window.session.remove('original_of');
-                        window.session.remove('original_roll_number');
-                    }
-                }
+                // Mettre à jour l'ID selon le statut
+                this.updateRollId();
             });
             
             // Écouter les changements de shift pour récupérer les données
@@ -203,15 +181,26 @@ function stickyBar() {
         
         // Mettre à jour l'ID rouleau
         updateRollId() {
-            if (this.ofNumber && this.rollNumber && this.rollNumber.toString().trim() !== '') {
-                // Formater le numéro de rouleau avec padding
+            if (this.rollConformityStatus === 'NON_CONFORME') {
+                // Utiliser OF découpe avec date
+                const ofDecoupe = window.sessionData?.of?.ofDecoupe || '9999';
+                const now = new Date();
+                const day = now.getDate().toString().padStart(2, '0');
+                const month = (now.getMonth() + 1).toString().padStart(2, '0');
+                const year = now.getFullYear().toString().slice(-2);
+                this.rollId = `${ofDecoupe}_${day}${month}${year}`;
+                this.rollStatus = 'nok';
+            } else if (this.ofNumber && this.rollNumber && this.rollNumber.toString().trim() !== '') {
+                // Utiliser OF en cours avec numéro de rouleau
                 const paddedRollNumber = this.rollNumber.toString().padStart(3, '0');
                 this.rollId = `${this.ofNumber}_${paddedRollNumber}`;
-                this.checkRollIdExists();
+                this.rollStatus = 'ok';
             } else {
                 this.rollId = '--';
                 this.rollIdExists = null;
+                return;
             }
+            this.checkRollIdExists();
         },
         
         // Vérifier si l'ID rouleau existe en base
@@ -311,20 +300,39 @@ function stickyBar() {
         
         // Sauvegarder le rouleau
         async saveRoll() {
-            // Collecter toutes les données du rouleau
-            const rollData = {
-                roll_id: this.rollId,
-                shift_id: this.shiftId,
-                of_fabrication: this.ofNumber,
-                roll_number: parseInt(this.rollNumber),
-                // Ajouter les autres données depuis la session
-                ...window.sessionData?.roll
-            };
+            if (!this.canSaveRoll) {
+                showNotification('warning', this.saveButtonTooltip);
+                return;
+            }
             
             try {
-                // Utiliser fetch directement comme dans les autres composants V3
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || window.csrfToken || '';
+                showNotification('info', 'Sauvegarde du rouleau...');
                 
+                // Préparer les données minimales
+                const rollData = {
+                    shift_id_str: this.shiftId,
+                    tube_mass: parseFloat(this.tubeMass) || null,
+                    total_mass: parseFloat(this.totalMass) || null,
+                    length: parseFloat(this.length) || null,
+                    status: this.rollConformityStatus
+                };
+                
+                // Toujours envoyer le roll_id
+                rollData.roll_id = this.rollId;
+                
+                // Pour CONFORME seulement, envoyer le roll_number (entier)
+                if (this.rollConformityStatus === 'CONFORME') {
+                    rollData.roll_number = parseInt(this.rollNumber);
+                }
+                // Pour NON_CONFORME, pas de roll_number (le backend gère)
+                
+                // L'OF sera extrait automatiquement du roll_id par le backend
+                
+                // Le backend va récupérer les épaisseurs et défauts depuis la session
+                
+                console.log('Données à envoyer:', rollData);
+                
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
                 const response = await fetch('/production/api/rolls/', {
                     method: 'POST',
                     headers: {
@@ -335,16 +343,56 @@ function stickyBar() {
                 });
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                    const error = await response.json();
+                    console.error('Erreur API:', error);
+                    throw new Error(error.error || error.detail || `HTTP ${response.status}`);
                 }
                 
-                const data = await response.json();
+                const savedRoll = await response.json();
+                console.log('Réponse du backend:', savedRoll);
+                
+                // Appliquer l'état renvoyé par le backend
+                if (savedRoll.next_roll_data) {
+                    // Si on était en mode découpe et qu'on nous renvoie un OF normal
+                    if (this.ofNumber === '9999' && savedRoll.next_roll_data.of_number !== '9999') {
+                        // Restaurer l'OF original si disponible
+                        const originalOF = window.sessionData?.original_of;
+                        if (originalOF) {
+                            this.ofNumber = originalOF;
+                            window.session.remove('original_of');
+                            window.session.remove('original_roll_number');
+                        }
+                    } else {
+                        this.ofNumber = savedRoll.next_roll_data.of_number || this.ofNumber;
+                    }
+                    
+                    this.rollNumber = savedRoll.next_roll_data.roll_number;
+                    this.tubeMass = savedRoll.next_roll_data.tube_mass || '';
+                    this.nextTubeMass = '';
+                    this.totalMass = '';
+                    // Récupérer la longueur cible depuis la session
+                    const targetLength = window.sessionData?.of?.targetLength;
+                    this.length = targetLength ? String(targetLength) : '';
+                    this.calculateValues();
+                    this.handleRollNumberChange();
+                    this.updateOFStatus();
+                }
+                
+                showNotification('success', `Rouleau ${savedRoll.roll_id} sauvegardé`);
+                
+                // Émettre l'événement de succès
                 window.dispatchEvent(new CustomEvent('roll-saved', { 
-                    detail: { roll: data }
+                    detail: { roll: savedRoll }
                 }));
-                return data;
+                
+                // Informer les autres composants de se réinitialiser
+                window.dispatchEvent(new CustomEvent('roll-reset'));
+                
+                return savedRoll;
+                
             } catch (error) {
                 console.error('Erreur sauvegarde rouleau:', error);
+                showNotification('error', `Erreur: ${error.message}`);
                 throw error;
             }
         },

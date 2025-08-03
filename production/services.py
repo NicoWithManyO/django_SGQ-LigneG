@@ -154,6 +154,14 @@ class RollService:
         thicknesses_data = validated_data.pop('thicknesses', [])
         defects_data = validated_data.pop('defects', [])
         
+        # Pour les rouleaux NON_CONFORME, ajouter l'heure pour l'unicité
+        if validated_data.get('status') == 'NON_CONFORME':
+            from datetime import datetime
+            now = datetime.now()
+            hhmm = now.strftime('%H%M')
+            # Ajouter HHMM au roll_id pour éviter les doublons
+            validated_data['roll_id'] = f"{validated_data['roll_id']}_{hhmm}"
+        
         # Gérer l'ordre de fabrication si un numéro est fourni
         roll_id = validated_data.get('roll_id', '')
         if roll_id and '_' in roll_id and not validated_data.get('fabrication_order'):

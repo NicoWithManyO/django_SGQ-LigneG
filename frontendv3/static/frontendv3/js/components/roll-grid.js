@@ -105,6 +105,14 @@ function rollGrid() {
                 }
             });
             
+            // Écouter l'événement de reset après sauvegarde d'un rouleau
+            window.addEventListener('roll-reset', () => {
+                debug('Roll reset received - clearing thickness grid');
+                this.clearAllThickness();
+                // Reset aussi les mètres de rattrapage
+                this.catchupCells = new Set();
+            });
+            
             // Exposer les fonctions globalement pour les tests
             window.fillAllThickness = (value) => this.fillAllThickness(value);
             window.fillRandomThickness = () => this.fillRandomThickness();
