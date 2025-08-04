@@ -47,9 +47,12 @@ function stickyBar() {
         init() {
             debug('Sticky bar initialized');
             
+            // Enregistrer dans le registry
+            window.componentRegistry.initComponent(this, 'stickyBar');
+            
             // Démarrer l'horloge
             this.updateClock();
-            this.clockTimer = setInterval(() => this.updateClock(), 1000);
+            this.clockTimer = setInterval(() => this.updateClock(), window.stickyBarConfig.clock.updateInterval);
             
             // Charger les données initiales depuis la session
             this.loadFromSession();
@@ -57,11 +60,40 @@ function stickyBar() {
             // Écouter les changements globaux
             this.listenToGlobalEvents();
             
-            // Watchers pour auto-save dans la session uniquement
-            // Le calcul et l'émission d'événements se feront au blur
-            this.$watch('tubeMass', () => window.session.save('sticky_tube_mass', this.tubeMass));
-            this.$watch('length', () => window.session.save('sticky_length', this.length));
-            this.$watch('totalMass', () => window.session.save('sticky_total_mass', this.totalMass));
+            // Calculer les valeurs initiales et émettre les événements
+            // Attendre un peu pour que roll-grid soit initialisé
+            setTimeout(() => {
+                this.calculateValues();
+                // Forcer le recalcul et l'émission du statut initial du grammage
+                this.checkGrammageStatus();
+                debug(`Initial grammage status: "${this.grammageStatus}", grammage: "${this.grammage}"`);
+                
+                // Émettre même si le statut est vide pour initialiser roll-grid
+                window.eventBus.emit(window.eventBus.EVENTS.GRAMMAGE_STATUS_CHANGED, {
+                    status: this.grammageStatus, 
+                    value: this.grammage !== '--' ? parseFloat(this.grammage) : null,
+                    grammage: this.grammage
+                });
+                
+                // Forcer aussi un $nextTick pour s'assurer que Alpine met à jour le DOM
+                this.$nextTick(() => {
+                    debug(`DOM should be updated with grammage color. Status: ${this.grammageStatus}`);
+                });
+            }, 200); // Augmenter le délai pour être sûr
+            
+            // Watchers pour auto-save dans la session ET recalcul
+            this.$watch('tubeMass', () => {
+                window.session.save('sticky_tube_mass', this.tubeMass);
+                this.calculateValues();
+            });
+            this.$watch('length', () => {
+                window.session.save('sticky_length', this.length);
+                this.calculateValues();
+            });
+            this.$watch('totalMass', () => {
+                window.session.save('sticky_total_mass', this.totalMass);
+                this.calculateValues();
+            });
             this.$watch('nextTubeMass', () => window.session.save('sticky_next_tube_mass', this.nextTubeMass));
             
             // Cleanup se fera automatiquement quand le composant est détruit
@@ -94,28 +126,25 @@ function stickyBar() {
             this.updateRollId();
             this.updateOFStatus();
             this.calculateValues();
+            
+            // Forcer le calcul initial du grammage et son statut TOUJOURS
+            // Même si grammage est '--', on doit vérifier pour appliquer le style blanc par défaut
+            this.checkGrammageStatus();
         },
         
         // Mettre à jour l'horloge
         updateClock() {
             const now = new Date();
-            const options = { 
-                weekday: 'short', 
-                day: '2-digit', 
-                month: '2-digit', 
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-            };
-            this.currentDateTime = now.toLocaleDateString('fr-FR', options);
+            this.currentDateTime = now.toLocaleDateString(
+                window.stickyBarConfig.clock.locale, 
+                window.stickyBarConfig.clock.options
+            );
         },
         
         // Écouter les événements globaux
         listenToGlobalEvents() {
             // Écouter les changements d'OF
-            window.addEventListener('of-changed', (event) => {
+            window.eventBus.on(window.eventBus.EVENTS.OF_CHANGED, (event) => {
                 this.ofNumber = event.detail.ofNumber || '';
                 this.updateRollId();
                 this.updateOFStatus();
@@ -126,26 +155,26 @@ function stickyBar() {
             });
             
             // Écouter les changements de numéro de rouleau
-            window.addEventListener('roll-number-changed', (event) => {
+            window.eventBus.on(window.eventBus.EVENTS.ROLL_NUMBER_CHANGED, (event) => {
                 this.rollNumber = event.detail.rollNumber || '';
                 this.updateRollId();
             });
             
             // Écouter les changements de shift
-            window.addEventListener('shift-saved', (event) => {
+            window.eventBus.on(window.eventBus.EVENTS.SHIFT_SAVED, (event) => {
                 this.shiftSaved = true;
                 this.shiftId = event.detail.shift?.shift_id || '';
-                setTimeout(() => { this.shiftSaved = false; }, 3000);
+                setTimeout(() => { this.shiftSaved = false; }, window.stickyBarConfig.timeouts.saveNotification);
             });
             
             // Écouter les sauvegardes de rouleau
-            window.addEventListener('roll-saved', (event) => {
+            window.eventBus.on(window.eventBus.EVENTS.ROLL_SAVED, (event) => {
                 this.rollSaved = true;
-                setTimeout(() => { this.rollSaved = false; }, 3000);
+                setTimeout(() => { this.rollSaved = false; }, window.stickyBarConfig.timeouts.saveNotification);
             });
             
             // Écouter les mises à jour de session
-            window.addEventListener('session-updated', (event) => {
+            window.eventBus.on(window.eventBus.EVENTS.SESSION_UPDATED, (event) => {
                 if (event.detail.key === 'of' || event.detail.key === 'roll' || event.detail.key === 'shift') {
                     this.loadFromSession();
                 }
@@ -155,25 +184,28 @@ function stickyBar() {
             window.addEventListener('profile-changed', (event) => {
                 if (event.detail && event.detail.profileSpecs) {
                     this.profileSpecs = event.detail.profileSpecs;
+                    debug('Profile specs received in sticky-bar:', this.profileSpecs);
                     // Revérifier le statut du grammage avec les nouvelles specs
                     this.checkGrammageStatus();
                 }
             });
             
             // Écouter les changements de conformité
-            window.addEventListener('roll-conformity-changed', (event) => {
+            window.eventBus.on(window.eventBus.EVENTS.ROLL_CONFORMITY_CHANGED, (event) => {
                 debug('Conformity changed:', event.detail);
                 
                 // Mettre à jour le statut de conformité et l'état des épaisseurs
                 this.rollConformityStatus = event.detail.status;
                 this.allThicknessesFilled = event.detail.allThicknessesFilled || false;
                 
+                debug(`Updated sticky-bar: status=${this.rollConformityStatus}, allFilled=${this.allThicknessesFilled}`);
+                
                 // Mettre à jour l'ID selon le statut
                 this.updateRollId();
             });
             
             // Écouter les changements de shift pour récupérer les données
-            window.addEventListener('shift-data-changed', (event) => {
+            window.eventBus.on(window.eventBus.EVENTS.SHIFT_DATA_CHANGED, (event) => {
                 if (event.detail) {
                     this.operatorId = event.detail.operatorId || '';
                     this.shiftDate = event.detail.date || '';
@@ -183,7 +215,7 @@ function stickyBar() {
             });
             
             // Écouter les changements de statut QC
-            window.addEventListener('qc-status-changed', (event) => {
+            window.eventBus.on(window.eventBus.EVENTS.QC_STATUS_CHANGED, (event) => {
                 if (event.detail && event.detail.status !== undefined) {
                     this.currentQcStatus = event.detail.status;
                     debug('QC status updated:', this.currentQcStatus);
@@ -193,25 +225,20 @@ function stickyBar() {
         
         // Mettre à jour l'ID rouleau
         updateRollId() {
-            if (this.rollConformityStatus === 'NON_CONFORME') {
-                // Utiliser OF découpe avec date
-                const ofDecoupe = window.sessionData?.of?.ofDecoupe || '9999';
-                const now = new Date();
-                const day = now.getDate().toString().padStart(2, '0');
-                const month = (now.getMonth() + 1).toString().padStart(2, '0');
-                const year = now.getFullYear().toString().slice(-2);
-                this.rollId = `${ofDecoupe}_${day}${month}${year}`;
-                this.rollStatus = 'nok';
-            } else if (this.ofNumber && this.rollNumber && this.rollNumber.toString().trim() !== '') {
-                // Utiliser OF en cours avec numéro de rouleau
-                const paddedRollNumber = this.rollNumber.toString().padStart(3, '0');
-                this.rollId = `${this.ofNumber}_${paddedRollNumber}`;
-                this.rollStatus = 'ok';
-            } else {
-                this.rollId = '--';
+            const ofDecoupe = window.sessionData?.of?.ofDecoupe || window.stickyBarConfig.rollId.ofDecoupe;
+            this.rollId = window.rollCalculations.generateRollId(
+                this.ofNumber,
+                this.rollNumber,
+                this.rollConformityStatus,
+                ofDecoupe
+            );
+            
+            if (this.rollId === '--') {
                 this.rollIdExists = null;
                 return;
             }
+            
+            this.rollStatus = this.rollConformityStatus === 'NON_CONFORME' ? 'nok' : 'ok';
             this.checkRollIdExists();
         },
         
@@ -224,7 +251,7 @@ function stickyBar() {
             
             this.checkingRollId = true;
             try {
-                const response = await fetch(`/production/api/rolls/check-id/?roll_id=${this.rollId}`);
+                const response = await fetch(`${window.stickyBarConfig.api.checkRollId}?roll_id=${this.rollId}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
                 const data = await response.json();
@@ -254,35 +281,35 @@ function stickyBar() {
                     this.ofStatus += ` (${profileName})`;
                 }
             } else {
-                this.ofStatus = 'Aucun OF sélectionné';
+                this.ofStatus = window.stickyBarConfig.messages.noOf;
             }
         },
         
         // Récupérer le prochain numéro de rouleau disponible
         async fetchNextRollNumber() {
             if (!this.ofNumber) {
-                showNotification('warning', 'Aucun OF sélectionné');
+                showNotification('warning', window.stickyBarConfig.messages.noOf);
                 return;
             }
             
             try {
-                const response = await fetch(`/production/api/rolls/next-number/?of=${this.ofNumber}`);
+                const response = await fetch(`${window.stickyBarConfig.api.nextRollNumber}?of=${this.ofNumber}`);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
                 const data = await response.json();
                 this.rollNumber = data.next_number;
                 this.handleRollNumberChange();
                 
-                showNotification('success', `Prochain numéro : ${data.next_number}`);
+                showNotification('success', window.stickyBarConfig.messages.nextNumber + data.next_number);
             } catch (error) {
-                showNotification('error', 'Erreur lors de la récupération du numéro');
+                showNotification('error', window.stickyBarConfig.messages.fetchError);
                 debug('Fetch next number error:', error);
             }
         },
         
         // Actions
         async saveAll() {
-            showNotification('info', 'Sauvegarde en cours...');
+            showNotification('info', window.stickyBarConfig.messages.savingAll);
             
             try {
                 const promises = [];
@@ -303,9 +330,9 @@ function stickyBar() {
                 // Attendre toutes les sauvegardes
                 await Promise.all(promises);
                 
-                showNotification('success', 'Données sauvegardées avec succès');
+                showNotification('success', window.stickyBarConfig.messages.saveSuccess);
             } catch (error) {
-                showNotification('error', 'Erreur lors de la sauvegarde');
+                showNotification('error', window.stickyBarConfig.messages.saveError);
                 debug('Save error:', error);
             }
         },
@@ -340,8 +367,8 @@ function stickyBar() {
                 // Ajouter les données QC si disponibles
                 const qcData = window.sessionData?.v3_production || {};
                 if (qcData.qc_micromaire_g || qcData.qc_micromaire_d) {
-                    const avgLeft = this._calcAvg(qcData.qc_micromaire_g || []);
-                    const avgRight = this._calcAvg(qcData.qc_micromaire_d || []);
+                    const avgLeft = window.rollCalculations.calculateAverage(qcData.qc_micromaire_g || []);
+                    const avgRight = window.rollCalculations.calculateAverage(qcData.qc_micromaire_d || []);
                     if (avgLeft) {
                         rollData.qcMicromaire = avgLeft.toFixed(1);
                         rollData.qcMicromaireUnit = 'μm';
@@ -353,7 +380,7 @@ function stickyBar() {
                 
                 if (qcData.qc_masse_surfacique_gg || qcData.qc_masse_surfacique_gc || 
                     qcData.qc_masse_surfacique_dc || qcData.qc_masse_surfacique_dd) {
-                    const avgMasse = this._calcAvg([
+                    const avgMasse = window.rollCalculations.calculateAverage([
                         qcData.qc_masse_surfacique_gg,
                         qcData.qc_masse_surfacique_gc,
                         qcData.qc_masse_surfacique_dc,
@@ -401,7 +428,7 @@ function stickyBar() {
         async _performSaveRoll(comment = '') {
             
             try {
-                showNotification('info', 'Sauvegarde du rouleau...');
+                showNotification('info', window.stickyBarConfig.messages.savingRoll);
                 
                 // Préparer les données minimales
                 const rollData = {
@@ -474,15 +501,15 @@ function stickyBar() {
                     this.updateOFStatus();
                 }
                 
-                showNotification('success', `Rouleau ${savedRoll.roll_id} sauvegardé`);
+                showNotification('success', window.stickyBarConfig.messages.rollSaved.replace('{rollId}', savedRoll.roll_id));
                 
                 // Émettre l'événement de succès
-                window.dispatchEvent(new CustomEvent('roll-saved', { 
-                    detail: { roll: savedRoll }
-                }));
+                window.eventBus.emit(window.eventBus.EVENTS.ROLL_SAVED, { 
+                    roll: savedRoll
+                });
                 
                 // Informer les autres composants de se réinitialiser
-                window.dispatchEvent(new CustomEvent('roll-reset'));
+                window.eventBus.emit(window.eventBus.EVENTS.ROLL_RESET);
                 
                 return savedRoll;
                 
@@ -494,14 +521,14 @@ function stickyBar() {
         },
         
         async exportData() {
-            showNotification('info', 'Export en préparation...');
+            showNotification('info', window.stickyBarConfig.messages.exportPending);
             // Export non implémenté pour l'instant
         },
         
         // Vider toutes les données sauf la partie ordre de fabrication
         clearAllExceptOF() {
             // Confirmation avant de vider
-            if (!confirm('Êtes-vous sûr de vouloir vider toutes les données (sauf les OF) ?')) {
+            if (!confirm(window.stickyBarConfig.messages.confirmClear)) {
                 return;
             }
             
@@ -572,7 +599,7 @@ function stickyBar() {
             // Recharger la page après un court délai pour laisser le temps à la sauvegarde
             setTimeout(() => {
                 window.location.reload();
-            }, 500);
+            }, window.stickyBarConfig.timeouts.pageReload);
         },
         
         toggleDebug() {
@@ -595,9 +622,9 @@ function stickyBar() {
             this.updateRollId();
             
             // Émettre l'événement
-            window.dispatchEvent(new CustomEvent('roll-number-changed', {
-                detail: { rollNumber: this.rollNumber }
-            }));
+            window.eventBus.emit(window.eventBus.EVENTS.ROLL_NUMBER_CHANGED, {
+                rollNumber: this.rollNumber
+            });
         },
         
         // Gérer les changements de données
@@ -653,7 +680,7 @@ function stickyBar() {
             }
             
             // 5. Remplir les contrôles qualité
-            window.dispatchEvent(new CustomEvent('fill-qc-random'));
+            window.eventBus.emit(window.eventBus.EVENTS.FILL_QC_RANDOM);
             
             // 6. Remplir la checklist avec signature - attendre un peu pour que les composants soient chargés
             setTimeout(() => {
@@ -662,7 +689,7 @@ function stickyBar() {
                     const checklistData = checklistComponent._x_dataStack[0];
                     window.testHelpers.fillChecklist(checklistData);
                 }
-            }, 100);
+            }, window.stickyBarConfig.timeouts.checklistFill);
             
             // Sauvegarder et recalculer
             this.handleDataChange();
@@ -685,99 +712,62 @@ function stickyBar() {
         // Calculer les valeurs dérivées
         calculateValues() {
             // Calculer la masse nette
-            if (this.totalMass && this.tubeMass) {
-                const total = parseFloat(this.totalMass);
-                const tube = parseFloat(this.tubeMass);
-                if (!isNaN(total) && !isNaN(tube)) {
-                    this.netMass = (total - tube).toFixed(0);
-                } else {
-                    this.netMass = '--';
-                }
-            } else {
-                this.netMass = '--';
-            }
+            const netMass = window.rollCalculations.calculateNetMass(this.totalMass, this.tubeMass);
+            this.netMass = netMass !== null ? netMass.toFixed(0) : '--';
             
-            // Calculer le grammage (g/m²)
-            if (this.netMass !== '--' && this.length) {
-                const net = parseFloat(this.netMass);
-                const len = parseFloat(this.length);
-                if (!isNaN(net) && !isNaN(len) && len > 0) {
-                    // Formule : masse nette / longueur = g/m linéaire
-                    // Pour un produit en rouleau, le grammage est en g/m linéaire
-                    this.grammage = (net / len).toFixed(1);
-                    debug(`Grammage calc: ${net}g / ${len}m = ${this.grammage} g/m`);
-                } else {
-                    this.grammage = '--';
-                }
+            // Calculer le grammage
+            if (netMass !== null) {
+                const grammage = window.rollCalculations.calculateGrammage(netMass, this.length);
+                this.grammage = grammage !== null ? grammage.toFixed(1) : '--';
+                debug(`Grammage calc: ${netMass}g / ${this.length}m = ${this.grammage} g/m`);
             } else {
                 this.grammage = '--';
             }
             
-            // Vérifier le statut du grammage
+            // FORCER le recalcul du statut immédiatement et directement
             this.checkGrammageStatus();
+            
         },
         
         
         // Vérifier le statut du grammage par rapport aux specs
-        // Helper pour calculer la moyenne d'un tableau
-        _calcAvg(values) {
-            if (!values || !Array.isArray(values)) return null;
-            const validValues = values.filter(v => v !== null && v !== undefined && !isNaN(v));
-            if (validValues.length === 0) return null;
-            return validValues.reduce((sum, v) => sum + parseFloat(v), 0) / validValues.length;
-        },
-        
         checkGrammageStatus() {
+            debug(`checkGrammageStatus called: grammage="${this.grammage}", specs=`, this.profileSpecs);
+            
             // Si pas de grammage calculé ou pas de specs
             if (this.grammage === '--' || !this.profileSpecs) {
                 // Si le statut change, émettre l'événement
                 if (this.grammageStatus !== '') {
                     this.grammageStatus = '';
-                    window.dispatchEvent(new CustomEvent('grammage-status-changed', {
-                        detail: { status: '', value: null }
-                    }));
+                    window.eventBus.emit(window.eventBus.EVENTS.GRAMMAGE_STATUS_CHANGED, {
+                        status: '', 
+                        value: null,
+                        grammage: this.grammage
+                    });
                 }
                 return;
             }
             
-            // Chercher la spec "Masse Surfacique Globale" (en g/m²)
-            // Ne PAS utiliser "Masse Surfacique" qui est en g/25cm²
-            const spec = this.profileSpecs.find(s => 
-                s.name === 'Masse Surfacique Globale'
-            );
+            // Chercher la spec "Masse Surfacique Globale"
+            const spec = this.profileSpecs.find(s => s.name === 'Masse Surfacique Globale');
             
             if (!spec) {
                 this.grammageStatus = '';
-                debug('Spec "Masse Surfacique Globale" non trouvée dans:', this.profileSpecs);
+                debug('Spec "Masse Surfacique Globale" non trouvée');
                 return;
             }
-            
-            debug('Spec trouvée:', spec);
             
             const value = parseFloat(this.grammage);
-            if (isNaN(value)) {
-                this.grammageStatus = '';
-                return;
-            }
-            
-            // Vérifier selon les 4 seuils (comme pour les épaisseurs)
-            let newStatus = 'ok';
-            if (spec.value_min !== null && value < spec.value_min) {
-                newStatus = 'nok';
-            } else if (spec.value_min_alert !== null && value < spec.value_min_alert) {
-                newStatus = 'alert';
-            } else if (spec.value_max !== null && value > spec.value_max) {
-                newStatus = 'nok';
-            } else if (spec.value_max_alert !== null && value > spec.value_max_alert) {
-                newStatus = 'alert';
-            }
+            const newStatus = window.rollCalculations.checkGrammageStatus(value, spec);
             
             // Si le statut a changé, émettre un événement
             if (this.grammageStatus !== newStatus) {
                 this.grammageStatus = newStatus;
-                window.dispatchEvent(new CustomEvent('grammage-status-changed', {
-                    detail: { status: newStatus, value: value }
-                }));
+                window.eventBus.emit(window.eventBus.EVENTS.GRAMMAGE_STATUS_CHANGED, {
+                    status: newStatus, 
+                    value: value,
+                    grammage: this.grammage
+                });
             }
             
             debug('Grammage status:', this.grammageStatus, 'for value:', value);
@@ -817,14 +807,14 @@ function stickyBar() {
             // Sinon, lister ce qui manque
             const missing = [];
             
-            if (!this.operatorId) missing.push('Opérateur requis');
-            if (!this.shiftDate) missing.push('Date requise');
-            if (!this.vacation) missing.push('Vacation requise');
-            if (!this.hasGrammage) missing.push('Grammage requis (masse + longueur)');
+            if (!this.operatorId) missing.push(window.stickyBarConfig.validationMessages.operatorRequired);
+            if (!this.shiftDate) missing.push(window.stickyBarConfig.validationMessages.dateRequired);
+            if (!this.vacation) missing.push(window.stickyBarConfig.validationMessages.vacationRequired);
+            if (!this.hasGrammage) missing.push(window.stickyBarConfig.validationMessages.grammageRequired);
             
             if (this.rollConformityStatus === 'CONFORME' && !this.allThicknessesFilled) {
                 debug(`Tooltip check: conformityStatus=${this.rollConformityStatus}, allThicknessesFilled=${this.allThicknessesFilled}`);
-                missing.push('Toutes les épaisseurs requises');
+                missing.push(window.stickyBarConfig.validationMessages.thicknessRequired);
             }
             
             debug(`SaveButtonTooltip: ${missing.join(' • ')}`);

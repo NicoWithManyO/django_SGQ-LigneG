@@ -147,11 +147,22 @@ function shiftForm() {
             
             // Vérifier si un opérateur a été présélectionné depuis le splash
             const sessionData = window.sessionData || {};
-            if (sessionData.shiftOperator && !this.operatorId) {
-                this.operatorId = sessionData.shiftOperator;
-                // Déclencher le changement pour générer l'ID du shift
+            // Si on a explicitement vidé l'opérateur OU si shiftOperator existe
+            if (sessionData.operatorCleared === true || 'shiftOperator' in sessionData) {
+                // Si operatorCleared est true, on force à vide même si savedData.operatorId existe
+                this.operatorId = sessionData.operatorCleared ? '' : (sessionData.shiftOperator || '');
+                debug(`Operator from splash: "${this.operatorId}" (cleared=${sessionData.operatorCleared}, overrides saved: "${savedData.operatorId}")`);
+                
+                // Nettoyer le flag operatorCleared après l'avoir utilisé
+                if (sessionData.operatorCleared) {
+                    window.session.remove('operatorCleared');
+                }
+                
+                // Déclencher le changement pour générer l'ID du shift et émettre les événements
                 this.$nextTick(() => {
                     this.handleOperatorChange({ target: { value: this.operatorId } });
+                    // Forcer l'émission pour être sûr que sticky-bar se met à jour
+                    this.emitShiftDataChanged();
                 });
             }
             
@@ -182,6 +193,8 @@ function shiftForm() {
                     
                     this.$nextTick(() => {
                         this.handleOperatorChange({ target: { value: this.operatorId } });
+                        // Émettre shift-data-changed pour mettre à jour sticky-bar immédiatement
+                        this.emitShiftDataChanged();
                     });
                 }
             });
@@ -398,12 +411,17 @@ function shiftForm() {
         // Handlers pour les changements
         handleOperatorChange(event) {
             this.operatorId = event.target.value;
-            event.target.classList.toggle('filled', !!this.operatorId);
+            if (event.target.classList) {
+                event.target.classList.toggle('filled', !!this.operatorId);
+            }
             
             // Émettre un événement pour notifier le changement d'opérateur
             window.dispatchEvent(new CustomEvent('operator-changed', {
                 detail: { operatorId: this.operatorId }
             }));
+            
+            // Émettre immédiatement shift-data-changed
+            this.emitShiftDataChanged();
         },
         
         handleDateChange(event) {
@@ -632,6 +650,16 @@ function shiftForm() {
         // Appliquer les données du prochain poste après sauvegarde
         applyNextShiftData(nextShiftData) {
             debug('Application des données du prochain poste:', nextShiftData);
+            
+            // IMPORTANT: Nettoyer shiftOperator de la session pour éviter qu'il revienne
+            window.session?.patch({
+                shift: {
+                    operatorId: ''  // Nettoyer aussi l'operatorId dans shift
+                },
+                shiftOperator: '',
+                selectedOperatorName: '',
+                operatorCleared: true  // Marquer qu'on a volontairement vidé après sauvegarde
+            });
             
             // Réinitialiser le formulaire avec les nouvelles données
             this.operatorId = '';

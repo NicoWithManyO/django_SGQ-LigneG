@@ -41,15 +41,26 @@ window.kpiService = {
             this.shiftData.endTime = sessionData.shift.endTime || null;
             this.lengthStart = parseFloat(sessionData.shift.lengthStart) || 0;
             this.lengthEnd = parseFloat(sessionData.shift.lengthEnd) || 0;
+            
+            debug('Loaded lengths from session:', {
+                lengthStart: this.lengthStart,
+                lengthEnd: this.lengthEnd
+            });
         }
         
         const downtimes = sessionData.lost_time_entries || [];
         this.totalDowntime = downtimes.reduce((total, dt) => total + (dt.duration || 0), 0);
         
         // Charger la longueur des rouleaux sauvés depuis la session
-        this.longueurRouleauxSauves = sessionData.longueur_rouleaux_sauves || 0;
-        this.longueurRouleauxOK = sessionData.longueur_rouleaux_ok || 0;
-        this.longueurRouleauxNOK = sessionData.longueur_rouleaux_nok || 0;
+        this.longueurRouleauxSauves = sessionData.v3_production?.longueur_rouleaux_sauves || sessionData.longueur_rouleaux_sauves || 0;
+        this.longueurRouleauxOK = sessionData.v3_production?.longueur_rouleaux_ok || sessionData.longueur_rouleaux_ok || 0;
+        this.longueurRouleauxNOK = sessionData.v3_production?.longueur_rouleaux_nok || sessionData.longueur_rouleaux_nok || 0;
+        
+        debug('Loaded roll lengths from session:', {
+            longueurRouleauxSauves: this.longueurRouleauxSauves,
+            longueurRouleauxOK: this.longueurRouleauxOK,
+            longueurRouleauxNOK: this.longueurRouleauxNOK
+        });
         
         // Charger le profil actuel et la vitesse directement
         if (window.currentProfileId) {
@@ -108,7 +119,7 @@ window.kpiService = {
             this.calculateAll();
         });
         
-        window.addEventListener('roll-saved', (e) => {
+        window.addEventListener('roll:saved', (e) => {
             // Ajouter la longueur du rouleau sauvé
             if (e.detail.roll && e.detail.roll.length) {
                 const length = parseFloat(e.detail.roll.length) || 0;
@@ -141,6 +152,9 @@ window.kpiService = {
             this.saveLongueurRouleaux();
             this.calculateAll();
         });
+        
+        // Faire un calcul initial
+        this.calculateAll();
         
         // Émettre un événement pour dire que le service est prêt
         window.dispatchEvent(new Event('kpi-service-ready'));

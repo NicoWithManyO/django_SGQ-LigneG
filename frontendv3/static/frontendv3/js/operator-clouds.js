@@ -59,10 +59,14 @@ function operatorClouds() {
                 this.selectedOperator = null;
                 this.selectedOperatorId = null;
                 
-                // Vider la session
+                // Vider la session - utiliser les bonnes clés pour shift-form
                 window.session?.patch({ 
+                    shift: {
+                        operatorId: ''
+                    },
                     shiftOperator: '',
-                    selectedOperatorName: ''
+                    selectedOperatorName: '',
+                    operatorCleared: true  // Flag pour indiquer qu'on a volontairement vidé
                 });
                 
                 // Dispatch event pour notifier la désélection
@@ -76,8 +80,12 @@ function operatorClouds() {
                 
                 // Sauvegarder dans la session pour pré-remplir
                 window.session?.patch({ 
+                    shift: {
+                        operatorId: operator.employee_id
+                    },
                     shiftOperator: operator.employee_id,
-                    selectedOperatorName: `${operator.first_name} ${operator.last_name}`
+                    selectedOperatorName: `${operator.first_name} ${operator.last_name}`,
+                    operatorCleared: false  // On a sélectionné, pas vidé
                 });
                 
                 // Dispatch event pour notifier la sélection

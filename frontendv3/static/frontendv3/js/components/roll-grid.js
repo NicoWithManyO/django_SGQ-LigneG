@@ -18,8 +18,10 @@ function rollGrid() {
         profileSpecs: null,
         thicknessSpec: null,
         _lastConformityStatus: 'CONFORME', // Pour tracker les changements de statut (initialisé à CONFORME)
+        _lastAllFilled: false, // Pour tracker les changements d'état de remplissage
         allDefectTypes: [], // Pour garder tous les types y compris "Epaisseurs"
         grammageStatus: '', // Pour stocker le statut du grammage
+        grammage: '--', // Pour stocker la valeur du grammage
         
         // État de la popup
         showPopup: false,
@@ -111,7 +113,7 @@ function rollGrid() {
             });
             
             // Écouter l'événement de reset après sauvegarde d'un rouleau
-            window.addEventListener('roll-reset', () => {
+            window.addEventListener('roll:reset', () => {
                 debug('Roll reset received - clearing thickness grid');
                 this.clearAllThickness();
                 // Reset aussi les mètres de rattrapage
@@ -161,16 +163,22 @@ function rollGrid() {
             // Écouter les changements de statut du grammage
             window.addEventListener('grammage-status-changed', (event) => {
                 this.grammageStatus = event.detail.status || '';
+                this.grammage = event.detail.grammage || '--';
                 // Forcer le recalcul de la conformité
                 this._lastConformityStatus = null;
                 this.conformityStatus;
             });
             
-            // Récupérer le statut initial du grammage
-            const stickyBarElement = document.querySelector('[x-data*="stickyBar"]');
-            if (stickyBarElement && stickyBarElement._x_dataStack) {
-                this.grammageStatus = stickyBarElement._x_dataStack[0].grammageStatus || '';
-            }
+            // Récupérer le statut initial du grammage après un délai
+            this.$nextTick(() => {
+                const stickyBarElement = document.querySelector('[x-data*="stickyBar"]');
+                if (stickyBarElement && stickyBarElement._x_dataStack) {
+                    const stickyBar = stickyBarElement._x_dataStack[0];
+                    this.grammageStatus = stickyBar.grammageStatus || '';
+                    this.grammage = stickyBar.grammage || '--';
+                    debug('Initial grammage from sticky-bar:', this.grammage, 'status:', this.grammageStatus);
+                }
+            });
             
             // Charger les types de défauts depuis l'API
             this.loadDefectTypes();
@@ -188,19 +196,20 @@ function rollGrid() {
                 const initialStatus = this.conformityStatus;
                 if (initialStatus === 'NON_CONFORME') {
                     // Si on démarre en NON_CONFORME, émettre l'événement
-                    window.dispatchEvent(new CustomEvent('roll-conformity-changed', {
-                        detail: { 
-                            status: 'NON_CONFORME',
-                            previousStatus: 'CONFORME',
-                            allThicknessesFilled: this.allThicknessesFilled
-                        }
-                    }));
+                    window.eventBus.emit(window.eventBus.EVENTS.ROLL_CONFORMITY_CHANGED, { 
+                        status: 'NON_CONFORME',
+                        previousStatus: 'CONFORME',
+                        allThicknessesFilled: this.allThicknessesFilled
+                    });
                 }
             });
             
             // Appliquer la validation sur les valeurs existantes au prochain tick
             this.$nextTick(() => {
                 this.validateExistingThickness();
+                // Forcer l'émission initiale du statut de conformité
+                const status = this.conformityStatus;
+                debug(`Initial conformity status: ${status}, allFilled: ${this.allThicknessesFilled}`);
             });
             
             // Écouter les changements de profil pour récupérer les specs
@@ -213,7 +222,17 @@ function rollGrid() {
             
             // Déclencher le calcul initial de conformité après un délai
             this.$nextTick(() => {
-                this.conformityStatus;
+                // Forcer l'émission initiale du statut
+                const status = this.conformityStatus;
+                const allFilled = this.allThicknessesFilled;
+                debug(`Forcing initial conformity emit: status=${status}, allFilled=${allFilled}`);
+                
+                // Forcer l'émission même si les valeurs n'ont pas "changé"
+                window.eventBus.emit(window.eventBus.EVENTS.ROLL_CONFORMITY_CHANGED, { 
+                    status,
+                    previousStatus: null,
+                    allThicknessesFilled: allFilled
+                });
             });
         },
         
@@ -729,9 +748,8 @@ function rollGrid() {
             }
             
             // 5. Vérifier le grammage (depuis la sticky bar)
-            const grammageStatus = this.checkGrammageStatus();
-            console.log(`Grammage status: ${grammageStatus}`);
-            if (grammageStatus === 'nok') {
+            console.log(`Grammage status: ${this.grammageStatus}`);
+            if (this.grammageStatus === 'nok') {
                 console.log('Grammage NOK -> NON CONFORME');
                 return 'NON_CONFORME';
             }
@@ -824,7 +842,9 @@ function rollGrid() {
                 }
             });
             
-            return thicknessCells > 0 && thicknessCells === filledCells;
+            const result = thicknessCells > 0 && thicknessCells === filledCells;
+            debug(`areAllThicknessesFilled: ${filledCells}/${thicknessCells} = ${result}`);
+            return result;
         },
         
         // Propriété computed pour savoir si toutes les épaisseurs sont remplies
@@ -843,13 +863,14 @@ function rollGrid() {
                     const previousStatus = this._lastConformityStatus;
                     this._lastConformityStatus = status;
                     this._lastAllFilled = allFilled;
-                    window.dispatchEvent(new CustomEvent('roll-conformity-changed', {
-                        detail: { 
-                            status,
-                            previousStatus,
-                            allThicknessesFilled: allFilled
-                        }
-                    }));
+                    
+                    debug(`Roll conformity changed: ${previousStatus} -> ${status}, allFilled: ${allFilled}`);
+                    
+                    window.eventBus.emit(window.eventBus.EVENTS.ROLL_CONFORMITY_CHANGED, { 
+                        status,
+                        previousStatus,
+                        allThicknessesFilled: allFilled
+                    });
                 }
                 
                 return status;

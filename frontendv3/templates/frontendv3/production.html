@@ -1150,12 +1150,6 @@
                          @click="$dispatch('show-splash')"
                          title="Cliquez pour voir l'écran de démarrage">
                     <img src="{% static 'frontendv3/img/last_wcm.png' %}" alt="WCM" height="40" style="height: 40px; width: auto;">
-                    <button class="btn btn-warning btn-sm ms-2" type="button" @click="fillMassFields()" title="🎩 Baguette magique - Remplir tout automatiquement">
-                        <i class="bi bi-magic"></i>
-                    </button>
-                    <button class="btn btn-danger btn-sm ms-1" type="button" @click="clearAllExceptOF()" title="❌ Vider toutes les données (sauf OF)">
-                        <i class="bi bi-x-circle"></i>
-                    </button>
                 </div>
             </div>
             
@@ -1198,12 +1192,13 @@
                     </div>
                     <div class="col-auto">
                         <div class="text-white-50 small text-start"><span x-text="netMass">--</span> g</div>
-                        <div class="fw-bold d-flex align-items-center" style="height: 31px; font-size: 1.1rem;"
-                             :style="{
-                                 color: grammageStatus === 'ok' ? '#28a745' : 
-                                        grammageStatus === 'alert' ? '#ffc107' : 
-                                        grammageStatus === 'nok' ? '#dc3545' : 'white'
-                             }">
+                        <div class="fw-bold d-flex align-items-center" 
+                             :style="`height: 31px; font-size: 1.1rem; color: ${
+                                 grammageStatus === 'ok' ? '#28a745' : 
+                                 grammageStatus === 'alert' ? '#ffc107' : 
+                                 grammageStatus === 'nok' ? '#dc3545' : 'white'
+                             } !important;`"
+                             :title="`Status: ${grammageStatus || 'vide'}`">
                             <span x-text="grammage">--</span>&nbsp;g/m
                         </div>
                     </div>
@@ -1394,6 +1389,12 @@
 
 
 
+<!-- Base -->
+<script src="{% static 'frontendv3/js/main.js' %}"></script>
+
+<!-- Configuration -->
+<script src="{% static 'frontendv3/js/config/sticky-bar-config.js' %}"></script>
+
 <!-- Utilitaires -->
 <script src="{% static 'frontendv3/js/utils/collapsible.js' %}"></script>
 <script src="{% static 'frontendv3/js/utils/tooltip.js' %}"></script>
@@ -1403,6 +1404,10 @@
 <script src="{% static 'frontendv3/js/mixins/session-mixin.js' %}"></script>
 
 <!-- Services -->
+<script src="{% static 'frontendv3/js/services/event-bus.js' %}"></script>
+<script src="{% static 'frontendv3/js/services/roll-calculations.js' %}"></script>
+<script src="{% static 'frontendv3/js/services/conformity-service.js' %}"></script>
+<script src="{% static 'frontendv3/js/services/component-registry.js' %}"></script>
 <script src="{% static 'frontendv3/js/services/kpi-service.js' %}"></script>
 
 <!-- Composants Alpine.js -->
