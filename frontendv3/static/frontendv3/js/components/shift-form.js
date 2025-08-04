@@ -186,45 +186,49 @@ function shiftForm() {
                 }
             });
             
-            // Observer les changements pour la génération automatique ET la sauvegarde
+            // Observer les changements pour la génération automatique
             this.$watch('operatorId', () => {
                 this.tryGenerateShiftId();
-                this.saveShiftData();
                 this.emitShiftDataChanged();
             });
             this.$watch('date', () => {
                 this.tryGenerateShiftId();
-                this.saveShiftData();
                 this.emitShiftDataChanged();
             });
             this.$watch('vacation', () => {
                 this.tryGenerateShiftId();
-                this.saveShiftData();
                 this.emitShiftDataChanged();
             });
             
-            // Observer les nouveaux champs
-            this.$watch('startTime', () => this.saveShiftData());
+            // Observer pour la sauvegarde avec debounce - on doit sauver tout l'objet shift
+            this.$watch(() => ({
+                operatorId: this.operatorId,
+                date: this.date,
+                vacation: this.vacation,
+                shiftId: this.shiftId,
+                startTime: this.startTime,
+                machineStartedStart: this.machineStartedStart,
+                lengthStart: this.lengthStart,
+                endTime: this.endTime,
+                machineStartedEnd: this.machineStartedEnd,
+                lengthEnd: this.lengthEnd,
+                comments: this.comments
+            }), () => {
+                this.saveShiftData();
+            }, { deep: true });
+            
+            // Observer les nouveaux champs pour logique métier
             this.$watch('machineStartedStart', () => {
                 if (!this.machineStartedStart) {
                     this.lengthStart = '';
                 }
-                this.saveShiftData();
             });
-            this.$watch('lengthStart', () => this.saveShiftData());
             
-            // Observer les champs de fin
-            this.$watch('endTime', () => this.saveShiftData());
             this.$watch('machineStartedEnd', () => {
                 if (!this.machineStartedEnd) {
                     this.lengthEnd = '';
                 }
-                this.saveShiftData();
             });
-            this.$watch('lengthEnd', () => this.saveShiftData());
-            
-            // Observer les commentaires
-            this.$watch('comments', () => this.saveShiftData());
             
             // Écouter l'événement de signature de la check-list
             window.addEventListener('checklist-signed-changed', (event) => {
@@ -342,24 +346,32 @@ function shiftForm() {
             this.saveShiftData();
         },
         
-        // Sauvegarder dans la session
+        // Sauvegarder dans la session avec debounce
         saveShiftData() {
-            const data = {
-                operatorId: this.operatorId,
-                date: this.date,
-                vacation: this.vacation,
-                shiftId: this.shiftId,
-                startTime: this.startTime,
-                machineStartedStart: this.machineStartedStart,
-                lengthStart: this.lengthStart,
-                endTime: this.endTime,
-                machineStartedEnd: this.machineStartedEnd,
-                lengthEnd: this.lengthEnd,
-                comments: this.comments
-            };
+            // Annuler le timeout précédent
+            if (this._shiftSaveTimeout) {
+                clearTimeout(this._shiftSaveTimeout);
+            }
             
-            // Utiliser la sauvegarde du mixin
-            this.saveToSession({ shift: data });
+            // Créer un nouveau timeout
+            this._shiftSaveTimeout = setTimeout(() => {
+                const data = {
+                    operatorId: this.operatorId,
+                    date: this.date,
+                    vacation: this.vacation,
+                    shiftId: this.shiftId,
+                    startTime: this.startTime,
+                    machineStartedStart: this.machineStartedStart,
+                    lengthStart: this.lengthStart,
+                    endTime: this.endTime,
+                    machineStartedEnd: this.machineStartedEnd,
+                    lengthEnd: this.lengthEnd,
+                    comments: this.comments
+                };
+                
+                // Utiliser la sauvegarde du mixin
+                this.saveToSession({ shift: data });
+            }, this.DEBOUNCE_DELAY || 300);
         },
         
         // Handlers pour les changements

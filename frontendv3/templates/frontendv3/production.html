@@ -51,7 +51,7 @@
                                         (<span x-text="(() => {
                                             if (!date) return '';
                                             const d = new Date(date);
-                                            const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+                                            const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
                                             const dayName = days[d.getDay()];
                                             const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
                                             const weekNum = Math.ceil((dayOfYear + new Date(d.getFullYear(), 0, 1).getDay() + 1) / 7);
@@ -1143,6 +1143,9 @@
                     <img src="{% static 'frontendv3/img/last_wcm.png' %}" alt="WCM" height="40" style="height: 40px; width: auto;">
                     <button class="btn btn-warning btn-sm ms-2" type="button" @click="fillMassFields()" title="🎩 Baguette magique - Remplir tout automatiquement">
                         <i class="bi bi-magic"></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm ms-1" type="button" @click="clearAllExceptOF()" title="❌ Vider toutes les données (sauf OF)">
+                        <i class="bi bi-x-circle"></i>
                     </button>
                 </div>
             </div>

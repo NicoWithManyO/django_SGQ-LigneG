@@ -51,11 +51,19 @@ function fillQualityControlWithRandomValues(component) {
     const baseMicromaireG = getRandomInSpec(micromaireSpec, 3.5, 4.5, 2);
     const baseMicromaireD = getRandomInSpec(micromaireSpec, 3.5, 4.5, 2);
     
+    // Créer de nouveaux tableaux pour déclencher la réactivité Alpine
+    const newMicromaireG = [];
+    const newMicromaireD = [];
+    
     for (let i = 0; i < 3; i++) {
         // Variation de ±0.05 autour de la valeur de base
-        component.micromaireG[i] = (baseMicromaireG + (Math.random() - 0.5) * 0.1).toFixed(2);
-        component.micromaireD[i] = (baseMicromaireD + (Math.random() - 0.5) * 0.1).toFixed(2);
+        newMicromaireG[i] = (baseMicromaireG + (Math.random() - 0.5) * 0.1).toFixed(2);
+        newMicromaireD[i] = (baseMicromaireD + (Math.random() - 0.5) * 0.1).toFixed(2);
     }
+    
+    // Remplacer les tableaux entiers pour déclencher la réactivité
+    component.micromaireG = newMicromaireG;
+    component.micromaireD = newMicromaireD;
     
     // Remplir Masse Surfacique avec variation cohérente
     // Valeurs entre 0.0102 et 0.0116 g/25cm²

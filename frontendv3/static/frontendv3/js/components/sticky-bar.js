@@ -498,6 +498,83 @@ function stickyBar() {
             // Export non implémenté pour l'instant
         },
         
+        // Vider toutes les données sauf la partie ordre de fabrication
+        clearAllExceptOF() {
+            // Confirmation avant de vider
+            if (!confirm('Êtes-vous sûr de vouloir vider toutes les données (sauf les OF) ?')) {
+                return;
+            }
+            
+            // Sauvegarder les données OF actuelles
+            const currentOF = {
+                ofEnCours: window.sessionData?.of?.ofEnCours || '',
+                ofDecoupe: window.sessionData?.of?.ofDecoupe || '',
+                targetLength: window.sessionData?.of?.targetLength || 0
+            };
+            
+            // Vider toutes les données en les mettant à null/vide
+            const emptyData = {
+                // Shift
+                shift: {
+                    operatorId: '',
+                    date: new Date().toISOString().split('T')[0],
+                    vacation: '',
+                    shiftId: '',
+                    startTime: '',
+                    machineStartedStart: false,
+                    lengthStart: '',
+                    endTime: '',
+                    machineStartedEnd: false,
+                    lengthEnd: '',
+                    comments: ''
+                },
+                // Rouleau
+                roll: {
+                    defects: {},
+                    thicknessValues: {},
+                    rattrapages: {}
+                },
+                // QC
+                qc_micromaire_g: ['', '', ''],
+                qc_micromaire_d: ['', '', ''],
+                qc_masse_surfacique_gg: '',
+                qc_masse_surfacique_gc: '',
+                qc_masse_surfacique_dc: '',
+                qc_masse_surfacique_dd: '',
+                qc_extrait_sec: '',
+                qc_extrait_time: '--:--',
+                qc_loi: false,
+                qc_loi_time: '--:--',
+                qc_status: 'pending',
+                // Checklist
+                checklist: {
+                    items: {},
+                    responses: {},
+                    comments: {},
+                    signature: '',
+                    signatureTime: ''
+                },
+                // Temps perdus
+                lost_time_entries: [],
+                // Sticky bar - utiliser les vraies clés
+                sticky_roll_number: '',
+                sticky_tube_mass: '',
+                sticky_next_tube_mass: '',
+                sticky_total_mass: '',
+                sticky_length: currentOF.targetLength ? String(currentOF.targetLength) : '', // Garder la longueur liée à l'OF
+                // OF - on garde les valeurs actuelles
+                of: currentOF
+            };
+            
+            // Envoyer tout d'un coup
+            window.session.patch(emptyData);
+            
+            // Recharger la page après un court délai pour laisser le temps à la sauvegarde
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        },
+        
         toggleDebug() {
             const currentDebug = localStorage.getItem('debug') === 'true';
             localStorage.setItem('debug', !currentDebug);

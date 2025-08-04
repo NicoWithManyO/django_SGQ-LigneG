@@ -123,9 +123,14 @@ function rollGrid() {
             window.fillRandomThickness = () => this.fillRandomThickness();
             
             // Observer les changements pour auto-save
-            this.watchAndSave('defects', 'roll.defects');
-            this.watchAndSave('thicknessValues', 'roll.thicknessValues');
-            this.watchAndSave('rattrapages', 'roll.rattrapages');
+            // On doit sauvegarder tout l'objet roll d'un coup
+            this.$watch(() => ({
+                defects: this.defects,
+                thicknessValues: this.thicknessValues,
+                rattrapages: this.rattrapages
+            }), () => {
+                this.saveRollData();
+            }, { deep: true });
             
             // Observer les changements de thicknessValues pour recalculer la conformité
             this.$watch('thicknessValues', () => {
@@ -240,14 +245,22 @@ function rollGrid() {
             }
         },
         
-        // Sauvegarder dans la session
+        // Sauvegarder dans la session avec debounce
         saveRollData() {
-            const data = {
-                defects: this.defects,
-                thicknessValues: this.thicknessValues,
-                rattrapages: this.rattrapages
-            };
-            this.saveToSession({ roll: data });
+            // Annuler le timeout précédent
+            if (this._rollSaveTimeout) {
+                clearTimeout(this._rollSaveTimeout);
+            }
+            
+            // Créer un nouveau timeout
+            this._rollSaveTimeout = setTimeout(() => {
+                const data = {
+                    defects: this.defects,
+                    thicknessValues: this.thicknessValues,
+                    rattrapages: this.rattrapages
+                };
+                this.saveToSession({ roll: data });
+            }, this.DEBOUNCE_DELAY || 300);
         },
         
         // Utilitaire pour générer une clé unique pour une cellule

@@ -118,8 +118,16 @@ window.qualityControl = function() {
             this.updateGlobalAverages();
             
             // Configurer les watchers pour auto-save
-            this.watchAndSave('micromaireG', 'qc_micromaire_g');
-            this.watchAndSave('micromaireD', 'qc_micromaire_d');
+            // Pour les arrays (micromaire), on doit utiliser deep watch
+            this.$watch('micromaireG', () => {
+                this.saveFieldToSession('qc_micromaire_g', this.micromaireG);
+            }, { deep: true });
+            
+            this.$watch('micromaireD', () => {
+                this.saveFieldToSession('qc_micromaire_d', this.micromaireD);
+            }, { deep: true });
+            
+            // Pour les valeurs simples, on peut utiliser watchAndSave
             this.watchAndSave('masseSurfaciqueGG', 'qc_masse_surfacique_gg');
             this.watchAndSave('masseSurfaciqueGC', 'qc_masse_surfacique_gc');
             this.watchAndSave('masseSurfaciqueDC', 'qc_masse_surfacique_dc');
