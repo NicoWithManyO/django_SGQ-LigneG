@@ -1,5 +1,9 @@
 {% load static %}
 
+<!-- CSS pour le logo manyO.dev -->
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'frontendv3/css/manyo-logo.css' %}">
+
 <!-- Écran de démarrage -->
 <div x-data="splashScreen()" x-show="isVisible" x-cloak>
     <div class="splash-screen" :class="{ 'sliding-up': isAnimating }">
@@ -32,7 +36,7 @@
                 
                 <button @click="startProduction()" class="splash-btn">
                     <i class="bi bi-play-fill me-2"></i>
-                    Démarrer la Production
+                    Reprendre la Production
                 </button>
             </div>
             
@@ -100,9 +104,7 @@
         </div>
         
         <!-- Logo manyO.dev -->
-        <div class="manyo-logo">
-            manyO.dev
-        </div>
+        {% include 'frontendv3/components/manyo-logo.html' %}
     </div>
 </div>
 
@@ -420,17 +422,6 @@
     transform: scale(0.95);
 }
 
-/* Logo manyO.dev */
-.manyo-logo {
-    position: absolute;
-    right: 2rem;
-    bottom: 1rem;
-    z-index: 15;
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.7);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
 
 @keyframes pulse-neon {
     0%, 100% {
@@ -492,9 +483,10 @@
 }
 
 .operator-cloud.selected {
-    border: 3px solid #0096D5;
     background: rgba(255, 255, 255, 0.95);
-    transform: scale(1.05);
+    box-shadow: 
+        0 0 0 3px #0096D5,
+        0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 /* Animations différentes pour chaque nuage */

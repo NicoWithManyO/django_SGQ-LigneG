@@ -157,8 +157,24 @@ function shiftForm() {
             
             // Écouter la présélection d'opérateur depuis le splash
             window.addEventListener('operator-preselected', (e) => {
-                if (e.detail && e.detail.operator) {
-                    this.operatorId = e.detail.operator.employee_id;
+                if (e.detail) {
+                    const previousOperatorId = this.operatorId;
+                    
+                    if (e.detail.operator) {
+                        // Sélection d'un opérateur
+                        this.operatorId = e.detail.operator.employee_id;
+                    } else {
+                        // Désélection
+                        this.operatorId = '';
+                    }
+                    
+                    // Si l'opérateur a changé, émettre l'événement
+                    if (previousOperatorId !== this.operatorId) {
+                        window.dispatchEvent(new CustomEvent('operator-changed', {
+                            detail: { operatorId: this.operatorId }
+                        }));
+                    }
+                    
                     this.$nextTick(() => {
                         this.handleOperatorChange({ target: { value: this.operatorId } });
                     });

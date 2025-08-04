@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>manyO.dev - Logo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            font-family: 'Audiowide', cursive;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .logo-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 28px 40px 18px 40px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid #0d6efd;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            z-index: 1;
+        }
+        .logo-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+            animation: backgroundShift 10s ease-in-out infinite;
+            z-index: 0;
+            border-radius: 30px;
+        }
+        .logo-container::after {
+            content: 'développé par';
+            position: absolute;
+            top: 8px;
+            left: 15px;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 400;
+            letter-spacing: 0.5px;
+            z-index: 10;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        @keyframes backgroundShift {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(180deg); }
+        }
+
+        .logo-content {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .logo-text {
+            font-size: 3.5rem;
+            font-weight: 600;
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            letter-spacing: 2px;
+            position: relative;
+            z-index: 10;
+        }
+        .logo-text span {
+            background: none;
+            color: #0d6efd;
+            -webkit-text-fill-color: #0d6efd;
+            font-weight: 800;
+            text-shadow: 0 0 30px rgba(13,110,253,0.5);
+            animation: gradientFlow 2s ease-in-out infinite;
+        }
+        @keyframes gradientFlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .logo-text .dev-badge {
+            margin-left: 0.3em;
+            align-self: flex-end;
+            padding: 4px 12px;
+            font-size: 1.2rem;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #0d6efd 0%, #003366 100%);
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            box-shadow: 0 8px 32px rgba(13, 110, 253, 0.15);
+            border: none;
+            position: relative;
+            overflow: hidden;
+            z-index: 11;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.18);
+        }
+        .logo-text .dev-badge::before {
+            display: none;
+        }
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        .logo-text::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            border-radius: 15px;
+            z-index: -1;
+            opacity: 0.2;
+            filter: blur(20px);
+            animation: glowPulse 3s ease-in-out infinite;
+        }
+        @keyframes glowPulse {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.05); }
+        }
+
+        .geometric-shapes {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 2;
+        }
+        .shape {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            animation: shapeRotate 6s linear infinite;
+        }
+        .shape:nth-child(1) {
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+        }
+        .shape:nth-child(2) {
+            clip-path: polygon(25% 0%, 100% 0%, 75% 100%, 0% 100%);
+            animation-delay: -2s;
+        }
+        .shape:nth-child(3) {
+            clip-path: circle(50%);
+            animation-delay: -4s;
+        }
+        @keyframes shapeRotate {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.2); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        .tech-grid {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 10px,
+                #0d6efd 10px,
+                #0d6efd 12px
+            );
+            animation: gridMove 2s linear infinite;
+            z-index: 2;
+        }
+        @keyframes gridMove {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-12px); }
+        }
+
+        .particles {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #4ecdc4;
+            border-radius: 50%;
+            animation: particleFloat 8s linear infinite;
+        }
+        .particle:nth-child(1) { top: 20%; left: 20%; animation-delay: 0s; }
+        .particle:nth-child(2) { top: 60%; left: 80%; animation-delay: 2s; }
+        .particle:nth-child(3) { top: 80%; left: 40%; animation-delay: 4s; }
+        .particle:nth-child(4) { top: 40%; left: 60%; animation-delay: 6s; }
+        @keyframes particleFloat {
+            0% { transform: translateY(0px) scale(0); opacity: 0; }
+            50% { transform: translateY(-50px) scale(1); opacity: 1; }
+            100% { transform: translateY(-100px) scale(0); opacity: 0; }
+        }
+
+        .code-brackets {
+            position: absolute;
+            top: calc(50% + 30px);
+            left: 15px;
+            right: auto;
+            transform: translateY(-50%) rotate(-25deg);
+            font-size: 2rem;
+            color: #4ecdc4;
+            font-family: 'Courier New', monospace;
+            animation: bracketPulse 2s ease-in-out infinite;
+            z-index: 2;
+        }
+        @keyframes bracketPulse {
+            0%, 100% { opacity: 0.3; transform: translateY(-50%) scale(1); }
+            50% { opacity: 1; transform: translateY(-50%) scale(1.1); }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .logo-container {
+                padding: 16px 8px 8px 8px;
+            }
+            .logo-container::after {
+                top: 4px;
+                left: 8px;
+                font-size: 0.6rem;
+            }
+            .logo-text {
+                font-size: 2.5rem;
+            }
+            .logo-text .dev-badge {
+                font-size: 1rem;
+                padding: 4px 8px;
+            }
+            .geometric-shapes {
+                top: 10px;
+                right: 10px;
+            }
+            .shape {
+                width: 15px;
+                height: 15px;
+            }
+            .code-brackets {
+                top: calc(50% + 20px);
+                left: 5px;
+                right: auto;
+                font-size: 1.5rem;
+                transform: translateY(-50%) rotate(-25deg);
+            }
+            .particles {
+                width: 120px;
+                height: 120px;
+            }
+        }
+
+        /* Hover effects */
+        .logo-container {
+            transition: all 0.3s ease;
+        }
+        .logo-container:hover .logo-text {
+            transform: scale(1.05);
+        }
+        .logo-container:hover .dev-badge {
+            transform: translateY(-8px) rotate(3deg);
+            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.5);
+        }
+        .logo-container:hover .shape {
+            animation: shapeRotateHover 1.5s linear infinite;
+        }
+        @keyframes shapeRotateHover {
+            0% { transform: rotate(0deg) scale(1.2); }
+            50% { transform: rotate(180deg) scale(1.4); }
+            100% { transform: rotate(360deg) scale(1.2); }
+        }
+        .logo-container:hover .tech-grid {
+            animation: gridMoveHover 0.8s linear infinite;
+        }
+        @keyframes gridMoveHover {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-12px); }
+        }
+        .logo-container:hover .particle {
+            animation-duration: 4s;
+        }
+        .logo-container:hover .code-brackets {
+            animation: bracketPulseHover 1s ease-in-out infinite;
+        }
+        @keyframes bracketPulseHover {
+            0%, 100% { opacity: 0.8; transform: translateY(-50%) scale(1.1); }
+            50% { opacity: 1; transform: translateY(-50%) scale(1.3); }
+        }
+        .logo-container, .logo-text, .logo-text span, .dev-badge {
+            font-family: 'Audiowide', cursive !important;
+        }
+        .logo-text {
+            z-index: 10;
+        }
+        .logo-text .dev-badge {
+            background: linear-gradient(135deg, #0d6efd 0%, #003366 100%);
+            color: #fff;
+            text-shadow: none;
+            opacity: 1;
+            filter: none;
+            z-index: 100;
+            box-shadow: 0 4px 16px rgba(13, 110, 253, 0.15);
+        }
+        .logo-text .dev-badge::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: shimmer 3s infinite;
+        }
+        .logo-text .dev-badge {
+            color: #fff !important;
+            -webkit-text-fill-color: #fff !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo-container">
+        <div class="geometric-shapes">
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+        </div>
+        <div class="tech-grid"></div>
+        <div class="particles">
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+        </div>
+        <div class="code-brackets">&lt;/&gt;</div>
+        <div class="logo-content">
+            <div class="logo-text">
+                many<span>O</span><span class="dev-badge">.dev</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -178,6 +178,7 @@ function stickyBar() {
                     this.operatorId = event.detail.operatorId || '';
                     this.shiftDate = event.detail.date || '';
                     this.vacation = event.detail.vacation || '';
+                    this.shiftId = event.detail.shiftId || '';
                 }
             });
             

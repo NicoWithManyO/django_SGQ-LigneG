@@ -1,0 +1,33 @@
+{% comment %}
+    Composant logo manyO.dev réutilisable
+    Usage: {% include 'frontendv3/components/manyo-logo.html' %}
+    
+    Variables optionnelles:
+    - scale: échelle du logo (défaut: 0.4)
+    - position: 'bottom-right' (défaut), 'custom'
+    - custom_class: classe CSS additionnelle
+{% endcomment %}
+
+<div class="manyo-logo-container {% if custom_class %}{{ custom_class }}{% endif %}" 
+     {% if scale %}style="transform: scale({{ scale }}); transform-origin: bottom right;"{% endif %}>
+    <div class="manyo-logo">
+        <div class="geometric-shapes">
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+        </div>
+        <div class="tech-grid"></div>
+        <div class="particles">
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+        </div>
+        <div class="code-brackets">&lt;/&gt;</div>
+        <div class="logo-content">
+            <div class="logo-text">
+                many<span>O</span><span class="dev-badge">.dev</span>
+            </div>
+        </div>
+    </div>
+</div>

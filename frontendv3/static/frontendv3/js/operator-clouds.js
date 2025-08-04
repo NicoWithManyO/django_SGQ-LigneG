@@ -54,22 +54,37 @@ function operatorClouds() {
         },
         
         selectOperator(operator) {
-            this.selectedOperator = operator;
-            this.selectedOperatorId = operator.employee_id;
-            
-            // Sauvegarder dans la session pour pré-remplir
-            window.session?.patch({ 
-                shiftOperator: operator.employee_id,
-                selectedOperatorName: `${operator.first_name} ${operator.last_name}`
-            });
-            
-            // Dispatch event pour notifier la sélection
-            window.dispatchEvent(new CustomEvent('operator-preselected', { 
-                detail: { operator }
-            }));
-            
-            // Ne pas fermer automatiquement le splash
-            // L'utilisateur doit cliquer sur "Démarrer la Production"
+            // Si c'est déjà sélectionné, on désélectionne
+            if (this.selectedOperatorId === operator.employee_id) {
+                this.selectedOperator = null;
+                this.selectedOperatorId = null;
+                
+                // Vider la session
+                window.session?.patch({ 
+                    shiftOperator: '',
+                    selectedOperatorName: ''
+                });
+                
+                // Dispatch event pour notifier la désélection
+                window.dispatchEvent(new CustomEvent('operator-preselected', { 
+                    detail: { operator: null }
+                }));
+            } else {
+                // Sinon on sélectionne
+                this.selectedOperator = operator;
+                this.selectedOperatorId = operator.employee_id;
+                
+                // Sauvegarder dans la session pour pré-remplir
+                window.session?.patch({ 
+                    shiftOperator: operator.employee_id,
+                    selectedOperatorName: `${operator.first_name} ${operator.last_name}`
+                });
+                
+                // Dispatch event pour notifier la sélection
+                window.dispatchEvent(new CustomEvent('operator-preselected', { 
+                    detail: { operator }
+                }));
+            }
         }
     };
 }
