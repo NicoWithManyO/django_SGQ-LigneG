@@ -99,8 +99,16 @@ class ChecklistService:
         ).get(pk=checklist_id)
         
         # Récupérer uniquement les items qui ont des réponses dans cette checklist
-        # Cela garantit qu'on n'affiche que les items qui étaient actifs lors du remplissage
-        item_ids_with_responses = [int(item_id) for item_id in checklist.responses.keys()]
+        # La nouvelle structure a les réponses dans les clés numériques
+        # et les métadonnées dans _items, _items_order, _comments
+        item_ids_with_responses = []
+        for item_id in checklist.responses.keys():
+            if item_id.startswith('_'):
+                continue  # Ignorer les clés metadata
+            try:
+                item_ids_with_responses.append(int(item_id))
+            except ValueError:
+                continue
         
         # Récupérer les items correspondants
         items_with_responses = WcmChecklistItem.objects.filter(
@@ -113,25 +121,47 @@ class ChecklistService:
         # Organiser les réponses par catégorie
         items_by_category = {}
         
+        # Récupérer les commentaires s'ils existent
+        comments = checklist.responses.get('_comments', {})
+        
         # Parcourir les réponses de la checklist
         for item_id_str, response in checklist.responses.items():
-            item_id = int(item_id_str)
+            # Ignorer les clés metadata
+            if item_id_str.startswith('_'):
+                continue
+                
+            try:
+                item_id = int(item_id_str)
+            except ValueError:
+                continue
             
             # Récupérer l'item correspondant
             item = items_dict.get(item_id)
             if not item:
-                # Si l'item n'existe plus dans la base, on l'ignore
-                continue
+                # Si l'item n'existe plus dans la base, utiliser le texte stocké dans _items
+                items_data = checklist.responses.get('_items', {})
+                item_text = items_data.get(item_id_str, f"Item #{item_id}")
+                # Créer un objet factice pour cet item
+                class FakeItem:
+                    def __init__(self, id, text):
+                        self.id = id
+                        self.text = text
+                        self.category = "Autres"  # Catégorie par défaut
+                item = FakeItem(item_id, item_text)
             
             # Ajouter la catégorie si elle n'existe pas
             if item.category not in items_by_category:
                 items_by_category[item.category] = []
             
+            # Récupérer le commentaire s'il existe
+            comment = comments.get(item_id_str, '')
+            
             items_by_category[item.category].append({
                 'id': item.id,
                 'label': item.text,
-                'is_mandatory': False,  # Pas de champ is_mandatory dans le modèle
+                'is_mandatory': False,  # Ce champ n'existe plus dans le modèle
                 'response': response,
+                'comment': comment,
                 'is_ok': response == 'ok',
                 'is_nok': response == 'nok',
                 'is_na': response == 'na'

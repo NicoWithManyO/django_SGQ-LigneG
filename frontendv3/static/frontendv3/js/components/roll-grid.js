@@ -161,9 +161,10 @@ function rollGrid() {
             });
             
             // Écouter les changements de statut du grammage
-            window.addEventListener('grammage-status-changed', (event) => {
+            window.addEventListener('grammage:status-changed', (event) => {
                 this.grammageStatus = event.detail.status || '';
                 this.grammage = event.detail.grammage || '--';
+                debug(`Grammage status received: ${this.grammageStatus}`);
                 // Forcer le recalcul de la conformité
                 this._lastConformityStatus = null;
                 this.conformityStatus;

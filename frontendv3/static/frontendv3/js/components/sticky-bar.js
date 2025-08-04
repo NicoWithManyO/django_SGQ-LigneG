@@ -205,7 +205,7 @@ function stickyBar() {
             });
             
             // Écouter les changements de shift pour récupérer les données
-            window.eventBus.on(window.eventBus.EVENTS.SHIFT_DATA_CHANGED, (event) => {
+            window.addEventListener('shift-data-changed', (event) => {
                 if (event.detail) {
                     this.operatorId = event.detail.operatorId || '';
                     this.shiftDate = event.detail.date || '';
