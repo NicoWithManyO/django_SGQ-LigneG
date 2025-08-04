@@ -22,12 +22,23 @@ function profileSelector() {
         targetLength: 0,
         activeTab: 'kpi', // Gérer les onglets ici
         
+        // Données KPI temps réel - Charger depuis la session
+        shiftData: {
+            startTime: window.sessionData?.shift?.startTime || null,
+            endTime: window.sessionData?.shift?.endTime || null
+        },
+        totalDowntime: (window.sessionData?.lost_time_entries || []).reduce((total, dt) => total + (dt.duration || 0), 0),
+        TO: 0, // Temps d'Ouverture en minutes
+        TD: 0, // Temps Disponible en minutes  
+        disponibilitePercentage: 0,
+        
         // Initialisation
         init() {
             debug('Profile selector initialized');
             
             // Initialiser le comportement collapsible
             this.initCollapsible();
+            
             
             // Charger les profils depuis Django
             this.profiles = window.profilesData || [];
@@ -105,6 +116,72 @@ function profileSelector() {
             if (ofData.targetLength) {
                 this.targetLength = ofData.targetLength;
             }
+            
+            // Calculer immédiatement avec les données initiales
+            this.calculateDisponibilite();
+            
+            // Observer les changements pour recalculer automatiquement
+            this.$watch('shiftData.startTime', () => this.calculateDisponibilite());
+            this.$watch('shiftData.endTime', () => this.calculateDisponibilite());
+            this.$watch('totalDowntime', () => this.calculateDisponibilite());
+            
+            // Écouter les changements de données du shift
+            window.addEventListener('shift-data-changed', (e) => {
+                if (e.detail.startTime !== undefined) this.shiftData.startTime = e.detail.startTime;
+                if (e.detail.endTime !== undefined) this.shiftData.endTime = e.detail.endTime;
+            });
+            
+            // Écouter les changements de temps perdus
+            window.addEventListener('downtime-changed', (e) => {
+                this.totalDowntime = e.detail.totalDowntime || 0;
+            });
+            
+        },
+        
+        // Calculer la disponibilité
+        calculateDisponibilite() {
+            // Calculer TO (Temps d'Ouverture)
+            if (this.shiftData.startTime && this.shiftData.endTime) {
+                const start = this.parseTime(this.shiftData.startTime);
+                const end = this.parseTime(this.shiftData.endTime);
+                
+                // Gérer le cas où la fin est le lendemain (ex: 20:00 -> 04:00)
+                let diffMinutes = (end.hours * 60 + end.minutes) - (start.hours * 60 + start.minutes);
+                if (diffMinutes < 0) {
+                    diffMinutes += 24 * 60; // Ajouter 24h
+                }
+                
+                this.TO = diffMinutes;
+            } else {
+                this.TO = 0;
+            }
+            
+            // Calculer TD (Temps Disponible)
+            this.TD = Math.max(0, this.TO - this.totalDowntime);
+            
+            // Calculer le pourcentage
+            if (this.TO > 0) {
+                this.disponibilitePercentage = Math.round((this.TD / this.TO) * 100);
+            } else {
+                this.disponibilitePercentage = 0;
+            }
+        },
+        
+        // Parser une heure au format HH:MM
+        parseTime(timeStr) {
+            if (!timeStr) return { hours: 0, minutes: 0 };
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return { hours: hours || 0, minutes: minutes || 0 };
+        },
+        
+        // Formater les minutes en heures:minutes
+        formatMinutes(totalMinutes) {
+            if (!totalMinutes) return '0min';
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            if (hours === 0) return `${minutes}min`;
+            if (minutes === 0) return `${hours}h`;
+            return `${hours}h${minutes}`;
         },
         
         

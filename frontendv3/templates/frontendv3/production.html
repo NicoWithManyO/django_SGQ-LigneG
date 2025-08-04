@@ -305,16 +305,19 @@
                             <div x-show="activeTab === 'kpi'">
                                 <!-- KPI toujours visibles -->
                                 <div class="row g-2">
-                                    <!-- Card 1: Performance -->
+                                    <!-- Card 1: Disponibilité -->
                                     <div class="col-md-3">
                                         <div class="kpi-card">
                                             <div class="kpi-icon">
-                                                <i class="bi bi-speedometer2"></i>
+                                                <i class="bi bi-clock-history"></i>
                                             </div>
                                             <div class="kpi-content">
-                                                <h6 class="kpi-title">Performance</h6>
-                                                <h3 class="kpi-value">92.5%</h3>
-                                                <p class="kpi-subtitle">Rendement</p>
+                                                <h6 class="kpi-title">Disponibilité</h6>
+                                                <h3 class="kpi-value" x-text="disponibilitePercentage + '%'">--%</h3>
+                                                <p class="kpi-subtitle">
+                                                    TO: <span x-text="formatMinutes(TO)">--</span> | 
+                                                    TD: <span x-text="formatMinutes(TD)">--</span>
+                                                </p>
                                             </div>
                                         </div>
                                     </div>

@@ -41,6 +41,16 @@ function downtimeTracker() {
                 }));
             });
             
+            // Observer les changements dans la liste des temps perdus
+            this.$watch('downtimes', () => {
+                window.dispatchEvent(new CustomEvent('downtime-changed', {
+                    detail: { 
+                        downtimes: this.downtimes,
+                        totalDowntime: this.totalDowntime
+                    }
+                }));
+            }, { deep: true });
+            
             // Écouter la réinitialisation après sauvegarde du shift
             window.addEventListener('shift-reset', () => {
                 debug('Réinitialisation des temps perdus après sauvegarde du shift');
@@ -67,6 +77,16 @@ function downtimeTracker() {
                     detail: { hasStartupDowntime: true }
                 }));
             }
+            
+            // Écouter quand profile-selector est prêt pour émettre les données
+            window.addEventListener('profile-selector-ready', () => {
+                window.dispatchEvent(new CustomEvent('downtime-changed', {
+                    detail: { 
+                        downtimes: this.downtimes,
+                        totalDowntime: this.totalDowntime
+                    }
+                }));
+            });
         },
         
         // Vérifier s'il y a un temps perdu de type "démarrage"

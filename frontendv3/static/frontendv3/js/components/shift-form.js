@@ -200,6 +200,14 @@ function shiftForm() {
                 this.emitShiftDataChanged();
             });
             
+            // Observer les changements d'heures pour mettre à jour les KPI
+            this.$watch('startTime', () => {
+                this.emitShiftDataChanged();
+            });
+            this.$watch('endTime', () => {
+                this.emitShiftDataChanged();
+            });
+            
             // Observer pour la sauvegarde avec debounce - on doit sauver tout l'objet shift
             this.$watch(() => ({
                 operatorId: this.operatorId,
@@ -250,6 +258,11 @@ function shiftForm() {
             // Appliquer les styles initiaux après le rendu
             this.$nextTick(() => {
                 this.updateFieldStyles();
+            });
+            
+            // Écouter quand profile-selector est prêt pour émettre les données
+            window.addEventListener('profile-selector-ready', () => {
+                this.emitShiftDataChanged();
             });
             
             // Observer les changements d'état du bouton pour gérer le tooltip
@@ -673,6 +686,8 @@ function shiftForm() {
                     date: this.date,
                     vacation: this.vacation,
                     shiftId: this.shiftId,
+                    startTime: this.startTime,
+                    endTime: this.endTime,
                     isComplete: this.canGenerateId()
                 }
             }));
