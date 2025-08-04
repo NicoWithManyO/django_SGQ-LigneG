@@ -90,8 +90,10 @@ window.qualityControl = function() {
             
             // Écouter l'événement de reset après sauvegarde d'un rouleau
             window.addEventListener('roll-reset', () => {
-                debug('Roll reset received - clearing QC data');
-                // Réinitialiser toutes les données QC
+                debug('Roll reset received - NOT clearing QC data (backend manages state)');
+                // NE PAS réinitialiser les données QC - le backend gère l'état
+                // Si le backend veut qu'on réinitialise, il nous enverra les bonnes données
+                /*
                 this.micromaireG = ['', '', ''];
                 this.micromaireD = ['', '', ''];
                 this.masseSurfaciqueGG = '';
@@ -105,6 +107,7 @@ window.qualityControl = function() {
                 // Recalculer les moyennes
                 this.updateGlobalAverages();
                 this.checkQCStatus();
+                */
                 // Sauvegarder en session
                 this.saveToSession();
             });
