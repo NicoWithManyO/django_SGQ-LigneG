@@ -257,30 +257,100 @@ class RollViewSet(viewsets.ModelViewSet):
         """
         v3_data = request.session.get('v3_production', {})
         
-        # Mapper rollGrid.thicknessData vers le format API
-        roll_grid = v3_data.get('rollGrid', {})
-        thickness_data = roll_grid.get('thicknessData', {})
+        # Récupérer les données du rouleau depuis la clé 'roll'
+        roll_data = v3_data.get('roll', {})
+        thickness_values = roll_data.get('thicknessValues', {})
+        rattrapages = roll_data.get('rattrapages', {})
+        defects_data = roll_data.get('defects', {})
+        
+        # Mapper les colonnes aux points de mesure
+        COLUMN_TO_POINT = {
+            0: 'GG',  # Gauche Gauche
+            1: 'GC',  # Gauche Centre
+            2: 'GD',  # Gauche Droite
+            4: 'DG',  # Droite Gauche
+            5: 'DC',  # Droite Centre
+            6: 'DD'   # Droite Droite
+        }
         
         thicknesses = []
-        for key, data in thickness_data.items():
-            if data.get('value'):
-                thicknesses.append({
-                    'meter_position': int(data.get('meter', 0)),
-                    'measurement_point': data.get('point'),
-                    'thickness_value': float(data.get('value')),
-                    'is_catchup': data.get('isCatchup', False),
-                    'is_within_tolerance': data.get('status') != 'nok'
-                })
+        
+        # Traiter les épaisseurs normales
+        for key, value in thickness_values.items():
+            if value:
+                row, col = key.split('-')
+                row = int(row)
+                col = int(col)
+                meter = row + 1  # Le mètre est row + 1
+                
+                if col in COLUMN_TO_POINT:
+                    thicknesses.append({
+                        'meter_position': meter,
+                        'measurement_point': COLUMN_TO_POINT[col],
+                        'thickness_value': float(value),
+                        'is_catchup': False,
+                        'is_within_tolerance': True  # Sera recalculé par le backend
+                    })
+        
+        # Traiter les rattrapages
+        for key, value in rattrapages.items():
+            if value:
+                row, col = key.split('-')
+                row = int(row)
+                col = int(col)
+                meter = row + 1
+                
+                if col in COLUMN_TO_POINT:
+                    thicknesses.append({
+                        'meter_position': meter,
+                        'measurement_point': COLUMN_TO_POINT[col],
+                        'thickness_value': float(value),
+                        'is_catchup': True,
+                        'is_within_tolerance': True
+                    })
         
         # Mapper les défauts
         defects = []
-        for defect in v3_data.get('defects', []):
-            defects.append({
-                'defect_type_id': defect.get('typeId'),
-                'meter_position': int(defect.get('meter', 0)),
-                'side_position': defect.get('position'),
-                'comment': defect.get('comment', '')
-            })
+        
+        # Charger les types de défauts pour mapper les noms vers les IDs
+        from catalog.models import QualityDefectType
+        defect_types_map = {}
+        for defect_type in QualityDefectType.objects.filter(is_active=True):
+            defect_types_map[defect_type.name] = defect_type.id
+        
+        # Traiter les défauts par cellule
+        for key, defect_names in defects_data.items():
+            if defect_names:
+                row, col = key.split('-')
+                row = int(row)
+                col = int(col)
+                meter = row + 1
+                
+                # Déterminer la position sur la laize
+                if col < 3:
+                    position = 'Gauche'
+                elif col > 3:
+                    position = 'Droite'
+                else:
+                    position = 'Centre'
+                
+                # Convertir col en point de mesure si disponible
+                if col in COLUMN_TO_POINT:
+                    side_position = COLUMN_TO_POINT[col]
+                else:
+                    # Pour la colonne centrale (3), utiliser le côté le plus proche
+                    side_position = 'GD' if col == 3 else 'DG'
+                
+                # Ajouter chaque défaut
+                for defect_name in defect_names:
+                    defect_type_id = defect_types_map.get(defect_name)
+                    if defect_type_id:
+                        defects.append({
+                            'defect_type_id': defect_type_id,
+                            'meter_position': meter,
+                            'side_position': side_position,
+                            'comment': ''
+                        })
         
         return {
             'thicknesses': thicknesses,
@@ -293,8 +363,7 @@ class RollViewSet(viewsets.ModelViewSet):
             v3_data = request.session['v3_production']
             
             # Nettoyer uniquement les données du rouleau
-            v3_data.pop('rollGrid', None)
-            v3_data.pop('defects', None)
+            v3_data.pop('roll', None)  # Nettoyer la clé 'roll' au lieu de 'rollGrid'
             
             # Nettoyer les champs sticky bar
             v3_data.pop('sticky_tube_mass', None)

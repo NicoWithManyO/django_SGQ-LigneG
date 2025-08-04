@@ -439,6 +439,61 @@ function stickyBar() {
             this.calculateValues();
         },
         
+        // Helper pour remplir automatiquement TOUT
+        fillMassFields() {
+            // 1. Remplir les épaisseurs avec rollGridUtils
+            if (window.rollGridUtils && window.rollGridUtils.fillRandom) {
+                window.rollGridUtils.fillRandom();
+            }
+            
+            // 2. Remplir masse tube si vide
+            if (!this.tubeMass) {
+                // Masse tube autour de 900g avec variation aléatoire ±50g
+                const variation = Math.floor(Math.random() * 101) - 50; // -50 à +50
+                this.tubeMass = String(900 + variation);
+            }
+            
+            // 3. Calculer la masse totale pour obtenir un grammage d'environ 80 g/m
+            if (this.length) {
+                const targetGrammage = 80; // g/m
+                const len = parseFloat(this.length);
+                const tube = parseFloat(this.tubeMass);
+                
+                if (!isNaN(len) && !isNaN(tube) && len > 0) {
+                    // Masse nette = longueur * grammage cible
+                    const netMass = len * targetGrammage;
+                    // Masse totale = masse tube + masse nette
+                    const totalMass = tube + netMass;
+                    // Ajouter une petite variation aléatoire (±5%)
+                    const variation = 1 + (Math.random() * 0.1 - 0.05);
+                    this.totalMass = String(Math.round(totalMass * variation));
+                }
+            }
+            
+            // 4. Remplir masse tube suivante
+            if (!this.nextTubeMass) {
+                const variation = Math.floor(Math.random() * 101) - 50; // -50 à +50
+                this.nextTubeMass = String(900 + variation);
+            }
+            
+            // Sauvegarder et recalculer
+            this.handleDataChange();
+            
+            showNotification('success', '🎩 Baguette magique : Tout est rempli !');
+        },
+        
+        // Helper pour générer une masse tube suivante
+        fillNextTubeMass() {
+            // Générer une masse tube autour de 900g avec variation aléatoire ±50g
+            const variation = Math.floor(Math.random() * 101) - 50; // -50 à +50
+            this.nextTubeMass = String(900 + variation);
+            
+            // Sauvegarder
+            window.session.save('sticky_next_tube_mass', this.nextTubeMass);
+            
+            showNotification('info', `Masse tube suivante : ${this.nextTubeMass}g`);
+        },
+        
         // Calculer les valeurs dérivées
         calculateValues() {
             // Calculer la masse nette
@@ -476,6 +531,14 @@ function stickyBar() {
         
         
         // Vérifier le statut du grammage par rapport aux specs
+        // Helper pour calculer la moyenne d'un tableau
+        _calcAvg(values) {
+            if (!values || !Array.isArray(values)) return null;
+            const validValues = values.filter(v => v !== null && v !== undefined && !isNaN(v));
+            if (validValues.length === 0) return null;
+            return validValues.reduce((sum, v) => sum + parseFloat(v), 0) / validValues.length;
+        },
+        
         checkGrammageStatus() {
             // Si pas de grammage calculé ou pas de specs
             if (this.grammage === '--' || !this.profileSpecs) {

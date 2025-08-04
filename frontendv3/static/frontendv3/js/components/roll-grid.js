@@ -440,41 +440,46 @@ function rollGrid() {
             debug(`Filled thickness inputs with value: ${value}`);
         },
         
-        // Remplir avec des valeurs aléatoires réalistes
+        // Remplir avec des valeurs aléatoires réalistes CONFORMES
         fillRandomThickness() {
             // Si on a des specs de profil, utiliser les limites
             let minValue = 2.3;
             let maxValue = 2.7;
             let nominal = 2.5;
+            let minAlert = 2.35;
+            let maxAlert = 2.65;
             
             if (this.thicknessSpec) {
                 minValue = this.thicknessSpec.value_min || 2.3;
                 maxValue = this.thicknessSpec.value_max || 2.7;
                 nominal = this.thicknessSpec.value_nominal || 2.5;
+                minAlert = this.thicknessSpec.value_min_alert || minValue + (nominal - minValue) * 0.25;
+                maxAlert = this.thicknessSpec.value_max_alert || maxValue - (maxValue - nominal) * 0.25;
             }
             
             this.gridCells.forEach(cell => {
                 if (cell.isThickness) {
                     const key = this.getCellKey(cell.row, cell.col);
                     
-                    // 80% de chance d'être proche de la valeur nominale
-                    // 20% de chance d'être dans les extrêmes
-                    const chance = Math.random();
+                    // Toujours générer des valeurs CONFORMES (entre min_alert et max_alert)
+                    // Centré sur la valeur nominale avec distribution normale simulée
                     let randomValue;
                     
-                    if (chance < 0.8) {
-                        // Valeur proche du nominal (±0.05)
-                        const variation = (Math.random() - 0.5) * 0.1;
-                        randomValue = (nominal + variation).toFixed(2);
-                    } else if (chance < 0.9) {
-                        // Valeur basse
-                        randomValue = (minValue + Math.random() * 0.1).toFixed(2);
-                    } else {
-                        // Valeur haute
-                        randomValue = (maxValue - Math.random() * 0.1).toFixed(2);
-                    }
+                    // Utiliser Box-Muller pour générer une distribution normale
+                    const u1 = Math.random();
+                    const u2 = Math.random();
+                    const z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
                     
-                    this.thicknessValues[key] = randomValue;
+                    // Centrer sur nominal avec écart-type = (maxAlert - minAlert) / 6
+                    // pour que 99.7% des valeurs soient dans la plage
+                    const sigma = (maxAlert - minAlert) / 6;
+                    randomValue = nominal + z0 * sigma;
+                    
+                    // S'assurer qu'on reste dans les limites d'alerte
+                    randomValue = Math.max(minAlert, Math.min(maxAlert, randomValue));
+                    
+                    // Arrondir à 2 décimales
+                    this.thicknessValues[key] = randomValue.toFixed(2);
                 }
             });
             

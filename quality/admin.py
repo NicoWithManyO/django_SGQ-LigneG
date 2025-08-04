@@ -34,7 +34,7 @@ class RollThicknessAdmin(admin.ModelAdmin):
     """Administration des mesures d'épaisseur."""
     
     list_display = ['roll', 'meter_position', 'measurement_point', 'thickness_value', 
-                    'tolerance_display', 'is_catchup', 'created_at']
+                    'tolerance_display', 'catchup_display', 'created_at']
     list_filter = ['measurement_point', 'is_within_tolerance', 'is_catchup', 'created_at']
     search_fields = ['roll__roll_id']
     date_hierarchy = 'created_at'
@@ -61,6 +61,14 @@ class RollThicknessAdmin(admin.ModelAdmin):
         else:
             return format_html('<span style="color: red;">✗ NOK</span>')
     tolerance_display.short_description = "Tolérance"
+    
+    def catchup_display(self, obj):
+        """Affiche si c'est un rattrapage."""
+        if obj.is_catchup:
+            return format_html('<span style="color: orange; font-weight: bold;">⚡ Rattrapage</span>')
+        else:
+            return format_html('<span style="color: #666;">—</span>')
+    catchup_display.short_description = "Rattrapage"
 
 
 @admin.register(Controls)
