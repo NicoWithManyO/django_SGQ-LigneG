@@ -103,8 +103,29 @@
             </div>
         </div>
         
-        <!-- Logo manyO.dev -->
-        {% include 'frontendv3/components/manyo-logo.html' %}
+        <!-- Ligne du bas avec 3 colonnes -->
+        <div class="bottom-logos-row">
+            <!-- Col 1: ISO -->
+            <div class="logos-col-left">
+                <div class="iso-stack">
+                    <img src="{% static 'frontendv3/img/9001.png' %}" alt="ISO 9001" class="cert-logo">
+                    <img src="{% static 'frontendv3/img/14001.png' %}" alt="ISO 14001" class="cert-logo">
+                </div>
+            </div>
+            
+            <!-- Col 2: EPI centré -->
+            <div class="logos-col-center">
+                <img src="{% static 'frontendv3/img/epi-combinaison.jpg' %}" alt="Port de vêtements de protection obligatoire" class="epi-logo">
+                <img src="{% static 'frontendv3/img/epi-lunettes.jpg' %}" alt="Protection oculaire obligatoire" class="epi-logo">
+                <img src="{% static 'frontendv3/img/epi-gants.jpg' %}" alt="Port de gants obligatoire" class="epi-logo">
+                <img src="{% static 'frontendv3/img/epi-chaussures.jpg' %}" alt="Chaussures de sécurité obligatoires" class="epi-logo">
+            </div>
+            
+            <!-- Col 3: manyO.dev -->
+            <div class="logos-col-right">
+                {% include 'frontendv3/components/manyo-logo.html' %}
+            </div>
+        </div>
     </div>
 </div>
 
@@ -581,5 +602,167 @@
     80% { transform: translate(-30px, -30px); }
     90% { transform: translate(40px, 10px); }
     100% { transform: translate(0, 0); }
+}
+
+/* Ligne du bas avec 3 colonnes */
+.bottom-logos-row {
+    position: absolute;
+    bottom: 1rem;
+    left: 0;
+    right: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: end;
+    z-index: 15;
+    padding: 0 1rem;
+}
+
+/* Colonne gauche - ISO + WCM */
+.logos-col-left {
+    display: flex;
+    align-items: end;
+    gap: 1.5rem;
+}
+
+/* Colonne centre - EPI */
+.logos-col-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+/* Colonne droite - manyO.dev */
+.logos-col-right {
+    display: flex;
+    align-items: end;
+    justify-content: end;
+}
+
+/* Stack ISO */
+.iso-stack {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    align-items: center;
+}
+
+.iso-stack .cert-logo {
+    height: 80px;
+}
+
+.cert-logo {
+    height: 80px;
+    width: auto;
+    opacity: 1;
+    filter: brightness(1.1);
+    transition: all 0.3s ease;
+}
+
+.wcm-logo {
+    height: 40px;
+    background: white;
+    padding: 5px;
+    border-radius: 8px;
+    transform: scale(0.4);
+    transform-origin: bottom left;
+}
+
+.cert-logo:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.2) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+/* Pictos EPI */
+.epi-logo {
+    height: 50px;
+    width: auto;
+    opacity: 1;
+    filter: brightness(1.1) contrast(1.2);
+    transition: all 0.3s ease;
+    border-radius: 50%;
+    background: white;
+    padding: 2px;
+    mix-blend-mode: screen;
+}
+
+.epi-logo:hover {
+    transform: translateY(-2px) scale(1.05);
+    filter: brightness(1.3) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+    mix-blend-mode: normal;
+}
+
+/* Animation d'entrée pour les logos */
+@keyframes fadeInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Animation d'entrée de bas en haut pour les EPI */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Animations colonnes */
+.logos-col-left {
+    animation: fadeInLeft 1s ease-out 0.5s both;
+}
+
+.logos-col-center .epi-logo:nth-child(1) {
+    animation: fadeInUp 0.8s ease-out 1.2s both;
+}
+
+.logos-col-center .epi-logo:nth-child(2) {
+    animation: fadeInUp 0.8s ease-out 1.4s both;
+}
+
+.logos-col-center .epi-logo:nth-child(3) {
+    animation: fadeInUp 0.8s ease-out 1.6s both;
+}
+
+.logos-col-center .epi-logo:nth-child(4) {
+    animation: fadeInUp 0.8s ease-out 1.8s both;
+}
+
+.logos-col-right {
+    animation: fadeInLeft 1s ease-out 0.5s both;
+}
+
+/* Responsive pour petits écrans */
+@media (max-width: 768px) {
+    .bottom-logos-row {
+        grid-template-columns: 1fr 2fr 1fr;
+        gap: 0.5rem;
+    }
+    
+    .logos-col-left {
+        gap: 0.8rem;
+    }
+    
+    .iso-stack .cert-logo {
+        height: 45px;
+    }
+    
+    .wcm-logo {
+        height: 30px;
+        transform: scale(0.3);
+    }
+    
+    .epi-logo {
+        height: 35px;
+    }
 }
 </style>
