@@ -36,8 +36,8 @@ function shiftForm() {
         machineStartedEnd: savedData.machineStartedEnd || false,
         lengthEnd: savedData.lengthEnd || '',
         
-        // Commentaires
-        comments: savedData.comments || '',
+        // Commentaires - on ne charge que si non vide
+        comments: (savedData.comments && savedData.comments.trim()) ? savedData.comments : undefined,
         
         // Options de vacation
         vacationOptions: [
@@ -140,10 +140,30 @@ function shiftForm() {
                 return a.display_name.localeCompare(b.display_name, 'fr-FR');
             });
             
+            // Vérifier si un opérateur a été présélectionné depuis le splash
+            const sessionData = window.sessionData || {};
+            if (sessionData.shiftOperator && !this.operatorId) {
+                this.operatorId = sessionData.shiftOperator;
+                // Déclencher le changement pour générer l'ID du shift
+                this.$nextTick(() => {
+                    this.handleOperatorChange({ target: { value: this.operatorId } });
+                });
+            }
+            
             // Vérifier l'ID existant au chargement
             if (this.shiftId) {
                 this.checkShiftIdExists();
             }
+            
+            // Écouter la présélection d'opérateur depuis le splash
+            window.addEventListener('operator-preselected', (e) => {
+                if (e.detail && e.detail.operator) {
+                    this.operatorId = e.detail.operator.employee_id;
+                    this.$nextTick(() => {
+                        this.handleOperatorChange({ target: { value: this.operatorId } });
+                    });
+                }
+            });
             
             // Observer les changements pour la génération automatique ET la sauvegarde
             this.$watch('operatorId', () => {
@@ -395,7 +415,10 @@ function shiftForm() {
         
         // Handler pour commentaires
         handleCommentsChange(event) {
-            this.comments = event.target.value;
+            const value = event.target.value;
+            this.comments = value;
+            // Ne sauvegarder que si non vide
+            window.session.patch({ shift: { comments: value || null } });
         },
         
         // Sauvegarder le poste - Afficher la modale de confirmation

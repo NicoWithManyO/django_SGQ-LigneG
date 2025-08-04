@@ -28,6 +28,13 @@ body {
     background-color: var(--v3-body-bg);
     color: #212529;
     padding-bottom: 80px; /* Pour la sticky bar */
+    overflow-y: scroll !important; /* Force la scrollbar à toujours être visible */
+}
+
+/* Force la scrollbar même quand une modale est ouverte */
+body.modal-open {
+    overflow-y: scroll !important;
+    padding-right: 0 !important;
 }
 
 /* Variables dégradé Saint-Gobain */

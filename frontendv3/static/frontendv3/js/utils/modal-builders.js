@@ -6,26 +6,45 @@
 // Builder pour la confirmation de sauvegarde du shift
 function buildShiftConfirmation(shiftData) {
     return {
-        title: 'Sauvegarder le poste',
+        title: 'Confirmer la sauvegarde du poste',
         icon: 'bi-clipboard-check',
+        question: '', // Pas de question pour éviter la redondance
         confirmText: 'Sauvegarder le poste',
         confirmIcon: 'bi-save',
         confirmClass: 'btn-primary',
         content: buildShiftSummaryHTML(shiftData),
-        warning: shiftData.hasIncompleteRolls ? 'Attention : Des rouleaux sont en cours de saisie' : ''
+        warning: shiftData.hasIncompleteRolls ? 'Attention : Des rouleaux sont en cours de saisie' : '',
+        showComment: true, // Afficher le champ commentaire
+        commentValue: shiftData.comments
     };
 }
 
 // Builder pour la confirmation de sauvegarde du rouleau
 function buildRollConfirmation(rollData) {
+    // Déterminer le texte du bouton selon le statut
+    let confirmText = 'Sauvegarder le rouleau';
+    let confirmClass = 'btn-success';
+    
+    if (rollData.status === 'NON_CONFORME') {
+        confirmText = 'Vers découpe';
+        confirmClass = 'btn-warning';
+    } else if (rollData.rollId && rollData.rollId !== '--') {
+        confirmText = `Sauvegarder ${rollData.rollId}`;
+    }
+    
     return {
         title: 'Confirmer la sauvegarde du rouleau',
         icon: 'bi-gear-wide-connected',
-        confirmText: 'Sauvegarder le rouleau',
+        showImage: true,
+        question: '', // Pas de question car showComment est true
+        confirmText: confirmText,
         confirmIcon: 'bi-save',
-        confirmClass: 'btn-success',
+        confirmClass: confirmClass,
         content: buildRollSummaryHTML(rollData),
-        warning: getQCWarning(rollData.qcStatus)
+        warning: getQCWarning(rollData.qcStatus),
+        qcPending: rollData.qcStatus === 'pending',
+        showComment: true,
+        commentValue: ''
     };
 }
 
@@ -43,57 +62,16 @@ function buildShiftSummaryHTML(data) {
     
     return `
         <div class="container-fluid">
-            <!-- ID et Durée -->
-            <div class="row text-start mb-3">
-                <div class="col-6">
-                    <small class="text-muted">ID Poste :</small>
-                    <div class="fw-bold">${idPoste}</div>
-                </div>
-                <div class="col-6">
-                    <small class="text-muted">Durée :</small>
-                    <div class="fw-bold">${duration}</div>
+            <!-- ID Poste -->
+            <div class="row g-3 mb-3">
+                <div class="col-12 text-start">
+                    <label class="text-muted small mb-0">ID Poste</label>
+                    <p class="mb-0 text-primary fw-bold">${idPoste}</p>
                 </div>
             </div>
-            
-            <!-- Cartes métriques -->
-            <div class="row g-3 mb-4">
-                <div class="col-6">
-                    <div class="card">
-                        <div class="card-body text-center py-3">
-                            <h2 class="text-primary mb-0">${rendement}</h2>
-                            <small class="text-muted text-uppercase">Rendement</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="card">
-                        <div class="card-body text-center py-3">
-                            <h2 class="text-primary mb-0">${tauxOK}</h2>
-                            <small class="text-muted text-uppercase">Taux de OK</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="card">
-                        <div class="card-body text-center py-3">
-                            <h2 class="text-primary mb-0">${longueurOK}</h2>
-                            <small class="text-muted text-uppercase">Longueur OK</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="card">
-                        <div class="card-body text-center py-3">
-                            <h2 class="text-primary mb-0">${TO}</h2>
-                            <small class="text-muted text-uppercase">TO</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Humeur de fin de poste -->
-            <div class="mb-3">
-                <label class="form-label text-muted small">MoOoOOoOOooO0d de fin de poste :</label>
+            <div class="mb-3 mt-5 pt-4">
+                <label class="form-label text-muted small">MoOoOOoOOooOOd de fin de poste :</label>
                 <div class="d-flex justify-content-center gap-3">
                     <button type="button" 
                             class="btn rounded-circle d-flex align-items-center justify-content-center p-0" 
@@ -173,8 +151,7 @@ function buildField(label, value, colClass = 'col-12', valueClass = 'fw-bold', e
 // Helper pour obtenir le warning QC approprié
 function getQCWarning(qcStatus) {
     const warnings = {
-        'nok': 'Contrôle qualité NOK - Le rouleau sera marqué non conforme',
-        'pending': 'Contrôle qualité incomplet - Vérifiez les mesures'
+        'nok': 'Contrôle qualité NOK - Le rouleau sera marqué non conforme'
     };
     return warnings[qcStatus] || '';
 }

@@ -30,6 +30,9 @@ function stickyBar() {
         profileSpecs: null,
         grammageStatus: '', // '', 'ok', 'alert', 'nok'
         
+        // Statut QC temps réel
+        currentQcStatus: '',
+        
         // Timer pour l'horloge
         clockTimer: null,
         
@@ -84,6 +87,9 @@ function stickyBar() {
             this.length = window.sessionData?.sticky_length || '';
             this.totalMass = window.sessionData?.sticky_total_mass || '';
             this.nextTubeMass = window.sessionData?.sticky_next_tube_mass || '';
+            
+            // Charger le statut QC initial
+            this.currentQcStatus = window.sessionData?.qc_status || '';
             
             this.updateRollId();
             this.updateOFStatus();
@@ -172,6 +178,14 @@ function stickyBar() {
                     this.operatorId = event.detail.operatorId || '';
                     this.shiftDate = event.detail.date || '';
                     this.vacation = event.detail.vacation || '';
+                }
+            });
+            
+            // Écouter les changements de statut QC
+            window.addEventListener('qc-status-changed', (event) => {
+                if (event.detail && event.detail.status !== undefined) {
+                    this.currentQcStatus = event.detail.status;
+                    debug('QC status updated:', this.currentQcStatus);
                 }
             });
         },
@@ -302,6 +316,89 @@ function stickyBar() {
                 return;
             }
             
+            // Utiliser la modal si disponible
+            if (window.modalBuilders && window.modalBuilders.buildRollConfirmation) {
+                // Préparer les données pour la modal
+                const rollData = {
+                    rollId: this.rollId,
+                    status: this.rollConformityStatus,
+                    length: this.length,
+                    netWeight: this.netMass,
+                    grammage: this.grammage,
+                    defectCount: 0
+                };
+                
+                // Compter les défauts
+                const defectsData = window.sessionData?.v3_production?.roll?.defects || {};
+                let defectCount = 0;
+                for (const cellDefects of Object.values(defectsData)) {
+                    defectCount += cellDefects.length;
+                }
+                rollData.defectCount = defectCount;
+                
+                // Ajouter les données QC si disponibles
+                const qcData = window.sessionData?.v3_production || {};
+                if (qcData.qc_micromaire_g || qcData.qc_micromaire_d) {
+                    const avgLeft = this._calcAvg(qcData.qc_micromaire_g || []);
+                    const avgRight = this._calcAvg(qcData.qc_micromaire_d || []);
+                    if (avgLeft) {
+                        rollData.qcMicromaire = avgLeft.toFixed(1);
+                        rollData.qcMicromaireUnit = 'μm';
+                    } else if (avgRight) {
+                        rollData.qcMicromaire = avgRight.toFixed(1);
+                        rollData.qcMicromaireUnit = 'μm';
+                    }
+                }
+                
+                if (qcData.qc_masse_surfacique_gg || qcData.qc_masse_surfacique_gc || 
+                    qcData.qc_masse_surfacique_dc || qcData.qc_masse_surfacique_dd) {
+                    const avgMasse = this._calcAvg([
+                        qcData.qc_masse_surfacique_gg,
+                        qcData.qc_masse_surfacique_gc,
+                        qcData.qc_masse_surfacique_dc,
+                        qcData.qc_masse_surfacique_dd
+                    ]);
+                    if (avgMasse) {
+                        rollData.qcMasseSurf = avgMasse.toFixed(1);
+                        rollData.qcMasseSurfUnit = 'g/25cm²';
+                    }
+                }
+                
+                // Utiliser le statut QC temps réel
+                rollData.qcStatus = this.currentQcStatus || '';
+                console.log('QC Status for modal:', rollData.qcStatus);
+                
+                // Construire le contenu de la modal
+                const modalConfig = window.modalBuilders.buildRollConfirmation(rollData);
+                
+                // Ajouter l'action de confirmation
+                modalConfig.confirmAction = async () => {
+                    // Récupérer le commentaire depuis la modal
+                    const modalElement = document.querySelector('[x-data*="confirmModal"]');
+                    let comment = '';
+                    if (modalElement && modalElement._x_dataStack) {
+                        const modalComponent = modalElement._x_dataStack[0];
+                        comment = modalComponent.modalConfig.commentValue || '';
+                    }
+                    await this._performSaveRoll(comment);
+                };
+                
+                // Obtenir la référence au composant modal
+                const modalElement = document.querySelector('[x-data*="confirmModal"]');
+                if (modalElement && modalElement._x_dataStack) {
+                    const modalComponent = modalElement._x_dataStack[0];
+                    modalComponent.show(modalConfig);
+                    return;
+                }
+            }
+            
+            // Si pas de modal, sauvegarder directement
+            await this._performSaveRoll();
+        },
+        
+        // Fonction interne pour effectuer la sauvegarde
+        async _performSaveRoll(comment = '') {
+            
             try {
                 showNotification('info', 'Sauvegarde du rouleau...');
                 
@@ -311,7 +408,8 @@ function stickyBar() {
                     tube_mass: parseFloat(this.tubeMass) || null,
                     total_mass: parseFloat(this.totalMass) || null,
                     length: parseFloat(this.length) || null,
-                    status: this.rollConformityStatus
+                    status: this.rollConformityStatus,
+                    comment: comment || ''
                 };
                 
                 // Toujours envoyer le roll_id
@@ -475,6 +573,18 @@ function stickyBar() {
                 const variation = Math.floor(Math.random() * 101) - 50; // -50 à +50
                 this.nextTubeMass = String(900 + variation);
             }
+            
+            // 5. Remplir les contrôles qualité
+            window.dispatchEvent(new CustomEvent('fill-qc-random'));
+            
+            // 6. Remplir la checklist avec signature - attendre un peu pour que les composants soient chargés
+            setTimeout(() => {
+                const checklistComponent = document.querySelector('[x-data*="checklist"]');
+                if (checklistComponent && checklistComponent._x_dataStack && window.testHelpers && window.testHelpers.fillChecklist) {
+                    const checklistData = checklistComponent._x_dataStack[0];
+                    window.testHelpers.fillChecklist(checklistData);
+                }
+            }, 100);
             
             // Sauvegarder et recalculer
             this.handleDataChange();

@@ -121,7 +121,10 @@ window.confirmModal = function() {
                 confirmText: 'Confirmer',
                 confirmIcon: 'bi-check-circle',
                 confirmClass: 'btn-primary',
-                confirmAction: null
+                confirmAction: null,
+                showComment: false,
+                commentValue: '',
+                question: ''
             };
             this.modalProcessing = false;
             

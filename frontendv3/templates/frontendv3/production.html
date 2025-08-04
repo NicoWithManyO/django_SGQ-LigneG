@@ -4,6 +4,9 @@
 {% block title %}Production V3 - SGQ Ligne G{% endblock %}
 
 {% block content %}
+<!-- Inclusion du splash screen -->
+{% include 'frontendv3/splash.html' %}
+
 <div class="container-fluid p-3">
     <!-- Header -->
     <div class="row mb-3">
@@ -203,9 +206,9 @@
                                 <textarea class="form-control mx-auto" 
                                           style="width: 90%;"
                                           rows="3"
-                                          x-model="comments"
+                                          :value="comments || ''"
                                           @input="handleCommentsChange($event)"
-                                          placeholder="Commentaires, observations..."></textarea>
+                                          placeholder="Commentaire sur le poste..."></textarea>
                             </div>
                         </div>
                     </div>
@@ -667,10 +670,6 @@
                             </span>
                         </span>
                         <div class="d-flex align-items-center">
-                            <i class="bi bi-magic text-warning me-3" 
-                               style="cursor: pointer; font-size: 1.1rem;" 
-                               @click.stop="$dispatch('fill-qc-random')"
-                               title="Remplir avec des valeurs conformes"></i>
                             <span class="badge rounded-pill me-2" 
                                   style="font-size: 0.7rem; line-height: 1; padding: 0.2rem 0.4rem; transform: rotate(15deg);"
                                   :class="{
@@ -1032,10 +1031,6 @@
                             <i class="bi bi-card-checklist"></i> Check-list
                         </span>
                         <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-magic text-warning" 
-                               style="cursor: pointer; font-size: 1.1rem;" 
-                               @click.stop="if(window.testHelpers && window.testHelpers.fillChecklist) { window.testHelpers.fillChecklist($data); }"
-                               title="Remplir automatiquement la checklist"></i>
                             <i class="bi" :class="chevronClass"></i>
                         </div>
                     </h5>
@@ -1150,7 +1145,10 @@
             <!-- Colonne gauche : Logos -->
             <div class="col-auto">
                 <div class="d-flex align-items-center gap-3">
-                    <img src="{% static 'frontendv3/img/logo-white-text.svg' %}" alt="SGQ" height="40">
+                    <img src="{% static 'frontendv3/img/logo-white-text.svg' %}" alt="SGQ" height="40" 
+                         style="cursor: pointer;" 
+                         @click="$dispatch('show-splash')"
+                         title="Cliquez pour voir l'écran de démarrage">
                     <img src="{% static 'frontendv3/img/last_wcm.png' %}" alt="WCM" height="40" style="height: 40px; width: auto;">
                     <button class="btn btn-warning btn-sm ms-2" type="button" @click="fillMassFields()" title="🎩 Baguette magique - Remplir tout automatiquement">
                         <i class="bi bi-magic"></i>
@@ -1276,6 +1274,7 @@
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
+            </div>
         </div>
     </div>
 </div>
@@ -1283,7 +1282,8 @@
 <!-- Modale de confirmation réutilisable -->
 <div x-data="confirmModal()" class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content" style="position: relative; border: none; padding: 4px; background: var(--sg-gradient); border-radius: 0.5rem;">
+            <div style="background: white; border-radius: 0.375rem; height: 100%;">
             <div class="modal-header border-0">
                 <h5 class="modal-title w-100 text-center" id="confirmModalLabel">
                     <span x-text="modalConfig.title"></span>
@@ -1296,12 +1296,17 @@
                 <div class="mb-4">
                     <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center" 
                          style="width: 80px; height: 80px;">
-                        <i class="bi bi-question-lg text-primary" style="font-size: 3rem;"></i>
+                        <i class="bi" :class="modalConfig.icon || 'bi-question-lg'" 
+                           style="font-size: 3rem; 
+                                  background: var(--sg-gradient);
+                                  -webkit-background-clip: text;
+                                  -webkit-text-fill-color: transparent;
+                                  background-clip: text;"></i>
                     </div>
                 </div>
                 
                 <!-- Question -->
-                <h5 class="mb-4">Confirmez-vous la sauvegarde du poste ?</h5>
+                <h5 class="mb-4" x-text="modalConfig.question" x-show="modalConfig.question && !modalConfig.showComment"></h5>
                 
                 <!-- Contenu dynamique -->
                 <div x-html="modalConfig.content"></div>
@@ -1310,6 +1315,24 @@
                 <div x-show="modalConfig.warning" class="alert alert-warning mt-3 mb-0" role="alert">
                     <i class="bi bi-exclamation-triangle me-2"></i>
                     <span x-text="modalConfig.warning"></span>
+                </div>
+                
+                <!-- Champ de commentaire -->
+                <div x-show="modalConfig.showComment" class="d-flex justify-content-center" :class="modalConfig.title.toLowerCase().includes('rouleau') ? 'mt-5 pt-4' : 'mt-3'">
+                    <textarea 
+                        class="form-control" 
+                        style="width: 80%;"
+                        :rows="modalConfig.title.toLowerCase().includes('rouleau') ? 1 : 3"
+                        :placeholder="modalConfig.title.toLowerCase().includes('rouleau') ? 'Commenter ce rouleau...' : 'Commentaire sur le poste...'"
+                        x-model="modalConfig.commentValue"
+                        :disabled="modalProcessing || saveSuccess"
+                    ></textarea>
+                </div>
+                
+                <!-- Avertissement QC pending -->
+                <div x-show="modalConfig.qcPending && modalConfig.title.toLowerCase().includes('rouleau')" class="mt-3 text-center">
+                    <i class="bi bi-info-circle text-primary me-2" style="font-size: 1.25rem; transform: skew(-10deg);"></i>
+                    <span class="text-primary small fst-italic">Pensez aux contrôles qualités, vous ne pourrez pas sauvegarder votre poste sans !</span>
                 </div>
             </div>
             
@@ -1366,6 +1389,8 @@
 <script src="{% static 'frontendv3/js/utils/modal-builders.js' %}"></script>
 
 <!-- Composants Alpine.js -->
+<script src="{% static 'frontendv3/js/splash-screen.js' %}"></script>
+<script src="{% static 'frontendv3/js/operator-clouds.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/shift-form.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/production-order.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/profile-selector.js' %}"></script>
