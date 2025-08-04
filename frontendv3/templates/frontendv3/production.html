@@ -304,7 +304,7 @@
                             <!-- Onglet KPI -->
                             <div x-show="activeTab === 'kpi'">
                                 <!-- KPI toujours visibles -->
-                                <div class="row g-2">
+                                <div class="row g-2" x-data="kpiDisplay()">
                                     <!-- Card 1: Disponibilité -->
                                     <div class="col-md-3">
                                         <div class="kpi-card">
@@ -322,7 +322,24 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Card 2: Qualité -->
+                                    <!-- Card 2: Performance -->
+                                    <div class="col-md-3">
+                                        <div class="kpi-card">
+                                            <div class="kpi-icon">
+                                                <i class="bi bi-speedometer2"></i>
+                                            </div>
+                                            <div class="kpi-content">
+                                                <h6 class="kpi-title">Performance</h6>
+                                                <h3 class="kpi-value" x-text="performancePercentage + '%'">--%</h3>
+                                                <p class="kpi-subtitle">
+                                                    <span x-text="longueurEnroulee">0</span>m / 
+                                                    <span x-text="longueurEnroulable">0</span>m
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Card 3: Qualité -->
                                     <div class="col-md-3">
                                         <div class="kpi-card">
                                             <div class="kpi-icon">
@@ -330,22 +347,11 @@
                                             </div>
                                             <div class="kpi-content">
                                                 <h6 class="kpi-title">Qualité</h6>
-                                                <h3 class="kpi-value">98.2%</h3>
-                                                <p class="kpi-subtitle">Conformité</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Card 3: Production -->
-                                    <div class="col-md-3">
-                                        <div class="kpi-card">
-                                            <div class="kpi-icon">
-                                                <i class="bi bi-graph-up"></i>
-                                            </div>
-                                            <div class="kpi-content">
-                                                <h6 class="kpi-title">Production</h6>
-                                                <h3 class="kpi-value">1,250</h3>
-                                                <p class="kpi-subtitle">Mètres</p>
+                                                <h3 class="kpi-value" x-text="qualitePercentage + '%'">100%</h3>
+                                                <p class="kpi-subtitle">
+                                                    OK: <span x-text="longueurOKAffichee">0</span>m / 
+                                                    NOK: <span x-text="longueurRouleauxNOK">0</span>m
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -358,7 +364,7 @@
                                             </div>
                                             <div class="kpi-content">
                                                 <h6 class="kpi-title">TRS Global</h6>
-                                                <h3 class="kpi-value">85.7%</h3>
+                                                <h3 class="kpi-value" x-text="trsGlobal + '%'">0%</h3>
                                                 <p class="kpi-subtitle">Obj: <span x-text="profileDetails?.oee_target || '80'"></span>%</p>
                                             </div>
                                         </div>
@@ -1376,6 +1382,14 @@
     window.profilesData = {{ profiles_json|safe }};
     window.currentProfileId = {{ current_profile_id|default:'null' }};
     window.modesData = {{ modes_json|safe }};
+    
+    // Forcer le recalcul après 1 seconde pour être sûr
+    setTimeout(() => {
+        if (window.kpiService) {
+            console.log('Forçage du recalcul des KPI');
+            window.kpiService.calculateAll();
+        }
+    }, 1000);
 </script>
 
 
@@ -1388,12 +1402,16 @@
 <!-- Mixins -->
 <script src="{% static 'frontendv3/js/mixins/session-mixin.js' %}"></script>
 
+<!-- Services -->
+<script src="{% static 'frontendv3/js/services/kpi-service.js' %}"></script>
+
 <!-- Composants Alpine.js -->
 <script src="{% static 'frontendv3/js/splash-screen.js' %}"></script>
 <script src="{% static 'frontendv3/js/operator-clouds.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/shift-form.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/production-order.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/profile-selector.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/kpi-display.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/quality-control.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/roll-grid.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/downtime-tracker.js' %}"></script>

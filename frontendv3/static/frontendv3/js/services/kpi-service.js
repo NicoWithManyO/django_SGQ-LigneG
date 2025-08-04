@@ -1,298 +1,314 @@
 /**
- * Service centralisé pour le calcul des KPI en temps réel
- * Gère TO, TD, Performance, Qualité et TRS
+ * Service centralisé pour le calcul des KPI
+ * Responsabilité unique : calculer les indicateurs de performance
  */
 
-function KPIService() {
-    return {
-        // Données sources
-        shiftData: {
-            startTime: null,
-            endTime: null,
-            date: null,
-            machineStartedStart: false,
-            lengthStart: 0,
-            machineStartedEnd: false,
-            lengthEnd: 0
-        },
-        downtimes: [],
-        rolls: [],
-        profileData: null,
+// Créer le service comme singleton
+window.kpiService = {
+    // État des données sources
+    shiftData: {
+        startTime: null,
+        endTime: null
+    },
+    totalDowntime: 0,
+    profileData: null,
+    vitesseTheorique: 5, // m/min par défaut
+    lengthStart: 0, // Longueur début de poste
+    lengthEnd: 0, // Longueur fin de poste
+    longueurRouleauxSauves: 0, // Somme des rouleaux coupés
+    longueurRouleauxOK: 0, // Somme des rouleaux conformes
+    longueurRouleauxNOK: 0, // Somme des rouleaux non conformes
+    
+    // Résultats calculés
+    TO: 0, // Temps d'Ouverture en minutes
+    TD: 0, // Temps Disponible en minutes
+    disponibilitePercentage: 0,
+    longueurEnroulable: 0, // TD × vitesse
+    longueurEnroulee: 0, // (lengthEnd - lengthStart) + rouleaux sauvés
+    performancePercentage: 0,
+    qualitePercentage: 0, // Pourcentage de rouleaux OK
+    trsGlobal: 0, // TRS = Dispo × Perf × Qualité
+    
+    // Initialisation du service
+    init() {
+        console.log('KPI Service initialized');
+        console.log('Vitesse théorique initiale:', this.vitesseTheorique);
         
-        // Résultats calculés
-        kpis: {
-            disponibilite: {
-                TO: 0,          // Temps d'Ouverture en minutes
-                TD: 0,          // Temps Disponible en minutes
-                percentage: 0   // TD/TO * 100
-            },
-            performance: {
-                value: 0,       // Pourcentage
-                theoretical: 0, // Production théorique
-                actual: 0       // Production réelle
-            },
-            quality: {
-                value: 0,       // Pourcentage
-                ok: 0,          // Rouleaux conformes
-                total: 0        // Total rouleaux
-            },
-            trs: {
-                value: 0        // Disponibilité × Performance × Qualité
-            }
-        },
-        
-        // Initialisation
-        init() {
-            debug('KPI Service initialized');
-            
-            // Écouter les événements des différents composants
-            window.addEventListener('shift-data-changed', (e) => {
-                this.updateShiftData(e.detail);
-            });
-            
-            // Écouter spécifiquement les changements de temps perdus
-            window.addEventListener('downtime-changed', (e) => {
-                // L'événement peut contenir soit la liste complète, soit juste le nouveau temps perdu
-                if (e.detail.downtimes !== undefined) {
-                    this.downtimes = e.detail.downtimes;
-                } else if (e.detail.totalDowntime !== undefined) {
-                    // Si on a juste le total, on l'utilise directement
-                    // Note: on récupérera la liste complète depuis la session si nécessaire
-                    this.updateFromTotalDowntime(e.detail.totalDowntime);
-                }
-                this.calculateAll();
-            });
-            
-            window.addEventListener('roll-saved', (e) => {
-                this.addRoll(e.detail.roll);
-            });
-            
-            window.addEventListener('profile-changed', (e) => {
-                this.updateProfileData(e.detail);
-            });
-            
-            // Charger les données initiales depuis la session après un court délai
-            // Attendre que la session soit chargée
-            const checkAndLoad = () => {
-                if (window.sessionData && window.sessionData.shift) {
-                    this.loadInitialData();
-                } else {
-                    // Si pas encore chargé, réessayer
-                    setTimeout(checkAndLoad, 100);
-                }
-            };
-            
-            // Démarrer la vérification après un court délai
-            setTimeout(checkAndLoad, 100);
-        },
-        
-        // Charger les données initiales
-        loadInitialData() {
-            const sessionData = window.sessionData || {};
-            console.log('KPI Service - Loading initial data:', sessionData);
-            
-            // Données du shift
-            if (sessionData.shift) {
-                console.log('Found shift data:', sessionData.shift);
-                this.updateShiftData(sessionData.shift);
-            }
-            
-            // Temps perdus
-            if (sessionData.lost_time_entries) {
-                this.downtimes = sessionData.lost_time_entries;
-            }
-            
-            // Rouleaux (si disponibles dans la session)
-            if (sessionData.rolls) {
-                this.rolls = sessionData.rolls;
-            }
-            
-            // Toujours calculer même si pas de données
-            this.calculateAll();
-        },
-        
-        // Mise à jour des données du shift
-        updateShiftData(data) {
-            if (data.startTime !== undefined) this.shiftData.startTime = data.startTime;
-            if (data.endTime !== undefined) this.shiftData.endTime = data.endTime;
-            if (data.date !== undefined) this.shiftData.date = data.date;
-            if (data.machineStartedStart !== undefined) this.shiftData.machineStartedStart = data.machineStartedStart;
-            if (data.lengthStart !== undefined) this.shiftData.lengthStart = parseFloat(data.lengthStart) || 0;
-            if (data.machineStartedEnd !== undefined) this.shiftData.machineStartedEnd = data.machineStartedEnd;
-            if (data.lengthEnd !== undefined) this.shiftData.lengthEnd = parseFloat(data.lengthEnd) || 0;
-            
-            this.calculateAll();
-        },
-        
-        // Mise à jour depuis le total des temps perdus
-        updateFromTotalDowntime(totalMinutes) {
-            // On utilise directement le total pour le calcul
-            // sans avoir besoin du détail
-            this._totalDowntimeOverride = totalMinutes;
-            this.calculateAll();
-        },
-        
-        // Mise à jour des données du profil
-        updateProfileData(data) {
-            this.profileData = data.profile;
-            this.calculateAll();
-        },
-        
-        // Ajouter un rouleau
-        addRoll(roll) {
-            this.rolls.push(roll);
-            this.calculateAll();
-        },
-        
-        // Calculer tous les KPI
-        calculateAll() {
-            this.calculateDisponibilite();
-            this.calculatePerformance();
-            this.calculateQuality();
-            this.calculateTRS();
-            
-            // Émettre l'événement de mise à jour
-            this.emitUpdate();
-        },
-        
-        // Calculer la disponibilité
-        calculateDisponibilite() {
-            console.log('calculateDisponibilite called with:', this.shiftData);
-            
-            // TO = Temps d'Ouverture (durée du poste en minutes)
-            if (this.shiftData.startTime && this.shiftData.endTime) {
-                const start = this.parseTime(this.shiftData.startTime);
-                const end = this.parseTime(this.shiftData.endTime);
-                
-                console.log('Start time parsed:', start);
-                console.log('End time parsed:', end);
-                
-                // Gérer le cas où la fin est le lendemain (ex: 20:00 -> 04:00)
-                let diffMinutes = (end.hours * 60 + end.minutes) - (start.hours * 60 + start.minutes);
-                if (diffMinutes < 0) {
-                    diffMinutes += 24 * 60; // Ajouter 24h
-                }
-                
-                this.kpis.disponibilite.TO = diffMinutes;
-                console.log('TO calculated:', diffMinutes);
-            } else {
-                this.kpis.disponibilite.TO = 0;
-                console.log('No start/end time, TO = 0');
-            }
-            
-            // TD = TO - temps perdus déclarés
-            const totalDowntime = this._totalDowntimeOverride !== undefined 
-                ? this._totalDowntimeOverride 
-                : this.downtimes.reduce((total, dt) => total + (dt.duration || 0), 0);
-            
-            this.kpis.disponibilite.TD = Math.max(0, this.kpis.disponibilite.TO - totalDowntime);
-            
-            // Pourcentage de disponibilité
-            if (this.kpis.disponibilite.TO > 0) {
-                this.kpis.disponibilite.percentage = Math.round(
-                    (this.kpis.disponibilite.TD / this.kpis.disponibilite.TO) * 100
-                );
-            } else {
-                this.kpis.disponibilite.percentage = 0;
-            }
-        },
-        
-        // Calculer la performance
-        calculatePerformance() {
-            // Production réelle = longueur fin - longueur début
-            let actualProduction = 0;
-            if (this.shiftData.lengthEnd && this.shiftData.lengthStart !== null) {
-                actualProduction = this.shiftData.lengthEnd - this.shiftData.lengthStart;
-            }
-            
-            // Production théorique = TD * vitesse théorique
-            // TODO: Récupérer la vitesse théorique depuis le profil ou les paramètres
-            const theoreticalSpeed = 5; // m/min par défaut
-            const theoreticalProduction = this.kpis.disponibilite.TD * theoreticalSpeed;
-            
-            this.kpis.performance.actual = actualProduction;
-            this.kpis.performance.theoretical = theoreticalProduction;
-            
-            // Pourcentage de performance
-            if (theoreticalProduction > 0) {
-                this.kpis.performance.value = Math.min(100, Math.round(
-                    (actualProduction / theoreticalProduction) * 100
-                ));
-            } else {
-                this.kpis.performance.value = 0;
-            }
-        },
-        
-        // Calculer la qualité
-        calculateQuality() {
-            // Compter les rouleaux conformes vs total
-            const totalRolls = this.rolls.length;
-            const okRolls = this.rolls.filter(r => r.conformity === true).length;
-            
-            this.kpis.quality.total = totalRolls;
-            this.kpis.quality.ok = okRolls;
-            
-            // Pourcentage de qualité
-            if (totalRolls > 0) {
-                this.kpis.quality.value = Math.round((okRolls / totalRolls) * 100);
-            } else {
-                this.kpis.quality.value = 100; // Par défaut 100% si pas de rouleaux
-            }
-        },
-        
-        // Calculer le TRS
-        calculateTRS() {
-            // TRS = Disponibilité × Performance × Qualité
-            this.kpis.trs.value = Math.round(
-                (this.kpis.disponibilite.percentage / 100) *
-                (this.kpis.performance.value / 100) *
-                (this.kpis.quality.value / 100) * 100
-            );
-        },
-        
-        // Parser une heure au format HH:MM
-        parseTime(timeStr) {
-            if (!timeStr) return { hours: 0, minutes: 0 };
-            const [hours, minutes] = timeStr.split(':').map(Number);
-            return { hours: hours || 0, minutes: minutes || 0 };
-        },
-        
-        // Formater les minutes en heures:minutes
-        formatMinutes(totalMinutes) {
-            if (!totalMinutes) return '0min';
-            const hours = Math.floor(totalMinutes / 60);
-            const minutes = totalMinutes % 60;
-            if (hours === 0) return `${minutes}min`;
-            if (minutes === 0) return `${hours}h`;
-            return `${hours}h${minutes}`;
-        },
-        
-        // Émettre l'événement de mise à jour
-        emitUpdate() {
-            window.dispatchEvent(new CustomEvent('kpi-updated', {
-                detail: {
-                    kpis: this.kpis,
-                    formatMinutes: this.formatMinutes
-                }
-            }));
-            
-            debug('KPI updated:', this.kpis);
+        // Charger les données initiales depuis la session
+        const sessionData = window.sessionData || {};
+        if (sessionData.shift) {
+            this.shiftData.startTime = sessionData.shift.startTime || null;
+            this.shiftData.endTime = sessionData.shift.endTime || null;
+            this.lengthStart = parseFloat(sessionData.shift.lengthStart) || 0;
+            this.lengthEnd = parseFloat(sessionData.shift.lengthEnd) || 0;
         }
-    };
-}
-
-// Créer une instance globale du service et l'initialiser automatiquement
-window.kpiService = KPIService();
+        
+        const downtimes = sessionData.lost_time_entries || [];
+        this.totalDowntime = downtimes.reduce((total, dt) => total + (dt.duration || 0), 0);
+        
+        // Charger la longueur des rouleaux sauvés depuis la session
+        this.longueurRouleauxSauves = sessionData.longueur_rouleaux_sauves || 0;
+        this.longueurRouleauxOK = sessionData.longueur_rouleaux_ok || 0;
+        this.longueurRouleauxNOK = sessionData.longueur_rouleaux_nok || 0;
+        
+        // Charger le profil actuel et la vitesse directement
+        if (window.currentProfileId) {
+            // Faire une requête pour récupérer les specs du profil
+            fetch(`/api/profiles/${window.currentProfileId}/`, {
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Réponse API profil:', data);
+                    if (data.success && data.profile) {
+                        // La vitesse est directement dans le profil !
+                        if (data.profile.belt_speed) {
+                            this.vitesseTheorique = parseFloat(data.profile.belt_speed);
+                            console.log(`Vitesse chargée du profil: ${this.vitesseTheorique} m/min`);
+                            this.calculateAll();
+                            this.emitUpdate();
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Erreur chargement profil:', err);
+                });
+        } else {
+            // Calculer avec les données initiales seulement si pas de profil
+            this.calculateAll();
+        }
+        
+        // Écouter les événements
+        window.addEventListener('shift-data-changed', (e) => {
+            console.log('shift-data-changed reçu:', e.detail);
+            if (e.detail.startTime !== undefined) this.shiftData.startTime = e.detail.startTime;
+            if (e.detail.endTime !== undefined) this.shiftData.endTime = e.detail.endTime;
+            if (e.detail.lengthStart !== undefined) this.lengthStart = parseFloat(e.detail.lengthStart) || 0;
+            if (e.detail.lengthEnd !== undefined) this.lengthEnd = parseFloat(e.detail.lengthEnd) || 0;
+            this.calculateAll();
+        });
+        
+        window.addEventListener('downtime-changed', (e) => {
+            this.totalDowntime = e.detail.totalDowntime || 0;
+            this.calculateAll();
+        });
+        
+        window.addEventListener('profile-changed', (e) => {
+            console.log('KPI Service: profile-changed reçu', e.detail);
+            this.profileData = e.detail.profile;
+            
+            // La vitesse est directement dans le profil !
+            if (this.profileData && this.profileData.belt_speed) {
+                this.vitesseTheorique = parseFloat(this.profileData.belt_speed);
+                console.log(`Vitesse du profil: ${this.vitesseTheorique} m/min`);
+            }
+            
+            this.calculateAll();
+        });
+        
+        window.addEventListener('roll-saved', (e) => {
+            // Ajouter la longueur du rouleau sauvé
+            if (e.detail.roll && e.detail.roll.length) {
+                const length = parseFloat(e.detail.roll.length) || 0;
+                this.longueurRouleauxSauves += length;
+                
+                // Séparer OK et NOK basé sur le status
+                console.log('Roll saved:', e.detail.roll);
+                if (e.detail.roll.status === 'CONFORME' || e.detail.roll.is_compliant === true) {
+                    this.longueurRouleauxOK += length;
+                    console.log(`Ajout ${length}m aux rouleaux OK. Total OK: ${this.longueurRouleauxOK}m`);
+                } else {
+                    this.longueurRouleauxNOK += length;
+                    console.log(`Ajout ${length}m aux rouleaux NOK. Total NOK: ${this.longueurRouleauxNOK}m`);
+                }
+                
+                this.calculateAll(); // Recalculer tout incluant la qualité
+                
+                // Sauvegarder dans la session
+                this.saveLongueurRouleaux();
+            }
+        });
+        
+        // Réinitialiser après sauvegarde du shift
+        window.addEventListener('shift-saved', () => {
+            this.longueurRouleauxSauves = 0;
+            this.longueurRouleauxOK = 0;
+            this.longueurRouleauxNOK = 0;
+            this.lengthStart = 0;
+            this.lengthEnd = 0;
+            this.saveLongueurRouleaux();
+            this.calculateAll();
+        });
+        
+        // Émettre un événement pour dire que le service est prêt
+        window.dispatchEvent(new Event('kpi-service-ready'));
+    },
+    
+    // Calculer la disponibilité
+    calculateDisponibilite() {
+        // Calculer TO (Temps d'Ouverture)
+        if (this.shiftData.startTime && this.shiftData.endTime) {
+            const start = this.parseTime(this.shiftData.startTime);
+            const end = this.parseTime(this.shiftData.endTime);
+            
+            // Gérer le cas où la fin est le lendemain (ex: 20:00 -> 04:00)
+            let diffMinutes = (end.hours * 60 + end.minutes) - (start.hours * 60 + start.minutes);
+            if (diffMinutes < 0) {
+                diffMinutes += 24 * 60; // Ajouter 24h
+            }
+            
+            this.TO = diffMinutes;
+        } else {
+            this.TO = 0;
+        }
+        
+        // Calculer TD (Temps Disponible)
+        this.TD = Math.max(0, this.TO - this.totalDowntime);
+        
+        // Calculer le pourcentage
+        if (this.TO > 0) {
+            this.disponibilitePercentage = Math.round((this.TD / this.TO) * 100);
+        } else {
+            this.disponibilitePercentage = 0;
+        }
+    },
+    
+    // Calculer la performance
+    calculatePerformance() {
+        let longueurEnroulee = 0;
+        
+        // Si on a lengthEnd, calculer normalement
+        if (this.lengthEnd > 0) {
+            const longueurProduite = this.lengthEnd - this.lengthStart;
+            longueurEnroulee = longueurProduite + this.longueurRouleauxSauves;
+        } else {
+            // Sinon, les rouleaux coupés représentent la production depuis lengthStart
+            // Il faut donc déduire lengthStart qui était déjà enroulé
+            longueurEnroulee = this.longueurRouleauxSauves - this.lengthStart;
+        }
+        
+        console.log('Calcul Performance:', {
+            lengthStart: this.lengthStart,
+            lengthEnd: this.lengthEnd,
+            longueurRouleauxSauves: this.longueurRouleauxSauves,
+            longueurEnroulee: longueurEnroulee
+        });
+        
+        // S'assurer que c'est positif
+        this.longueurEnroulee = Math.max(0, longueurEnroulee);
+        
+        // Longueur enroulable = TD × vitesse théorique
+        this.longueurEnroulable = Math.round(this.TD * this.vitesseTheorique);
+        
+        // Pourcentage de performance
+        if (this.longueurEnroulable > 0) {
+            this.performancePercentage = Math.round(
+                (this.longueurEnroulee / this.longueurEnroulable) * 100
+            );
+        } else {
+            this.performancePercentage = 0;
+        }
+    },
+    
+    // Calculer tous les KPI
+    calculateAll() {
+        this.calculateDisponibilite();
+        this.calculatePerformance();
+        this.calculateQualite();
+        this.calculateTRS();
+        this.emitUpdate();
+    },
+    
+    // Émettre la mise à jour
+    emitUpdate() {
+        window.dispatchEvent(new CustomEvent('kpi-updated', {
+            detail: {
+                TO: this.TO,
+                TD: this.TD,
+                disponibilitePercentage: this.disponibilitePercentage,
+                longueurEnroulable: this.longueurEnroulable,
+                longueurEnroulee: this.longueurEnroulee,
+                performancePercentage: this.performancePercentage,
+                qualitePercentage: this.qualitePercentage,
+                longueurRouleauxOK: this.longueurRouleauxOK,
+                longueurRouleauxNOK: this.longueurRouleauxNOK,
+                trsGlobal: this.trsGlobal
+            }
+        }));
+    },
+    
+    // Parser une heure au format HH:MM
+    parseTime(timeStr) {
+        if (!timeStr) return { hours: 0, minutes: 0 };
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return { hours: hours || 0, minutes: minutes || 0 };
+    },
+    
+    // Calculer la qualité
+    calculateQualite() {
+        // Longueur OK = Longueur totale enroulée - Longueur NOK
+        const longueurOKCalculee = Math.max(0, this.longueurEnroulee - this.longueurRouleauxNOK);
+        
+        // Pourcentage de qualité basé sur la longueur enroulée totale
+        if (this.longueurEnroulee > 0) {
+            this.qualitePercentage = Math.round(
+                (longueurOKCalculee / this.longueurEnroulee) * 100
+            );
+        } else {
+            this.qualitePercentage = 100; // Si pas de production, on considère 100%
+        }
+        
+        console.log('Calcul Qualité:', {
+            longueurEnroulee: this.longueurEnroulee,
+            longueurRouleauxNOK: this.longueurRouleauxNOK,
+            longueurOKCalculee: longueurOKCalculee,
+            qualitePercentage: this.qualitePercentage
+        });
+    },
+    
+    // Calculer le TRS Global
+    calculateTRS() {
+        // TRS = Disponibilité × Performance × Qualité
+        // Les pourcentages sont déjà sur 100, donc on divise par 10000
+        const trs = (this.disponibilitePercentage * this.performancePercentage * this.qualitePercentage) / 10000;
+        this.trsGlobal = Math.round(trs * 10) / 10; // Arrondir à 1 décimale
+    },
+    
+    // Sauvegarder les longueurs des rouleaux dans la session
+    saveLongueurRouleaux() {
+        if (window.session) {
+            window.session.patch({ 
+                longueur_rouleaux_sauves: this.longueurRouleauxSauves,
+                longueur_rouleaux_ok: this.longueurRouleauxOK,
+                longueur_rouleaux_nok: this.longueurRouleauxNOK
+            });
+        }
+    },
+    
+    // Formater les minutes en heures:minutes
+    formatMinutes(totalMinutes) {
+        if (!totalMinutes) return '0min';
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        if (hours === 0) return `${minutes}min`;
+        if (minutes === 0) return `${hours}h`;
+        return `${hours}h${minutes}`;
+    }
+};
 
 // Initialiser automatiquement quand le DOM est prêt
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        window.kpiService.init();
+        // Petit délai pour s'assurer que la session est chargée
+        setTimeout(() => {
+            window.kpiService.init();
+        }, 100);
     });
 } else {
     // DOM déjà chargé
-    window.kpiService.init();
+    setTimeout(() => {
+        window.kpiService.init();
+    }, 100);
 }
-
-// Export pour utilisation dans d'autres modules
-window.KPIService = KPIService;

@@ -208,6 +208,14 @@ function shiftForm() {
                 this.emitShiftDataChanged();
             });
             
+            // Observer les changements de longueurs pour mettre à jour les KPI
+            this.$watch('lengthStart', () => {
+                this.emitShiftDataChanged();
+            });
+            this.$watch('lengthEnd', () => {
+                this.emitShiftDataChanged();
+            });
+            
             // Observer pour la sauvegarde avec debounce - on doit sauver tout l'objet shift
             this.$watch(() => ({
                 operatorId: this.operatorId,
@@ -688,6 +696,8 @@ function shiftForm() {
                     shiftId: this.shiftId,
                     startTime: this.startTime,
                     endTime: this.endTime,
+                    lengthStart: this.lengthStart,
+                    lengthEnd: this.lengthEnd,
                     isComplete: this.canGenerateId()
                 }
             }));
