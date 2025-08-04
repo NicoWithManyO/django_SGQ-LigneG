@@ -8,6 +8,8 @@ function rollGrid() {
     const ofData = window.sessionData?.of || {};
     
     return {
+        // Mixin
+        ...window.sessionMixin,
         // État local
         targetLength: ofData.targetLength || 30,
         defects: savedData.defects || {},
@@ -67,6 +69,9 @@ function rollGrid() {
         init() {
             debug('Roll grid initialized');
             
+            // Initialiser le mixin session
+            this.initSession();
+            
             // Exposer les fonctions utiles globalement
             window.rollGridUtils = {
                 fillRandom: () => this.fillRandomThickness(),
@@ -79,7 +84,7 @@ function rollGrid() {
                         detail: { length: length }
                     }));
                     // Sauvegarder
-                    this.saveToSession();
+                    this.saveRollData();
                     debug(`Target length reset to ${length}m`);
                 }
             };
@@ -117,9 +122,13 @@ function rollGrid() {
             window.fillAllThickness = (value) => this.fillAllThickness(value);
             window.fillRandomThickness = () => this.fillRandomThickness();
             
-            // Observer les changements de thicknessValues pour sauvegarder
+            // Observer les changements pour auto-save
+            this.watchAndSave('defects', 'roll.defects');
+            this.watchAndSave('thicknessValues', 'roll.thicknessValues');
+            this.watchAndSave('rattrapages', 'roll.rattrapages');
+            
+            // Observer les changements de thicknessValues pour recalculer la conformité
             this.$watch('thicknessValues', () => {
-                this.saveToSession();
                 // Recalculer la conformité
                 this.conformityStatus;
                 // Émettre le résumé des NOK (au cas où un rattrapage change)
@@ -232,13 +241,13 @@ function rollGrid() {
         },
         
         // Sauvegarder dans la session
-        saveToSession() {
+        saveRollData() {
             const data = {
                 defects: this.defects,
                 thicknessValues: this.thicknessValues,
                 rattrapages: this.rattrapages
             };
-            window.saveToSession('roll', data);
+            this.saveToSession({ roll: data });
         },
         
         // Utilitaire pour générer une clé unique pour une cellule
@@ -381,7 +390,7 @@ function rollGrid() {
             const numValue = parseFloat(value);
             if (!isNaN(numValue)) {
                 this.rattrapages[key] = numValue.toString();
-                this.saveToSession();
+                // La sauvegarde se fait automatiquement via le watch
             } else {
                 delete this.rattrapages[key];
             }
@@ -391,7 +400,7 @@ function rollGrid() {
         removeRattrapage(row, col) {
             const key = this.getCellKey(row, col);
             delete this.rattrapages[key];
-            this.saveToSession();
+            // La sauvegarde se fait automatiquement via le watch
         },
         
         // Valider les épaisseurs existantes
@@ -521,7 +530,8 @@ function rollGrid() {
             this.defects = {};
             this.$el.querySelectorAll('.defect-count').forEach(el => el.textContent = '0');
             
-            this.saveToSession();
+            // Force save after reset
+            this.saveRollData();
             showNotification('info', 'Grille de rouleau réinitialisée');
         },
         
@@ -553,7 +563,7 @@ function rollGrid() {
             if (!this.defects[key].includes(defectName)) {
                 this.defects[key].push(defectName);
                 debug(`Added defect "${defectName}" to cell ${key}`);
-                this.saveToSession();
+                // La sauvegarde se fait automatiquement via le watch
                 // Forcer le recalcul de la conformité
                 this._lastConformityStatus = null;
                 const newStatus = this.conformityStatus;
@@ -574,7 +584,7 @@ function rollGrid() {
                     delete this.defects[key];
                 }
                 debug(`Removed defect "${defectName}" from cell ${key}`);
-                this.saveToSession();
+                // La sauvegarde se fait automatiquement via le watch
                 // Forcer le recalcul de la conformité
                 this._lastConformityStatus = null;
                 const newStatus = this.conformityStatus;

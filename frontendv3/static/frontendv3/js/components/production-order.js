@@ -8,6 +8,8 @@ function productionOrder() {
     const savedData = window.sessionData?.of || {};
     
     return {
+        // Mixin
+        ...window.sessionMixin,
         // État local avec les valeurs sauvegardées
         ofEnCours: savedData.ofEnCours || '',
         ofDecoupe: savedData.ofDecoupe || '',
@@ -20,10 +22,13 @@ function productionOrder() {
         init() {
             debug('Production order initialized');
             
+            // Initialiser le mixin session
+            this.initSession();
+            
             // Observer les changements
             this.$watch('ofEnCours', () => this.handleOFChange());
-            this.$watch('ofDecoupe', () => this.saveToSession());
-            this.$watch('targetLength', () => this.saveToSession());
+            this.$watch('ofDecoupe', () => this.saveProductionData());
+            this.$watch('targetLength', () => this.saveProductionData());
             
             // Appliquer les styles initiaux après le rendu
             this.$nextTick(() => {
@@ -73,19 +78,19 @@ function productionOrder() {
                 detail: { length: this.targetLength }
             }));
             
-            this.saveToSession();
+            this.saveProductionData();
         },
         
         // Sauvegarder dans la session
-        saveToSession() {
+        saveProductionData() {
             const data = {
                 ofEnCours: this.ofEnCours,
                 ofDecoupe: this.ofDecoupe,
                 targetLength: this.targetLength
             };
             
-            // Utiliser la sauvegarde simple
-            window.saveToSession('of', data);
+            // Utiliser la sauvegarde du mixin
+            this.saveToSession({ of: data });
             
             // Émettre l'événement pour la sticky bar
             window.dispatchEvent(new CustomEvent('of-changed', {
@@ -117,7 +122,7 @@ function productionOrder() {
             event.target.classList.toggle('filled', value > 0);
             
             // Sauvegarder quand on change manuellement
-            this.saveToSession();
+            this.saveProductionData();
             
             // Émettre l'événement pour la grille
             window.dispatchEvent(new CustomEvent('target-length-changed', {

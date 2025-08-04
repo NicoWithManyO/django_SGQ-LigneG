@@ -4,6 +4,8 @@
  */
 window.qualityControl = function() {
     return {
+        // Mixin
+        ...window.sessionMixin,
         // État du contrôle qualité
         qcStatus: 'pending', // pending, ok, nok
         
@@ -33,8 +35,6 @@ window.qualityControl = function() {
         moyenneGlobaleMicromaire: '--',
         moyenneGlobaleMasseSurf: '--',
         
-        // Session
-        saveTimeout: null,
         
         // Specs du profil
         profileSpecs: null,
@@ -67,6 +67,9 @@ window.qualityControl = function() {
         },
         
         init() {
+            // Initialiser le mixin session
+            this.initSession();
+            
             // Charger depuis la session
             this.loadFromSession();
             
@@ -108,27 +111,36 @@ window.qualityControl = function() {
                 this.updateGlobalAverages();
                 this.checkQCStatus();
                 */
-                // Sauvegarder en session
-                this.saveToSession();
             });
             
             // Vérifier le statut initial
             this.checkQCStatus();
             this.updateGlobalAverages();
             
+            // Configurer les watchers pour auto-save
+            this.watchAndSave('micromaireG', 'qc_micromaire_g');
+            this.watchAndSave('micromaireD', 'qc_micromaire_d');
+            this.watchAndSave('masseSurfaciqueGG', 'qc_masse_surfacique_gg');
+            this.watchAndSave('masseSurfaciqueGC', 'qc_masse_surfacique_gc');
+            this.watchAndSave('masseSurfaciqueDC', 'qc_masse_surfacique_dc');
+            this.watchAndSave('masseSurfaciqueDD', 'qc_masse_surfacique_dd');
+            this.watchAndSave('extraitSec', 'qc_extrait_sec');
+            this.watchAndSave('extraitTime', 'qc_extrait_time');
+            this.watchAndSave('loi', 'qc_loi');
+            this.watchAndSave('loiTime', 'qc_loi_time');
+            this.watchAndSave('qcStatus', 'qc_status');
+            
             // Watchers pour calcul automatique des moyennes
             this.$watch('micromaireG', () => {
                 this.moyenneMicromaireG = this.calculateAverage(this.micromaireG);
                 this.updateGlobalAverages();
                 this.checkQCStatus();
-                this.autoSave();
             });
             
             this.$watch('micromaireD', () => {
                 this.moyenneMicromaireD = this.calculateAverage(this.micromaireD);
                 this.updateGlobalAverages();
                 this.checkQCStatus();
-                this.autoSave();
             });
             
             // Watchers pour masse surfacique
@@ -136,40 +148,32 @@ window.qualityControl = function() {
                 this.moyenneMasseSurfaciqueG = this.calculateAverageMasse('G');
                 this.updateGlobalAverages();
                 this.checkQCStatus();
-                this.autoSave();
             });
             this.$watch('masseSurfaciqueGC', () => {
                 this.moyenneMasseSurfaciqueG = this.calculateAverageMasse('G');
                 this.updateGlobalAverages();
                 this.checkQCStatus();
-                this.autoSave();
             });
             this.$watch('masseSurfaciqueDC', () => {
                 this.moyenneMasseSurfaciqueD = this.calculateAverageMasse('D');
                 this.updateGlobalAverages();
                 this.checkQCStatus();
-                this.autoSave();
             });
             this.$watch('masseSurfaciqueDD', () => {
                 this.moyenneMasseSurfaciqueD = this.calculateAverageMasse('D');
                 this.updateGlobalAverages();
                 this.checkQCStatus();
-                this.autoSave();
             });
             
             // Watchers pour extrait sec et LOI
             this.$watch('extraitSec', () => {
                 this.updateGlobalAverages();
                 this.checkQCStatus();
-                this.autoSave();
             });
-            this.$watch('extraitTime', () => this.autoSave());
             this.$watch('loi', (newValue) => {
                 debug('LOI changed:', newValue);
                 this.checkQCStatus();
-                this.autoSave();
             });
-            this.$watch('loiTime', () => this.autoSave());
             
             // Écouter les changements de rouleau
             window.addEventListener('new-roll', () => {
@@ -214,23 +218,7 @@ window.qualityControl = function() {
                 this.moyenneMasseSurfaciqueG = this.calculateAverageMasse('G');
                 this.moyenneMasseSurfaciqueD = this.calculateAverageMasse('D');
             }
-        },
-        
-        // Sauvegarde automatique
-        autoSave() {
-            // Sauvegarder chaque champ individuellement
-            window.session.save('qc_micromaire_g', this.micromaireG);
-            window.session.save('qc_micromaire_d', this.micromaireD);
-            window.session.save('qc_masse_surfacique_gg', this.masseSurfaciqueGG);
-            window.session.save('qc_masse_surfacique_gc', this.masseSurfaciqueGC);
-            window.session.save('qc_masse_surfacique_dc', this.masseSurfaciqueDC);
-            window.session.save('qc_masse_surfacique_dd', this.masseSurfaciqueDD);
-            window.session.save('qc_extrait_sec', this.extraitSec);
-            window.session.save('qc_extrait_time', this.extraitTime);
-            window.session.save('qc_loi', this.loi);
-            window.session.save('qc_loi_time', this.loiTime);
-            window.session.save('qc_status', this.qcStatus);
-        },
+},
         
         // Calcul de moyenne
         calculateAverage(values) {

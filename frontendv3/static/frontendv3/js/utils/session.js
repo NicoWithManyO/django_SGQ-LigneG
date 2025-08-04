@@ -119,7 +119,15 @@ class SessionManager {
                 throw new Error(`HTTP ${response.status}`);
             }
             
-            return await response.json();
+            const result = await response.json();
+            
+            // Mettre à jour window.sessionData localement
+            if (!window.sessionData) window.sessionData = {};
+            for (const [key, value] of Object.entries(data)) {
+                window.sessionData[key] = value;
+            }
+            
+            return result;
         } catch (error) {
             if (window.DEBUG) console.error('Erreur de patch session:', error);
             throw error;

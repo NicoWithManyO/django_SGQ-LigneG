@@ -8,6 +8,8 @@ function shiftForm() {
     const savedData = window.sessionData?.shift || {};
     
     return {
+        // Mixin
+        ...window.sessionMixin,
         // État local avec les valeurs sauvegardées
         operatorId: savedData.operatorId || '',
         date: savedData.date || new Date().toISOString().split('T')[0],
@@ -135,6 +137,9 @@ function shiftForm() {
         init() {
             debug('Shift form initialized');
             
+            // Initialiser le mixin session
+            this.initSession();
+            
             // Trier les opérateurs par ordre alphabétique (nom + prénom)
             this.operators.sort((a, b) => {
                 return a.display_name.localeCompare(b.display_name, 'fr-FR');
@@ -184,42 +189,42 @@ function shiftForm() {
             // Observer les changements pour la génération automatique ET la sauvegarde
             this.$watch('operatorId', () => {
                 this.tryGenerateShiftId();
-                this.saveToSession();
+                this.saveShiftData();
                 this.emitShiftDataChanged();
             });
             this.$watch('date', () => {
                 this.tryGenerateShiftId();
-                this.saveToSession();
+                this.saveShiftData();
                 this.emitShiftDataChanged();
             });
             this.$watch('vacation', () => {
                 this.tryGenerateShiftId();
-                this.saveToSession();
+                this.saveShiftData();
                 this.emitShiftDataChanged();
             });
             
             // Observer les nouveaux champs
-            this.$watch('startTime', () => this.saveToSession());
+            this.$watch('startTime', () => this.saveShiftData());
             this.$watch('machineStartedStart', () => {
                 if (!this.machineStartedStart) {
                     this.lengthStart = '';
                 }
-                this.saveToSession();
+                this.saveShiftData();
             });
-            this.$watch('lengthStart', () => this.saveToSession());
+            this.$watch('lengthStart', () => this.saveShiftData());
             
             // Observer les champs de fin
-            this.$watch('endTime', () => this.saveToSession());
+            this.$watch('endTime', () => this.saveShiftData());
             this.$watch('machineStartedEnd', () => {
                 if (!this.machineStartedEnd) {
                     this.lengthEnd = '';
                 }
-                this.saveToSession();
+                this.saveShiftData();
             });
-            this.$watch('lengthEnd', () => this.saveToSession());
+            this.$watch('lengthEnd', () => this.saveShiftData());
             
             // Observer les commentaires
-            this.$watch('comments', () => this.saveToSession());
+            this.$watch('comments', () => this.saveShiftData());
             
             // Écouter l'événement de signature de la check-list
             window.addEventListener('checklist-signed-changed', (event) => {
@@ -321,7 +326,7 @@ function shiftForm() {
                 this.shiftId = `${dateStr}_${operator.employee_id}_${this.vacation}`;
                 debug('Shift ID generated (fallback):', this.shiftId);
                 this.checkShiftIdExists();
-                this.saveToSession();
+                this.saveShiftData();
                 return;
             }
             
@@ -334,11 +339,11 @@ function shiftForm() {
             this.checkShiftIdExists();
             
             // Sauvegarder
-            this.saveToSession();
+            this.saveShiftData();
         },
         
         // Sauvegarder dans la session
-        saveToSession() {
+        saveShiftData() {
             const data = {
                 operatorId: this.operatorId,
                 date: this.date,
@@ -353,8 +358,8 @@ function shiftForm() {
                 comments: this.comments
             };
             
-            // Utiliser la sauvegarde simple
-            window.saveToSession('shift', data);
+            // Utiliser la sauvegarde du mixin
+            this.saveToSession({ shift: data });
         },
         
         // Handlers pour les changements
@@ -434,7 +439,7 @@ function shiftForm() {
             const value = event.target.value;
             this.comments = value;
             // Ne sauvegarder que si non vide
-            window.session.patch({ shift: { comments: value || null } });
+            this.saveFieldToSession('shift.comments', value || null);
         },
         
         // Sauvegarder le poste - Afficher la modale de confirmation

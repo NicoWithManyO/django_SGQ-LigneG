@@ -3,24 +3,24 @@
 ## Priorité HAUTE 🔴
 
 ### 1. Compléter sticky-bar
-- [ ] Ajouter champs masses (brute, nette, tube)
-- [ ] Calculer grammage automatique
-- [ ] Gérer l'incrémentation du numéro rouleau
-- [ ] Bouton "Nouveau rouleau" fonctionnel
-- [ ] Bouton "Sauvegarder" avec validation
+- [x] Ajouter champs masses (brute, nette, tube)
+- [x] Calculer grammage automatique
+- [x] Gérer l'incrémentation du numéro rouleau
+- [x] Bouton "Nouveau rouleau" fonctionnel
+- [x] Bouton "Sauvegarder" avec validation
 
 ### 2. Sauvegarde shift en base
-- [ ] Endpoint API `/api/shifts/` POST
-- [ ] Validation des données obligatoires
-- [ ] Gestion des erreurs
-- [ ] Feedback utilisateur
+- [x] Endpoint API `/api/shifts/` POST
+- [x] Validation des données obligatoires
+- [x] Gestion des erreurs
+- [x] Feedback utilisateur
 
 ### 3. Sauvegarde rouleau complet
-- [ ] Endpoint API `/api/rolls/` POST
-- [ ] Inclure toutes les épaisseurs
-- [ ] Inclure tous les défauts
-- [ ] Transaction atomique
-- [ ] Confirmation avant save
+- [x] Endpoint API `/api/rolls/` POST
+- [x] Inclure toutes les épaisseurs
+- [x] Inclure tous les défauts
+- [x] Transaction atomique
+- [x] Confirmation avant save
 
 ### 4. Calculs KPI temps réel
 - [ ] Longueur enroulable = heures travaillées × vitesse tapis
@@ -31,10 +31,10 @@
 ## Priorité MOYENNE 🟡
 
 ### 5. Gestion temps perdus (downtimeTracker)
-- [ ] Interface de saisie dans profile-selector
-- [ ] Catégories de temps perdus depuis API
-- [ ] Calcul impact sur disponibilité
-- [ ] Historique par shift
+- [x] Interface de saisie dans profile-selector
+- [x] Catégories de temps perdus depuis API
+- [x] Calcul impact sur disponibilité
+- [x] Historique par shift
 
 ### 6. Calculs backend KPI
 - [ ] Service Python pour calculs complexes
@@ -43,10 +43,10 @@
 - [ ] Mise à jour temps réel
 
 ### 7. Validation complète avant save
-- [ ] Vérifier tous champs obligatoires
-- [ ] Valider cohérence données
-- [ ] Afficher erreurs clairement
-- [ ] Empêcher save si erreurs
+- [x] Vérifier tous champs obligatoires
+- [x] Valider cohérence données
+- [x] Afficher erreurs clairement
+- [x] Empêcher save si erreurs
 
 ### 8. Tests end-to-end
 - [ ] Scénario complet de production
@@ -76,7 +76,7 @@
 
 ## Bugs connus 🐛
 
-- [ ] Les chevrons des cards ne pivotent pas à l'enroulement
+- [x] Les chevrons des cards ne pivotent pas à l'enroulement (corrigé avec collapsibleMixin)
 - [ ] La grille peut dépasser sur mobile
 - [ ] Le focus se perd après validation épaisseur
 

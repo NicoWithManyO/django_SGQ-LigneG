@@ -8,6 +8,8 @@ function downtimeTracker() {
     const savedData = window.sessionData?.lost_time_entries || window.sessionData?.downtimes || [];
     
     return {
+        // Mixin
+        ...window.sessionMixin,
         // État local
         downtimes: savedData,          // Liste des temps perdus de la session
         reasons: [],            // Motifs disponibles depuis l'API
@@ -21,6 +23,9 @@ function downtimeTracker() {
         // Initialisation
         async init() {
             debug('Downtime tracker initialized');
+            
+            // Initialiser le mixin session
+            this.initSession();
             
             // Charger les motifs disponibles
             await this.loadReasons();
@@ -47,7 +52,7 @@ function downtimeTracker() {
                     comment: '',
                     duration: ''
                 };
-                this.saveToSession();
+                this.saveDowntimeData();
                 
                 // Notifier que plus de temps de démarrage
                 window.dispatchEvent(new CustomEvent('downtime-startup-changed', {
@@ -93,9 +98,9 @@ function downtimeTracker() {
         },
         
         // Sauvegarder dans la session Django
-        saveToSession() {
+        saveDowntimeData() {
             // Sauvegarder sous la clé attendue par le backend
-            window.saveToSession('lost_time_entries', this.downtimes);
+            this.saveToSession({ lost_time_entries: this.downtimes });
             debug('Downtimes saved to session as lost_time_entries:', this.downtimes.length);
         },
         
@@ -157,7 +162,7 @@ function downtimeTracker() {
             this.downtimes.unshift(newEntry);
             
             // Sauvegarder dans la session
-            this.saveToSession();
+            this.saveDowntimeData();
             
             // Réinitialiser le formulaire
             this.currentDowntime = {
@@ -188,7 +193,7 @@ function downtimeTracker() {
             this.downtimes = this.downtimes.filter(dt => dt.id !== id);
             
             // Sauvegarder dans la session
-            this.saveToSession();
+            this.saveDowntimeData();
             
             // Émettre un événement
             window.dispatchEvent(new CustomEvent('downtime-removed', { 

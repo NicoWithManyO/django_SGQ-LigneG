@@ -5,9 +5,37 @@ from catalog.models import QualityDefectType, ProfileTemplate, ProfileParamValue
 from production.models.current import CurrentProfile
 import json
 
+@ensure_csrf_cookie
 def session_view(request):
-    """Obtenir toutes les données de session"""
-    return JsonResponse(request.session.get('v3_production', {}))
+    """Gérer les données de session (GET et PATCH)"""
+    if request.method == 'GET':
+        return JsonResponse(request.session.get('v3_production', {}))
+    
+    elif request.method == 'PATCH':
+        try:
+            data = json.loads(request.body)
+            
+            # Initialiser si nécessaire
+            if 'v3_production' not in request.session:
+                request.session['v3_production'] = {}
+            
+            # Mettre à jour les données (merge)
+            for key, value in data.items():
+                request.session['v3_production'][key] = value
+            
+            request.session.modified = True
+            
+            return JsonResponse({
+                'success': True,
+                'updated': data,
+                'session': request.session.get('v3_production', {})
+            })
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    else:
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 @ensure_csrf_cookie
 def save_session(request):

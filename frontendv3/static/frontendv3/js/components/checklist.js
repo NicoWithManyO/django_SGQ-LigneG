@@ -7,8 +7,9 @@ function checklist() {
     const savedData = window.sessionData?.checklist || {};
     
     return {
-        // Mixin pour la fonctionnalité collapsible
+        // Mixins
         ...collapsibleMixin(true),
+        ...window.sessionMixin,
         
         // État local
         responses: savedData.responses || {},
@@ -23,8 +24,9 @@ function checklist() {
         init() {
             debug('Checklist initialized');
             
-            // Initialiser le comportement collapsible
+            // Initialiser les mixins
             this.initCollapsible();
+            this.initSession();
             
             // Charger les items de check-list
             this.loadChecklistItems();
@@ -48,12 +50,12 @@ function checklist() {
                         detail: { signed: false }
                     }));
                 }
-                this.saveToSession();
+                this.saveChecklistData();
             }, { deep: true });
             
             // Observer les changements de commentaires
             this.$watch('comments', () => {
-                this.saveToSession();
+                this.saveChecklistData();
             }, { deep: true });
             
             // Observer les changements d'opérateur
@@ -69,7 +71,7 @@ function checklist() {
                     window.dispatchEvent(new CustomEvent('checklist-signed-changed', { 
                         detail: { signed: false }
                     }));
-                    this.saveToSession();
+                    this.saveChecklistData();
                     if (this.signature || this.signatureTime) {
                         showNotification('info', 'Signature réinitialisée (changement d\'opérateur)');
                     }
@@ -95,7 +97,7 @@ function checklist() {
                     detail: { signed: false }
                 }));
                 
-                this.saveToSession();
+                this.saveChecklistData();
                 showNotification('info', 'Checklist réinitialisée pour le prochain poste');
             });
             
@@ -120,7 +122,7 @@ function checklist() {
                 debug('Checklist items loaded:', this.items);
                 
                 // Sauvegarder les items en session pour le backend
-                this.saveToSession();
+                this.saveChecklistData();
                 
             } catch (error) {
                 console.error('Erreur chargement checklist:', error);
@@ -194,7 +196,7 @@ function checklist() {
         },
         
         // Sauvegarder dans la session
-        saveToSession() {
+        saveChecklistData() {
             // Créer un objet items avec id -> text ET garder l'ordre
             const itemsMap = {};
             const itemsOrder = [];
@@ -211,7 +213,7 @@ function checklist() {
                 signature: this.signature,
                 signatureTime: this.signatureTime
             };
-            window.saveToSession('checklist', data);
+            this.saveToSession({ checklist: data });
         },
         
         // Sauvegarder la signature
@@ -241,14 +243,14 @@ function checklist() {
                 showNotification('error', `Les initiales doivent être "${expectedInitials}"`);
                 this.signatureTime = ''; // Reset l'heure
                 this.signatureError = true; // Marquer l'erreur
-                this.saveToSession();
+                this.saveChecklistData();
                 return;
             }
             
             // Sauvegarder avec l'heure
             this.signatureError = false; // Pas d'erreur
             this.signatureTime = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-            this.saveToSession();
+            this.saveChecklistData();
             showNotification('success', 'Check-list signée');
             
             // Émettre l'événement de signature
