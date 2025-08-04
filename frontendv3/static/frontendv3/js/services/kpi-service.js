@@ -31,8 +31,8 @@ window.kpiService = {
     
     // Initialisation du service
     init() {
-        console.log('KPI Service initialized');
-        console.log('Vitesse théorique initiale:', this.vitesseTheorique);
+        debug('KPI Service initialized');
+        debug('Vitesse théorique initiale:', this.vitesseTheorique);
         
         // Charger les données initiales depuis la session
         const sessionData = window.sessionData || {};
@@ -61,12 +61,12 @@ window.kpiService = {
             })
                 .then(response => response.json())
                 .then(data => {
-                    console.log('Réponse API profil:', data);
+                    debug('Réponse API profil:', data);
                     if (data.success && data.profile) {
                         // La vitesse est directement dans le profil !
                         if (data.profile.belt_speed) {
                             this.vitesseTheorique = parseFloat(data.profile.belt_speed);
-                            console.log(`Vitesse chargée du profil: ${this.vitesseTheorique} m/min`);
+                            debug(`Vitesse chargée du profil: ${this.vitesseTheorique} m/min`);
                             this.calculateAll();
                             this.emitUpdate();
                         }
@@ -82,7 +82,7 @@ window.kpiService = {
         
         // Écouter les événements
         window.addEventListener('shift-data-changed', (e) => {
-            console.log('shift-data-changed reçu:', e.detail);
+            debug('shift-data-changed reçu:', e.detail);
             if (e.detail.startTime !== undefined) this.shiftData.startTime = e.detail.startTime;
             if (e.detail.endTime !== undefined) this.shiftData.endTime = e.detail.endTime;
             if (e.detail.lengthStart !== undefined) this.lengthStart = parseFloat(e.detail.lengthStart) || 0;
@@ -96,13 +96,13 @@ window.kpiService = {
         });
         
         window.addEventListener('profile-changed', (e) => {
-            console.log('KPI Service: profile-changed reçu', e.detail);
+            debug('KPI Service: profile-changed reçu', e.detail);
             this.profileData = e.detail.profile;
             
             // La vitesse est directement dans le profil !
             if (this.profileData && this.profileData.belt_speed) {
                 this.vitesseTheorique = parseFloat(this.profileData.belt_speed);
-                console.log(`Vitesse du profil: ${this.vitesseTheorique} m/min`);
+                debug(`Vitesse du profil: ${this.vitesseTheorique} m/min`);
             }
             
             this.calculateAll();
@@ -115,13 +115,13 @@ window.kpiService = {
                 this.longueurRouleauxSauves += length;
                 
                 // Séparer OK et NOK basé sur le status
-                console.log('Roll saved:', e.detail.roll);
+                debug('Roll saved:', e.detail.roll);
                 if (e.detail.roll.status === 'CONFORME' || e.detail.roll.is_compliant === true) {
                     this.longueurRouleauxOK += length;
-                    console.log(`Ajout ${length}m aux rouleaux OK. Total OK: ${this.longueurRouleauxOK}m`);
+                    debug(`Ajout ${length}m aux rouleaux OK. Total OK: ${this.longueurRouleauxOK}m`);
                 } else {
                     this.longueurRouleauxNOK += length;
-                    console.log(`Ajout ${length}m aux rouleaux NOK. Total NOK: ${this.longueurRouleauxNOK}m`);
+                    debug(`Ajout ${length}m aux rouleaux NOK. Total NOK: ${this.longueurRouleauxNOK}m`);
                 }
                 
                 this.calculateAll(); // Recalculer tout incluant la qualité
@@ -189,7 +189,7 @@ window.kpiService = {
             longueurEnroulee = this.longueurRouleauxSauves - this.lengthStart;
         }
         
-        console.log('Calcul Performance:', {
+        debug('Calcul Performance:', {
             lengthStart: this.lengthStart,
             lengthEnd: this.lengthEnd,
             longueurRouleauxSauves: this.longueurRouleauxSauves,
@@ -260,7 +260,7 @@ window.kpiService = {
             this.qualitePercentage = 100; // Si pas de production, on considère 100%
         }
         
-        console.log('Calcul Qualité:', {
+        debug('Calcul Qualité:', {
             longueurEnroulee: this.longueurEnroulee,
             longueurRouleauxNOK: this.longueurRouleauxNOK,
             longueurOKCalculee: longueurOKCalculee,

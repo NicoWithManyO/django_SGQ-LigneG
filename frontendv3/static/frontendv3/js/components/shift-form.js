@@ -563,9 +563,9 @@ function shiftForm() {
             }
             
             if (window.DEBUG) {
-                console.log('Données envoyées pour sauvegarde:', data);
-                console.log('Session actuelle:', window.sessionData);
-                console.log('Temps perdus dans la session:', window.sessionData?.lost_time_entries);
+                debug('Données envoyées pour sauvegarde:', data);
+                debug('Session actuelle:', window.sessionData);
+                debug('Temps perdus dans la session:', window.sessionData?.lost_time_entries);
             }
             
             try {
@@ -596,7 +596,7 @@ function shiftForm() {
                 }
                 
                 const result = await response.json();
-                console.log('Réponse sauvegarde:', result);
+                debug('Réponse sauvegarde:', result);
                 
                 // Vérifier qu'on a bien un ID de shift créé
                 if (!result.id || !result.shift_id) {
@@ -631,7 +631,7 @@ function shiftForm() {
         
         // Appliquer les données du prochain poste après sauvegarde
         applyNextShiftData(nextShiftData) {
-            console.log('Application des données du prochain poste:', nextShiftData);
+            debug('Application des données du prochain poste:', nextShiftData);
             
             // Réinitialiser le formulaire avec les nouvelles données
             this.operatorId = '';
@@ -709,7 +709,7 @@ function shiftForm() {
                 // Récupérer la longueur
                 const response = await fetch('/production/api/shifts/last/');
                 const data = await response.json();
-                console.log('Données du dernier poste:', data);
+                debug('Données du dernier poste:', data);
                 if (data && data.wound_length_end !== null && data.wound_length_end !== undefined) {
                     // On a une valeur, on la met dans le champ
                     this.lengthStart = data.wound_length_end.toString();

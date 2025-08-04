@@ -65,10 +65,6 @@
             <span x-text="datetime"></span>
         </div>
         
-        <!-- Management aligné à droite -->
-        <div class="management-title-line">
-            <span>Management</span>
-        </div>
         
         <!-- Bouton Play/Pause -->
         <button class="animation-toggle" 
@@ -84,15 +80,15 @@
             
             <!-- Badges Management (dans partie basse) -->
             <div class="management-badges">
-                <div class="management-cloud">
-                    <div class="cloud-name">Laure B.</div>
-                    <div class="cloud-role">Manageuse</div>
-                </div>
-                <div class="management-cloud">
+                <div class="management-cloud" style="margin-top: 1rem;">
                     <div class="cloud-name">Luidgi B.</div>
                     <div class="cloud-role">Réf. Technique</div>
                 </div>
                 <div class="management-cloud">
+                    <div class="cloud-name">Laure B.</div>
+                    <div class="cloud-role">Resp. Production</div>
+                </div>
+                <div class="management-cloud" style="margin-top: 1rem;">
                     <div class="cloud-name">Youssef K.</div>
                     <div class="cloud-role">Planificateur</div>
                 </div>
@@ -105,23 +101,26 @@
         
         <!-- Ligne du bas avec 3 colonnes -->
         <div class="bottom-logos-row">
-            <!-- Col 1: ISO -->
+            <!-- Col 1: EPI à gauche -->
             <div class="logos-col-left">
-                <div class="iso-stack">
-                    <img src="{% static 'frontendv3/img/9001.png' %}" alt="ISO 9001" class="cert-logo">
-                    <img src="{% static 'frontendv3/img/14001.png' %}" alt="ISO 14001" class="cert-logo">
+                <div class="epi-grid">
+                    <img src="{% static 'frontendv3/img/epi-combinaison.jpg' %}" alt="Port de vêtements de protection obligatoire" class="epi-logo">
+                    <img src="{% static 'frontendv3/img/epi-chaussures.jpg' %}" alt="Chaussures de sécurité obligatoires" class="epi-logo">
+                    <img src="{% static 'frontendv3/img/epi-lunettes.jpg' %}" alt="Protection oculaire obligatoire" class="epi-logo">
+                    <img src="{% static 'frontendv3/img/epi-gants.jpg' %}" alt="Port de gants obligatoire" class="epi-logo">
                 </div>
             </div>
             
-            <!-- Col 2: EPI centré -->
+            <!-- Col 2: Slogan au centre -->
             <div class="logos-col-center">
-                <img src="{% static 'frontendv3/img/epi-combinaison.jpg' %}" alt="Port de vêtements de protection obligatoire" class="epi-logo">
-                <img src="{% static 'frontendv3/img/epi-lunettes.jpg' %}" alt="Protection oculaire obligatoire" class="epi-logo">
-                <img src="{% static 'frontendv3/img/epi-gants.jpg' %}" alt="Port de gants obligatoire" class="epi-logo">
-                <img src="{% static 'frontendv3/img/epi-chaussures.jpg' %}" alt="Chaussures de sécurité obligatoires" class="epi-logo">
+                <div class="sgq-slogan">
+                    <span class="quote-mark quote-left">«</span>
+                    <span class="slogan-text">Making the world a better home</span>
+                    <span class="quote-mark quote-right">»</span>
+                </div>
             </div>
             
-            <!-- Col 3: manyO.dev -->
+            <!-- Col 3: manyO.dev à droite -->
             <div class="logos-col-right">
                 {% include 'frontendv3/components/manyo-logo.html' %}
             </div>

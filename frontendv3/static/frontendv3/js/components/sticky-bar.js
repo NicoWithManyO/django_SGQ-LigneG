@@ -162,7 +162,7 @@ function stickyBar() {
             
             // Écouter les changements de conformité
             window.addEventListener('roll-conformity-changed', (event) => {
-                console.log('Conformity changed:', event.detail);
+                debug('Conformity changed:', event.detail);
                 
                 // Mettre à jour le statut de conformité et l'état des épaisseurs
                 this.rollConformityStatus = event.detail.status;
@@ -230,7 +230,7 @@ function stickyBar() {
                 const data = await response.json();
                 this.rollIdExists = data.exists;
             } catch (error) {
-                console.error('Erreur vérification ID:', error);
+                debug('Erreur vérification ID:', error);
                 this.rollIdExists = null;
             } finally {
                 this.checkingRollId = false;
@@ -276,7 +276,7 @@ function stickyBar() {
                 showNotification('success', `Prochain numéro : ${data.next_number}`);
             } catch (error) {
                 showNotification('error', 'Erreur lors de la récupération du numéro');
-                if (window.DEBUG) console.error('Fetch next number error:', error);
+                debug('Fetch next number error:', error);
             }
         },
         
@@ -306,7 +306,7 @@ function stickyBar() {
                 showNotification('success', 'Données sauvegardées avec succès');
             } catch (error) {
                 showNotification('error', 'Erreur lors de la sauvegarde');
-                if (window.DEBUG) console.error('Save error:', error);
+                debug('Save error:', error);
             }
         },
         
@@ -367,7 +367,7 @@ function stickyBar() {
                 
                 // Utiliser le statut QC temps réel
                 rollData.qcStatus = this.currentQcStatus || '';
-                console.log('QC Status for modal:', rollData.qcStatus);
+                debug('QC Status for modal:', rollData.qcStatus);
                 
                 // Construire le contenu de la modal
                 const modalConfig = window.modalBuilders.buildRollConfirmation(rollData);
@@ -426,7 +426,7 @@ function stickyBar() {
                 
                 // Le backend va récupérer les épaisseurs et défauts depuis la session
                 
-                console.log('Données à envoyer:', rollData);
+                debug('Données à envoyer:', rollData);
                 
                 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
                 const response = await fetch('/production/api/rolls/', {
@@ -440,12 +440,12 @@ function stickyBar() {
                 
                 if (!response.ok) {
                     const error = await response.json();
-                    console.error('Erreur API:', error);
+                    debug('Erreur API:', error);
                     throw new Error(error.error || error.detail || `HTTP ${response.status}`);
                 }
                 
                 const savedRoll = await response.json();
-                console.log('Réponse du backend:', savedRoll);
+                debug('Réponse du backend:', savedRoll);
                 
                 // Appliquer l'état renvoyé par le backend
                 if (savedRoll.next_roll_data) {
@@ -487,7 +487,7 @@ function stickyBar() {
                 return savedRoll;
                 
             } catch (error) {
-                console.error('Erreur sauvegarde rouleau:', error);
+                debug('Erreur sauvegarde rouleau:', error);
                 showNotification('error', `Erreur: ${error.message}`);
                 throw error;
             }

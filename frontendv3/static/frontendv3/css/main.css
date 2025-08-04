@@ -482,7 +482,6 @@ body.modal-open {
     border-radius: 10px;
     padding: 1.75rem 1.25rem;
     min-height: 160px;
-    min-height: 140px;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -523,6 +522,73 @@ body.modal-open {
     box-shadow: 0 4px 20px rgba(0,0,0,0.12);
     border-color: transparent;
 }
+
+/* ============================================ */
+/* DEBUT - Bordures KPI dynamiques par pourcentage */
+/* ============================================ */
+/* Supprimez tout ce bloc pour retirer la fonctionnalité */
+
+.kpi-card {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Bordure colorée (largeur selon le pourcentage) */
+.kpi-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: var(--kpi-percentage, 0%);
+    height: 4px;
+    background: var(--kpi-border-color, #4CAF50);
+    transition: width 0.5s ease, background-color 0.3s ease;
+    z-index: 2;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+/* Couleurs selon les seuils de performance */
+.kpi-card[data-percentage-tier="excellent"]::after {
+    background: #00a86b; /* Vert - Excellent (90-100%) */
+}
+
+.kpi-card[data-percentage-tier="good"]::after {
+    background: #4CAF50; /* Vert clair - Bon (80-90%) */
+}
+
+.kpi-card[data-percentage-tier="moderate"]::after {
+    background: #FFC107; /* Orange - Moyen (60-80%) */
+}
+
+.kpi-card[data-percentage-tier="low"]::after {
+    background: #FF9800; /* Orange foncé - Faible (40-60%) */
+}
+
+.kpi-card[data-percentage-tier="critical"]::after {
+    background: #F44336; /* Rouge - Critique (0-40%) */
+}
+
+/* Animation pulsation pour valeurs critiques */
+.kpi-card[data-percentage-tier="critical"]::after {
+    animation: pulse-border 2s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Au hover, la bordure du bas devient gradient à 100% */
+.kpi-card:hover::after {
+    width: 98% !important;
+    background: var(--sg-gradient) !important;
+    height: 4px; /* Même épaisseur que les autres côtés */
+}
+
+/* ============================================ */
+/* FIN - Bordures KPI dynamiques par pourcentage */
+/* ============================================ */
 
 .kpi-icon {
     width: 72px;
