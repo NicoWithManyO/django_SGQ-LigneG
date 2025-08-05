@@ -322,19 +322,16 @@ class ShiftService:
         return availability_time if availability_time.total_seconds() > 0 else timedelta(0)
     
     @staticmethod
-    def calculate_production_totals(rolls):
+    def calculate_production_totals(rolls, shift=None):
         """
-        Calcule les totaux de production à partir des rouleaux.
+        Calcule les totaux de production à partir des rouleaux et de la production enroulée.
+        
+        Args:
+            rolls: QuerySet des rouleaux du poste
+            shift: Instance du Shift pour récupérer les métrages début/fin
+            
         Retourne un dict avec: total_length, ok_length, nok_length, raw_waste_length
         """
-        if not rolls:
-            return {
-                'total_length': 0,
-                'ok_length': 0,
-                'nok_length': 0,
-                'raw_waste_length': 0
-            }
-        
         totals = {
             'total_length': 0,
             'ok_length': 0,
@@ -342,17 +339,37 @@ class ShiftService:
             'raw_waste_length': 0
         }
         
-        for roll in rolls:
-            if roll.length:
-                totals['total_length'] += roll.length
-                
-                # Répartir selon le statut ET la destination
-                if roll.status == 'CONFORME':
-                    totals['ok_length'] += roll.length
-                elif roll.destination == 'DECHETS':
-                    totals['raw_waste_length'] += roll.length
-                else:
-                    totals['nok_length'] += roll.length
+        # Calculer les totaux des rouleaux coupés
+        if rolls:
+            for roll in rolls:
+                if roll.length:
+                    totals['total_length'] += roll.length
+                    
+                    # Répartir selon le statut ET la destination
+                    if roll.status == 'CONFORME':
+                        totals['ok_length'] += roll.length
+                    elif roll.destination == 'DECHETS':
+                        totals['raw_waste_length'] += roll.length
+                    else:
+                        totals['nok_length'] += roll.length
+        
+        # Gérer la production enroulée début/fin de poste
+        if shift:
+            # Soustraire la longueur qui était déjà enroulée en début de poste
+            if shift.started_at_beginning and shift.meter_reading_start is not None:
+                length_start = float(shift.meter_reading_start)
+                if length_start > 0:
+                    # Cette longueur était déjà comptée dans les rouleaux précédents
+                    totals['total_length'] = float(totals['total_length']) - length_start
+                    totals['ok_length'] = float(totals['ok_length']) - length_start
+            
+            # Ajouter la longueur enroulée en fin de poste
+            if shift.started_at_end and shift.meter_reading_end is not None:
+                length_end = float(shift.meter_reading_end)
+                if length_end > 0:
+                    # Cette longueur est produite mais pas encore coupée
+                    totals['total_length'] = float(totals['total_length']) + length_end
+                    totals['ok_length'] = float(totals['ok_length']) + length_end
         
         return totals
     
@@ -534,8 +551,8 @@ class ShiftService:
         # Lier les rouleaux au poste via la ForeignKey
         rolls.update(shift=shift)
         
-        # Calculer les totaux de production
-        production_totals = self.calculate_production_totals(rolls)
+        # Calculer les totaux de production (incluant la production enroulée)
+        production_totals = self.calculate_production_totals(rolls, shift)
         
         # Calculer les moyennes
         averages = self.calculate_shift_averages(rolls)

@@ -132,10 +132,19 @@ window.qualityControl = function() {
             this.watchAndSave('masseSurfaciqueGC', 'qc_masse_surfacique_gc');
             this.watchAndSave('masseSurfaciqueDC', 'qc_masse_surfacique_dc');
             this.watchAndSave('masseSurfaciqueDD', 'qc_masse_surfacique_dd');
-            this.watchAndSave('extraitSec', 'qc_extrait_sec');
+            
+            // Watcher spécial pour extraitSec avec log
+            this.$watch('extraitSec', (value) => {
+                debug('ExtraitSec changed to:', value, 'type:', typeof value);
+                this.saveFieldToSession('qc_extrait_sec', value);
+            });
+            
             this.watchAndSave('extraitTime', 'qc_extrait_time');
-            this.watchAndSave('loi', 'qc_loi');
-            this.watchAndSave('loiTime', 'qc_loi_time');
+            
+            // PAS DE WATCHERS pour loi et loiTime car on gère dans handleLoiChange
+            // this.$watch('loi', ...) SUPPRIMÉ
+            // this.$watch('loiTime', ...) SUPPRIMÉ
+            
             this.watchAndSave('qcStatus', 'qc_status');
             
             // Watchers pour calcul automatique des moyennes
@@ -450,6 +459,49 @@ window.qualityControl = function() {
             } else {
                 showNotification('warning', 'Fonction de test non disponible');
             }
+        },
+        
+        // Gérer le changement de l'interrupteur LOI
+        handleLoiChange() {
+            // Maintenant avec x-model + @change, this.loi a déjà la bonne valeur
+            debug('LOI changed to:', this.loi);
+            
+            // Simple : si loi est true, on met l'heure, sinon on met '--:--'
+            if (this.loi) {
+                // Si on coche, mettre l'heure actuelle
+                const now = new Date();
+                this.loiTime = now.getHours().toString().padStart(2, '0') + ':' + 
+                               now.getMinutes().toString().padStart(2, '0');
+                debug('LOI checked, setting time:', this.loiTime);
+            } else {
+                // Si on décoche, on vide l'heure
+                this.loiTime = '--:--';
+                debug('LOI unchecked, clearing time');
+            }
+            
+            // Sauvegarde synchrone et directe, sans debounce
+            debug('About to save - LOI:', this.loi, 'Time:', this.loiTime);
+            
+            // Revenir à la méthode du mixin mais avec forceage immédiat
+            // Annuler tous les timeouts en cours pour ce composant
+            if (this._saveTimeouts) {
+                Object.values(this._saveTimeouts).forEach(timeout => clearTimeout(timeout));
+            }
+            
+            // Sauvegarder directement sans debounce
+            if (window.session && window.session.patch) {
+                window.session.patch({
+                    qc_loi: this.loi,
+                    qc_loi_time: this.loiTime
+                });
+                debug('LOI saved via window.session.patch');
+            }
+            
+            // Log pour debug
+            debug('Saved LOI to session:', this.loi, 'and time:', this.loiTime);
+            
+            // Déclencher la vérification du statut
+            this.checkQCStatus();
         },
         
         // Obtenir les données pour sauvegarde

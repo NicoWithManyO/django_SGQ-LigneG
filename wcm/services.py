@@ -66,7 +66,7 @@ def calculate_and_create_trs(shift, production_totals=None):
         availability = 0
     
     # 2. Performance (%)
-    # Utiliser les totaux fournis ou calculer depuis les rouleaux
+    # Utiliser les totaux fournis (qui incluent déjà la production enroulée)
     if production_totals:
         actual_production = float(production_totals.get('total_length', 0))
         ok_length = float(production_totals.get('ok_length', 0))
@@ -75,11 +75,13 @@ def calculate_and_create_trs(shift, production_totals=None):
     else:
         # Fallback: calculer depuis les rouleaux du shift
         from production.models import Roll
+        from production.services import shift_service
         rolls = Roll.objects.filter(shift=shift)
-        actual_production = sum(float(r.length or 0) for r in rolls)
-        ok_length = sum(float(r.length or 0) for r in rolls if r.is_conform)
-        nok_length = sum(float(r.length or 0) for r in rolls if not r.is_conform)
-        raw_waste_length = 0  # Pas de données de déchet dans Roll
+        production_totals = shift_service.calculate_production_totals(rolls, shift)
+        actual_production = float(production_totals.get('total_length', 0))
+        ok_length = float(production_totals.get('ok_length', 0))
+        nok_length = float(production_totals.get('nok_length', 0))
+        raw_waste_length = float(production_totals.get('raw_waste_length', 0))
     
     if actual_production > 0 and available_time_minutes > 0:
         # Production théorique = temps disponible × vitesse tapis

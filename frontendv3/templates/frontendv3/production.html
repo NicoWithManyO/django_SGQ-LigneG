@@ -800,7 +800,7 @@
                             <div style="position: absolute; left: 50%; transform: translateX(-50%); bottom: 50px; text-align: center;">
                                 <div class="small text-muted mb-1">LOI</div>
                                 <div class="form-check form-switch d-flex justify-content-center">
-                                    <input class="form-check-input" type="checkbox" id="loiSwitch" style="cursor: pointer;" x-model="loi" @change="if($event.target.checked) { const now = new Date(); loiTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); } else { loiTime = '--:--'; }">
+                                    <input class="form-check-input" type="checkbox" id="loiSwitch" style="cursor: pointer;" x-model="loi" @change="handleLoiChange()">
                                 </div>
                                 <div class="small text-muted mt-1" x-text="loiTime">--:--</div>
                             </div>

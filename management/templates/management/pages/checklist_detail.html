@@ -34,24 +34,31 @@
                     <h6 class="text-muted mb-3">{{ category }}</h6>
                     <div class="list-group mb-4">
                         {% for item in items %}
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                {{ item.label }}
-                                {% if item.is_mandatory %}
-                                <span class="badge bg-danger ms-2">Obligatoire</span>
-                                {% endif %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    {{ item.label }}
+                                    {% if item.is_mandatory %}
+                                    <span class="badge bg-danger ms-2">Obligatoire</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    {% if item.is_ok %}
+                                    <span class="badge bg-success">OK</span>
+                                    {% elif item.is_nok %}
+                                    <span class="badge bg-danger">NOK</span>
+                                    {% elif item.is_na %}
+                                    <span class="badge bg-secondary">N/A</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Non renseigné</span>
+                                    {% endif %}
+                                </div>
                             </div>
-                            <div>
-                                {% if item.is_ok %}
-                                <span class="badge bg-success">OK</span>
-                                {% elif item.is_nok %}
-                                <span class="badge bg-danger">NOK</span>
-                                {% elif item.is_na %}
-                                <span class="badge bg-secondary">N/A</span>
-                                {% else %}
-                                <span class="badge bg-warning">Non renseigné</span>
-                                {% endif %}
+                            {% if item.comment %}
+                            <div class="mt-2 text-muted small">
+                                <i class="bi bi-chat-left-text"></i> {{ item.comment }}
                             </div>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>

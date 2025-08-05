@@ -147,16 +147,10 @@ function shiftForm() {
             
             // Vérifier si un opérateur a été présélectionné depuis le splash
             const sessionData = window.sessionData || {};
-            // Si on a explicitement vidé l'opérateur OU si shiftOperator existe
-            if (sessionData.operatorCleared === true || 'shiftOperator' in sessionData) {
-                // Si operatorCleared est true, on force à vide même si savedData.operatorId existe
-                this.operatorId = sessionData.operatorCleared ? '' : (sessionData.shiftOperator || '');
-                debug(`Operator from splash: "${this.operatorId}" (cleared=${sessionData.operatorCleared}, overrides saved: "${savedData.operatorId}")`);
-                
-                // Nettoyer le flag operatorCleared après l'avoir utilisé
-                if (sessionData.operatorCleared) {
-                    window.session.remove('operatorCleared');
-                }
+            // Si shiftOperator existe dans la session, il override les données sauvegardées
+            if ('shiftOperator' in sessionData) {
+                this.operatorId = sessionData.shiftOperator || '';
+                debug(`Operator from splash: "${this.operatorId}" (overrides saved: "${savedData.operatorId}")`);
                 
                 // Déclencher le changement pour générer l'ID du shift et émettre les événements
                 this.$nextTick(() => {
@@ -657,8 +651,8 @@ function shiftForm() {
                     operatorId: ''  // Nettoyer aussi l'operatorId dans shift
                 },
                 shiftOperator: '',
-                selectedOperatorName: '',
-                operatorCleared: true  // Marquer qu'on a volontairement vidé après sauvegarde
+                selectedOperatorName: ''
+                // Ne PAS mettre operatorCleared: true ici car ça empêche la persistence normale
             });
             
             // Réinitialiser le formulaire avec les nouvelles données

@@ -65,8 +65,8 @@ function operatorClouds() {
                         operatorId: ''
                     },
                     shiftOperator: '',
-                    selectedOperatorName: '',
-                    operatorCleared: true  // Flag pour indiquer qu'on a volontairement vidé
+                    selectedOperatorName: ''
+                    // Ne PAS mettre operatorCleared car ça empêche la persistence
                 });
                 
                 // Dispatch event pour notifier la désélection
@@ -84,8 +84,8 @@ function operatorClouds() {
                         operatorId: operator.employee_id
                     },
                     shiftOperator: operator.employee_id,
-                    selectedOperatorName: `${operator.first_name} ${operator.last_name}`,
-                    operatorCleared: false  // On a sélectionné, pas vidé
+                    selectedOperatorName: `${operator.first_name} ${operator.last_name}`
+                    // Ne PAS mettre operatorCleared
                 });
                 
                 // Dispatch event pour notifier la sélection

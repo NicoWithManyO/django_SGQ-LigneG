@@ -81,18 +81,18 @@ function stickyBar() {
                 });
             }, 200); // Augmenter le délai pour être sûr
             
-            // Watchers pour auto-save dans la session ET recalcul
+            // Watchers pour auto-save dans la session SEULEMENT (pas de recalcul)
             this.$watch('tubeMass', () => {
                 window.session.save('sticky_tube_mass', this.tubeMass);
-                this.calculateValues();
+                // PAS de calculateValues() ici - seulement au blur
             });
             this.$watch('length', () => {
                 window.session.save('sticky_length', this.length);
-                this.calculateValues();
+                // PAS de calculateValues() ici - seulement au blur
             });
             this.$watch('totalMass', () => {
                 window.session.save('sticky_total_mass', this.totalMass);
-                this.calculateValues();
+                // PAS de calculateValues() ici - seulement au blur
             });
             this.$watch('nextTubeMass', () => window.session.save('sticky_next_tube_mass', this.nextTubeMass));
             
@@ -561,18 +561,18 @@ function stickyBar() {
                     thicknessValues: {},
                     rattrapages: {}
                 },
-                // QC
-                qc_micromaire_g: ['', '', ''],
-                qc_micromaire_d: ['', '', ''],
-                qc_masse_surfacique_gg: '',
-                qc_masse_surfacique_gc: '',
-                qc_masse_surfacique_dc: '',
-                qc_masse_surfacique_dd: '',
-                qc_extrait_sec: '',
-                qc_extrait_time: '--:--',
-                qc_loi: false,
-                qc_loi_time: '--:--',
-                qc_status: 'pending',
+                // QC - NE PAS réinitialiser car on veut garder les données en cours !
+                // qc_micromaire_g: ['', '', ''],
+                // qc_micromaire_d: ['', '', ''],
+                // qc_masse_surfacique_gg: '',
+                // qc_masse_surfacique_gc: '',
+                // qc_masse_surfacique_dc: '',
+                // qc_masse_surfacique_dd: '',
+                // qc_extrait_sec: '',
+                // qc_extrait_time: '--:--',
+                // qc_loi: false,
+                // qc_loi_time: '--:--',
+                // qc_status: 'pending',
                 // Checklist
                 checklist: {
                     items: {},
