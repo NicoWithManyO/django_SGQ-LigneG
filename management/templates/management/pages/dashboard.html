@@ -236,7 +236,7 @@
     <!-- Compteurs d'humeur et Derniers rouleaux -->
     <div class="row mb-4">
         <!-- Humeur du personnel -->
-        <div class="col-md-6">
+        <div class="col-md-5">
             <div class="card">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
@@ -359,7 +359,7 @@
         </div>
         
         <!-- Derniers rouleaux -->
-        <div class="col-md-6">
+        <div class="col-md-7">
             <div class="card">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -434,6 +434,7 @@
                             <thead class="sticky-top bg-light">
                                 <tr>
                                     <th class="text-end">ID Rouleau</th>
+                                    <th>Longueur</th>
                                     <th>Moy EP G</th>
                                     <th>Grammage</th>
                                     <th>Moy EP D</th>
@@ -446,6 +447,7 @@
                                 <template x-for="roll in filteredRolls" :key="roll.id">
                                     <tr style="cursor: pointer;" @click="showRollDetails(roll.id)" class="roll-row">
                                         <td x-text="roll.roll_id" class="small text-end"></td>
+                                        <td x-text="roll.length ? roll.length + ' m' : '--'" class="small text-center"></td>
                                         <td x-text="roll.avg_thickness_left ? roll.avg_thickness_left.toFixed(2) : '--'" class="small text-center"></td>
                                         <td x-text="roll.grammage ? roll.grammage + ' g/m²' : '--'" class="small text-center"></td>
                                         <td x-text="roll.avg_thickness_right ? roll.avg_thickness_right.toFixed(2) : '--'" class="small text-center"></td>
@@ -465,7 +467,7 @@
                                     </tr>
                                 </template>
                                 <tr x-show="filteredRolls.length === 0">
-                                    <td colspan="7" class="text-center text-muted py-3">
+                                    <td colspan="8" class="text-center text-muted py-3">
                                         <span x-show="!hasActiveFilters()">Aucun rouleau trouvé</span>
                                         <span x-show="hasActiveFilters()">Aucun rouleau ne correspond aux filtres</span>
                                     </td>

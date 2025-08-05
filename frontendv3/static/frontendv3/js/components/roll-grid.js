@@ -708,50 +708,36 @@ function rollGrid() {
         
         // Calculer le statut de conformité
         calculateConformityStatus() {
-            console.log('=== CALCULATING CONFORMITY STATUS ===');
-            
             // 1. Vérifier s'il y a des NOK non rattrapés (rattrapage NOK)
             const hasUnrecovered = this.hasUnrecoveredNOK();
-            console.log(`Has unrecovered NOK: ${hasUnrecovered}`);
             if (hasUnrecovered) {
                 return 'NON_CONFORME';
             }
             
             // 2. Vérifier les défauts bloquants
             const blockingDefects = this.checkBlockingDefects();
-            console.log(`Has blocking defects: ${blockingDefects.hasBlocking}`);
             if (blockingDefects.hasBlocking) {
-                console.log(`Blocking defect found: ${blockingDefects.defectName}`);
                 return 'NON_CONFORME';
             }
             
             // 3. Vérifier les défauts avec seuil
             const thresholdDefects = this.checkThresholdDefects();
-            console.log(`Threshold defects exceeded: ${thresholdDefects.exceeded}`);
             if (thresholdDefects.exceeded) {
-                console.log(`Threshold exceeded for: ${thresholdDefects.defectName} (${thresholdDefects.count}/${thresholdDefects.threshold})`);
                 return 'NON_CONFORME';
             }
             
             // 4. Vérifier la limite de NOK uniquement si elle est définie et > 0
             const nokLimit = this.getNOKLimit();
-            console.log(`NOK limit from defect types: ${nokLimit}`);
             
             if (nokLimit !== null && nokLimit !== undefined && nokLimit > 0) {
                 const nokCount = this.countNonConformingThicknesses();
-                console.log(`NOK count: ${nokCount}, limit: ${nokLimit}`);
                 if (nokCount >= nokLimit) {  // >= au lieu de > pour que limite 1 = non conforme à partir de 1
-                    console.log('NOK count exceeds limit -> NON CONFORME');
                     return 'NON_CONFORME';
                 }
-            } else {
-                console.log('No NOK limit defined or limit = 0, staying CONFORME');
             }
             
             // 5. Vérifier le grammage (depuis la sticky bar)
-            console.log(`Grammage status: ${this.grammageStatus}`);
             if (this.grammageStatus === 'nok') {
-                console.log('Grammage NOK -> NON CONFORME');
                 return 'NON_CONFORME';
             }
             

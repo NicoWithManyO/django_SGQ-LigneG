@@ -3,6 +3,41 @@
  * Responsabilité unique : calculer les indicateurs de performance
  */
 
+// Créer les fonctions de calcul mémoizées
+const memoizedDisponibilite = window.memoizeKPI('disponibilite', (TO, totalDowntime) => {
+    const TD = Math.max(0, TO - totalDowntime);
+    const percentage = TO > 0 ? Math.round((TD / TO) * 100) : 0;
+    return { TD, percentage };
+});
+
+const memoizedPerformance = window.memoizeKPI('performance', (TD, vitesse, lengthStart, lengthEnd, rouleauxSauves) => {
+    let longueurEnroulee = 0;
+    
+    if (lengthEnd > 0) {
+        const longueurProduite = lengthEnd - lengthStart;
+        longueurEnroulee = longueurProduite + rouleauxSauves;
+    } else {
+        longueurEnroulee = rouleauxSauves - lengthStart;
+    }
+    
+    longueurEnroulee = Math.max(0, longueurEnroulee);
+    const longueurEnroulable = Math.round(TD * vitesse);
+    const percentage = longueurEnroulable > 0 ? Math.round((longueurEnroulee / longueurEnroulable) * 100) : 0;
+    
+    return { longueurEnroulee, longueurEnroulable, percentage };
+});
+
+const memoizedQualite = window.memoizeKPI('qualite', (longueurEnroulee, longueurNOK) => {
+    const longueurOK = Math.max(0, longueurEnroulee - longueurNOK);
+    const percentage = longueurEnroulee > 0 ? Math.round((longueurOK / longueurEnroulee) * 100) : 100;
+    return { longueurOK, percentage };
+});
+
+const memoizedTRS = window.memoizeKPI('trs', (dispo, perf, qualite) => {
+    const trs = (dispo * perf * qualite) / 10000;
+    return Math.round(trs * 10) / 10; // Arrondir à 1 décimale
+});
+
 // Créer le service comme singleton
 window.kpiService = {
     // État des données sources
@@ -135,6 +170,9 @@ window.kpiService = {
                     debug(`Ajout ${length}m aux rouleaux NOK. Total NOK: ${this.longueurRouleauxNOK}m`);
                 }
                 
+                // Invalider le cache pour les calculs affectés
+                window.memoizationService.invalidatePatterns(['performance', 'qualite', 'trs']);
+                
                 this.calculateAll(); // Recalculer tout incluant la qualité
                 
                 // Sauvegarder dans la session
@@ -178,52 +216,33 @@ window.kpiService = {
             this.TO = 0;
         }
         
-        // Calculer TD (Temps Disponible)
-        this.TD = Math.max(0, this.TO - this.totalDowntime);
-        
-        // Calculer le pourcentage
-        if (this.TO > 0) {
-            this.disponibilitePercentage = Math.round((this.TD / this.TO) * 100);
-        } else {
-            this.disponibilitePercentage = 0;
-        }
+        // Utiliser la fonction mémoizée
+        const result = memoizedDisponibilite(this.TO, this.totalDowntime);
+        this.TD = result.TD;
+        this.disponibilitePercentage = result.percentage;
     },
     
     // Calculer la performance
     calculatePerformance() {
-        let longueurEnroulee = 0;
+        // Utiliser la fonction mémoizée
+        const result = memoizedPerformance(
+            this.TD,
+            this.vitesseTheorique,
+            this.lengthStart,
+            this.lengthEnd,
+            this.longueurRouleauxSauves
+        );
         
-        // Si on a lengthEnd, calculer normalement
-        if (this.lengthEnd > 0) {
-            const longueurProduite = this.lengthEnd - this.lengthStart;
-            longueurEnroulee = longueurProduite + this.longueurRouleauxSauves;
-        } else {
-            // Sinon, les rouleaux coupés représentent la production depuis lengthStart
-            // Il faut donc déduire lengthStart qui était déjà enroulé
-            longueurEnroulee = this.longueurRouleauxSauves - this.lengthStart;
-        }
+        this.longueurEnroulee = result.longueurEnroulee;
+        this.longueurEnroulable = result.longueurEnroulable;
+        this.performancePercentage = result.percentage;
         
         debug('Calcul Performance:', {
             lengthStart: this.lengthStart,
             lengthEnd: this.lengthEnd,
             longueurRouleauxSauves: this.longueurRouleauxSauves,
-            longueurEnroulee: longueurEnroulee
+            longueurEnroulee: this.longueurEnroulee
         });
-        
-        // S'assurer que c'est positif
-        this.longueurEnroulee = Math.max(0, longueurEnroulee);
-        
-        // Longueur enroulable = TD × vitesse théorique
-        this.longueurEnroulable = Math.round(this.TD * this.vitesseTheorique);
-        
-        // Pourcentage de performance
-        if (this.longueurEnroulable > 0) {
-            this.performancePercentage = Math.round(
-                (this.longueurEnroulee / this.longueurEnroulable) * 100
-            );
-        } else {
-            this.performancePercentage = 0;
-        }
     },
     
     // Calculer tous les KPI
@@ -262,32 +281,24 @@ window.kpiService = {
     
     // Calculer la qualité
     calculateQualite() {
-        // Longueur OK = Longueur totale enroulée - Longueur NOK
-        const longueurOKCalculee = Math.max(0, this.longueurEnroulee - this.longueurRouleauxNOK);
-        
-        // Pourcentage de qualité basé sur la longueur enroulée totale
-        if (this.longueurEnroulee > 0) {
-            this.qualitePercentage = Math.round(
-                (longueurOKCalculee / this.longueurEnroulee) * 100
-            );
-        } else {
-            this.qualitePercentage = 100; // Si pas de production, on considère 100%
-        }
+        const result = memoizedQualite(this.longueurEnroulee, this.longueurRouleauxNOK);
+        this.qualitePercentage = result.percentage;
         
         debug('Calcul Qualité:', {
             longueurEnroulee: this.longueurEnroulee,
             longueurRouleauxNOK: this.longueurRouleauxNOK,
-            longueurOKCalculee: longueurOKCalculee,
+            longueurOKCalculee: result.longueurOK,
             qualitePercentage: this.qualitePercentage
         });
     },
     
     // Calculer le TRS Global
     calculateTRS() {
-        // TRS = Disponibilité × Performance × Qualité
-        // Les pourcentages sont déjà sur 100, donc on divise par 10000
-        const trs = (this.disponibilitePercentage * this.performancePercentage * this.qualitePercentage) / 10000;
-        this.trsGlobal = Math.round(trs * 10) / 10; // Arrondir à 1 décimale
+        this.trsGlobal = memoizedTRS(
+            this.disponibilitePercentage,
+            this.performancePercentage,
+            this.qualitePercentage
+        );
     },
     
     // Sauvegarder les longueurs des rouleaux dans la session

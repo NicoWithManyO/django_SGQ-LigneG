@@ -214,8 +214,8 @@ function stickyBar() {
                 }
             });
             
-            // Écouter les changements de statut QC
-            window.eventBus.on(window.eventBus.EVENTS.QC_STATUS_CHANGED, (event) => {
+            // Écouter les changements de statut QC (utiliser le bon événement)
+            window.addEventListener('qc-badge-changed', (event) => {
                 if (event.detail && event.detail.status !== undefined) {
                     this.currentQcStatus = event.detail.status;
                     debug('QC status updated:', this.currentQcStatus);

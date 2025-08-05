@@ -370,8 +370,7 @@ window.qualityControl = function() {
             // Maintenir l'ancien qcStatus pour compatibilité
             this.qcStatus = hasFailure ? 'nok' : (allComplete ? 'ok' : 'pending');
             
-            // Émettre les événements
-            this.$dispatch('qc-status-changed', { status: this.qcStatus });
+            // Émettre l'événement global pour les autres composants
             window.dispatchEvent(new CustomEvent('qc-badge-changed', { 
                 detail: { status: this.qcBadgeStatus }
             }));

@@ -50,10 +50,10 @@ class RollService:
         else:
             points = ['DG', 'DC', 'DD']
         
-        # Filtrer les épaisseurs du côté
+        # Filtrer les épaisseurs du côté (exclure les rattrapages)
         side_values = [
             t.thickness_value for t in thicknesses 
-            if t.measurement_point in points
+            if t.measurement_point in points and not t.is_catchup
         ]
         
         if not side_values:

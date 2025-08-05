@@ -809,6 +809,15 @@ function managementDashboard() {
                         const valueSpan = document.createElement('span');
                         valueSpan.textContent = thickness.value.toFixed(2);
                         
+                        // Ajouter un indicateur de rattrapage
+                        if (thickness.is_catchup) {
+                            const catchupIcon = document.createElement('sup');
+                            catchupIcon.textContent = 'R';
+                            catchupIcon.className = 'text-info fw-bold ms-1';
+                            catchupIcon.title = 'Rattrapage';
+                            valueSpan.appendChild(catchupIcon);
+                        }
+                        
                         // Appliquer le code couleur
                         const status = this.getThicknessStatus(thickness.value, rollDetails.thickness_spec);
                         if (status === 'nok' || thickness.is_nok) {

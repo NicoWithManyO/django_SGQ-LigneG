@@ -8,8 +8,9 @@ function shiftForm() {
     const savedData = window.sessionData?.shift || {};
     
     return {
-        // Mixin
+        // Mixins
         ...window.sessionMixin,
+        ...window.watcherMixin,
         // État local avec les valeurs sauvegardées
         operatorId: savedData.operatorId || '',
         date: savedData.date || new Date().toISOString().split('T')[0],
@@ -148,9 +149,12 @@ function shiftForm() {
             // Vérifier si un opérateur a été présélectionné depuis le splash
             const sessionData = window.sessionData || {};
             // Si shiftOperator existe dans la session, il override les données sauvegardées
-            if ('shiftOperator' in sessionData) {
-                this.operatorId = sessionData.shiftOperator || '';
+            if ('shiftOperator' in sessionData && sessionData.shiftOperator) {
+                this.operatorId = sessionData.shiftOperator;
                 debug(`Operator from splash: "${this.operatorId}" (overrides saved: "${savedData.operatorId}")`);
+                
+                // IMPORTANT: Nettoyer shiftOperator après l'avoir utilisé
+                window.session?.patch({ shiftOperator: '' });
                 
                 // Déclencher le changement pour générer l'ID du shift et émettre les événements
                 this.$nextTick(() => {
@@ -240,18 +244,18 @@ function shiftForm() {
                 this.saveShiftData();
             }, { deep: true });
             
-            // Observer les nouveaux champs pour logique métier
-            this.$watch('machineStartedStart', () => {
-                if (!this.machineStartedStart) {
+            // Watchers optimisés pour la logique métier
+            this.watchOptimized('machineStartedStart', (newValue) => {
+                if (!newValue) {
                     this.lengthStart = '';
                 }
-            });
+            }, { debounce: 0 }); // Pas de debounce pour la logique immédiate
             
-            this.$watch('machineStartedEnd', () => {
-                if (!this.machineStartedEnd) {
+            this.watchOptimized('machineStartedEnd', (newValue) => {
+                if (!newValue) {
                     this.lengthEnd = '';
                 }
-            });
+            }, { debounce: 0 });
             
             // Écouter l'événement de signature de la check-list
             window.addEventListener('checklist-signed-changed', (event) => {
@@ -374,39 +378,41 @@ function shiftForm() {
             this.saveShiftData();
         },
         
-        // Sauvegarder dans la session avec debounce
+        // Sauvegarder dans la session (le debounce est géré par watchOptimized)
         saveShiftData() {
-            // Annuler le timeout précédent
-            if (this._shiftSaveTimeout) {
-                clearTimeout(this._shiftSaveTimeout);
-            }
+            const data = {
+                operatorId: this.operatorId,
+                date: this.date,
+                vacation: this.vacation,
+                shiftId: this.shiftId,
+                startTime: this.startTime,
+                machineStartedStart: this.machineStartedStart,
+                lengthStart: this.lengthStart,
+                endTime: this.endTime,
+                machineStartedEnd: this.machineStartedEnd,
+                lengthEnd: this.lengthEnd,
+                comments: this.comments
+            };
             
-            // Créer un nouveau timeout
-            this._shiftSaveTimeout = setTimeout(() => {
-                const data = {
-                    operatorId: this.operatorId,
-                    date: this.date,
-                    vacation: this.vacation,
-                    shiftId: this.shiftId,
-                    startTime: this.startTime,
-                    machineStartedStart: this.machineStartedStart,
-                    lengthStart: this.lengthStart,
-                    endTime: this.endTime,
-                    machineStartedEnd: this.machineStartedEnd,
-                    lengthEnd: this.lengthEnd,
-                    comments: this.comments
-                };
-                
-                // Utiliser la sauvegarde du mixin
-                this.saveToSession({ shift: data });
-            }, this.DEBOUNCE_DELAY || 300);
+            // Utiliser la sauvegarde du mixin
+            this.saveToSession({ shift: data });
         },
         
         // Handlers pour les changements
         handleOperatorChange(event) {
+            const previousOperatorId = this.operatorId;
             this.operatorId = event.target.value;
             if (event.target.classList) {
                 event.target.classList.toggle('filled', !!this.operatorId);
+            }
+            
+            // Si on change d'opérateur (pas juste sélection initiale), réinitialiser les longueurs
+            if (previousOperatorId && previousOperatorId !== this.operatorId) {
+                this.lengthStart = '';
+                this.lengthEnd = '';
+                this.machineStartedStart = false;
+                this.machineStartedEnd = false;
+                debug('Opérateur changé - réinitialisation des longueurs');
             }
             
             // Émettre un événement pour notifier le changement d'opérateur
@@ -645,14 +651,10 @@ function shiftForm() {
         applyNextShiftData(nextShiftData) {
             debug('Application des données du prochain poste:', nextShiftData);
             
-            // IMPORTANT: Nettoyer shiftOperator de la session pour éviter qu'il revienne
+            // IMPORTANT: Nettoyer SEULEMENT shiftOperator qui pose problème
             window.session?.patch({
-                shift: {
-                    operatorId: ''  // Nettoyer aussi l'operatorId dans shift
-                },
                 shiftOperator: '',
                 selectedOperatorName: ''
-                // Ne PAS mettre operatorCleared: true ici car ça empêche la persistence normale
             });
             
             // Réinitialiser le formulaire avec les nouvelles données
@@ -666,6 +668,7 @@ function shiftForm() {
             this.machineStartedEnd = nextShiftData.machine_started_end || true;
             this.lengthEnd = '';
             this.comments = '';
+            this.shiftId = ''; // IMPORTANT: réinitialiser le shiftId aussi !
             
             // Réinitialiser les états de validation
             this.shiftIdExists = null;
@@ -745,6 +748,10 @@ function shiftForm() {
                         this.machineStartedStart = false;
                         showNotification('info', 'Longueur à 0 - Machine arrêtée');
                     }
+                    
+                    // Forcer la sauvegarde en session et l'émission de l'événement
+                    this.saveShiftData();
+                    this.emitShiftDataChanged();
                     
                     // Mettre à jour visuellement
                     this.$nextTick(() => {

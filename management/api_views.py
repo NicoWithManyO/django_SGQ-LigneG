@@ -275,7 +275,8 @@ def roll_details(request, pk):
                 'row': thickness.meter_position,
                 'col': thickness.measurement_point,  # Garder GG, GC, GD, DG, DC, DD
                 'value': float(thickness.thickness_value),
-                'is_nok': not thickness.is_within_tolerance
+                'is_nok': not thickness.is_within_tolerance,
+                'is_catchup': thickness.is_catchup
             })
         
         # Préparer les données de défauts

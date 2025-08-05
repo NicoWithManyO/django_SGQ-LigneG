@@ -91,8 +91,8 @@ class RollThicknessInline(admin.TabularInline):
     """Inline pour afficher les épaisseurs d'un rouleau."""
     model = RollThickness
     extra = 0
-    fields = ['meter_position', 'measurement_point', 'thickness_value', 'is_within_tolerance', 'created_at']
-    readonly_fields = ['meter_position', 'measurement_point', 'thickness_value', 'is_within_tolerance', 'created_at']
+    fields = ['meter_position', 'measurement_point', 'thickness_value', 'is_catchup', 'is_within_tolerance', 'created_at']
+    readonly_fields = ['meter_position', 'measurement_point', 'thickness_value', 'is_catchup', 'is_within_tolerance', 'created_at']
     ordering = ['meter_position', 'measurement_point']
     classes = ['collapse']  # Dépliable par défaut
     can_delete = False

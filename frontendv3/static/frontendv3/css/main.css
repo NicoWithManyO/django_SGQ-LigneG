@@ -480,14 +480,14 @@ body.modal-open {
     background: #ffffff;
     border: 2px solid #e0e0e0;
     border-radius: 10px;
-    padding: 1.75rem 1.25rem;
-    min-height: 160px;
+    padding: 1rem 1rem;
+    min-height: 120px;
     height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
     box-shadow: 0 2px 10px rgba(0,0,0,0.08);
     transition: all 0.3s ease;
     overflow: hidden;
@@ -591,8 +591,8 @@ body.modal-open {
 /* ============================================ */
 
 .kpi-icon {
-    width: 72px;
-    height: 72px;
+    width: 48px;
+    height: 48px;
     background: rgba(255, 255, 255, 0.9);
     border-radius: 12px;
     display: flex;
@@ -601,7 +601,7 @@ body.modal-open {
 }
 
 .kpi-icon i {
-    font-size: 2.25rem;
+    font-size: 1.75rem;
     color: var(--v3-primary);
 }
 
@@ -618,7 +618,7 @@ body.modal-open {
 }
 
 .kpi-value {
-    font-size: 2.25rem;
+    font-size: 1.875rem;
     font-weight: 700;
     background: var(--sg-gradient);
     -webkit-background-clip: text;
