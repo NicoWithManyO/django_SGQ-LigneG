@@ -1,0 +1,203 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'management/css/checklists.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'management:dashboard' %}">Management</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'management:checklists-list' %}">Checklists</a></li>
+                    <li class="breadcrumb-item active">{{ checklist_data.checklist.shift.shift_id }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ title }}</h1>
+        </div>
+    </div>
+
+    <!-- Informations de la checklist -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Détails de la checklist</h5>
+                </div>
+                <div class="card-body">
+                    {% for category, items in checklist_data.items_by_category.items %}
+                    <h6 class="text-muted mb-3">{{ category }}</h6>
+                    <div class="list-group mb-4">
+                        {% for item in items %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    {{ item.label }}
+                                    {% if item.is_mandatory %}
+                                    <span class="badge bg-danger ms-2">Obligatoire</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    {% if item.is_ok %}
+                                    <span class="badge bg-success">OK</span>
+                                    {% elif item.is_nok %}
+                                    <span class="badge bg-danger">NOK</span>
+                                    {% elif item.is_na %}
+                                    <span class="badge bg-secondary">N/A</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Non renseigné</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if item.comment %}
+                            <div class="mt-2 text-muted small">
+                                <i class="bi bi-chat-left-text"></i> {{ item.comment }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Résumé</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-6">Total items</dt>
+                        <dd class="col-sm-6">{{ checklist_data.statistics.total_items }}</dd>
+                        
+                        <dt class="col-sm-6">OK</dt>
+                        <dd class="col-sm-6"><span class="text-success">{{ checklist_data.statistics.ok_count }}</span></dd>
+                        
+                        <dt class="col-sm-6">NOK</dt>
+                        <dd class="col-sm-6"><span class="text-danger">{{ checklist_data.statistics.nok_count }}</span></dd>
+                        
+                        <dt class="col-sm-6">N/A</dt>
+                        <dd class="col-sm-6"><span class="text-secondary">{{ checklist_data.statistics.na_count }}</span></dd>
+                        
+                        <dt class="col-sm-6">Complétude</dt>
+                        <dd class="col-sm-6">{{ checklist_data.statistics.completion_rate }}%</dd>
+                    </dl>
+                    
+                    <hr>
+                    
+                    <h6>Signatures</h6>
+                    <dl class="row">
+                        <dt class="col-sm-6">Opérateur</dt>
+                        <dd class="col-sm-6">{{ checklist_data.checklist.operator_signature }}</dd>
+                        
+                        <dt class="col-sm-6">Date</dt>
+                        <dd class="col-sm-6">{{ checklist_data.checklist.operator_signature_date|date:"d/m/Y H:i" }}</dd>
+                    </dl>
+                    
+                    {% if checklist_data.checklist.management_visa %}
+                    <dl class="row">
+                        <dt class="col-sm-6">Management</dt>
+                        <dd class="col-sm-6">{{ checklist_data.checklist.management_visa }}</dd>
+                        
+                        <dt class="col-sm-6">Date</dt>
+                        <dd class="col-sm-6">{{ checklist_data.checklist.management_visa_date|date:"d/m/Y H:i" }}</dd>
+                    </dl>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        En attente de visa management
+                    </div>
+                    
+                    <!-- Formulaire de visa -->
+                    <div x-data="visaForm()" class="mt-3">
+                        <form @submit.prevent="submitVisa">
+                            <div class="mb-3">
+                                <label for="visaInput" class="form-label">Vos initiales <span class="text-danger">*</span></label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="visaInput"
+                                       x-model="visa"
+                                       @input="visa = visa.toUpperCase()"
+                                       placeholder="Ex: JD"
+                                       maxlength="10"
+                                       required
+                                       :disabled="isSubmitting">
+                                <small class="text-muted">Minimum 2 caractères</small>
+                            </div>
+                            <button type="submit" 
+                                    class="btn btn-primary w-100"
+                                    :disabled="!visa || visa.length < 2 || isSubmitting">
+                                <span x-show="!isSubmitting">
+                                    <i class="bi bi-pen me-2"></i>Viser cette checklist
+                                </span>
+                                <span x-show="isSubmitting">
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                    Signature en cours...
+                                </span>
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function visaForm() {
+    return {
+        visa: '',
+        isSubmitting: false,
+        
+        async submitVisa() {
+            // Validation
+            if (!this.visa || this.visa.length < 2) {
+                alert('Veuillez entrer vos initiales (minimum 2 caractères)');
+                return;
+            }
+            
+            this.isSubmitting = true;
+            
+            try {
+                const checklistId = {{ checklist_data.checklist.id }};
+                const response = await fetch(`/management/api/checklists/${checklistId}/sign/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        visa: this.visa.toUpperCase()
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erreur lors de la signature');
+                }
+                
+                // Succès - recharger la page pour voir les changements
+                alert('Checklist visée avec succès !');
+                window.location.reload();
+                
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de la signature : ' + error.message);
+            } finally {
+                this.isSubmitting = false;
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,51 @@
+# Base de données
+db.sqlite3
+*.sqlite3
+*.sqlite3.backup
+
+# Dossier de référence
+AIDE/
+
+# Environnement virtuel
+.venv/
+venv/
+env/
+
+# Claude
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django
+*.log
+staticfiles/
+media/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Fichiers temporaires
+*.bak
+*.tmp
+
+# Images à la racine
+/*.png
+/*.jpg
+
+# Fichiers Windows Zone.Identifier
+*:Zone.Identifier
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Railway
+.railway/

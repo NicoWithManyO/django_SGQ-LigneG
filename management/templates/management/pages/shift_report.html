@@ -1,0 +1,112 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'management/css/reports.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'management:dashboard' %}">Management</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'management:reports-list' %}">Rapports</a></li>
+                    <li class="breadcrumb-item active">{{ report.shift.shift_id }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ title }}</h1>
+        </div>
+    </div>
+
+    <!-- KPIs principaux -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">TRS</h5>
+                    <h2 class="text-primary">{{ report.kpis.trs }}%</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Disponibilité</h5>
+                    <h2 class="text-info">{{ report.kpis.availability }}%</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Performance</h5>
+                    <h2 class="text-warning">{{ report.kpis.performance }}%</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Qualité</h5>
+                    <h2 class="text-success">{{ report.kpis.quality }}%</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Détails du rapport -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Informations du poste</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Date</dt>
+                        <dd class="col-sm-8">{{ report.shift.date|date:"d/m/Y" }}</dd>
+                        
+                        <dt class="col-sm-4">Vacation</dt>
+                        <dd class="col-sm-8">{{ report.shift.vacation }}</dd>
+                        
+                        <dt class="col-sm-4">Opérateur</dt>
+                        <dd class="col-sm-8">{{ report.shift.operator.first_name }} {{ report.shift.operator.last_name|default:"N/A" }}</dd>
+                        
+                        <dt class="col-sm-4">Horaires</dt>
+                        <dd class="col-sm-8">{{ report.shift.start_time|default:"--" }} - {{ report.shift.end_time|default:"--" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Statistiques de production</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-6">Production totale</dt>
+                        <dd class="col-sm-6">{{ report.production_stats.total_length|floatformat:0 }} m</dd>
+                        
+                        <dt class="col-sm-6">Production conforme</dt>
+                        <dd class="col-sm-6">{{ report.production_stats.ok_length|floatformat:0 }} m</dd>
+                        
+                        <dt class="col-sm-6">Production non conforme</dt>
+                        <dd class="col-sm-6">{{ report.production_stats.nok_length|floatformat:0 }} m</dd>
+                        
+                        <dt class="col-sm-6">Nombre de rouleaux</dt>
+                        <dd class="col-sm-6">{{ report.production_stats.total_rolls }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plus de détails... -->
+</div>
+{% endblock %}

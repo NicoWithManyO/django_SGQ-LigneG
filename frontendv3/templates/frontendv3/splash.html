@@ -1,0 +1,144 @@
+{% load static %}
+
+<!-- CSS pour le logo manyO.dev -->
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'frontendv3/css/manyo-logo.css' %}">
+
+<!-- Écran de démarrage -->
+<div x-data="splashScreen()" x-show="isVisible" x-cloak>
+    <div class="splash-screen" :class="{ 'sliding-up': isAnimating }">
+        <!-- Partie haute avec image du rouleau -->
+        <div class="splash-top-section">
+            <!-- Image de fond rouleau -->
+            <div class="splash-bg-image"></div>
+            
+            <!-- Overlay sombre -->
+            <div class="splash-overlay"></div>
+            
+            <!-- Nuages d'opérateurs -->
+            <div class="operators-clouds" x-data="operatorClouds()" x-init="init()">
+                <template x-for="(operator, index) in operators" :key="operator.employee_id">
+                    <div class="operator-cloud" 
+                         :class="[`cloud-anim-${index % 5}`, selectedOperatorId === operator.employee_id ? 'selected' : '']"
+                         :style="getCloudStyle(index)"
+                         @click="selectOperator(operator)"
+                         x-text="operator.cloud_display_name">
+                    </div>
+                </template>
+            </div>
+            
+            <!-- Contenu -->
+            <div class="splash-content">
+                <img src="{% static 'frontendv3/img/logo-white-text.svg' %}" alt="Saint-Gobain" class="splash-logo">
+                
+                <h1 class="splash-title">QUARTZEL</h1>
+                <p class="splash-subtitle">Feutre Continu Ligne G</p>
+                
+                <button @click="startProduction()" class="splash-btn">
+                    <i class="bi bi-play-fill me-2"></i>
+                    Reprendre la Production
+                </button>
+            </div>
+            
+        </div>
+        
+        <!-- Date Time et Management sur la même ligne -->
+        <div class="date-time-label" x-data="{ 
+            datetime: '',
+            updateTime() {
+                const now = new Date();
+                const days = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+                const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+                
+                const dayName = days[now.getDay()];
+                const day = now.getDate();
+                const month = months[now.getMonth()];
+                const time = now.toLocaleTimeString('fr-FR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                
+                this.datetime = `${dayName} ${day} ${month} | ${time}`;
+            }
+        }" x-init="updateTime(); setInterval(() => updateTime(), 1000)">
+            <span x-text="datetime"></span>
+        </div>
+        
+        
+        <!-- Bouton Play/Pause -->
+        <button class="animation-toggle" 
+                x-data="{ isPaused: false }"
+                @click="isPaused = !isPaused; document.querySelectorAll('.operator-cloud').forEach(el => el.style.animationPlayState = isPaused ? 'paused' : 'running')">
+            <i class="bi" :class="isPaused ? 'bi-play-fill' : 'bi-pause-fill'"></i>
+        </button>
+        
+        <!-- Partie basse avec image de l'usine -->
+        <div class="splash-bottom-section">
+            <div class="splash-usine-bg"></div>
+            <div class="splash-usine-overlay"></div>
+            
+            <!-- Badges Management (dans partie basse) -->
+            <div class="management-badges">
+                <div class="management-cloud" style="margin-top: 1rem;">
+                    <div class="cloud-name">Luidgi B.</div>
+                    <div class="cloud-role">Réf. Technique</div>
+                </div>
+                <div class="management-cloud">
+                    <div class="cloud-name">Laure B.</div>
+                    <div class="cloud-role">Resp. Production</div>
+                </div>
+                <div class="management-cloud" style="margin-top: 1rem;">
+                    <div class="cloud-name">Youssef K.</div>
+                    <div class="cloud-role">Planificateur</div>
+                </div>
+            </div>
+            
+            <div class="splash-usine-content" style="margin-top: -2rem;">
+                <h2 class="mb-0"><i class="bi bi-geo-alt me-2"></i>Usine de Nemours</h2>
+            </div>
+        </div>
+        
+        <!-- Ligne du bas avec 3 colonnes -->
+        <div class="bottom-logos-row">
+            <!-- Col 1: EPI à gauche -->
+            <div class="logos-col-left">
+                <div class="epi-grid">
+                    <img src="{% static 'frontendv3/img/epi-combinaison.jpg' %}" alt="Port de vêtements de protection obligatoire" class="epi-logo">
+                    <img src="{% static 'frontendv3/img/epi-chaussures.jpg' %}" alt="Chaussures de sécurité obligatoires" class="epi-logo">
+                    <img src="{% static 'frontendv3/img/epi-lunettes.jpg' %}" alt="Protection oculaire obligatoire" class="epi-logo">
+                    <img src="{% static 'frontendv3/img/epi-gants.jpg' %}" alt="Port de gants obligatoire" class="epi-logo">
+                </div>
+            </div>
+            
+            <!-- Col 2: Slogan au centre -->
+            <div class="logos-col-center">
+                <div class="sgq-slogan">
+                    <span class="quote-mark quote-left">«</span>
+                    <span class="slogan-text">Making the world a better home</span>
+                    <span class="quote-mark quote-right">»</span>
+                </div>
+            </div>
+            
+            <!-- Col 3: manyO.dev à droite -->
+            <div class="logos-col-right">
+                {% include 'frontendv3/components/manyo-logo.html' %}
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<!-- CSS spécifique au splash -->
+<link rel="stylesheet" href="{% static 'frontendv3/css/pages/splash.css' %}">
+
+<!-- Styles inline pour les URLs dynamiques -->
+<style>
+.splash-bg-image {
+    background-image: url('{% static "frontendv3/img/RDemaret_STGB_quartz_20180706_206.jpg" %}');
+}
+
+.splash-usine-bg {
+    background-image: url('{% static "frontendv3/img/saint-gobain_quartz_plant_nemours.jpg" %}');
+}
+</style>

@@ -1,0 +1,1439 @@
+{% extends 'frontendv3/base.html' %}
+{% load static %}
+
+{% block title %}Production V3 - SGQ Ligne G{% endblock %}
+
+{% block content %}
+<!-- Inclusion du splash screen -->
+{% include 'frontendv3/splash.html' %}
+
+<div class="container-fluid p-3">
+    
+    <!-- Layout principal -->
+    <div class="row">
+        <!-- Colonne gauche -->
+        <div class="col-lg-3">
+            <!-- Fiche de Poste -->
+            <div class="card mb-3" x-data="{ ...collapsibleMixin(true), init() { this.initCollapsible(); } }">
+                <div class="card-header" @click="toggleExpanded()" style="cursor: pointer;">
+                    <h5 class="mb-0 text-primary d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-person-badge"></i> Fiche de Poste
+                        </span>
+                        <i class="bi" :class="chevronClass"></i>
+                    </h5>
+                </div>
+                <div class="card-body" x-show="isExpanded" x-transition>
+                    <!-- Composant shift-form -->
+                    <div x-data="shiftForm()">
+                        <!-- Ligne 1: Opérateur seul -->
+                        <div class="row mb-3">
+                            <div class="col-8">
+                                <label class="form-label">Opérateur</label>
+                                <select class="form-select" 
+                                        x-model="operatorId"
+                                        @change="handleOperatorChange($event)"
+                                        :class="{ 'filled': operatorId }">
+                                    <option value="">Sélectionner un opérateur</option>
+                                    <template x-for="operator in operators" :key="operator.employee_id">
+                                        <option :value="operator.employee_id" x-text="operator.display_name"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Ligne 2: Date et Vacation -->
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label class="form-label">
+                                    Date 
+                                    <span x-show="date" class="text-muted small">
+                                        (<span x-text="(() => {
+                                            if (!date) return '';
+                                            const d = new Date(date);
+                                            const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+                                            const dayName = days[d.getDay()];
+                                            const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+                                            const weekNum = Math.ceil((dayOfYear + new Date(d.getFullYear(), 0, 1).getDay() + 1) / 7);
+                                            return `${dayName} | J${dayOfYear} | S${weekNum}`;
+                                        })()"></span>)
+                                    </span>
+                                </label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       x-model="date"
+                                       @change="handleDateChange($event)"
+                                       :class="{ 'filled': date }">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Vacation</label>
+                                <select class="form-select" 
+                                        x-model="vacation"
+                                        @change="handleVacationChange($event)"
+                                        :class="{ 'filled': vacation }">
+                                    <option value="">Sélectionner</option>
+                                    <template x-for="option in vacationOptions" :key="option.value">
+                                        <option :value="option.value" x-text="option.label"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Ligne 3: ID Poste centré -->
+                        <div class="mb-4">
+                            <div class="text-center text-secondary small d-flex align-items-center justify-content-center">
+                                <i class="bi me-1" style="font-size: 0.9rem;"
+                                   x-show="shiftId"
+                                   :class="{
+                                       'bi-hourglass-split text-warning': checkingShiftId,
+                                       'bi-check-circle-fill': !checkingShiftId && shiftIdExists === false,
+                                       'bi-exclamation-triangle-fill': !checkingShiftId && shiftIdExists === true
+                                   }"
+                                   :style="!checkingShiftId && shiftIdExists === false ? 'color: #198754;' : (!checkingShiftId && shiftIdExists === true ? 'color: #ffc107;' : '')"
+                                   :title="checkingShiftId ? 'Vérification...' : (shiftIdExists === true ? 'ID déjà existant !' : 'ID disponible')"></i>
+                                <span x-text="shiftId || 'Pas de données'"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- Prise de poste -->
+                        <div class="row mb-3">
+                            <div class="col-auto text-end">
+                                <label class="form-label d-block" style="height: 24px;">Prise de poste</label>
+                                <input type="time" 
+                                       class="form-control" 
+                                       style="width: 100px;"
+                                       x-model="startTime"
+                                       @change="handleStartTimeChange($event)"
+                                       :class="{ 'filled': startTime }">
+                            </div>
+                            <div class="col">
+                                <div class="form-label d-flex align-items-center text-nowrap" style="height: 24px;">
+                                    <input type="checkbox" 
+                                           class="form-check-input me-1" 
+                                           id="machine-started-start"
+                                           x-model="machineStartedStart"
+                                           @change="handleMachineStartChange($event)">
+                                    <label for="machine-started-start" class="mb-0 me-1" style="cursor: pointer;">
+                                        Machine démarrée
+                                    </label>
+                                    <i class="bi bi-magic text-warning" 
+                                       style="cursor: pointer;" 
+                                       @click="fetchLastShiftLength()"
+                                       title="Récupérer la longueur du dernier poste"></i>
+                                </div>
+                                <input type="number" 
+                                       class="form-control" 
+                                       style="width: 100px;"
+                                       placeholder="m."
+                                       x-model="lengthStart"
+                                       x-show="machineStartedStart"
+                                       @blur="handleLengthStartChange($event)"
+                                       :class="{ 'filled': lengthStart > 0 }"
+                                       step="0.1"
+                                       min="0">
+                            </div>
+                        </div>
+                        
+                        <!-- Séparateur -->
+                        <hr class="my-2 opacity-25 w-50 mx-auto">
+                        
+                        <!-- Fin de poste -->
+                        <div class="row mb-4">
+                            <div class="col text-end">
+                                <label class="form-label d-block" style="height: 24px;">Fin de poste</label>
+                                <input type="time" 
+                                       class="form-control ms-auto" 
+                                       style="width: 100px;"
+                                       x-model="endTime"
+                                       @change="handleEndTimeChange($event)"
+                                       :class="{ 'filled': endTime }">
+                            </div>
+                            <div class="col">
+                                <div class="form-label d-flex align-items-center text-nowrap" style="height: 24px;">
+                                    <input type="checkbox" 
+                                           class="form-check-input me-1" 
+                                           id="machine-started-end"
+                                           x-model="machineStartedEnd"
+                                           @change="handleMachineEndChange($event)">
+                                    <label for="machine-started-end" class="mb-0 me-1" style="cursor: pointer;">
+                                        Machine démarrée
+                                    </label>
+                                </div>
+                                <input type="number" 
+                                       class="form-control" 
+                                       style="width: 100px;"
+                                       placeholder="m."
+                                       x-model="lengthEnd"
+                                       x-show="machineStartedEnd"
+                                       @blur="handleLengthEndChange($event)"
+                                       :class="{ 'filled': lengthEnd > 0 }"
+                                       step="0.1"
+                                       min="0">
+                            </div>
+                        </div>
+                        
+                        <!-- Bouton sauvegarder -->
+                        <div class="row mb-3">
+                            <div class="col-12 text-center">
+                                <span x-init="$nextTick(() => { if (!canSaveShift) new bootstrap.Tooltip($refs.saveButtonWrapper) })"
+                                      x-ref="saveButtonWrapper"
+                                      :data-bs-toggle="!canSaveShift ? 'tooltip' : ''"
+                                      data-bs-placement="top"
+                                      :data-bs-title="!canSaveShift ? saveButtonTooltip : ''"
+                                    <button class="btn btn-primary px-4 py-2" 
+                                            @click="canSaveShift && saveShift()"
+                                            :disabled="!canSaveShift"
+                                            x-ref="saveButton"
+                                            style="pointer-events: auto;">
+                                        <i class="bi bi-save me-2"></i>Sauvegarder Poste
+                                    </button>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Commentaires -->
+                        <div class="row">
+                            <div class="col-12">
+                                <textarea class="form-control mx-auto" 
+                                          style="width: 90%;"
+                                          rows="3"
+                                          :value="comments || ''"
+                                          @input="handleCommentsChange($event)"
+                                          placeholder="Commentaire sur le poste..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ordre de Fabrication -->
+            <div class="card mb-3" x-data="{ ...collapsibleMixin(true), init() { this.initCollapsible(); } }">
+                <div class="card-header" @click="toggleExpanded()" style="cursor: pointer;">
+                    <h5 class="mb-0 text-primary d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-clipboard-data"></i> Ordre de Fabrication
+                        </span>
+                        <i class="bi" :class="chevronClass"></i>
+                    </h5>
+                </div>
+                <div class="card-body" x-show="isExpanded" x-transition>
+                    <!-- Composant production-order -->
+                    <div x-data="productionOrder()">
+                        <!-- OF en cours -->
+                        <div class="row mb-3">
+                            <div class="col-5">
+                                <label class="form-label">OF en cours</label>
+                                <select class="form-select" 
+                                        x-model="ofEnCours"
+                                        @change="handleOFEnCoursChange($event)"
+                                        :class="{ 'filled': ofEnCours }">
+                                    <option value="">Sélectionner un OF</option>
+                                    <template x-for="of in fabricationOrders" :key="of.numero">
+                                        <option :value="of.numero" x-text="of.numero"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <div class="col-7"></div>
+                        </div>
+                        
+                        <!-- Longueur cible -->
+                        <div class="row mb-3">
+                            <div class="col-4">
+                                <label class="form-label text-nowrap">Longueur cible (m.)</label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       x-model="targetLength"
+                                       @blur="handleTargetLengthChange($event)"
+                                       :class="{ 'filled': targetLength > 0 }"
+                                       step="0.1"
+                                       min="0">
+                            </div>
+                            <div class="col-8"></div>
+                        </div>
+                        
+                        <!-- OF découpe -->
+                        <div class="row mb-3">
+                            <div class="col-5">
+                                <label class="form-label">OF découpe</label>
+                                <select class="form-select" 
+                                        x-model="ofDecoupe"
+                                        @change="handleOFDecoupeChange($event)"
+                                        :class="{ 'filled': ofDecoupe }">
+                                    <option value="">Sélectionner un OF découpe</option>
+                                    <template x-for="co in cuttingOrders" :key="co.numero">
+                                        <option :value="co.numero" x-text="co.numero"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <div class="col-7"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Colonne centrale -->
+        <div class="col-lg-6">
+            <!-- Profil -->
+            <div class="card mb-3" x-data="profileSelector()">
+                <div class="card-header" @click="toggleExpanded()" style="cursor: pointer;">
+                    <h5 class="mb-0 text-primary d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-sliders"></i> Profil<span x-show="selectedProfile" x-text="' : ' + (selectedProfile?.name || '')"></span>
+                        </span>
+                        <div class="d-flex align-items-center">
+                            <!-- Onglets -->
+                            <div class="profile-tabs me-3" @click.stop>
+                        <button class="tab-button" 
+                                :class="{ 'active': activeTab === 'kpi' }"
+                                @click="activeTab = 'kpi'; isExpanded = true">
+                            KPI
+                        </button>
+                        <button class="tab-button" 
+                                :class="{ 'active': activeTab === 'params' }"
+                                @click="activeTab = 'params'; isExpanded = true">
+                            Params&Specs
+                        </button>
+                            </div>
+                            <i class="bi" :class="chevronClass"></i>
+                        </div>
+                    </h5>
+                </div>
+                <div class="card-body" x-show="bodyVisible" x-transition>
+                        <!-- Contenu des onglets -->
+                            <!-- Onglet KPI -->
+                            <div x-show="activeTab === 'kpi'">
+                                <!-- KPI toujours visibles -->
+                                <div class="row g-2" x-data="kpiDisplay()">
+                                    <!-- Card 1: Disponibilité -->
+                                    <div class="col-md-3">
+                                        <div class="kpi-card">
+                                            <div class="kpi-icon">
+                                                <i class="bi bi-clock-history"></i>
+                                            </div>
+                                            <div class="kpi-content">
+                                                <h6 class="kpi-title">Disponibilité</h6>
+                                                <h3 class="kpi-value" x-text="disponibilitePercentage + '%'">--%</h3>
+                                                <p class="kpi-subtitle">
+                                                    TO: <span x-text="formatMinutes(TO)">--</span> | 
+                                                    TD: <span x-text="formatMinutes(TD)">--</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Card 2: Performance -->
+                                    <div class="col-md-3">
+                                        <div class="kpi-card">
+                                            <div class="kpi-icon">
+                                                <i class="bi bi-speedometer2"></i>
+                                            </div>
+                                            <div class="kpi-content">
+                                                <h6 class="kpi-title">Performance</h6>
+                                                <h3 class="kpi-value" x-text="performancePercentage + '%'">--%</h3>
+                                                <p class="kpi-subtitle">
+                                                    <span x-text="longueurEnroulee">0</span>m / 
+                                                    <span x-text="longueurEnroulable">0</span>m
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Card 3: Qualité -->
+                                    <div class="col-md-3">
+                                        <div class="kpi-card">
+                                            <div class="kpi-icon">
+                                                <i class="bi bi-check-circle"></i>
+                                            </div>
+                                            <div class="kpi-content">
+                                                <h6 class="kpi-title">Qualité</h6>
+                                                <h3 class="kpi-value" x-text="qualitePercentage + '%'">100%</h3>
+                                                <p class="kpi-subtitle">
+                                                    OK: <span x-text="longueurOKAffichee">0</span>m / 
+                                                    NOK: <span x-text="longueurRouleauxNOK">0</span>m
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Card 4: TRS Global -->
+                                    <div class="col-md-3">
+                                        <div class="kpi-card">
+                                            <div class="kpi-icon">
+                                                <i class="bi bi-trophy"></i>
+                                            </div>
+                                            <div class="kpi-content">
+                                                <h6 class="kpi-title">TRS Global</h6>
+                                                <h3 class="kpi-value" x-text="trsGlobal + '%'">0%</h3>
+                                                <p class="kpi-subtitle">Obj: <span x-text="profileDetails?.oee_target || '80'"></span>%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Gestion des temps perdus (enroulable) -->
+                                <div x-show="isExpanded" x-transition>
+                                    <div class="row mt-3" x-data="downtimeTracker()">
+                                    <div class="col-12">
+                                        <div class="row g-2 align-items-center mb-2">
+                                            <div class="col-9">
+                                                <h6 class="text-muted mb-0">Temps perdus</h6>
+                                            </div>
+                                            <div class="col-2 text-center">
+                                                <span x-show="totalDowntime > 0" class="badge bg-secondary">
+                                                    <span x-text="formatDuration(totalDowntime)"></span>
+                                                </span>
+                                            </div>
+                                            <div class="col-1"></div>
+                                        </div>
+                                        <div class="row g-2 align-items-end">
+                                            <div class="col-3">
+                                                <select x-model="currentDowntime.reason" 
+                                                        class="form-select form-select-sm"
+                                                        :disabled="loading">
+                                                    <option value="">Motif d'arrêt...</option>
+                                                    <template x-for="reason in reasons" :key="reason.id">
+                                                        <option :value="reason.id" x-text="reason.name"></option>
+                                                    </template>
+                                                </select>
+                                            </div>
+                                            <div class="col-6">
+                                                <input type="text" 
+                                                       x-model="currentDowntime.comment" 
+                                                       class="form-control form-control-sm" 
+                                                       placeholder="Commentaire (optionnel)"
+                                                       :disabled="loading">
+                                            </div>
+                                            <div class="col-2">
+                                                <select x-model="currentDowntime.duration" 
+                                                        class="form-select form-select-sm"
+                                                        :disabled="loading">
+                                                    <option value="">Durée...</option>
+                                                    <option value="10">10 min</option>
+                                                    <option value="20">20 min</option>
+                                                    <option value="30">30 min</option>
+                                                    <option value="40">40 min</option>
+                                                    <option value="50">50 min</option>
+                                                    <option value="60">1h</option>
+                                                    <option value="70">1h10</option>
+                                                    <option value="80">1h20</option>
+                                                    <option value="90">1h30</option>
+                                                    <option value="100">1h40</option>
+                                                    <option value="110">1h50</option>
+                                                    <option value="120">2h</option>
+                                                    <option value="130">2h10</option>
+                                                    <option value="140">2h20</option>
+                                                    <option value="150">2h30</option>
+                                                    <option value="160">2h40</option>
+                                                    <option value="170">2h50</option>
+                                                    <option value="180">3h</option>
+                                                    <option value="190">3h10</option>
+                                                    <option value="200">3h20</option>
+                                                    <option value="210">3h30</option>
+                                                    <option value="220">3h40</option>
+                                                    <option value="230">3h50</option>
+                                                    <option value="240">4h</option>
+                                                    <option value="250">4h10</option>
+                                                    <option value="260">4h20</option>
+                                                    <option value="270">4h30</option>
+                                                    <option value="280">4h40</option>
+                                                    <option value="290">4h50</option>
+                                                    <option value="300">5h</option>
+                                                    <option value="310">5h10</option>
+                                                    <option value="320">5h20</option>
+                                                    <option value="330">5h30</option>
+                                                    <option value="340">5h40</option>
+                                                    <option value="350">5h50</option>
+                                                    <option value="360">6h</option>
+                                                    <option value="370">6h10</option>
+                                                    <option value="380">6h20</option>
+                                                    <option value="390">6h30</option>
+                                                    <option value="400">6h40</option>
+                                                    <option value="410">6h50</option>
+                                                    <option value="420">7h</option>
+                                                    <option value="430">7h10</option>
+                                                    <option value="440">7h20</option>
+                                                    <option value="450">7h30</option>
+                                                    <option value="460">7h40</option>
+                                                    <option value="470">7h50</option>
+                                                    <option value="480">8h</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-1 text-center">
+                                                <button @click="addDowntime()" 
+                                                        class="btn btn-primary btn-sm"
+                                                        :disabled="loading || !currentDowntime.reason || !currentDowntime.duration">
+                                                    <i class="bi bi-plus-circle"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Liste des temps perdus -->
+                                        <div class="mt-3" x-show="downtimes.length > 0">
+                                            <table class="table table-sm">
+                                                <tbody>
+                                                    <template x-for="dt in downtimes" :key="dt.id">
+                                                        <tr>
+                                                            <td class="col-3 text-end">
+                                                                <span class="fw-bold" x-text="dt.motif_name || dt.reason"></span>
+                                                                <small class="text-muted d-block" x-text="getCategoryName(dt.category)"></small>
+                                                            </td>
+                                                            <td class="col-6">
+                                                                <small x-text="dt.comment || ''"></small>
+                                                            </td>
+                                                            <td class="col-2 text-center">
+                                                                <span class="badge bg-secondary">
+                                                                    <span x-text="dt.duration"></span> min
+                                                                </span>
+                                                            </td>
+                                                            <td class="col-1 text-center">
+                                                                <button @click="removeDowntime(dt.id)" 
+                                                                        class="btn btn-sm btn-link text-danger p-0"
+                                                                        title="Supprimer">
+                                                                    <i class="bi bi-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    </template>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        <!-- Message si aucun temps perdu -->
+                                        <div class="text-muted text-center py-3" x-show="downtimes.length === 0">
+                                            <i class="bi bi-check-circle"></i> Aucun temps perdu déclaré
+                                        </div>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Onglet Params&Specs (enroulable) -->
+                            <div x-show="activeTab === 'params' && isExpanded" x-transition>
+                                <!-- Sélecteur de profil et modes -->
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Profil</label>
+                                        <select class="form-select" 
+                                                x-model="selectedProfileId">
+                                            <option value="">Sélectionner un profil</option>
+                                            <template x-for="profile in profiles" :key="profile.id">
+                                                <option :value="profile.id" x-text="profile.name"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label">Modes</label>
+                                        <div class="d-flex" style="gap: 2rem;">
+                                            <template x-for="mode in availableModes" :key="mode.id">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" :id="'mode-' + mode.id" x-model="modes[mode.id]">
+                                                    <label class="form-check-label" :for="'mode-' + mode.id" x-text="mode.name">
+                                                    </label>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Paramètres Machine et Spécifications -->
+                                <div class="row" x-show="profileDetails">
+                            <!-- Paramètres Machine -->
+                            <div class="col-md-4" x-show="profileDetails?.parameters">
+                                <h6 class="text-muted mb-2">Paramètres Machine</h6>
+                                <table class="table table-sm" style="font-size: 0.85rem;">
+                                <tbody>
+                                    <!-- Fibrage -->
+                                    <template x-for="param in (profileDetails?.parameters?.fibrage || [])" :key="param.id">
+                                        <tr>
+                                            <td class="text-muted text-end"><span x-text="param.display_name"></span></td>
+                                            <td class="text-center">
+                                                <strong x-text="param.value"></strong>
+                                                <span class="text-muted" x-text="param.unit"></span>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    
+                                    <!-- Ensimeuse -->
+                                    <template x-for="param in (profileDetails?.parameters?.ensimeuse || [])" :key="param.id">
+                                        <tr>
+                                            <td class="text-muted text-end"><span x-text="param.display_name"></span></td>
+                                            <td class="text-center">
+                                                <strong x-text="param.value"></strong>
+                                                <span class="text-muted" x-text="param.unit"></span>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    
+                                    <!-- Autres -->
+                                    <template x-for="param in (profileDetails?.parameters?.autre || [])" :key="param.id">
+                                        <tr>
+                                            <td class="text-muted text-end"><span x-text="param.display_name"></span></td>
+                                            <td class="text-center">
+                                                <strong x-text="param.value"></strong>
+                                                <span class="text-muted" x-text="param.unit"></span>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Spécifications -->
+                            <div class="col-md-8" x-show="profileDetails?.specifications">
+                                <h6 class="text-muted mb-2">Spécifications</h6>
+                                <table class="table table-sm" style="font-size: 0.85rem;">
+                                <tbody>
+                                    <template x-for="spec in (profileDetails?.specifications || [])" :key="spec.id">
+                                        <tr>
+                                            <td class="text-muted text-end"><span x-text="spec.display_name"></span></td>
+                                            <td class="text-center"><span x-text="spec.value_min || '-'"></span></td>
+                                            <td class="text-center"><span x-text="spec.value_min_alert || '-'"></span></td>
+                                            <td class="text-center">
+                                                <span class="badge bg-success" x-text="spec.value_nominal || '-'"></span>
+                                            </td>
+                                            <td class="text-center"><span x-text="spec.value_max_alert || '-'"></span></td>
+                                            <td class="text-center"><span x-text="spec.value_max || '-'"></span></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                                </table>
+                                
+                                <!-- Objectif TRS et Estimation -->
+                                <div class="row mt-3 text-center">
+                                    <div class="col-6">
+                                        <h6 class="text-muted mb-2">Objectif TRS</h6>
+                                        <h4 style="color: #0d6efd;"><span x-text="profileDetails?.oee_target || '-'"></span>%</h4>
+                                    </div>
+                                    <div class="col-6">
+                                        <h6 class="text-muted mb-2">Estimation</h6>
+                                        <div x-show="profileDetails?.belt_speed && targetLength">
+                                            <h4 style="color: #0d6efd;">
+                                                <span x-text="targetLength"></span> m. : 
+                                                <span x-text="(() => {
+                                                    const minutes = Math.round(targetLength / profileDetails?.belt_speed);
+                                                    if (minutes >= 60) {
+                                                        const hours = Math.floor(minutes / 60);
+                                                        const mins = minutes % 60;
+                                                        return hours + 'h' + (mins > 0 ? mins : '');
+                                                    }
+                                                    return minutes + ' min';
+                                                })()"></span>
+                                            </h4>
+                                        </div>
+                                        <div x-show="!profileDetails?.belt_speed || !targetLength">
+                                            <h4 style="color: #0d6efd;">-</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Rouleaux -->
+            <div class="card" x-data="{ 
+                ...collapsibleMixin(true), 
+                qcBadgeStatus: 'pending',
+                qcMicromaire: '--',
+                qcMasseSurf: '--',
+                qcExtraitSec: '--',
+                qcMicromaireUnit: 'mg/min',
+                qcMasseSurfUnit: 'g/m²',
+                qcExtraitSecUnit: '%',
+                init() { 
+                    this.initCollapsible();
+                    // Écouter les changements de badge QC
+                    window.addEventListener('qc-badge-changed', (event) => {
+                        this.qcBadgeStatus = event.detail.status;
+                    });
+                    // Écouter les changements de moyennes QC
+                    window.addEventListener('qc-averages-changed', (event) => {
+                        this.qcMicromaire = event.detail.micromaire;
+                        this.qcMasseSurf = event.detail.masseSurf;
+                        this.qcExtraitSec = event.detail.extraitSec;
+                        this.qcMicromaireUnit = event.detail.micromaireUnit || 'mg/min';
+                        this.qcMasseSurfUnit = event.detail.masseSurfUnit || 'g/m²';
+                        this.qcExtraitSecUnit = event.detail.extraitSecUnit || '%';
+                    });
+                } 
+            }">
+                <div class="card-header" @click="toggleExpanded()" style="cursor: pointer;">
+                    <h5 class="mb-0 text-primary d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-stack"></i> Rouleaux
+                            <span class="text-muted ms-3" style="font-size: 0.85rem; font-weight: normal; text-transform: none;">
+                                <span x-text="qcMicromaire"></span> <span x-text="qcMicromaireUnit"></span> | 
+                                <span x-text="qcMasseSurf"></span> <span x-text="qcMasseSurfUnit"></span> | 
+                                <span x-text="qcExtraitSec"></span> <span x-text="qcExtraitSecUnit"></span>
+                            </span>
+                        </span>
+                        <div class="d-flex align-items-center">
+                            <span class="badge rounded-pill me-2" 
+                                  style="font-size: 0.7rem; line-height: 1; padding: 0.2rem 0.4rem; transform: rotate(15deg);"
+                                  :class="{
+                                      'bg-secondary': qcBadgeStatus === 'pending',
+                                      'bg-success': qcBadgeStatus === 'passed',
+                                      'bg-danger': qcBadgeStatus === 'nok'
+                                  }">
+                                <span x-text="qcBadgeStatus === 'pending' ? 'En attente' : 
+                                              (qcBadgeStatus === 'passed' ? 'QC Passed' : 'NOK')"></span>
+                            </span>
+                            <i class="bi" :class="chevronClass"></i>
+                        </div>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Block 3 colonnes -->
+                    <div class="mb-3" style="max-width: 1024px; margin: 0 auto;" x-data="qualityControl()" x-ref="qcComponent" x-show="isExpanded" x-transition>
+                        <div style="display: grid; grid-template-columns: 1fr auto 1fr; position: relative;">
+                            <!-- Colonne gauche -->
+                            <div>
+                                <div class="small text-muted mb-2 text-center">Micromaire G (<span x-text="micromaireUnit || 'mlAir/min'"></span>)</div>
+                                <div class="d-flex flex-column align-items-center">
+                                    <div class="position-relative mb-1">
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[0]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateInQualityFields('micromaireG[0]', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateInQualityFields('micromaireG[0]', false)" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[0] = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 50%; transform: translateY(-50%); font-size: 0.875rem;"
+                                           x-show="isValueNOK(micromaireG[0], 'micromaire')"></i>
+                                    </div>
+                                    <div class="position-relative mb-1">
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[1]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateInQualityFields('micromaireG[1]', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateInQualityFields('micromaireG[1]', false)" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[1] = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 50%; transform: translateY(-50%); font-size: 0.875rem;"
+                                           x-show="isValueNOK(micromaireG[1], 'micromaire')"></i>
+                                    </div>
+                                    <div class="position-relative mb-1">
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[2]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateInQualityFields('micromaireG[2]', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateInQualityFields('micromaireG[2]', false)" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[2] = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 50%; transform: translateY(-50%); font-size: 0.875rem;"
+                                           x-show="isValueNOK(micromaireG[2], 'micromaire')"></i>
+                                    </div>
+                                </div>
+                                <div class="small text-muted text-center">Moyenne : <span x-text="moyenneMicromaireG"></span></div>
+                                
+                                <div class="small text-muted mt-3 text-center">Masse Surfacique G (g/25cm²)</div>
+                                <div class="d-flex justify-content-center mt-1" style="gap: 60px;">
+                                    <div class="text-center position-relative">
+                                        <div class="small text-muted">GG</div>
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="masseSurfaciqueGG" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateInQualityFields('masseSurfaciqueGG', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateInQualityFields('masseSurfaciqueGG', false)" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; masseSurfaciqueGG = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 28px; font-size: 0.875rem;"
+                                           x-show="isValueNOK(masseSurfaciqueGG, 'masse_surfacique')"></i>
+                                    </div>
+                                    <div class="text-center position-relative">
+                                        <div class="small text-muted">GC</div>
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="masseSurfaciqueGC" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateInQualityFields('masseSurfaciqueGC', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateInQualityFields('masseSurfaciqueGC', false)" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; masseSurfaciqueGC = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 28px; font-size: 0.875rem;"
+                                           x-show="isValueNOK(masseSurfaciqueGC, 'masse_surfacique')"></i>
+                                    </div>
+                                </div>
+                                <div class="small text-muted text-center mt-1">Moyenne : <span x-text="moyenneMasseSurfaciqueG"></span></div>
+                            </div>
+                            
+                            <!-- Colonne centrale (largeur métrage) -->
+                            <div style="text-align: center;">
+                                <span class="cell-number" style="color: transparent;">20</span>
+                            </div>
+                            
+                            <!-- Colonne droite -->
+                            <div>
+                                <div class="small text-muted mb-2 text-center">Micromaire D (<span x-text="micromaireUnit || 'mlAir/min'"></span>)</div>
+                                <div class="d-flex flex-column align-items-center">
+                                    <div class="position-relative mb-1">
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[0]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateInQualityFields('micromaireD[0]', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateInQualityFields('micromaireD[0]', false)" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[0] = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 50%; transform: translateY(-50%); font-size: 0.875rem;"
+                                           x-show="isValueNOK(micromaireD[0], 'micromaire')"></i>
+                                    </div>
+                                    <div class="position-relative mb-1">
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[1]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateInQualityFields('micromaireD[1]', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateInQualityFields('micromaireD[1]', false)" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[1] = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 50%; transform: translateY(-50%); font-size: 0.875rem;"
+                                           x-show="isValueNOK(micromaireD[1], 'micromaire')"></i>
+                                    </div>
+                                    <div class="position-relative mb-1">
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[2]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateInQualityFields('micromaireD[2]', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateInQualityFields('micromaireD[2]', false)" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[2] = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 50%; transform: translateY(-50%); font-size: 0.875rem;"
+                                           x-show="isValueNOK(micromaireD[2], 'micromaire')"></i>
+                                    </div>
+                                </div>
+                                <div class="small text-muted text-center">Moyenne : <span x-text="moyenneMicromaireD"></span></div>
+                                
+                                <div class="small text-muted mt-3 text-center">Masse Surfacique D (g/25cm²)</div>
+                                <div class="d-flex justify-content-center mt-1" style="gap: 60px;">
+                                    <div class="text-center position-relative">
+                                        <div class="small text-muted">DC</div>
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="masseSurfaciqueDC" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateInQualityFields('masseSurfaciqueDC', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateInQualityFields('masseSurfaciqueDC', false)" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; masseSurfaciqueDC = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 28px; font-size: 0.875rem;"
+                                           x-show="isValueNOK(masseSurfaciqueDC, 'masse_surfacique')"></i>
+                                    </div>
+                                    <div class="text-center position-relative">
+                                        <div class="small text-muted">DD</div>
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="masseSurfaciqueDD" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateInQualityFields('masseSurfaciqueDD', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateInQualityFields('masseSurfaciqueDD', false)" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; masseSurfaciqueDD = v">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 28px; font-size: 0.875rem;"
+                                           x-show="isValueNOK(masseSurfaciqueDD, 'masse_surfacique')"></i>
+                                    </div>
+                                </div>
+                                <div class="small text-muted text-center mt-1">Moyenne : <span x-text="moyenneMasseSurfaciqueD"></span></div>
+                            </div>
+                            
+                            <!-- Extrait Sec et LOI en position absolute -->
+                            <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 30px; width: 150px;">
+                                <div class="small text-muted mb-1 text-center">Extrait Sec (%)</div>
+                                <div class="d-flex justify-content-center">
+                                    <div class="position-relative">
+                                        <input type="text" class="form-control form-control-sm text-center" style="width: 90px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="extraitSec" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateInQualityFields('extraitSec', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateInQualityFields('extraitSec', false)" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; extraitSec = v; if(v) { const now = new Date(); extraitTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); } else { extraitTime = '--:--'; }">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning position-absolute" 
+                                           style="right: -20px; top: 50%; transform: translateY(-50%); font-size: 0.875rem;"
+                                           x-show="isValueNOK(extraitSec, 'extrait_sec')"></i>
+                                    </div>
+                                </div>
+                                <div class="small text-muted text-center mt-1" x-text="extraitTime">--:--</div>
+                            </div>
+                            
+                            <div style="position: absolute; left: 50%; transform: translateX(-50%); bottom: 50px; text-align: center;">
+                                <div class="small text-muted mb-1">LOI</div>
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    <input class="form-check-input" type="checkbox" id="loiSwitch" style="cursor: pointer;" x-model="loi" @change="handleLoiChange()">
+                                </div>
+                                <div class="small text-muted mt-1" x-text="loiTime">--:--</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Composant roll-grid -->
+                    <div x-data="rollGrid()" id="roll-grid-component">
+                        <!-- Section conformité -->
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="col">
+                                <!-- Compteur de défauts à gauche -->
+                                <div class="text-end text-wrap-break"
+                                     x-data="{
+                                         totalDefects: 0,
+                                         defectDetails: {},
+                                         init() {
+                                             // Fonction pour calculer les défauts
+                                             const calculateDefects = () => {
+                                                 const defects = window.rollGridInstance?.defects || {};
+                                                 let count = 0;
+                                                 const details = {};
+                                                 
+                                                 Object.values(defects).forEach(cellDefects => {
+                                                     cellDefects.forEach(defectName => {
+                                                         count++;
+                                                         details[defectName] = (details[defectName] || 0) + 1;
+                                                     });
+                                                 });
+                                                 
+                                                 this.totalDefects = count;
+                                                 this.defectDetails = details;
+                                             };
+                                             
+                                             // Calculer initialement
+                                             calculateDefects();
+                                             
+                                             // Écouter les changements
+                                             window.addEventListener('defects-updated', calculateDefects);
+                                         }
+                                     }">
+                                    <div>
+                                        <div class="small text-muted"><strong><span x-text="totalDefects"></span> Défaut<span x-text="totalDefects > 1 ? 's' : ''"></span></strong></div>
+                                        <div class="text-muted text-detail" x-show="totalDefects > 0" x-text="(() => {
+                                            const defects = window.rollGridInstance?.defects || {};
+                                            const defectsByType = {};
+                                            
+                                            // Grouper par position avec défauts
+                                            const positionDefects = [];
+                                            
+                                            Object.entries(defects).forEach(([key, cellDefects]) => {
+                                                if (cellDefects.length > 0) {
+                                                    const info = window.rollGridUtils.getCellInfo(key);
+                                                    positionDefects.push(`${info.posKey}:${cellDefects.join(',')}`);
+                                                }
+                                            });
+                                            
+                                            return positionDefects.join(' | ');
+                                        })()"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col text-center"
+                                 x-data="{
+                                     qcStatus: 'pending',
+                                     init() {
+                                         // Écouter les changements du badge QC
+                                         window.addEventListener('qc-badge-changed', (event) => {
+                                             this.qcStatus = event.detail.status;
+                                         });
+                                     }
+                                 }">
+                                <div>
+                                    <!-- Affichage du QC NOK au-dessus du badge -->
+                                    <div x-show="qcStatus === 'nok'" class="mb-2">
+                                        <div class="small text-muted"><strong>Contrôle Qualité NOK</strong></div>
+                                    </div>
+                                    <span class="badge conformity-badge mx-3" 
+                                          :class="{
+                                              'conformity-ok': conformityStatus === 'CONFORME' && !allThicknessesFilled,
+                                              'conformity-ok-complete': conformityStatus === 'CONFORME' && allThicknessesFilled,
+                                              'conformity-nok': conformityStatus !== 'CONFORME'
+                                          }">
+                                        <span x-show="conformityStatus === 'CONFORME'">✓ </span>
+                                        <span x-text="conformityStatus === 'CONFORME' ? 'CONFORME' : 'NON CONFORME'"></span>
+                                    </span>
+                                    <!-- Affichage du grammage NOK sous le badge -->
+                                    <div x-show="grammageStatus === 'nok'" class="mt-2">
+                                        <div class="small text-muted"><strong>Grammage Global NOK</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <!-- Récap des épaisseurs NOK - directement depuis rollGrid -->
+                                <div class="text-start text-wrap-break"
+                                     x-data="{
+                                         get filledThicknessCount() {
+                                             // Compter les épaisseurs remplies (valeurs normales + rattrapages avec correction)
+                                             let count = 0;
+                                             gridCells.forEach(cell => {
+                                                 if (cell.isThickness) {
+                                                     const key = `${cell.row}-${cell.col}`;
+                                                     if (thicknessValues[key]) {
+                                                         count++;
+                                                     }
+                                                 }
+                                             });
+                                             return count;
+                                         },
+                                         get totalExpectedThickness() {
+                                             // Nombre de cellules d'épaisseur de base + rattrapages possibles
+                                             const baseCount = gridCells.filter(cell => cell.isThickness).length;
+                                             const rattrapageCount = Object.keys(rattrapages).length;
+                                             return baseCount + rattrapageCount;
+                                         }
+                                     }">
+                                    <div>
+                                        <div class="small text-muted"><strong>Ep : <span x-text="filledThicknessCount"></span> OK | <span x-text="Object.keys(rattrapages).length"></span> NOK / <span x-text="totalExpectedThickness"></span></strong></div>
+                                        <div class="text-muted text-detail" x-show="Object.keys(rattrapages).length > 0" x-text="(() => {
+                                            const entries = Object.entries(rattrapages).map(([key, value]) => {
+                                                const info = window.rollGridUtils.getCellInfo(key);
+                                                const rattrapage = thicknessValues[key];
+                                                return `${info.posKey}:${value}${rattrapage ? `(${rattrapage})` : ''}`;
+                                            });
+                                            return entries.join(' | ');
+                                        })()"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Grille simple -->
+                        <div class="roll-grid-container">
+                            <div class="roll-grid">
+                                <template x-for="cell in gridCells" :key="`${cell.row}-${cell.col}`">
+                                    <div class="grid-cell" 
+                                         :class="{'meter-column': cell.col === 3, 'has-thickness': cell.isThickness}"
+                                         :title="`Mètre ${cell.meter}`"
+                                         :data-row="cell.row"
+                                         :data-col="cell.col">
+                                        <!-- Cellule normale -->
+                                        <template x-if="!cell.isThickness">
+                                            <span class="cell-number" x-show="cell.col === 3" x-text="cell.meter"></span>
+                                        </template>
+                                        
+                                        <!-- Input épaisseur -->
+                                        <template x-if="cell.isThickness">
+                                            <input type="text" 
+                                                   class="thickness-input" 
+                                                   placeholder="--"
+                                                   maxlength="4"
+                                                   x-model="thicknessValues[getCellKey(cell.row, cell.col)]"
+                                                   @focus="$event.target.select()"
+                                                   @keypress="handleThicknessKeypress($event)"
+                                                   @keydown.tab.prevent="navigateToNextThickness(cell.row, cell.col, $event.shiftKey)"
+                                                   @keydown.enter.prevent="navigateToNextThickness(cell.row, cell.col, false)"
+                                                   @blur="handleThicknessBlur(cell.row, cell.col, $event)">
+                                        </template>
+                                        
+                                        <!-- Badge de rattrapage -->
+                                        <template x-if="getRattrapage(cell.row, cell.col)">
+                                            <span class="rattrapage-badge badge bg-danger"
+                                                  @click="removeRattrapage(cell.row, cell.col)"
+                                                  title="Cliquer pour supprimer"
+                                                  style="cursor: pointer;"
+                                                  x-text="getRattrapage(cell.row, cell.col)">
+                                            </span>
+                                        </template>
+                                        
+                                        <!-- Bouton d'ajout de défaut -->
+                                        <button x-show="cell.col !== 3"
+                                                class="defect-add-btn"
+                                                :class="{'force-visible': showPopup && currentCell?.row === cell.row && currentCell?.col === cell.col}"
+                                                @click="showDefectPopup(cell.row, cell.col, $event)"
+                                                title="Ajouter un défaut"
+                                                tabindex="-1">
+                                            +
+                                        </button>
+                                        
+                                        <!-- Badges de défauts -->
+                                        <template x-if="getDefects(cell.row, cell.col).length > 0">
+                                            <div class="defect-badges">
+                                                <template x-for="defect in getDefects(cell.row, cell.col)" :key="defect">
+                                                    <span class="badge defect-badge"
+                                                          :class="getDefectClass(defect)"
+                                                          @click="removeDefect(cell.row, cell.col, defect)"
+                                                          title="Cliquer pour supprimer">
+                                                        <span x-text="defect"></span>
+                                                        <span x-show="getDefectCount(defect) > 1" 
+                                                              class="defect-count"
+                                                              x-text="getDefectCount(defect)">
+                                                        </span>
+                                                    </span>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <!-- Popup de sélection de défauts (dans le composant roll-grid) -->
+                        <div x-show="showPopup"
+                             x-cloak
+                             class="defect-popup"
+                             :style="`top: ${popupY}px; left: ${popupX}px`"
+                             @click.away="showPopup = false">
+                            <div class="defect-popup-body">
+                                <template x-for="defectType in defectTypes" :key="defectType.name">
+                                    <button class="defect-popup-btn btn btn-sm m-1"
+                                            :class="`btn-${defectType.color}`"
+                                            @click="addDefect(defectType.name)">
+                                        <span x-text="defectType.name"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Colonne droite -->
+        <div class="col-lg-3">
+            <!-- Check-list prise de poste -->
+            <div class="card" x-data="checklist()">
+                <div class="card-header" @click="toggleExpanded()" style="cursor: pointer;">
+                    <h5 class="mb-0 text-primary d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-card-checklist"></i> Check-list
+                        </span>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi" :class="chevronClass"></i>
+                        </div>
+                    </h5>
+                </div>
+                <div class="card-body" x-show="isExpanded" x-transition>
+                    <!-- Liste des items -->
+                    <ol class="list-unstyled mb-3">
+                        <template x-for="(item, index) in items" :key="item.id">
+                            <li class="mb-2">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span class="me-2 d-flex" style="font-size: 14px; flex: 1;">
+                                        <span x-text="(index + 1) + '.'" style="min-width: 20px;"></span>
+                                        <span x-text="item.text" class="text-end" style="flex: 1;"></span>
+                                    </span>
+                                    <div class="btn-group" role="group" style="font-size: 0.75rem;">
+                                        <button type="button" 
+                                                :class="getButtonClass(item.id, 'OK')"
+                                                @click="handleOptionClick(item.id, 'OK')"
+                                                style="min-width: 32px; padding: 0.125rem 0.25rem; font-size: 0.75rem;">
+                                            OK
+                                        </button>
+                                        <button type="button" 
+                                                :class="getButtonClass(item.id, 'N/A')"
+                                                @click="handleOptionClick(item.id, 'N/A')"
+                                                style="min-width: 32px; padding: 0.125rem 0.25rem; font-size: 0.75rem;">
+                                            N/A
+                                        </button>
+                                        <button type="button" 
+                                                :class="getButtonClass(item.id, 'NOK')"
+                                                @click="handleOptionClick(item.id, 'NOK')"
+                                                style="min-width: 35px; padding: 0.125rem 0.25rem; font-size: 0.75rem;">
+                                            NOK
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Champ commentaire pour NOK -->
+                                <div x-show="responses[item.id] === 'NOK'" 
+                                     x-transition
+                                     class="ms-4 mt-1">
+                                    <input type="text" 
+                                           class="form-control"
+                                           placeholder="Préciser le problème..."
+                                           x-model="comments[item.id]"
+                                           @input="comments = { ...comments }"
+                                           style="font-size: 0.8rem; padding: 0.2rem 0.5rem; height: 26px;"
+                                           x-init="window.addEventListener('focus-nok-comment', (e) => {
+                                               if (e.detail.itemId === item.id) {
+                                                   $nextTick(() => $el.focus());
+                                               }
+                                           })">
+                                </div>
+                            </li>
+                        </template>
+                    </ol>
+                    
+                    <!-- Message et signature -->
+                    <div class="mt-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="text-muted small text-end" style="flex: 1;">
+                                <template x-if="!isComplete">
+                                    <span>
+                                        Merci de remplir la check-list 
+                                        <i class="bi bi-hand-index"></i>
+                                    </span>
+                                </template>
+                                <template x-if="isComplete && !signature">
+                                    <span class="text-success">
+                                        Merci de signer la check-list
+                                        <i class="bi bi-hand-index" style="transform: rotate(90deg); display: inline-block;"></i>
+                                    </span>
+                                </template>
+                                <template x-if="isComplete && signature && signatureTime">
+                                    <span class="text-secondary">
+                                        <span x-text="signatureTime"></span>
+                                    </span>
+                                </template>
+                                <template x-if="isComplete && signature && !signatureTime && signatureError">
+                                    <span class="text-warning small">
+                                        <i class="bi bi-exclamation-triangle-fill"></i> Les initiales ne correspondent pas
+                                    </span>
+                                </template>
+                            </div>
+                            <div class="ms-1">
+                                <i class="bi bi-check-circle-fill text-success" 
+                                   x-show="isComplete && signature && signatureTime"
+                                   style="font-size: 0.9rem;"></i>
+                            </div>
+                            <div class="ms-2" style="width: 80px;">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" 
+                                           class="form-control text-center" 
+                                           placeholder="✍"
+                                           x-model="signature"
+                                           :disabled="!isComplete"
+                                           maxlength="5"
+                                           @blur="signature = signature.toUpperCase(); saveSignature()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<!-- Barre sticky (fixée en bas) -->
+<div class="sticky-bar" x-data="stickyBar()">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <!-- Colonne gauche : Logos -->
+            <div class="col-auto">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="{% static 'frontendv3/img/logo-white-text.svg' %}" alt="SGQ" height="40" 
+                         style="cursor: pointer;" 
+                         @click="$dispatch('show-splash')"
+                         title="Cliquez pour voir l'écran de démarrage">
+                    <img src="{% static 'frontendv3/img/last_wcm.png' %}" alt="WCM" height="40" style="height: 40px; width: auto;">
+                </div>
+            </div>
+            
+            <!-- Colonne centrale : Champs et texte -->
+            <div class="col text-center">
+                <div class="row justify-content-center">
+                    <div class="col-auto">
+                        <div class="text-white-50 small text-start d-flex align-items-center">N° rouleau<i class="bi bi-magic ms-1 text-warning" style="font-size: 0.8rem; cursor: pointer;" @click="fetchNextRollNumber()" title="Obtenir le prochain numéro disponible"></i></div>
+                        <input type="text" class="form-control form-control-sm" style="width: 100px;" x-model="rollNumber" placeholder="--" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="handleRollNumberChange()">
+                    </div>
+                    <div class="col-auto">
+                        <div class="text-white-50 small text-start">ID rouleau</div>
+                        <div class="d-flex align-items-center">
+                            <i class="bi me-n1" style="font-size: 0.9rem;" 
+                               x-show="rollId && rollId !== '--'"
+                               :class="{
+                                   'bi-scissors': rollId.startsWith('9999_'),
+                                   'bi-hourglass-split text-warning': !rollId.startsWith('9999_') && checkingRollId,
+                                   'bi-check-circle-fill': !rollId.startsWith('9999_') && !checkingRollId && rollIdExists === false,
+                                   'bi-exclamation-triangle-fill': !rollId.startsWith('9999_') && !checkingRollId && rollIdExists === true
+                               }"
+                               :style="rollId.startsWith('9999_') ? 'color: #fd7e14;' : (!checkingRollId && rollIdExists === false ? 'color: #198754;' : (!checkingRollId && rollIdExists === true ? 'color: #ffc107;' : ''))"
+                               :title="rollId.startsWith('9999_') ? 'Rouleau de découpe' : (checkingRollId ? 'Vérification...' : (rollIdExists === true ? 'ID déjà existant !' : 'ID disponible'))"></i>
+                            <div class="fw-bold text-start ms-2" 
+                                 :class="rollId.startsWith('9999_') ? 'text-warning' : 'text-white'"
+                                 x-text="rollId">--</div>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="text-white-50 small text-start">Masse tube (g)</div>
+                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" x-model="tubeMass" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateFromStickyField('tubeMass', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateFromStickyField('tubeMass', false)" @blur="let v = $event.target.value.replace(',', '.'); tubeMass = v; handleFieldBlur()">
+                    </div>
+                    <div class="col-auto">
+                        <div class="text-white-50 small text-start">Longueur (m)</div>
+                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" x-model="length" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateFromStickyField('length', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateFromStickyField('length', false)" @blur="let v = $event.target.value.replace(',', '.'); length = v; handleFieldBlur()">
+                    </div>
+                    <div class="col-auto">
+                        <div class="text-white-50 small text-start">Masse totale (g)</div>
+                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" x-model="totalMass" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab="window.rollGridInstance.handleStickyFieldNavigation($event, 'totalMass', $event.shiftKey)" @keydown.enter="window.rollGridInstance.handleStickyFieldNavigation($event, 'totalMass', false)" @blur="let v = $event.target.value.replace(',', '.'); totalMass = v; handleFieldBlur()">
+                    </div>
+                    <div class="col-auto">
+                        <div class="text-white-50 small text-start"><span x-text="netMass">--</span> g</div>
+                        <div class="fw-bold d-flex align-items-center" 
+                             :style="`height: 31px; font-size: 1.1rem; color: ${
+                                 grammageStatus === 'ok' ? '#28a745' : 
+                                 grammageStatus === 'alert' ? '#ffc107' : 
+                                 grammageStatus === 'nok' ? '#dc3545' : 'white'
+                             } !important;`"
+                             :title="`Status: ${grammageStatus || 'vide'}`">
+                            <span x-text="grammage">--</span>&nbsp;g/m
+                        </div>
+                    </div>
+                    <div class="col-auto d-flex align-items-center mx-3">
+                        <span x-ref="saveRollButtonWrapper"
+                              x-data="{ 
+                                  tooltipInstance: null,
+                                  updateTooltip() {
+                                      // Toujours nettoyer l'ancien
+                                      if (this.tooltipInstance) {
+                                          this.tooltipInstance.dispose();
+                                          this.tooltipInstance = null;
+                                      }
+                                      
+                                      // Créer le nouveau si nécessaire
+                                      if (!canSaveRoll && saveButtonTooltip) {
+                                          this.$el.setAttribute('data-bs-toggle', 'tooltip');
+                                          this.$el.setAttribute('data-bs-placement', 'top');
+                                          this.$el.setAttribute('data-bs-title', saveButtonTooltip);
+                                          this.tooltipInstance = new bootstrap.Tooltip(this.$el);
+                                      } else {
+                                          this.$el.removeAttribute('data-bs-toggle');
+                                          this.$el.removeAttribute('data-bs-placement');
+                                          this.$el.removeAttribute('data-bs-title');
+                                      }
+                                  }
+                              }"
+                              x-init="
+                                  // Initialiser après un délai
+                                  setTimeout(() => updateTooltip(), 1000);
+                              "
+                              x-effect="
+                                  // Mettre à jour à chaque changement
+                                  updateTooltip();
+                              ">
+                            <button type="button" 
+                                    class="btn px-3 py-2"
+                                    :class="{
+                                        'btn-success': canSaveRoll && rollConformityStatus === 'CONFORME',
+                                        'btn-warning': canSaveRoll && rollConformityStatus !== 'CONFORME',
+                                        'btn-secondary': !canSaveRoll
+                                    }"
+                                    :disabled="!canSaveRoll"
+                                    @click="canSaveRoll && saveRoll()"
+                                    @keydown.tab.prevent="window.rollGridInstance.navigateFromSaveButton($event.shiftKey)"
+                                    @keydown.enter.prevent="window.rollGridInstance.navigateFromSaveButton(false)"
+                                    :title="!canSaveRoll ? saveButtonTooltip : ''"
+                                    style="pointer-events: auto;">
+                                <i class="bi me-2" 
+                                   :class="{
+                                       'bi-save': rollConformityStatus === 'CONFORME',
+                                       'bi-scissors': rollConformityStatus !== 'CONFORME'
+                                   }"></i>
+                                <span x-text="rollConformityStatus === 'CONFORME' ? 
+                                             ('Sauvegarder ' + rollId) : 
+                                             'Vers Découpe'"></span>
+                            </button>
+                        </span>
+                    </div>
+                    <div class="col-auto">
+                        <div class="text-white-50 small text-start">Tube suivant (g)</div>
+                        <input type="text" class="form-control form-control-sm" style="width: 80px;" placeholder="--" x-model="nextTubeMass" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @blur="let v = $event.target.value.replace(',', '.'); nextTubeMass = v">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Colonne droite : Boutons -->
+            <div class="col-auto">
+                <button class="btn btn-warning btn-sm me-2" style="padding: 0.25rem 0.5rem;">
+                    <i class="bi bi-scissors"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" style="padding: 0.25rem 0.5rem;">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale de confirmation réutilisable -->
+<div x-data="confirmModal()" class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="position: relative; border: none; padding: 4px; background: var(--sg-gradient); border-radius: 0.5rem;">
+            <div style="background: white; border-radius: 0.375rem; height: 100%;">
+            <div class="modal-header border-0">
+                <h5 class="modal-title w-100 text-center" id="confirmModalLabel">
+                    <span x-text="modalConfig.title"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            
+            <div class="modal-body text-center">
+                <!-- Icône principale -->
+                <div class="mb-4">
+                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center" 
+                         style="width: 80px; height: 80px;">
+                        <i class="bi" :class="modalConfig.icon || 'bi-question-lg'" 
+                           style="font-size: 3rem; 
+                                  background: var(--sg-gradient);
+                                  -webkit-background-clip: text;
+                                  -webkit-text-fill-color: transparent;
+                                  background-clip: text;"></i>
+                    </div>
+                </div>
+                
+                <!-- Question -->
+                <h5 class="mb-4" x-text="modalConfig.question" x-show="modalConfig.question && !modalConfig.showComment"></h5>
+                
+                <!-- Contenu dynamique -->
+                <div x-html="modalConfig.content"></div>
+                
+                <!-- Zone d'avertissement optionnelle -->
+                <div x-show="modalConfig.warning" class="alert alert-warning mt-3 mb-0" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <span x-text="modalConfig.warning"></span>
+                </div>
+                
+                <!-- Champ de commentaire -->
+                <div x-show="modalConfig.showComment" class="d-flex justify-content-center" :class="modalConfig.title.toLowerCase().includes('rouleau') ? 'mt-5 pt-4' : 'mt-3'">
+                    <textarea 
+                        class="form-control" 
+                        style="width: 80%;"
+                        :rows="modalConfig.title.toLowerCase().includes('rouleau') ? 1 : 3"
+                        :placeholder="modalConfig.title.toLowerCase().includes('rouleau') ? 'Commenter ce rouleau...' : 'Commentaire sur le poste...'"
+                        x-model="modalConfig.commentValue"
+                        :disabled="modalProcessing || saveSuccess"
+                    ></textarea>
+                </div>
+                
+                <!-- Avertissement QC pending -->
+                <div x-show="modalConfig.qcPending && modalConfig.title.toLowerCase().includes('rouleau')" class="mt-3 text-center">
+                    <i class="bi bi-info-circle text-primary me-2" style="font-size: 1.25rem; transform: skew(-10deg);"></i>
+                    <span class="text-primary small fst-italic">Pensez aux contrôles qualités, vous ne pourrez pas sauvegarder votre poste sans !</span>
+                </div>
+            </div>
+            
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" 
+                        class="btn btn-secondary px-4" 
+                        data-bs-dismiss="modal">
+                    <i class="bi me-2" :class="saveSuccess ? 'bi-check-circle' : 'bi-x-circle'"></i>
+                    <span x-text="saveSuccess ? 'Fermer' : 'Annuler'"></span>
+                </button>
+                <button type="button" 
+                        class="btn px-4"
+                        :class="modalConfig.confirmClass"
+                        @click="executeConfirm()"
+                        :disabled="modalProcessing || saveSuccess"
+                        x-show="!saveSuccess">
+                    <span x-show="!modalProcessing">
+                        <i class="bi me-2" :class="modalConfig.confirmIcon"></i>
+                        <span x-text="modalConfig.confirmText"></span>
+                    </span>
+                    <span x-show="modalProcessing">
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Sauvegarde...
+                    </span>
+                </button>
+                <!-- Message de succès -->
+                <div x-show="saveSuccess" class="text-success fw-bold">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    Sauvegardé avec succès !
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Injection des données Django -->
+<script>
+    window.operatorsData = {{ operators_json|safe }};
+    window.fabricationOrdersData = {{ fabrication_orders_json|safe }};
+    window.cuttingOrdersData = {{ cutting_orders_json|safe }};
+    window.profilesData = {{ profiles_json|safe }};
+    window.currentProfileId = {{ current_profile_id|default:'null' }};
+    window.modesData = {{ modes_json|safe }};
+    
+    // Forcer le recalcul après 1 seconde pour être sûr
+    setTimeout(() => {
+        if (window.kpiService) {
+            console.log('Forçage du recalcul des KPI');
+            window.kpiService.calculateAll();
+        }
+    }, 1000);
+</script>
+
+
+
+<!-- Base -->
+<script src="{% static 'frontendv3/js/main.js' %}"></script>
+
+<!-- Configuration -->
+<script src="{% static 'frontendv3/js/config/sticky-bar-config.js' %}"></script>
+
+<!-- Utilitaires -->
+<script src="{% static 'frontendv3/js/utils/collapsible.js' %}"></script>
+<script src="{% static 'frontendv3/js/utils/tooltip.js' %}"></script>
+<script src="{% static 'frontendv3/js/utils/modal-builders.js' %}"></script>
+
+<!-- Mixins -->
+<script src="{% static 'frontendv3/js/mixins/session-mixin.js' %}"></script>
+<script src="{% static 'frontendv3/js/mixins/watcher-mixin.js' %}"></script>
+
+<!-- Services -->
+<script src="{% static 'frontendv3/js/services/event-bus.js' %}"></script>
+<script src="{% static 'frontendv3/js/services/cache-service.js' %}"></script>
+<script src="{% static 'frontendv3/js/services/validation-service.js' %}"></script>
+<script src="{% static 'frontendv3/js/services/memoization-service.js' %}"></script>
+<script src="{% static 'frontendv3/js/services/roll-calculations.js' %}"></script>
+<script src="{% static 'frontendv3/js/services/conformity-service.js' %}"></script>
+<script src="{% static 'frontendv3/js/services/component-registry.js' %}"></script>
+<script src="{% static 'frontendv3/js/services/kpi-service.js' %}"></script>
+
+<!-- Composants Alpine.js -->
+<script src="{% static 'frontendv3/js/splash-screen.js' %}"></script>
+<script src="{% static 'frontendv3/js/operator-clouds.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/shift-form.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/production-order.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/profile-selector.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/kpi-display.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/quality-control.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/roll-grid.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/downtime-tracker.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/checklist.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/sticky-bar.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/confirm-modal.js' %}"></script>
+
+<!-- Utilitaires de test -->
+<script src="{% static 'frontendv3/js/utils/test-helpers.js' %}"></script>
+
+
+{% endblock %}

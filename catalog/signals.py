@@ -1,0 +1,1 @@
+# Fichier vide - les signaux ont été supprimés avec les modèles

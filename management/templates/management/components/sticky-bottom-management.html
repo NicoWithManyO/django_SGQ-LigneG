@@ -1,0 +1,28 @@
+{% load static %}
+<!-- Sticky Bottom Bar pour Management -->
+<div class="sticky-bottom-bar-management">
+    <div class="container-fluid">
+        <div class="row align-items-center h-100">
+            <!-- Logo -->
+            <div class="col-auto">
+                <div class="d-flex align-items-center">
+                    <img src="{% static 'frontend/img/logo-white-text.svg' %}" alt="Logo SGQ" style="height: 40px;">
+                </div>
+            </div>
+            
+            <!-- Informations utilisateur -->
+            <div class="col">
+                <div class="d-flex align-items-center justify-content-end">
+                    <span class="text-white me-3">
+                        <i class="bi bi-person-circle me-2"></i>
+                        <strong>{{ user.get_full_name|default:user.username }}</strong>
+                    </span>
+                    <a href="{% url 'admin:logout' %}" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-box-arrow-right me-1"></i>
+                        Déconnexion
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

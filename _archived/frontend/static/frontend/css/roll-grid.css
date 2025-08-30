@@ -1,0 +1,271 @@
+/**
+ * Styles pour la grille du rouleau
+ */
+
+/* Container principal de la grille */
+.roll-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr min-content 1fr 1fr 1fr;
+    gap: 0;
+    border: 1px solid #1c73f4;
+}
+
+/* Cellule de base */
+.roll-cell {
+    background-color: white;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: background-color 0.2s ease;
+}
+
+/* Cellule du métrage (colonne centrale) */
+.roll-cell-length {
+    font-size: 0.75rem;
+    color: #6c757d;
+    padding: 0 0.5rem;
+    white-space: nowrap;
+}
+
+/* Lignes de mesure (3m, 8m, 13m, etc.) */
+.roll-cell-measurement {
+    background-color: white;
+    position: relative;
+}
+
+/* Inputs d'épaisseur */
+.thickness-input {
+    width: 40%;
+    height: 60%;
+    border: 1px solid #90caf9;
+    background: #e3f2fd;
+    text-align: center;
+    font-size: 0.875rem;
+    padding: 0.25rem;
+    outline: none;
+    transition: all 0.2s;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    color: #0d6efd;
+    font-weight: bold;
+}
+
+.thickness-input::-webkit-inner-spin-button,
+.thickness-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.thickness-input:hover {
+    background: #bbdefb;
+    cursor: pointer;
+}
+
+.thickness-input:focus {
+    border: 1px solid #0d6efd;
+    background: white;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    cursor: text;
+}
+
+.thickness-input.v2-input-filled {
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+/* Hover effect sur toutes les cellules sauf métrage */
+.roll-cell:not(.roll-cell-length):hover {
+    background-color: #f8f9fa;
+}
+
+/* Bouton défaut */
+.defect-btn {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #dee2e6;
+    border-radius: 50%;
+    background-color: white;
+    color: #6c757d;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 14px;
+    text-align: center;
+    padding: 0;
+    padding-bottom: 3px;
+    padding-right: 1px;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.roll-cell:hover .defect-btn,
+.defect-btn-active {
+    opacity: 1;
+}
+
+.defect-btn:hover,
+.defect-btn-active {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+/* Menu de sélection de défaut */
+.defect-menu {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem;
+    max-width: 280px;
+    z-index: 1000;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: center;
+}
+
+.defect-menu-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 1rem;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.75rem;
+}
+
+/* Défauts bloquants - rouge */
+.defect-menu-item[data-severity="blocking"] {
+    border-color: #dc3545;
+}
+
+/* Défauts à seuil - orange */
+.defect-menu-item[data-severity="threshold"] {
+    border-color: #fd7e14;
+}
+
+/* Défauts non bloquants - bleu */
+.defect-menu-item[data-severity="non_blocking"] {
+    border-color: #0d6efd;
+}
+
+/* Hover effect */
+.defect-menu-item[data-severity="blocking"]:hover {
+    background-color: #dc35451a;
+    color: #dc3545;
+}
+
+.defect-menu-item[data-severity="threshold"]:hover {
+    background-color: #fd7e141a;
+    color: #fd7e14;
+}
+
+.defect-menu-item[data-severity="non_blocking"]:hover {
+    background-color: #0d6efd1a;
+    color: #0d6efd;
+}
+
+.defect-code {
+    font-weight: bold;
+    color: #6c757d;
+    margin-right: 0.125rem;
+    font-size: 0.7rem;
+}
+
+/* Au hover, le code prend aussi la couleur */
+.defect-menu-item:hover .defect-code {
+    color: inherit;
+}
+
+/* Badges de défauts dans les cellules */
+.defect-badges {
+    position: absolute;
+    bottom: 2px;
+    left: 20px;
+    right: 2px;
+    transform: rotate(-45deg);
+    transform-origin: bottom left;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    pointer-events: none; /* Pour ne pas bloquer les clics sur la cellule */
+}
+
+/* Badges centrés dans les cellules sans input d'épaisseur */
+.roll-cell:not(.roll-cell-measurement) .defect-badges {
+    top: 50%;
+    left: 50%;
+    bottom: auto;
+    right: auto;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    transform-origin: center;
+    justify-content: center;
+}
+
+.defect-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: #6c757d;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+    pointer-events: all; /* Réactiver les événements pour le badge */
+    display: inline-block;
+    position: relative;
+}
+
+/* Compteur sur le badge */
+.defect-badge-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #212529;
+    color: white;
+    font-size: 0.5rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid white;
+}
+
+.defect-badge:hover {
+    opacity: 0.8;
+}
+
+.defect-badge-blocking {
+    background: #dc3545;
+}
+
+.defect-badge-threshold {
+    background: #ffc107;
+    color: #000;
+}
+
+/* Responsive - Réduire la taille sur mobile */
+@media (max-width: 768px) {
+    .roll-cell {
+        height: 35px;
+    }
+    
+    .roll-cell-length {
+        font-size: 0.7rem;
+    }
+}

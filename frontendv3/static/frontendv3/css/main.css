@@ -1,0 +1,789 @@
+/* ===================================
+   STYLES PRINCIPAUX V3 - SGQ LIGNE G
+   =================================== */
+
+/* Variables CSS */
+:root {
+    --v3-primary: #0d6efd;
+    --v3-success: #198754;
+    --v3-danger: #dc3545;
+    --v3-warning: #ffc107;
+    --v3-info: #0dcaf0;
+    --v3-gray-600: #6c757d;
+    --v3-body-bg: #9da1a8;
+    --v3-card-bg: #f8f9fa;
+    
+    /* Positions pour les éléments dans les cellules */
+    --cell-position-normal: 50%;
+    --cell-position-with-thickness: 75%;
+}
+
+/* Reset et base */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--v3-body-bg);
+    color: #212529;
+    padding-bottom: 80px; /* Pour la sticky bar */
+    overflow-y: scroll !important; /* Force la scrollbar à toujours être visible */
+}
+
+/* Force la scrollbar même quand une modale est ouverte */
+body.modal-open {
+    overflow-y: scroll !important;
+    padding-right: 0 !important;
+}
+
+/* Variables dégradé Saint-Gobain */
+:root {
+    --sg-gradient: linear-gradient(
+        to right,
+        #43B0B1 0%,
+        #43B0B1 10%,
+        #0096D5 30%,
+        #0E4E95 42%,
+        #EC1846 55%,
+        #F26F21 84%,
+        #F26F21 100%
+    );
+}
+
+/* Cards améliorées */
+.card {
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    background-color: var(--v3-card-bg);
+}
+
+.card-header {
+    position: relative;
+    background-color: var(--v3-card-bg);
+    border-bottom: none;
+    padding: 0.75rem;
+}
+
+/* Gradient border pour headers */
+.card-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--sg-gradient);
+    width: 100%;
+    transition: transform 0.3s ease;
+    transform: scaleX(0.8);
+}
+
+/* Quand le body est caché (x-show=false), étendre la bordure à 100% */
+.card-body[style*="display: none"] ~ .card-header::after,
+.card-header:has(+ .card-body[style*="display: none"])::after {
+    transform: scaleX(1);
+}
+
+.card-body {
+    padding: 1rem;
+}
+
+/* Inputs personnalisés */
+.form-control, .form-select {
+    background-color: #e3f2fd;
+    border: 1px solid #90caf9;
+    color: #0d6efd;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #fff;
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Inputs remplis - même style que vide pour l'instant */
+.form-control.filled, .form-select.filled {
+    /* Pas de style spécial pour filled */
+}
+
+/* Inputs disabled */
+.form-control:disabled, .form-select:disabled {
+    background-color: #f5f5f5;
+    border-color: #ddd;
+    color: #6c757d;
+    opacity: 0.6;
+}
+
+/* Labels */
+.form-label {
+    color: var(--v3-gray-600);
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Titres des cards */
+.card-header h5 {
+    font-size: 1rem;
+    margin: 0;
+    color: #0044a9;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+/* Grille du rouleau */
+.roll-grid-container {
+    background-color: #fff;
+    max-width: 1024px;
+    margin: 0 auto;
+}
+
+.roll-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto 1fr 1fr 1fr;
+}
+
+/* Grille QC - mêmes colonnes que roll-grid */
+.qc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto 1fr 1fr 1fr;
+    max-width: 1024px;
+    margin: 0 auto;
+}
+
+.grid-cell {
+    position: relative;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+}
+
+.grid-cell:hover {
+    background-color: #f8f9fa;
+}
+
+/* Pas de hover sur la colonne métrage */
+.grid-cell.meter-column:hover {
+    background-color: transparent;
+}
+
+.cell-number {
+    color: #0d6efd;
+    font-size: 0.7rem;
+}
+
+/* Cellules d'épaisseur */
+.thickness-cell {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border: 1px solid #dee2e6;
+}
+
+.thickness-input {
+    width: 100%;
+    max-width: 65px;
+    text-align: center;
+    background-color: #e3f2fd;
+    border: 1px solid transparent;
+    color: #0d6efd;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.9rem;
+    border-radius: 0.25rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.thickness-input:focus {
+    background-color: #fff;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    outline: none;
+    border-color: #0d6efd;
+}
+
+/* États de validation des épaisseurs */
+.thickness-input.thickness-min {
+    background-color: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+.thickness-input.thickness-alert-min {
+    background-color: #fd7e14;
+    color: white;
+    border-color: #fd7e14;
+}
+
+.thickness-input.thickness-nominal {
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.thickness-input.thickness-alert-max {
+    background-color: #ffc107;
+    color: #000;
+    border-color: #ffc107;
+}
+
+.thickness-input.thickness-max {
+    background-color: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+
+
+/* Bouton d'ajout de défaut */
+.defect-add-btn {
+    position: absolute;
+    bottom: 50%;
+    left: var(--cell-position-normal);
+    transform: translate(-50%, 50%);
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 1px solid #dc3545;
+    background-color: #fff;
+    color: #dc3545;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: bold;
+    border-radius: 3px;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Dans les cellules avec épaisseur, décaler le bouton */
+.grid-cell.has-thickness .defect-add-btn {
+    left: var(--cell-position-with-thickness);
+}
+
+.grid-cell:hover .defect-add-btn,
+.defect-add-btn.force-visible {
+    opacity: 1;
+}
+
+.defect-add-btn:hover {
+    color: #fff;
+    border-color: #dc3545;
+    background-color: #dc3545;
+}
+
+/* Badges de défauts */
+.defect-badges {
+    position: absolute;
+    bottom: 2px;
+    left: var(--cell-position-normal);
+    transform: translateX(-50%);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px;
+    z-index: 2;
+}
+
+/* Dans les cellules avec épaisseur, décaler les badges */
+.grid-cell.has-thickness .defect-badges {
+    left: var(--cell-position-with-thickness);
+}
+
+.defect-badge {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.35rem;
+    cursor: pointer;
+    line-height: 1.2;
+    position: relative;
+    transform: rotate(-15deg);
+    z-index: 2;
+    font-weight: normal !important;
+}
+
+/* Compteur de défauts */
+.defect-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #fff;
+    color: #333;
+    border: 1px solid #333;
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    line-height: 13px;
+    text-align: center;
+    font-size: 0.55rem;
+    font-weight: bold;
+    z-index: 1;
+}
+
+
+/* Popup de sélection de défauts */
+.defect-popup {
+    position: fixed;
+    z-index: 1050;
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+}
+
+.defect-popup-header {
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.defect-popup-body {
+    padding: 0.5rem;
+}
+
+.defect-popup-btn {
+    font-size: 0.85rem !important;
+    padding: 0.25rem 0.6rem !important;
+    line-height: 1.2 !important;
+    background-color: transparent !important;
+    transition: all 0.2s;
+}
+
+.defect-popup-btn.btn-danger {
+    border: 1px solid #dc3545 !important;
+    color: #dc3545 !important;
+}
+
+.defect-popup-btn.btn-warning {
+    border: 1px solid #ffc107 !important;
+    color: #ffc107 !important;
+}
+
+.defect-popup-btn.btn-danger:hover {
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+.defect-popup-btn.btn-warning:hover {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
+/* Badge de rattrapage d'épaisseur */
+.rattrapage-badge {
+    position: absolute;
+    left: calc(100% - var(--cell-position-with-thickness) - 10px);
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.75rem;
+    padding: 0.2rem 0.35rem;
+    line-height: 1.2;
+}
+
+/* Rendre les défauts semi-transparents quand on focus une épaisseur */
+.grid-cell:has(.thickness-input:focus) .defect-badges .defect-badge {
+    opacity: 0.3;
+}
+
+/* Cacher x-cloak */
+[x-cloak] {
+    display: none !important;
+}
+
+/* Section Contrôle Qualité */
+.qc-section {
+    padding: 0 15px;
+    margin-bottom: 1.5rem;
+}
+
+/* Alignement des colonnes QC avec la grille */
+.qc-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto 1fr 1fr 1fr;
+    gap: 0.5rem;
+    align-items: start;
+    max-width: 1024px;
+    margin: 0 auto;
+}
+
+/* Colonnes micromaire */
+.qc-micromaire {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Colonnes masse surfacique */
+.qc-masse-surfacique {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Section centrale */
+.qc-centrale {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 100px;
+}
+
+/* Onglets du profil */
+.profile-tabs {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    height: 100%;
+}
+
+.tab-button {
+    background: none;
+    border: none;
+    padding: 0 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #6c757d;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+    cursor: pointer;
+    line-height: 1;
+    height: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.tab-button:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: var(--v3-primary);
+}
+
+.tab-button.active {
+    background-color: var(--v3-primary);
+    color: white;
+}
+
+/* Cards KPI */
+.kpi-card {
+    position: relative;
+    background: #ffffff;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 1rem 1rem;
+    min-height: 120px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+/* Bordure dégradée au hover avec mask */
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 4px;
+    background: var(--sg-gradient);
+    -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: destination-out;
+    mask-composite: exclude;
+    border-radius: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.kpi-card:hover::before {
+    opacity: 1;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    border-color: transparent;
+}
+
+/* ============================================ */
+/* DEBUT - Bordures KPI dynamiques par pourcentage */
+/* ============================================ */
+/* Supprimez tout ce bloc pour retirer la fonctionnalité */
+
+.kpi-card {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Bordure colorée (largeur selon le pourcentage) */
+.kpi-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: var(--kpi-percentage, 0%);
+    height: 4px;
+    background: var(--kpi-border-color, #4CAF50);
+    transition: width 0.5s ease, background-color 0.3s ease;
+    z-index: 2;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+/* Couleurs selon les seuils de performance */
+.kpi-card[data-percentage-tier="excellent"]::after {
+    background: #00a86b; /* Vert - Excellent (90-100%) */
+}
+
+.kpi-card[data-percentage-tier="good"]::after {
+    background: #4CAF50; /* Vert clair - Bon (80-90%) */
+}
+
+.kpi-card[data-percentage-tier="moderate"]::after {
+    background: #FFC107; /* Orange - Moyen (60-80%) */
+}
+
+.kpi-card[data-percentage-tier="low"]::after {
+    background: #FF9800; /* Orange foncé - Faible (40-60%) */
+}
+
+.kpi-card[data-percentage-tier="critical"]::after {
+    background: #F44336; /* Rouge - Critique (0-40%) */
+}
+
+/* Animation pulsation pour valeurs critiques */
+.kpi-card[data-percentage-tier="critical"]::after {
+    animation: pulse-border 2s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Au hover, la bordure du bas devient gradient à 100% */
+.kpi-card:hover::after {
+    width: 98% !important;
+    background: var(--sg-gradient) !important;
+    height: 4px; /* Même épaisseur que les autres côtés */
+}
+
+/* ============================================ */
+/* FIN - Bordures KPI dynamiques par pourcentage */
+/* ============================================ */
+
+.kpi-icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kpi-icon i {
+    font-size: 1.75rem;
+    color: var(--v3-primary);
+}
+
+.kpi-content {
+    flex: 1;
+}
+
+.kpi-title {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.kpi-value {
+    font-size: 1.875rem;
+    font-weight: 700;
+    background: var(--sg-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+    line-height: 1;
+}
+
+/* Fallback pour les navigateurs qui ne supportent pas */
+@supports not (-webkit-background-clip: text) {
+    .kpi-value {
+        background: none;
+        color: #0E4E95;
+        -webkit-text-fill-color: initial;
+    }
+}
+
+.kpi-subtitle {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+/* Classes utilitaires réutilisables */
+.text-wrap-break {
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.text-detail {
+    font-size: 0.7rem;
+}
+
+/* Badge de conformité */
+.conformity-badge {
+    font-size: 1.5rem;
+    padding: 0.75rem 2.5rem;
+    font-weight: 700;
+    background-color: transparent;
+    border: 3px solid;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.conformity-badge.conformity-ok {
+    color: #28a745;
+    border-color: #28a745;
+    background-color: transparent;
+}
+
+.conformity-badge.conformity-ok-complete {
+    background-color: #28a745 !important;
+    color: white;
+    border-color: #28a745;
+}
+
+.conformity-badge.conformity-nok {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+/* Sticky bar */
+.sticky-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #0044a9;
+    padding: 0.75rem 0;
+    box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+    z-index: 1030;
+}
+
+/* Gradient border pour sticky bar */
+.sticky-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(
+        to right,
+        #43B0B1 0%,
+        #43B0B1 10%,
+        #0096D5 30%,
+        #0E4E95 42%,
+        #EC1846 55%,
+        #F26F21 84%,
+        #F26F21 100%
+    );
+}
+
+/* Sticky bar inputs */
+.sticky-bar .form-control {
+    background-color: #bbdefb;
+    border: none;
+    text-align: center;
+    font-weight: bold;
+    height: 31px;
+    padding: 0.25rem 0.5rem;
+    color: #0d6efd;
+    cursor: pointer;
+}
+
+.sticky-bar .form-control:focus {
+    background-color: white;
+    box-shadow: none;
+    color: #0d6efd;
+}
+
+/* Sticky bar - bouton désactivé */
+.sticky-bar .btn:disabled,
+.sticky-bar .btn[disabled] {
+    cursor: not-allowed !important;
+    opacity: 0.65;
+}
+
+/* Utilities */
+.text-muted {
+    color: var(--v3-gray-600) !important;
+}
+
+/* Curseur forbidden sur TOUS les éléments désactivés */
+.btn:disabled,
+.btn[disabled],
+button:disabled,
+button[disabled],
+input:disabled,
+input[disabled],
+select:disabled,
+select[disabled],
+textarea:disabled,
+textarea[disabled],
+.form-control:disabled,
+.form-control[disabled],
+.form-select:disabled,
+.form-select[disabled],
+.form-check-input:disabled,
+.form-check-input[disabled] {
+    cursor: not-allowed !important;
+    opacity: 0.65;
+}
+
+/* Forcer le curseur sur les boutons Bootstrap désactivés */
+.btn.btn-primary:disabled,
+.btn.btn-primary[disabled],
+.btn.btn-secondary:disabled,
+.btn.btn-secondary[disabled],
+.btn.btn-danger:disabled,
+.btn.btn-danger[disabled],
+.btn.btn-warning:disabled,
+.btn.btn-warning[disabled],
+.btn.btn-success:disabled,
+.btn.btn-success[disabled],
+.btn.btn-info:disabled,
+.btn.btn-info[disabled] {
+    cursor: not-allowed !important;
+}
+
+
+/* Responsive */
+@media (max-width: 991.98px) {
+    .col-lg-4, .col-lg-8 {
+        margin-bottom: 1rem;
+    }
+}

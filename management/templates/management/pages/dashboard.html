@@ -1,0 +1,851 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'management/css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" x-data="managementDashboard()" x-init="init()">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">{{ title }}</h1>
+            <p class="text-muted mb-0">Date : {{ today|date:"l d F Y" }}</p>
+        </div>
+    </div>
+
+    <!-- KPIs et Checklists -->
+    <div class="row mb-4">
+        <!-- KPIs principaux en grille 2x2 -->
+        <div class="col-md-6">
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <div class="card management-kpi-card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-1">TRS Moyen</h6>
+                                    <h3 class="mb-0" x-text="kpis.avg_trs ? kpis.avg_trs + '%' : '--'">--</h3>
+                                    <small class="text-white-50" x-text="kpis.shifts_count ? '(' + kpis.shifts_count + ' poste' + (kpis.shifts_count > 1 ? 's' : '') + ')' : ''"></small>
+                                </div>
+                                <i class="bi bi-speedometer2 fs-2 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-6 mb-3">
+                    <div class="card management-kpi-card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-1">Production</h6>
+                                    <h3 class="mb-0" x-text="kpis.total_production ? formatNumber(kpis.total_production) + ' m' : '--'">--</h3>
+                                </div>
+                                <i class="bi bi-graph-up fs-2 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-6 mb-3">
+                    <div class="card management-kpi-card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-1">Qualité</h6>
+                                    <h3 class="mb-0" x-text="kpis.avg_quality ? kpis.avg_quality + '%' : '--'">--</h3>
+                                </div>
+                                <i class="bi bi-check-circle fs-2 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-6 mb-3">
+                    <div class="card management-kpi-card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-1">Disponibilité</h6>
+                                    <h3 class="mb-0" x-text="kpis.avg_availability ? kpis.avg_availability + '%' : '--'">--</h3>
+                                </div>
+                                <i class="bi bi-clock-history fs-2 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sélecteur de date simple -->
+            <div class="mt-3">
+                <div class="d-flex justify-content-center align-items-center">
+                    <button type="button" 
+                            class="btn btn-primary rounded-circle"
+                            style="width: 40px; height: 40px; padding: 0;"
+                            @click="changeDate(-1)"
+                            title="Jour précédent">
+                        <i class="bi bi-chevron-double-left"></i>
+                    </button>
+                    <div class="mx-4 text-center bg-light rounded p-3" style="min-width: 200px; cursor: pointer;" 
+                         @click="editMode = true"
+                         x-show="!editMode">
+                        <h5 class="mb-0 text-primary" x-text="formatDateDisplay(selectedDate)">--</h5>
+                        <small class="text-muted" x-text="getDayShiftsSummary()">--</small>
+                    </div>
+                    <div class="mx-4" x-show="editMode" @click.away="editMode = false">
+                        <input type="text" 
+                               class="form-control text-center"
+                               x-model="dateInput"
+                               @keyup.enter="applyDateInput()"
+                               @keyup.escape="editMode = false"
+                               placeholder="JJ/MM/AA"
+                               maxlength="10"
+                               style="width: 150px;"
+                               x-init="$el.focus()">
+                        <small class="text-muted d-block mt-1">Entrée pour valider</small>
+                    </div>
+                    <button type="button" 
+                            class="btn btn-primary rounded-circle"
+                            style="width: 40px; height: 40px; padding: 0;"
+                            @click="changeDate(1)"
+                            :disabled="!canGoForward()"
+                            title="Jour suivant">
+                        <i class="bi bi-chevron-double-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Checklists à droite -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-check2-square me-2"></i>Checklists
+                        </h5>
+                        <ul class="nav nav-tabs card-header-tabs mb-0 border-0">
+                            <li class="nav-item">
+                                <a class="nav-link py-1 px-2" 
+                                   :class="{ 'active': checklistTab === 'all' }"
+                                   @click="checklistTab = 'all'"
+                                   href="#">
+                                    Toutes
+                                    <span class="badge bg-secondary ms-1" x-text="allChecklists.length">0</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link py-1 px-2" 
+                                   :class="{ 'active': checklistTab === 'pending' }"
+                                   @click="checklistTab = 'pending'"
+                                   href="#">
+                                    Non visées
+                                    <span class="badge bg-danger ms-1" x-text="pendingChecklistsCount">0</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Poste</th>
+                                    <th>Date</th>
+                                    <th>Opérateur</th>
+                                    <th>NOK</th>
+                                    <th>Visa</th>
+                                    <th>
+                                        <button @click="fillAndSignAll()" 
+                                                class="btn btn-sm btn-success"
+                                                :disabled="!hasChecklistsToSign()"
+                                                title="Remplir et viser toutes les checklists">
+                                            <i class="bi bi-check-all me-1"></i>ALL
+                                        </button>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="checklist in displayedChecklists.slice(0, 5)" :key="checklist.id">
+                                    <tr :class="{ 'table-success': checklist.management_visa }">
+                                        <td x-text="checklist.shift_id"></td>
+                                        <td x-text="formatDate(checklist.shift_date)"></td>
+                                        <td x-text="checklist.operator_name"></td>
+                                        <td>
+                                            <span class="badge" 
+                                                  :class="checklist.nok_count > 0 ? 'bg-danger' : 'bg-success'"
+                                                  x-text="checklist.nok_count"></span>
+                                        </td>
+                                        <td>
+                                            <template x-if="!checklist.management_visa">
+                                                <input type="text" 
+                                                       class="form-control form-control-sm visa-input"
+                                                       x-model="checklist.visa"
+                                                       @input="checklist.visa = checklist.visa.toUpperCase()"
+                                                       placeholder="Ex: JD"
+                                                       maxlength="10"
+                                                       style="width: 60px;">
+                                            </template>
+                                            <template x-if="checklist.management_visa">
+                                                <div class="small">
+                                                    <div class="fw-bold text-success" x-text="checklist.management_visa"></div>
+                                                    <div class="text-muted" x-text="formatDate(checklist.management_visa_date) + ' ' + (checklist.management_visa_date ? new Date(checklist.management_visa_date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'}) : '')"></div>
+                                                </div>
+                                            </template>
+                                        </td>
+                                        <td>
+                                            <template x-if="!checklist.management_visa">
+                                                <button @click="signChecklist(checklist)" 
+                                                        class="btn btn-sm btn-success me-1"
+                                                        :disabled="!checklist.visa || checklist.visa.length < 2 || checklist.isSubmitting"
+                                                        title="Viser cette checklist">
+                                                    <span x-show="!checklist.isSubmitting">OK</span>
+                                                    <span x-show="checklist.isSubmitting" class="spinner-border spinner-border-sm"></span>
+                                                </button>
+                                            </template>
+                                            <a :href="`/management/checklists/${checklist.id}/`" 
+                                               class="btn btn-sm btn-primary"
+                                               title="Voir les détails">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="displayedChecklists.length === 0">
+                                    <td colspan="6" class="text-center text-muted py-3">
+                                        <span x-text="checklistTab === 'all' ? 'Aucune checklist' : 'Aucune checklist en attente'"></span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-3" x-show="displayedChecklists.length > 5">
+                        <a href="{% url 'management:checklists-list' %}" class="btn btn-outline-primary btn-sm">
+                            Voir toutes les checklists (<span x-text="displayedChecklists.length"></span>)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compteurs d'humeur et Derniers rouleaux -->
+    <div class="row mb-4">
+        <!-- Humeur du personnel -->
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-emoji-smile me-2"></i>Humeur du personnel
+                    </h5>
+                    <button class="btn btn-sm btn-outline-danger" @click="confirmResetMoodCounters()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Reset
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Happy -->
+                        <div class="col-3 text-center">
+                            <div class="fs-3 text-success">😊</div>
+                            <h5 class="fw-bold mb-0" x-text="moodCounters.happy || 0">0</h5>
+                            <small class="text-muted" x-text="(moodPercentages.happy || 0) + '%'">0%</small>
+                        </div>
+                        <!-- Neutral -->
+                        <div class="col-3 text-center">
+                            <div class="fs-3 text-warning">😐</div>
+                            <h5 class="fw-bold mb-0" x-text="moodCounters.neutral || 0">0</h5>
+                            <small class="text-muted" x-text="(moodPercentages.neutral || 0) + '%'">0%</small>
+                        </div>
+                        <!-- Unhappy -->
+                        <div class="col-3 text-center">
+                            <div class="fs-3 text-danger">😞</div>
+                            <h5 class="fw-bold mb-0" x-text="moodCounters.unhappy || 0">0</h5>
+                            <small class="text-muted" x-text="(moodPercentages.unhappy || 0) + '%'">0%</small>
+                        </div>
+                        <!-- No Response -->
+                        <div class="col-3 text-center">
+                            <div class="fs-3 text-secondary">❓</div>
+                            <h5 class="fw-bold mb-0" x-text="moodCounters.no_response || 0">0</h5>
+                            <small class="text-muted" x-text="(moodPercentages.no_response || 0) + '%'">0%</small>
+                        </div>
+                    </div>
+                    <!-- Infos complémentaires -->
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            Total : <span x-text="moodTotal">0</span> réponses
+                            <span x-show="lastMoodReset"> | Dernier reset : <span x-text="lastMoodReset"></span></span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Postes récents dans la même colonne -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Postes récents</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ID Poste</th>
+                                    <th class="text-center">Enroulé</th>
+                                    <th class="text-center">NOK</th>
+                                    <th class="text-center">Déchet</th>
+                                    <th class="text-center">TRS</th>
+                                    <th class="text-center" colspan="2"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="shift in recentShifts.slice(0, 5)" :key="shift.id">
+                                    <tr style="cursor: pointer;" @click="showShiftDetails(shift.id)" class="shift-row">
+                                        <td>
+                                            <div x-text="shift.shift_id" class="small"></div>
+                                            <div class="text-muted" style="font-size: 0.75rem;">
+                                                <span :class="shift.started_at_beginning ? 'text-success' : 'text-danger'">
+                                                    <i :class="shift.started_at_beginning ? 'bi-play-circle-fill' : 'bi-stop-circle-fill'" class="me-1"></i>
+                                                </span>
+                                                →
+                                                <span :class="shift.started_at_end ? 'text-success' : 'text-danger'">
+                                                    <i :class="shift.started_at_end ? 'bi-play-circle-fill' : 'bi-stop-circle-fill'"></i>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center small">
+                                            <span x-text="shift.total_length ? shift.total_length + ' m' : '--'"></span>
+                                        </td>
+                                        <td class="text-center small">
+                                            <span x-text="shift.nok_length ? shift.nok_length + ' m' : '--'" 
+                                                  :class="shift.nok_length > 0 ? 'text-danger' : ''"></span>
+                                        </td>
+                                        <td class="text-center small">
+                                            <span x-text="shift.waste_length ? shift.waste_length + ' m' : '--'"
+                                                  :class="shift.waste_length > 0 ? 'text-warning' : ''"></span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge" 
+                                                  :class="getTRSClass(shift.trs)"
+                                                  x-text="shift.trs + '%'"></span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span x-show="!shift.checklist_signed" 
+                                                  class="text-danger me-1" 
+                                                  title="Checklist à viser">
+                                                <i class="bi bi-clipboard-x"></i>
+                                            </span>
+                                            <span x-show="shift.has_comment" 
+                                                  class="text-primary" 
+                                                  title="Commentaire disponible">
+                                                <i class="bi bi-chat-dots-fill"></i>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="recentShifts.length === 0">
+                                    <td colspan="6" class="text-center text-muted py-3">
+                                        Aucun poste récent
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Derniers rouleaux -->
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0">
+                            <i class="bi bi-layers me-2"></i>Derniers rouleaux
+                        </h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" 
+                                    class="btn btn-sm" 
+                                    :class="rollsLimit === 50 ? 'btn-primary' : 'btn-outline-primary'"
+                                    @click="setRollsLimit(50)">50</button>
+                            <button type="button" 
+                                    class="btn btn-sm" 
+                                    :class="rollsLimit === 100 ? 'btn-primary' : 'btn-outline-primary'"
+                                    @click="setRollsLimit(100)">100</button>
+                            <button type="button" 
+                                    class="btn btn-sm" 
+                                    :class="rollsLimit === 150 ? 'btn-primary' : 'btn-outline-primary'"
+                                    @click="setRollsLimit(150)">150</button>
+                            <button type="button" 
+                                    class="btn btn-sm" 
+                                    :class="rollsLimit === 200 ? 'btn-primary' : 'btn-outline-primary'"
+                                    @click="setRollsLimit(200)">200</button>
+                        </div>
+                    </div>
+                    <!-- Filtres -->
+                    <div class="d-flex gap-2 justify-content-center align-items-center">
+                        <div class="input-group input-group-sm" style="width: 150px;">
+                            <span class="input-group-text">OF</span>
+                            <input type="text" 
+                                   class="form-control" 
+                                   placeholder="Ex: 8754"
+                                   x-model="rollFilters.of"
+                                   @input="filterRolls()">
+                        </div>
+                        <div class="d-flex gap-1 align-items-center">
+                            <span class="text-muted small">Statut:</span>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <input type="checkbox" 
+                                       class="btn-check" 
+                                       id="filter-ok" 
+                                       x-model="rollFilters.showOk"
+                                       @change="filterRolls()">
+                                <label class="btn btn-outline-success py-0 px-2" for="filter-ok" style="font-size: 0.75rem;">OK</label>
+                                
+                                <input type="checkbox" 
+                                       class="btn-check" 
+                                       id="filter-nok"
+                                       x-model="rollFilters.showNok"
+                                       @change="filterRolls()">
+                                <label class="btn btn-outline-danger py-0 px-2" for="filter-nok" style="font-size: 0.75rem;">NOK</label>
+                            </div>
+                        </div>
+                        <div class="input-group input-group-sm" style="width: 140px;">
+                            <span class="input-group-text">Date</span>
+                            <input type="date" 
+                                   class="form-control"
+                                   x-model="rollFilters.date"
+                                   @change="filterRolls()">
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" 
+                                @click="resetRollFilters()"
+                                :style="hasActiveFilters() ? '' : 'opacity: 0; pointer-events: none;'"
+                                title="Réinitialiser les filtres">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="sticky-top bg-light">
+                                <tr>
+                                    <th class="text-end">ID Rouleau</th>
+                                    <th>Longueur</th>
+                                    <th>Moy EP G</th>
+                                    <th>Grammage</th>
+                                    <th>Moy EP D</th>
+                                    <th>Défauts</th>
+                                    <th>ID Poste</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="roll in filteredRolls" :key="roll.id">
+                                    <tr style="cursor: pointer;" @click="showRollDetails(roll.id)" class="roll-row">
+                                        <td x-text="roll.roll_id" class="small text-end"></td>
+                                        <td x-text="roll.length ? roll.length + ' m' : '--'" class="small text-center"></td>
+                                        <td x-text="roll.avg_thickness_left ? roll.avg_thickness_left.toFixed(2) : '--'" class="small text-center"></td>
+                                        <td x-text="roll.grammage ? roll.grammage + ' g/m²' : '--'" class="small text-center"></td>
+                                        <td x-text="roll.avg_thickness_right ? roll.avg_thickness_right.toFixed(2) : '--'" class="small text-center"></td>
+                                        <td class="text-center">
+                                            <span x-show="roll.defects_count > 0" 
+                                                  class="badge bg-warning text-dark"
+                                                  x-text="roll.defects_count"
+                                                  :title="`${roll.defects_count} défaut(s)`"></span>
+                                            <span x-show="roll.defects_count === 0" class="text-muted">-</span>
+                                        </td>
+                                        <td x-text="roll.shift_id || '--'" class="small"></td>
+                                        <td>
+                                            <span class="badge" 
+                                                  :class="roll.is_conform ? 'bg-success' : 'bg-danger'"
+                                                  x-text="roll.is_conform ? 'OK' : 'NOK'"></span>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="filteredRolls.length === 0">
+                                    <td colspan="8" class="text-center text-muted py-3">
+                                        <span x-show="!hasActiveFilters()">Aucun rouleau trouvé</span>
+                                        <span x-show="hasActiveFilters()">Aucun rouleau ne correspond aux filtres</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-2" x-show="recentRolls.length > 0">
+                        <small class="text-muted">
+                            <span x-show="!hasActiveFilters()">
+                                Affichage de <span x-text="filteredRolls.length"></span> rouleau(x)
+                            </span>
+                            <span x-show="hasActiveFilters()">
+                                <span x-text="filteredRolls.length"></span> / <span x-text="recentRolls.length"></span> rouleau(x) filtré(s)
+                            </span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertes -->
+    <div class="row mb-4" x-show="alerts.length > 0">
+        <div class="col">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Alertes Production</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <template x-for="alert in alerts" :key="alert.message">
+                            <div class="list-group-item d-flex justify-content-between align-items-center"
+                                 :class="{'list-group-item-warning': alert.severity === 'warning', 'list-group-item-danger': alert.severity === 'danger'}">
+                                <span x-text="alert.message"></span>
+                                <small x-text="formatDate(alert.date)"></small>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Graphique de tendance -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Tendance Production (7 derniers jours)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="trendChart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modale détails poste -->
+    <div class="modal fade" id="shiftDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-clipboard-data me-2"></i>
+                        Détails du poste <span x-text="shiftDetails?.shift_id" class="fw-bold"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- KPIs principaux -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white text-center">
+                                <div class="card-body p-2">
+                                    <h6 class="mb-1">TRS</h6>
+                                    <h3 class="mb-0" x-text="shiftDetails?.kpis?.trs ? shiftDetails.kpis.trs + '%' : '--'">--</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white text-center">
+                                <div class="card-body p-2">
+                                    <h6 class="mb-1">Disponibilité</h6>
+                                    <h3 class="mb-0" x-text="shiftDetails?.kpis?.availability ? shiftDetails.kpis.availability + '%' : '--'">--</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white text-center">
+                                <div class="card-body p-2">
+                                    <h6 class="mb-1">Performance</h6>
+                                    <h3 class="mb-0" x-text="shiftDetails?.kpis?.performance ? shiftDetails.kpis.performance + '%' : '--'">--</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white text-center">
+                                <div class="card-body p-2">
+                                    <h6 class="mb-1">Qualité</h6>
+                                    <h3 class="mb-0" x-text="shiftDetails?.kpis?.quality ? shiftDetails.kpis.quality + '%' : '--'">--</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Informations générales et production -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Informations générales</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td class="text-muted">Date :</td>
+                                    <td x-text="shiftDetails?.date ? new Date(shiftDetails.date).toLocaleDateString('fr-FR') : '--'"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Vacation :</td>
+                                    <td x-text="shiftDetails?.vacation || '--'"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Opérateur :</td>
+                                    <td x-text="shiftDetails?.operator || '--'"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Machine :</td>
+                                    <td>
+                                        <span :class="shiftDetails?.started_at_beginning ? 'text-success' : 'text-danger'">
+                                            <i :class="shiftDetails?.started_at_beginning ? 'bi-play-circle-fill' : 'bi-stop-circle-fill'"></i>
+                                            Début
+                                        </span>
+                                        <span class="mx-2">→</span>
+                                        <span :class="shiftDetails?.started_at_end ? 'text-success' : 'text-danger'">
+                                            <i :class="shiftDetails?.started_at_end ? 'bi-play-circle-fill' : 'bi-stop-circle-fill'"></i>
+                                            Fin
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Production</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td class="text-muted">Longueur totale :</td>
+                                    <td><span x-text="shiftDetails?.total_length || '0'"></span> m</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Longueur OK :</td>
+                                    <td class="text-success"><span x-text="shiftDetails?.ok_length || '0'"></span> m</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Longueur NOK :</td>
+                                    <td class="text-danger"><span x-text="shiftDetails?.nok_length || '0'"></span> m</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Déchet :</td>
+                                    <td class="text-warning"><span x-text="shiftDetails?.waste_length || '0'"></span> m</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Nombre de rouleaux :</td>
+                                    <td><span x-text="shiftDetails?.rolls_count || '0'"></span></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Commentaires -->
+                    <div class="mb-4" x-show="shiftDetails?.operator_comments || shiftDetails?.manager_comments">
+                        <h6 class="text-muted mb-2">Commentaires</h6>
+                        <div x-show="shiftDetails?.operator_comments" class="mb-2">
+                            <strong>Opérateur :</strong>
+                            <p class="border rounded p-2 bg-light mb-2" x-text="shiftDetails.operator_comments"></p>
+                        </div>
+                        <div x-show="shiftDetails?.manager_comments">
+                            <strong>Management :</strong>
+                            <p class="border rounded p-2 bg-info bg-opacity-10" x-text="shiftDetails.manager_comments"></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Rouleaux produits -->
+                    <div class="mb-4" x-show="shiftDetails?.rolls && shiftDetails.rolls.length > 0">
+                        <h6 class="text-muted mb-3">Rouleaux produits</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID Rouleau</th>
+                                        <th>Longueur</th>
+                                        <th>Grammage</th>
+                                        <th>Moy. EP G</th>
+                                        <th>Moy. EP D</th>
+                                        <th>Défauts</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="roll in shiftDetails.rolls" :key="roll.id">
+                                        <tr style="cursor: pointer;" @click="showRollDetails(roll.id)">
+                                            <td x-text="roll.roll_id" class="small"></td>
+                                            <td x-text="roll.length ? roll.length + ' m' : '--'" class="small"></td>
+                                            <td x-text="roll.grammage ? roll.grammage + ' g/m²' : '--'" class="small"></td>
+                                            <td x-text="roll.avg_thickness_left ? roll.avg_thickness_left.toFixed(2) : '--'" class="small"></td>
+                                            <td x-text="roll.avg_thickness_right ? roll.avg_thickness_right.toFixed(2) : '--'" class="small"></td>
+                                            <td class="text-center">
+                                                <span x-show="roll.defects_count > 0" 
+                                                      class="badge bg-warning text-dark"
+                                                      x-text="roll.defects_count"></span>
+                                                <span x-show="roll.defects_count === 0" class="text-muted">-</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge" 
+                                                      :class="roll.is_conform ? 'bg-success' : 'bg-danger'"
+                                                      x-text="roll.is_conform ? 'OK' : 'NOK'"></span>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Temps perdus -->
+                    <div class="mb-4" x-show="shiftDetails?.lost_times && shiftDetails.lost_times.length > 0">
+                        <h6 class="text-muted mb-3">
+                            Temps perdus
+                            <small class="ms-2">Total : <span x-text="shiftDetails?.total_lost_time || '0'"></span> minutes</small>
+                        </h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Raison</th>
+                                        <th>Catégorie</th>
+                                        <th>Durée</th>
+                                        <th>Commentaire</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="entry in shiftDetails.lost_times" :key="entry">
+                                        <tr>
+                                            <td x-text="entry.reason" class="small"></td>
+                                            <td x-text="entry.category" class="small"></td>
+                                            <td x-text="entry.duration + ' min'" class="small"></td>
+                                            <td x-text="entry.comment || '-'" class="small"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modale détails rouleau -->
+    <div class="modal fade" id="rollDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-layers me-2"></i>
+                        Détails du rouleau <span x-text="rollDetails?.roll_id" class="fw-bold"></span>
+                    </h5>
+                    <span class="ms-3">
+                        <span class="badge" :class="rollDetails?.is_conform ? 'bg-success' : 'bg-danger'" x-text="rollDetails?.is_conform ? 'CONFORME' : 'NON CONFORME'"></span>
+                    </span>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Informations générales -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Informations générales</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td class="text-muted">OF :</td>
+                                    <td x-text="rollDetails?.of_number || '--'" class="fw-bold"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Numéro :</td>
+                                    <td x-text="rollDetails?.roll_number || '--'"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Opérateur :</td>
+                                    <td x-text="rollDetails?.operator"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Poste :</td>
+                                    <td x-text="rollDetails?.shift_id || '--'"></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Date/Heure :</td>
+                                    <td x-text="rollDetails?.created_at ? new Date(rollDetails.created_at).toLocaleString('fr-FR') : '--'"></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Dimensions et masses</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td class="text-muted">Longueur :</td>
+                                    <td><span x-text="rollDetails?.length || '--'"></span> m</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Masse tube :</td>
+                                    <td><span x-text="rollDetails?.tube_mass || '--'"></span> g</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Masse totale :</td>
+                                    <td><span x-text="rollDetails?.total_mass || '--'"></span> g</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Masse nette :</td>
+                                    <td><span x-text="rollDetails?.net_mass || '--'"></span> g</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Grammage :</td>
+                                    <td class="fw-bold"><span x-text="rollDetails?.grammage || '--'"></span></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Grille d'épaisseurs -->
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-3">
+                            Mesures d'épaisseur
+                            <span class="ms-2">
+                                <small>Moy. G: <span x-text="rollDetails?.avg_thickness_left?.toFixed(2) || '--'" class="fw-bold"></span> mm</small>
+                                <small class="ms-3">Moy. D: <span x-text="rollDetails?.avg_thickness_right?.toFixed(2) || '--'" class="fw-bold"></span> mm</small>
+                                <small class="ms-3 text-info">Min: <span x-text="rollDetails?.min_thickness?.toFixed(2) || '--'" class="fw-bold"></span> mm</small>
+                                <small class="ms-2 text-danger">Max: <span x-text="rollDetails?.max_thickness?.toFixed(2) || '--'" class="fw-bold"></span> mm</small>
+                            </span>
+                        </h6>
+                        <div class="table-responsive" x-show="rollDetails?.thicknesses?.length > 0">
+                            <table class="table table-bordered table-sm thickness-grid">
+                                <thead>
+                                    <tr class="text-center">
+                                        <th>GG</th>
+                                        <th>GC</th>
+                                        <th>GD</th>
+                                        <th>Longueur</th>
+                                        <th>DG</th>
+                                        <th>DC</th>
+                                        <th>DD</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="thicknessGridBody">
+                                    <!-- Généré dynamiquement par JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div x-show="!rollDetails?.thicknesses || rollDetails.thicknesses.length === 0" class="text-center text-muted py-3">
+                            Aucune mesure d'épaisseur enregistrée
+                        </div>
+                    </div>
+                    
+                    <!-- Commentaire -->
+                    <div x-show="rollDetails?.comment">
+                        <h6 class="text-muted mb-2">Commentaire</h6>
+                        <p class="border rounded p-2 bg-light" x-text="rollDetails?.comment"></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'management/js/dashboard.js' %}"></script>
+{% endblock %}
