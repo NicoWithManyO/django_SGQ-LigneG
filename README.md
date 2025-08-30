@@ -1,5 +1,7 @@
 # SGQ Ligne G - Système de Gestion de la Qualité
 
+![Interface SGQ Ligne G](docs/Capture%20d'écran%202025-08-30%20091648.png)
+
 ## Description
 
 SGQ Ligne G est un système de gestion de production et de qualité pour l'industrie de la fibre optique, spécifiquement conçu pour la ligne de production G. 
