@@ -68,9 +68,12 @@ function createOperatorModal() {
             this.errorMessage = '';
             
             try {
-                // Préparer les données
+                // Préparer les données avec formatage
+                const firstName = this.firstName.trim();
+                const formattedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+                
                 const operatorData = {
-                    first_name: this.firstName.trim(),
+                    first_name: formattedFirstName,
                     last_name: this.lastName.trim().toUpperCase(),
                     training_completed: this.trainingCompleted,
                     is_active: true // Toujours actif par défaut
