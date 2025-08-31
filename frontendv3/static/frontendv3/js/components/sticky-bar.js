@@ -144,7 +144,7 @@ function stickyBar() {
         // Écouter les événements globaux
         listenToGlobalEvents() {
             // Écouter les changements d'OF
-            window.eventBus.on(window.eventBus.EVENTS.OF_CHANGED, (event) => {
+            window.addEventListener('of-changed', (event) => {
                 this.ofNumber = event.detail.ofNumber || '';
                 this.updateRollId();
                 this.updateOFStatus();

@@ -17,6 +17,11 @@ function productionOrder() {
         fabricationOrders: window.fabricationOrdersData || [],
         cuttingOrders: window.cuttingOrdersData || [],
         
+        // États de verrouillage (verrouillés par défaut)
+        ofEnCoursLocked: savedData.ofEnCoursLocked !== undefined ? savedData.ofEnCoursLocked : true,
+        targetLengthLocked: savedData.targetLengthLocked !== undefined ? savedData.targetLengthLocked : true,
+        ofDecoupeLocked: savedData.ofDecoupeLocked !== undefined ? savedData.ofDecoupeLocked : true,
+        
         
         // Initialisation
         init() {
@@ -29,6 +34,22 @@ function productionOrder() {
             this.$watch('ofEnCours', () => this.handleOFChange());
             this.$watch('ofDecoupe', () => this.saveProductionData());
             this.$watch('targetLength', () => this.saveProductionData());
+            
+            // Observer les changements d'état de verrouillage
+            this.$watch('ofEnCoursLocked', () => this.saveLockStates());
+            this.$watch('targetLengthLocked', () => this.saveLockStates());
+            this.$watch('ofDecoupeLocked', () => this.saveLockStates());
+            
+            // Écouter la mise à jour de la liste des OF
+            window.addEventListener('fabrication-orders-updated', (event) => {
+                const data = event.detail;
+                if (data.fabricationOrders) {
+                    // Mettre à jour les listes locales SEULEMENT
+                    this.fabricationOrders = data.fabricationOrders;
+                    this.cuttingOrders = data.cuttingOrders;
+                    // NE PAS sélectionner automatiquement
+                }
+            });
             
             // Appliquer les styles initiaux après le rendu
             this.$nextTick(() => {
@@ -74,9 +95,9 @@ function productionOrder() {
             }
             
             // Émettre l'événement pour la grille
-            window.dispatchEvent(new CustomEvent('target-length-changed', {
-                detail: { length: this.targetLength }
-            }));
+            window.eventBus.emit(window.eventBus.EVENTS.TARGET_LENGTH_CHANGED, {
+                length: this.targetLength
+            });
             
             this.saveProductionData();
         },
@@ -86,7 +107,10 @@ function productionOrder() {
             const data = {
                 ofEnCours: this.ofEnCours,
                 ofDecoupe: this.ofDecoupe,
-                targetLength: this.targetLength
+                targetLength: this.targetLength,
+                ofEnCoursLocked: this.ofEnCoursLocked,
+                targetLengthLocked: this.targetLengthLocked,
+                ofDecoupeLocked: this.ofDecoupeLocked
             };
             
             // Utiliser la sauvegarde du mixin
@@ -96,6 +120,20 @@ function productionOrder() {
             window.dispatchEvent(new CustomEvent('of-changed', {
                 detail: { ofNumber: this.ofEnCours }
             }));
+        },
+        
+        // Sauvegarder les états de verrouillage
+        saveLockStates() {
+            const data = {
+                ofEnCours: this.ofEnCours,
+                ofDecoupe: this.ofDecoupe,
+                targetLength: this.targetLength,
+                ofEnCoursLocked: this.ofEnCoursLocked,
+                targetLengthLocked: this.targetLengthLocked,
+                ofDecoupeLocked: this.ofDecoupeLocked
+            };
+            
+            this.saveToSession({ of: data });
         },
         
         // Handlers pour les changements
@@ -124,10 +162,59 @@ function productionOrder() {
             // Sauvegarder quand on change manuellement
             this.saveProductionData();
             
-            // Émettre l'événement pour la grille
+            // Émettre l'événement pour la grille (ancien système qui fonctionnait)
             window.dispatchEvent(new CustomEvent('target-length-changed', {
                 detail: { length: this.targetLength }
             }));
+        },
+        
+        // Nouveau handler pour le blur avec re-verrouillage
+        handleTargetLengthBlur(event) {
+            // D'abord traiter le changement
+            this.handleTargetLengthChange(event);
+            // Puis re-verrouiller
+            this.lockTargetLength();
+        },
+        
+        // Méthodes de basculement du verrouillage
+        toggleOFEnCoursLock() {
+            this.ofEnCoursLocked = !this.ofEnCoursLocked;
+            debug('OF en cours lock toggled:', this.ofEnCoursLocked);
+        },
+        
+        toggleTargetLengthLock() {
+            this.targetLengthLocked = !this.targetLengthLocked;
+            debug('Target length lock toggled:', this.targetLengthLocked);
+        },
+        
+        toggleOFDecoupeLock() {
+            this.ofDecoupeLocked = !this.ofDecoupeLocked;
+            debug('OF découpe lock toggled:', this.ofDecoupeLocked);
+        },
+        
+        // Méthodes de verrouillage automatique (pour le blur)
+        lockOFEnCours() {
+            this.ofEnCoursLocked = true;
+            debug('OF en cours auto-locked');
+        },
+        
+        lockTargetLength() {
+            this.targetLengthLocked = true;
+            debug('Target length auto-locked');
+        },
+        
+        lockOFDecoupe() {
+            this.ofDecoupeLocked = true;
+            debug('OF découpe auto-locked');
+        },
+        
+        // Afficher la modale de création d'OF
+        showCreateOFModal() {
+            const modalElement = document.querySelector('#createOFModal');
+            if (modalElement && modalElement._x_dataStack) {
+                const modalComponent = modalElement._x_dataStack[0];
+                modalComponent.show();
+            }
         }
     };
 }

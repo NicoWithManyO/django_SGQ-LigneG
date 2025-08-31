@@ -178,6 +178,7 @@ window.eventBus.EVENTS = {
     // OF
     OF_CHANGED: 'of:changed',
     OF_LOADED: 'of:loaded',
+    TARGET_LENGTH_CHANGED: 'target-length:changed',
     
     // Profile
     PROFILE_CHANGED: 'profile:changed',

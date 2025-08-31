@@ -30,15 +30,23 @@
                         <div class="row mb-3">
                             <div class="col-8">
                                 <label class="form-label">Opérateur</label>
-                                <select class="form-select" 
-                                        x-model="operatorId"
-                                        @change="handleOperatorChange($event)"
-                                        :class="{ 'filled': operatorId }">
-                                    <option value="">Sélectionner un opérateur</option>
-                                    <template x-for="operator in operators" :key="operator.employee_id">
-                                        <option :value="operator.employee_id" x-text="operator.display_name"></option>
-                                    </template>
-                                </select>
+                                <div class="input-group">
+                                    <select class="form-select" 
+                                            x-model="operatorId"
+                                            @change="handleOperatorChange($event)"
+                                            :class="{ 'filled': operatorId }">
+                                        <option value="">Sélectionner un opérateur</option>
+                                        <template x-for="operator in operators" :key="operator.employee_id">
+                                            <option :value="operator.employee_id" x-text="operator.display_name"></option>
+                                        </template>
+                                    </select>
+                                    <button class="btn btn-outline-success" 
+                                            type="button" 
+                                            @click="showCreateOperatorModal()"
+                                            title="Créer un nouvel opérateur">
+                                        <i class="bi bi-plus"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         
@@ -221,51 +229,86 @@
                     <div x-data="productionOrder()">
                         <!-- OF en cours -->
                         <div class="row mb-3">
-                            <div class="col-5">
+                            <div class="col-7">
                                 <label class="form-label">OF en cours</label>
-                                <select class="form-select" 
-                                        x-model="ofEnCours"
-                                        @change="handleOFEnCoursChange($event)"
-                                        :class="{ 'filled': ofEnCours }">
-                                    <option value="">Sélectionner un OF</option>
-                                    <template x-for="of in fabricationOrders" :key="of.numero">
-                                        <option :value="of.numero" x-text="of.numero"></option>
-                                    </template>
-                                </select>
+                                <div class="input-group" @click.away="!ofEnCoursLocked && lockOFEnCours()">
+                                    <select class="form-select" 
+                                            x-model="ofEnCours"
+                                            @change="handleOFEnCoursChange($event)"
+                                            @blur="lockOFEnCours()"
+                                            :class="{ 'filled': ofEnCours }"
+                                            :disabled="ofEnCoursLocked">
+                                        <option value="">Sélectionner un OF</option>
+                                        <template x-for="of in fabricationOrders" :key="of.numero">
+                                            <option :value="of.numero" x-text="of.numero"></option>
+                                        </template>
+                                    </select>
+                                    <button class="btn btn-outline-success" 
+                                            type="button" 
+                                            @click="showCreateOFModal()"
+                                            title="Créer un nouvel OF">
+                                        <i class="bi bi-plus"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" 
+                                            type="button" 
+                                            @click="toggleOFEnCoursLock()"
+                                            :title="ofEnCoursLocked ? 'Déverrouiller' : 'Verrouiller'">
+                                        <i class="bi" :class="ofEnCoursLocked ? 'bi-lock' : 'bi-unlock'"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="col-7"></div>
+                            <div class="col-5"></div>
                         </div>
                         
                         <!-- Longueur cible -->
                         <div class="row mb-3">
-                            <div class="col-4">
+                            <div class="col-7">
                                 <label class="form-label text-nowrap">Longueur cible (m.)</label>
-                                <input type="number" 
-                                       class="form-control" 
-                                       x-model="targetLength"
-                                       @blur="handleTargetLengthChange($event)"
-                                       :class="{ 'filled': targetLength > 0 }"
-                                       step="0.1"
-                                       min="0">
+                                <div class="input-group" @click.away="!targetLengthLocked && lockTargetLength()">
+                                    <input type="number" 
+                                           class="form-control" 
+                                           x-model="targetLength"
+                                           @blur="handleTargetLengthBlur($event)"
+                                           :class="{ 'filled': targetLength > 0 }"
+                                           :disabled="targetLengthLocked"
+                                           step="1"
+                                           min="0">
+                                    <button class="btn btn-outline-secondary" 
+                                            type="button" 
+                                            @click="toggleTargetLengthLock()"
+                                            :title="targetLengthLocked ? 'Déverrouiller' : 'Verrouiller'">
+                                        <i class="bi" :class="targetLengthLocked ? 'bi-lock' : 'bi-unlock'"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="col-8"></div>
+                            <div class="col-5"></div>
                         </div>
                         
                         <!-- OF découpe -->
                         <div class="row mb-3">
-                            <div class="col-5">
+                            <div class="col-7">
                                 <label class="form-label">OF découpe</label>
-                                <select class="form-select" 
-                                        x-model="ofDecoupe"
-                                        @change="handleOFDecoupeChange($event)"
-                                        :class="{ 'filled': ofDecoupe }">
-                                    <option value="">Sélectionner un OF découpe</option>
-                                    <template x-for="co in cuttingOrders" :key="co.numero">
-                                        <option :value="co.numero" x-text="co.numero"></option>
-                                    </template>
-                                </select>
+                                <div class="input-group" @click.away="!ofDecoupeLocked && lockOFDecoupe()">
+                                    <select class="form-select" 
+                                            x-model="ofDecoupe"
+                                            @change="handleOFDecoupeChange($event)"
+                                            @blur="lockOFDecoupe()"
+                                            :class="{ 'filled': ofDecoupe }"
+                                            :disabled="ofDecoupeLocked">
+                                        <option value="">Sélectionner un OF découpe</option>
+                                        <template x-for="co in cuttingOrders" :key="co.numero">
+                                            <option :value="co.numero" x-text="co.numero"></option>
+                                        </template>
+                                    </select>
+                                    <button class="btn btn-outline-secondary" 
+                                            type="button" 
+                                            @click="toggleOFDecoupeLock()"
+                                            :title="ofDecoupeLocked ? 'Déverrouiller' : 'Verrouiller'">
+                                        <i class="bi" :class="ofDecoupeLocked ? 'bi-lock' : 'bi-unlock'"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="col-7"></div>
+                            <div class="col-5"></div>
                         </div>
                     </div>
                 </div>
@@ -1281,6 +1324,168 @@
     </div>
 </div>
 
+<!-- Modale de création d'opérateur -->
+<div x-data="createOperatorModal()" class="modal fade" id="createOperatorModal" tabindex="-1" aria-labelledby="createOperatorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="position: relative; border: none; padding: 4px; background: var(--sg-gradient); border-radius: 0.5rem;">
+            <div style="background: white; border-radius: 0.375rem; height: 100%;">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title w-100 text-center" id="createOperatorModalLabel">
+                        <i class="bi bi-person-plus me-2"></i>Créer un nouvel opérateur
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                
+                <div class="modal-body">
+                    <form @submit.prevent="createOperator()">
+                        <div class="mb-3">
+                            <label for="firstName" class="form-label">Prénom <span class="text-danger">*</span></label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="firstName" 
+                                   x-model="firstName"
+                                   placeholder="Ex: Martin"
+                                   required
+                                   maxlength="50">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="lastName" class="form-label">Nom <span class="text-danger">*</span></label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="lastName" 
+                                   x-model="lastName"
+                                   placeholder="Ex: DUPONT"
+                                   required
+                                   maxlength="50">
+                            <div class="form-text">Le matricule sera généré automatiquement : PrénomNOM</div>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="trainingCompleted" 
+                                   x-model="trainingCompleted">
+                            <label class="form-check-label" for="trainingCompleted">
+                                Formation complétée
+                            </label>
+                        </div>
+                    </form>
+                    
+                    <!-- Messages d'erreur -->
+                    <div x-show="errorMessage" 
+                         class="alert alert-danger mt-3" 
+                         role="alert"
+                         x-text="errorMessage"></div>
+                </div>
+                
+                <div class="modal-footer border-0 d-flex justify-content-center gap-3">
+                    <button type="button" 
+                            class="btn btn-outline-secondary px-4" 
+                            data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Annuler
+                    </button>
+                    <button type="button" 
+                            class="btn btn-success px-4"
+                            @click="createOperator()"
+                            :disabled="!canCreate || isCreating">
+                        <span x-show="!isCreating">
+                            <i class="bi bi-person-plus me-2"></i>Créer l'opérateur
+                        </span>
+                        <span x-show="isCreating">
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Création...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modale de création d'OF -->
+<div x-data="createOFModal()" class="modal fade" id="createOFModal" tabindex="-1" aria-labelledby="createOFModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="position: relative; border: none; padding: 4px; background: var(--sg-gradient); border-radius: 0.5rem;">
+            <div style="background: white; border-radius: 0.375rem; height: 100%;">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title w-100 text-center" id="createOFModalLabel">
+                        <i class="bi bi-plus-circle me-2"></i>Créer un nouvel OF
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                
+                <div class="modal-body">
+                    <form @submit.prevent="createOF()">
+                        <div class="mb-3">
+                            <label for="ofNumber" class="form-label">Numéro d'OF <span class="text-danger">*</span></label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="ofNumber" 
+                                   x-model="ofNumber"
+                                   placeholder="Ex: OF12345"
+                                   required
+                                   maxlength="50">
+                            <div class="form-text">Format recommandé : OF suivi de chiffres</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="requiredLength" class="form-label">Longueur totale à produire (m)</label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="requiredLength" 
+                                   x-model="requiredLength"
+                                   placeholder="Ex: 1000"
+                                   step="0.1"
+                                   min="0">
+                            <div class="form-text">Laisser vide pour une production illimitée</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="targetRollLength" class="form-label">Longueur par rouleau (m)</label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="targetRollLength" 
+                                   x-model="targetRollLength"
+                                   placeholder="Ex: 30"
+                                   step="0.1"
+                                   min="0">
+                            <div class="form-text">Longueur souhaitée par rouleau</div>
+                        </div>
+                    </form>
+                    
+                    <!-- Message d'erreur -->
+                    <div x-show="errorMessage" class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <span x-text="errorMessage"></span>
+                    </div>
+                </div>
+                
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" 
+                            class="btn btn-secondary px-4" 
+                            data-bs-dismiss="modal"
+                            :disabled="isCreating">
+                        <i class="bi bi-x-circle me-2"></i>Annuler
+                    </button>
+                    <button type="button" 
+                            class="btn btn-success px-4"
+                            @click="createOF()"
+                            :disabled="!canCreate || isCreating">
+                        <span x-show="!isCreating">
+                            <i class="bi bi-plus-circle me-2"></i>Créer l'OF
+                        </span>
+                        <span x-show="isCreating">
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Création...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modale de confirmation réutilisable -->
 <div x-data="confirmModal()" class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -1423,6 +1628,8 @@
 <script src="{% static 'frontendv3/js/operator-clouds.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/shift-form.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/production-order.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/create-operator-modal.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/create-of-modal.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/profile-selector.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/kpi-display.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/quality-control.js' %}"></script>

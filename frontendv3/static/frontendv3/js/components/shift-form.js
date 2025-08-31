@@ -312,6 +312,16 @@ function shiftForm() {
                     }
                 });
             });
+            
+            // Écouter la mise à jour de la liste des opérateurs
+            window.addEventListener('operators-updated', (event) => {
+                const data = event.detail;
+                if (data.operators) {
+                    // Mettre à jour la liste locale des opérateurs
+                    this.operators = data.operators;
+                    debug('Operators list updated:', this.operators);
+                }
+            });
         },
         
         // Mettre à jour les styles des champs
@@ -786,6 +796,15 @@ function shiftForm() {
                 this.shiftIdExists = null;
             } finally {
                 this.checkingShiftId = false;
+            }
+        },
+        
+        // Afficher la modale de création d'opérateur
+        showCreateOperatorModal() {
+            const modalElement = document.querySelector('#createOperatorModal');
+            if (modalElement && modalElement._x_dataStack) {
+                const modalComponent = modalElement._x_dataStack[0];
+                modalComponent.show();
             }
         }
     };

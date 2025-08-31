@@ -512,7 +512,7 @@ function managementDashboard() {
         // Reset des compteurs d'humeur
         async resetMoodCounters() {
             try {
-                const response = await fetch('/api/mood-counter/reset/', {
+                const response = await fetch('/wcm/api/mood-counter/reset/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
