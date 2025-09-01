@@ -4,7 +4,7 @@
 
 ## Description
 
-SGQ Ligne G est un système de gestion de production et de qualité pour l'industrie de la fibre optique, spécifiquement conçu pour la ligne de production G. 
+SGQ Ligne G est un système de gestion de production et de qualité pour l'industrie, spécifiquement conçu pour la ligne de production G. 
 
 Le système assure la traçabilité complète de la production, le contrôle qualité en temps réel et l'optimisation des performances selon les normes ISO 9001, 14001 et 45001.
 
@@ -47,4 +47,4 @@ Le système est conçu pour répondre aux exigences des normes :
 
 ## Secteur d'application
 
-Industrie de la fibre optique - Production de matériaux composites pour câbles optiques.
+Industrie - Production de matériaux composites.
