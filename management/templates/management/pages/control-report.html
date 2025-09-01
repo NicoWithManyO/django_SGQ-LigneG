@@ -141,7 +141,7 @@
                             x-bind:disabled="selectedRolls.length === 0 || !reportName.trim()"
                             @click="generateReport()">
                         <i class="bi bi-file-earmark-pdf me-2"></i>
-                        <span x-text="selectedRolls.length > 0 && reportName.trim() ? `Générer pick-list (${selectedRolls.length} rouleaux)` : 'Sélectionner des rouleaux et nom'"></span>
+                        <span x-text="selectedRolls.length > 0 && reportName.trim() ? `Générer pick-list (${selectedRolls.length} rouleaux${getReassignedCount() > 0 ? ', ' + getReassignedCount() + ' réassignés' : ''})` : 'Sélectionner des rouleaux et nom'"></span>
                     </button>
                 </div>
             </div>
@@ -180,11 +180,23 @@
                                    x-model="filters.date"
                                    @change="loadRolls()">
                         </div>
-                        <div class="col-md-3 d-flex align-items-end">
+                        <div class="col-md-2 d-flex align-items-end">
                             <div class="w-100">
                                 <button class="btn btn-outline-secondary w-100" @click="clearFilters()">
                                     <i class="bi bi-x-circle me-1"></i>Effacer filtres
                                 </button>
+                            </div>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-center">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="showAssigned"
+                                       x-model="filters.showAssigned"
+                                       @change="loadRolls()">
+                                <label class="form-check-label" for="showAssigned" style="font-size: 0.8rem;">
+                                    Voir assignés
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -271,11 +283,13 @@
                                     <th>Date Production</th>
                                     <th>Opérateur</th>
                                     <th>Défauts</th>
+                                    <th x-show="filters.showAssigned">Pré-shipper</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <template x-for="roll in rolls" :key="roll.id">
-                                    <tr x-bind:class="selectedRolls.includes(roll.id) ? 'selected-row' : ''">
+                                    <tr x-bind:class="selectedRolls.includes(roll.id) ? 'selected-row' : ''" 
+                                        x-bind:style="roll.preshipper_assigned ? 'opacity: 0.6' : ''">
                                         <td>
                                             <input type="checkbox" class="form-check-input selection-checkbox"
                                                    x-bind:checked="selectedRolls.includes(roll.id)"
@@ -317,6 +331,13 @@
                                             <span class="badge bg-warning" x-show="roll.defects_count > 0" 
                                                   x-text="roll.defects_count + ' défaut' + (roll.defects_count > 1 ? 's' : '')"></span>
                                         </td>
+                                        <td x-show="filters.showAssigned">
+                                            <span x-show="!roll.preshipper_assigned" class="badge bg-success">Disponible</span>
+                                            <div x-show="roll.preshipper_assigned">
+                                                <span class="badge bg-warning" x-text="roll.preshipper_assigned"></span>
+                                                <br><small class="text-muted">Sera réassigné</small>
+                                            </div>
+                                        </td>
                                     </tr>
                                 </template>
                             </tbody>
@@ -350,7 +371,8 @@ function controlReportApp() {
         filters: {
             of: '',
             operator: '',
-            date: ''
+            date: '',
+            showAssigned: false
         },
         
         // Initialisation
@@ -366,6 +388,7 @@ function controlReportApp() {
                 if (this.filters.of) params.append('of', this.filters.of);
                 if (this.filters.operator) params.append('operator', this.filters.operator);
                 if (this.filters.date) params.append('date', this.filters.date);
+                if (this.filters.showAssigned) params.append('show_assigned', 'true');
                 
                 const response = await fetch(`/management/api/conforming-rolls/?${params}`, {
                     method: 'GET',
@@ -399,7 +422,7 @@ function controlReportApp() {
         
         // Effacer filtres
         clearFilters() {
-            this.filters = { of: '', operator: '', date: '' };
+            this.filters = { of: '', operator: '', date: '', showAssigned: false };
             this.loadRolls();
         },
         
@@ -429,7 +452,9 @@ function controlReportApp() {
         },
         
         selectEntireOF(ofNumber) {
-            const ofRolls = this.rolls.filter(roll => roll.fabrication_order === ofNumber);
+            const ofRolls = this.rolls.filter(roll => 
+                roll.fabrication_order === ofNumber
+            );
             ofRolls.forEach(roll => {
                 if (!this.selectedRolls.includes(roll.id)) {
                     this.selectedRolls.push(roll.id);
@@ -452,6 +477,13 @@ function controlReportApp() {
             }).filter(of => of !== null);
             
             return [...new Set(ofs)];
+        },
+        
+        getReassignedCount() {
+            return this.selectedRolls.filter(rollId => {
+                const roll = this.rolls.find(r => r.id === rollId);
+                return roll && roll.preshipper_assigned;
+            }).length;
         },
         
         // Utilitaires
@@ -526,6 +558,9 @@ function controlReportApp() {
                     // Réinitialiser la sélection et le nom
                     this.selectedRolls = [];
                     this.reportName = '';
+                    
+                    // Rafraîchir la liste pour enlever les rouleaux assignés
+                    await this.loadRolls();
                 } else {
                     throw new Error(reportData.error || 'Erreur inconnue lors de la génération');
                 }

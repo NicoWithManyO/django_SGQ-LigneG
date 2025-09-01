@@ -8,8 +8,8 @@ class RollInline(admin.TabularInline):
     """Inline pour afficher les rouleaux d'un poste."""
     model = Roll
     extra = 0
-    fields = ['roll_id', 'fabrication_order', 'length', 'grammage_calc', 'status', 'destination']
-    readonly_fields = ['roll_id', 'grammage_calc']
+    fields = ['roll_id', 'fabrication_order', 'length', 'grammage_calc', 'status', 'destination', 'preshipper_assigned']
+    readonly_fields = ['roll_id', 'grammage_calc', 'preshipper_assigned']
     ordering = ['-created_at']
     classes = ['collapse']  # Dépliable par défaut
     
@@ -122,9 +122,9 @@ class RollAdmin(admin.ModelAdmin):
     """Administration des rouleaux."""
     
     list_display = ['roll_id', 'shift', 'fabrication_order', 'length', 'grammage_display',
-                    'status_display', 'destination', 'has_defects', 'created_at']
+                    'status_display', 'destination', 'preshipper_display', 'has_defects', 'created_at']
     list_filter = ['status', 'destination', 'has_blocking_defects', 'has_thickness_issues', 
-                   'created_at', 'fabrication_order']
+                   'preshipper_assigned', 'created_at', 'fabrication_order']
     search_fields = ['roll_id', 'shift__shift_id', 'fabrication_order__order_number']
     date_hierarchy = 'created_at'
     ordering = ['-created_at']
@@ -147,13 +147,17 @@ class RollAdmin(admin.ModelAdmin):
             'fields': ('shift_id_str', 'session_key'),
             'classes': ('collapse',)
         }),
+        ('Pré-shipper', {
+            'fields': ('preshipper_assigned', 'preshipper_assigned_at'),
+            'classes': ('collapse',)
+        }),
         ('Commentaire', {
             'fields': ('comment',),
             'classes': ('wide',)
         }),
     )
     
-    readonly_fields = ['roll_id', 'net_mass', 'grammage_calc']
+    readonly_fields = ['roll_id', 'net_mass', 'grammage_calc', 'preshipper_assigned_at']
     
     inlines = [RollThicknessInline, RollDefectInline]
     
@@ -182,7 +186,16 @@ class RollAdmin(admin.ModelAdmin):
     has_defects.boolean = True
     has_defects.short_description = "Défauts"
     
-    actions = ['force_to_cutting', 'set_as_conform']
+    def preshipper_display(self, obj):
+        """Affiche le pré-shipper assigné."""
+        if obj.preshipper_assigned:
+            date_str = obj.preshipper_assigned_at.strftime('%d/%m %H:%M') if obj.preshipper_assigned_at else ''
+            return format_html('<span style="color: #e83e8c; font-weight: bold;">{}</span><br/><small style="color: #6c757d;">{}</small>', 
+                              obj.preshipper_assigned, date_str)
+        return format_html('<span style="color: #28a745;">✓ Disponible</span>')
+    preshipper_display.short_description = "Pré-shipper"
+    
+    actions = ['force_to_cutting', 'set_as_conform', 'release_from_preshipper']
     
     def force_to_cutting(self, request, queryset):
         """Force les rouleaux sélectionnés vers la découpe."""
@@ -198,6 +211,16 @@ class RollAdmin(admin.ModelAdmin):
         if count:
             self.message_user(request, f"{count} rouleau(x) marqué(s) conforme(s).")
     set_as_conform.short_description = "Marquer comme conforme"
+    
+    def release_from_preshipper(self, request, queryset):
+        """Libère les rouleaux du pré-shipper pour les rendre disponibles."""
+        count = queryset.filter(preshipper_assigned__isnull=False).update(
+            preshipper_assigned=None, 
+            preshipper_assigned_at=None
+        )
+        if count:
+            self.message_user(request, f"{count} rouleau(x) libéré(s) du pré-shipper.")
+    release_from_preshipper.short_description = "Libérer du pré-shipper"
 
 
 @admin.register(CurrentProfile)

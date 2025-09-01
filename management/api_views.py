@@ -76,7 +76,6 @@ def dashboard_statistics(request):
     
     # Déterminer la date selon le mode
     from datetime import datetime, timedelta
-    from django.utils import timezone
     
     if mode == 'week':
         # Depuis le début de la semaine
@@ -469,17 +468,26 @@ def conforming_rolls_list(request):
         of_filter = request.GET.get('of', '').strip()
         operator_filter = request.GET.get('operator', '').strip()
         date_filter = request.GET.get('date', '').strip()
+        show_assigned = request.GET.get('show_assigned', '').lower() == 'true'
         limit = int(request.GET.get('limit', 100))
         
-        # Query de base : rouleaux conformes uniquement
-        queryset = Roll.objects.filter(
-            status='CONFORME'
-        ).select_related(
-            'shift__operator',
-            'fabrication_order'
-        ).prefetch_related(
-            'defects'
-        ).order_by('-created_at')
+        # Query de base : rouleaux conformes (et disponibles par défaut)
+        if show_assigned:
+            # Afficher tous les rouleaux conformes (assignés et non assignés)
+            queryset = Roll.objects.conforming().select_related(
+                'shift__operator',
+                'fabrication_order'
+            ).prefetch_related(
+                'defects'
+            ).order_by('-created_at')
+        else:
+            # Afficher seulement les rouleaux disponibles (non assignés à un pré-shipper)
+            queryset = Roll.objects.available_for_preshipper().select_related(
+                'shift__operator',
+                'fabrication_order'
+            ).prefetch_related(
+                'defects'
+            ).order_by('-created_at')
         
         # Appliquer les filtres
         if of_filter:
@@ -535,7 +543,11 @@ def conforming_rolls_list(request):
                 'net_mass': str(roll.net_mass) if roll.net_mass else None,
                 'has_blocking_defects': roll.has_blocking_defects,
                 'has_thickness_issues': roll.has_thickness_issues,
-                'comment': roll.comment or ''
+                'comment': roll.comment or '',
+                
+                # Informations pré-shipper
+                'preshipper_assigned': roll.preshipper_assigned,
+                'preshipper_assigned_at': roll.preshipper_assigned_at.isoformat() if roll.preshipper_assigned_at else None
             }
             
             data.append(roll_data)
@@ -546,7 +558,8 @@ def conforming_rolls_list(request):
             'filters_applied': {
                 'of': of_filter,
                 'operator': operator_filter,
-                'date': date_filter
+                'date': date_filter,
+                'show_assigned': show_assigned
             }
         })
         
@@ -585,7 +598,7 @@ def generate_control_report(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Récupérer les rouleaux sélectionnés
+        # Récupérer les rouleaux sélectionnés (conformes uniquement, assignés ou non)
         rolls = Roll.objects.filter(
             id__in=roll_ids,
             status='CONFORME'
@@ -674,6 +687,12 @@ def generate_control_report(request):
         )
         
         if success:
+            # Marquer les rouleaux comme assignés à ce pré-shipper
+            rolls.update(
+                preshipper_assigned=report_name,
+                preshipper_assigned_at=timezone.now()
+            )
+            
             # Retourner l'URL de téléchargement
             download_url = pick_list_service.get_export_url(f"{report_name}.pdf")
             return Response({

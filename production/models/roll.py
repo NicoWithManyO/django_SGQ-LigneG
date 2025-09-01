@@ -24,6 +24,17 @@ class RollManager(models.Manager):
     def non_conforming(self):
         """Retourne les rouleaux non conformes."""
         return self.filter(status='NON_CONFORME')
+    
+    def available_for_preshipper(self):
+        """Retourne les rouleaux conformes non encore assignés à un pré-shipper."""
+        return self.filter(status='CONFORME', preshipper_assigned__isnull=True)
+    
+    def assigned_to_preshipper(self, preshipper_name=None):
+        """Retourne les rouleaux assignés à un pré-shipper spécifique ou à tous."""
+        queryset = self.filter(preshipper_assigned__isnull=False)
+        if preshipper_name:
+            queryset = queryset.filter(preshipper_assigned=preshipper_name)
+        return queryset
 
 
 class Roll(models.Model):
@@ -179,6 +190,22 @@ class Roll(models.Model):
         null=True,
         verbose_name="Commentaire",
         help_text="Commentaire libre sur le rouleau"
+    )
+    
+    # Assignation pré-shipper
+    preshipper_assigned = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name="Pré-shipper assigné",
+        help_text="Nom du pré-shipper auquel ce rouleau a été assigné (ex: S2212001)"
+    )
+    
+    preshipper_assigned_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Date d'assignation pré-shipper",
+        help_text="Date et heure d'assignation au pré-shipper"
     )
     
     # Métadonnées
