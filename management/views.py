@@ -81,3 +81,21 @@ def production_statistics(request):
         'title': 'Statistiques de production'
     }
     return render(request, 'management/pages/statistics.html', context)
+
+
+@superuser_required
+def exports_list(request):
+    """Liste des fichiers Excel exportés."""
+    context = {
+        'title': 'Exports Excel'
+    }
+    return render(request, 'management/pages/exports.html', context)
+
+
+@superuser_required
+def control_report(request):
+    """Page de génération de relevé de contrôles."""
+    context = {
+        'title': 'Relevé de Contrôles'
+    }
+    return render(request, 'management/pages/control-report.html', context)

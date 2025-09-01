@@ -228,3 +228,379 @@ h6 { font-size: 0.875rem; }  /* 14px */
     h2 { font-size: 1.1rem; }
     h3 { font-size: 1rem; }
 }
+
+/* =======================================
+   STYLES MODERNES POUR INTERFACE MANAGEMENT
+   ======================================= */
+
+/* Navbar moderne */
+.modern-navbar {
+    background: linear-gradient(135deg, #0056b3 0%, #004494 50%, #003875 100%);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 1030;
+}
+
+.modern-navbar .navbar-brand:hover {
+    transform: scale(1.02);
+    transition: transform 0.2s ease;
+}
+
+/* Navigation pills */
+.nav-pill {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.nav-pill:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.nav-pill.active,
+.nav-pill:focus {
+    background: rgba(255, 255, 255, 0.25);
+    color: white !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Couleurs spécifiques pour chaque bouton */
+.nav-pill-dashboard {
+    background: linear-gradient(135deg, #0d6efd 0%, #084298 100%) !important;
+    color: white !important;
+    border: 1px solid #0d6efd !important;
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+}
+
+.nav-pill-dashboard:hover {
+    background: linear-gradient(135deg, #0b5ed7 0%, #052c65 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
+}
+
+.nav-pill-checklist {
+    background: linear-gradient(135deg, #198754 0%, #146c43 100%) !important;
+    color: white !important;
+    border: 1px solid #198754 !important;
+    box-shadow: 0 2px 8px rgba(25, 135, 84, 0.3);
+    animation: subtle-pulse 2s infinite;
+}
+
+.nav-pill-checklist:hover {
+    background: linear-gradient(135deg, #1e7e34 0%, #155724 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.4);
+}
+
+.nav-pill-reports {
+    background: linear-gradient(135deg, #fd7e14 0%, #d63384 100%) !important;
+    color: white !important;
+    border: 1px solid #fd7e14 !important;
+    box-shadow: 0 2px 8px rgba(253, 126, 20, 0.3);
+}
+
+.nav-pill-reports:hover {
+    background: linear-gradient(135deg, #e55a00 0%, #a02a5b 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(253, 126, 20, 0.4);
+}
+
+.nav-pill-stats {
+    background: linear-gradient(135deg, #6f42c1 0%, #20c997 100%) !important;
+    color: white !important;
+    border: 1px solid #6f42c1 !important;
+    box-shadow: 0 2px 8px rgba(111, 66, 193, 0.3);
+}
+
+.nav-pill-stats:hover {
+    background: linear-gradient(135deg, #5a2d91 0%, #0f5132 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.4);
+}
+
+.nav-pill-exports {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+    color: white !important;
+    border: 1px solid #17a2b8 !important;
+    box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
+}
+
+.nav-pill-exports:hover {
+    background: linear-gradient(135deg, #138496 0%, #0c525d 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
+}
+
+.nav-pill-control-report {
+    background: linear-gradient(135deg, #e83e8c 0%, #c21760 100%) !important;
+    color: white !important;
+    border: 1px solid #e83e8c !important;
+    box-shadow: 0 2px 8px rgba(232, 62, 140, 0.3);
+}
+
+.nav-pill-control-report:hover {
+    background: linear-gradient(135deg, #d91a72 0%, #a91548 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(232, 62, 140, 0.4);
+}
+
+/* Bouton accès rapide */
+.quick-access-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.quick-access-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Menu utilisateur */
+.user-menu-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.user-menu-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+/* Dropdown moderne */
+.modern-dropdown {
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.98);
+}
+
+.modern-dropdown .dropdown-item {
+    border-radius: 8px;
+    margin: 2px 8px;
+    transition: all 0.2s ease;
+}
+
+.modern-dropdown .dropdown-item:hover {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    transform: translateX(4px);
+}
+
+/* Bouton d'Action Flottant (FAB) */
+.floating-action-buttons {
+    position: fixed;
+    bottom: 80px;
+    right: 30px;
+    z-index: 1000;
+}
+
+.fab-container {
+    position: relative;
+}
+
+.fab {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+}
+
+.fab-primary {
+    background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+    color: white;
+    box-shadow: 0 4px 16px rgba(25, 135, 84, 0.4);
+}
+
+.fab:hover {
+    transform: scale(1.1) translateY(-2px);
+    box-shadow: 0 8px 24px rgba(25, 135, 84, 0.6);
+}
+
+.fab:active {
+    transform: scale(0.95);
+}
+
+/* Tooltip du FAB */
+.fab-tooltip {
+    position: absolute;
+    right: 70px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    pointer-events: none;
+    backdrop-filter: blur(10px);
+}
+
+.fab-tooltip::after {
+    content: '';
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 6px solid transparent;
+    border-left-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Logo manyO.dev à droite dans la navbar */
+.navbar-logo-right .manyo-logo-container {
+    transform: scale(0.12) !important;
+    transform-origin: center !important;
+    display: flex !important;
+    align-items: center !important;
+    height: 40px !important;
+    margin: 0 !important;
+    position: relative !important;
+    top: 0 !important;
+}
+
+.navbar-logo-right .manyo-logo {
+    margin: 0 !important;
+    position: relative !important;
+}
+
+/* Fix hauteur navbar */
+.modern-navbar {
+    min-height: 60px;
+    height: 60px;
+}
+
+.modern-navbar .navbar-brand {
+    height: 60px;
+    align-items: center;
+}
+
+.modern-navbar .navbar-nav {
+    align-items: center;
+}
+
+.modern-navbar .nav-pill {
+    height: auto !important;
+    padding: 8px 12px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
+@keyframes subtle-pulse {
+    0%, 100% {
+        box-shadow: 0 2px 8px rgba(25, 135, 84, 0.3);
+    }
+    50% {
+        box-shadow: 0 4px 12px rgba(25, 135, 84, 0.5);
+    }
+}
+
+
+/* Classe utilitaire pour le pulse */
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+/* Amélioration des cards KPI avec gradients */
+.management-kpi-card.bg-primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #084298 100%) !important;
+    box-shadow: 0 4px 16px rgba(13, 110, 253, 0.3);
+    transition: all 0.3s ease;
+}
+
+.management-kpi-card.bg-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(13, 110, 253, 0.4);
+}
+
+.management-kpi-card.bg-success {
+    background: linear-gradient(135deg, #198754 0%, #0d4a2b 100%) !important;
+    box-shadow: 0 4px 16px rgba(25, 135, 84, 0.3);
+}
+
+.management-kpi-card.bg-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(25, 135, 84, 0.4);
+}
+
+.management-kpi-card.bg-info {
+    background: linear-gradient(135deg, #0dcaf0 0%, #055160 100%) !important;
+    box-shadow: 0 4px 16px rgba(13, 202, 240, 0.3);
+}
+
+.management-kpi-card.bg-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(13, 202, 240, 0.4);
+}
+
+.management-kpi-card.bg-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #664d03 100%) !important;
+    box-shadow: 0 4px 16px rgba(255, 193, 7, 0.3);
+}
+
+.management-kpi-card.bg-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255, 193, 7, 0.4);
+}
+
+/* Ajustement du contenu pour la nouvelle navbar */
+body {
+    padding-top: 80px; /* Espace augmenté pour la navbar fixe */
+    padding-bottom: 20px; /* Espace réduit sans footer */
+}
+
+/* Responsive pour la navbar */
+@media (max-width: 768px) {
+    .modern-navbar .navbar-nav {
+        flex-direction: column !important;
+        margin: 10px 0;
+    }
+    
+    .nav-pill {
+        margin: 2px 0 !important;
+    }
+    
+    .floating-action-buttons {
+        bottom: 90px;
+        right: 20px;
+    }
+    
+    .fab {
+        width: 48px;
+        height: 48px;
+    }
+    
+}
+
+@media (max-width: 576px) {
+    .modern-navbar .navbar-brand div {
+        font-size: 0.85rem;
+    }
+    
+    .modern-navbar .navbar-brand small {
+        font-size: 0.7rem;
+    }
+}

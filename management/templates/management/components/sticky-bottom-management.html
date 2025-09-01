@@ -1,28 +1,88 @@
 {% load static %}
-<!-- Sticky Bottom Bar pour Management -->
-<div class="sticky-bottom-bar-management">
+<!-- Modern Navigation Bar pour Management -->
+<nav class="navbar navbar-expand-lg navbar-dark modern-navbar fixed-top shadow-lg">
     <div class="container-fluid">
-        <div class="row align-items-center h-100">
-            <!-- Logo -->
-            <div class="col-auto">
-                <div class="d-flex align-items-center">
-                    <img src="{% static 'frontend/img/logo-white-text.svg' %}" alt="Logo SGQ" style="height: 40px;">
-                </div>
+        <!-- Logo SGQ et titre -->
+        <a class="navbar-brand d-flex align-items-center" href="{% url 'management:dashboard' %}">
+            <img src="{% static 'frontendv3/img/logo-white-text.svg' %}" alt="Logo SGQ" style="height: 35px;" class="me-3">
+            <div>
+                <div class="fw-bold">SGQ Management</div>
+                <small class="text-white-50">Ligne G</small>
+            </div>
+        </a>
+        
+        <!-- Boutons de navigation principaux -->
+        <div class="navbar-nav flex-row me-auto ms-4">
+            <a class="nav-link px-3 rounded-pill me-2 nav-pill nav-pill-dashboard" href="{% url 'management:dashboard' %}" 
+               title="Dashboard principal">
+                <i class="bi bi-speedometer2 me-1"></i>
+                <span class="d-none d-lg-inline">Dashboard</span>
+            </a>
+            <a class="nav-link px-3 rounded-pill me-2 nav-pill nav-pill-checklist" 
+               href="{% url 'management:checklists-list' %}" 
+               title="Gestion des CheckLists">
+                <i class="bi bi-clipboard-check me-1"></i>
+                <span class="d-none d-lg-inline fw-bold">CheckLists</span>
+            </a>
+            <a class="nav-link px-3 rounded-pill me-2 nav-pill nav-pill-reports" href="{% url 'management:reports-list' %}" 
+               title="Rapports de production">
+                <i class="bi bi-file-earmark-bar-graph me-1"></i>
+                <span class="d-none d-lg-inline">Rapports</span>
+            </a>
+            <a class="nav-link px-3 rounded-pill me-2 nav-pill nav-pill-stats" href="{% url 'management:statistics' %}" 
+               title="Statistiques">
+                <i class="bi bi-graph-up me-1"></i>
+                <span class="d-none d-lg-inline">Stats</span>
+            </a>
+            <a class="nav-link px-3 rounded-pill me-2 nav-pill nav-pill-exports" href="{% url 'management:exports' %}" 
+               title="Exports Excel">
+                <i class="bi bi-file-earmark-excel me-1"></i>
+                <span class="d-none d-lg-inline">Exports</span>
+            </a>
+            <a class="nav-link px-3 rounded-pill nav-pill nav-pill-control-report" href="{% url 'management:control-report' %}" 
+               title="Pré-Shipper">
+                <i class="bi bi-clipboard2-check me-1"></i>
+                <span class="d-none d-lg-inline">Pré-Shipper</span>
+            </a>
+        </div>
+        
+        <!-- Menu utilisateur et logo à droite -->
+        <div class="d-flex align-items-center">
+            <!-- Menu utilisateur -->
+            <div class="dropdown me-3">
+                <button class="btn btn-outline-light btn-sm rounded-pill dropdown-toggle px-3 user-menu-btn" 
+                        type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-person-circle me-1"></i>
+                    <span class="d-none d-md-inline">{{ user.get_full_name|default:user.username }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 modern-dropdown">
+                    <li><h6 class="dropdown-header">{{ user.get_full_name|default:user.username }}</h6></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'frontendv3:production' %}">
+                            <i class="bi bi-gear me-2"></i>Interface Production
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'admin:index' %}">
+                            <i class="bi bi-tools me-2"></i>Administration
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="{% url 'admin:logout' %}">
+                            <i class="bi bi-box-arrow-right me-2"></i>Déconnexion
+                        </a>
+                    </li>
+                </ul>
             </div>
             
-            <!-- Informations utilisateur -->
-            <div class="col">
-                <div class="d-flex align-items-center justify-content-end">
-                    <span class="text-white me-3">
-                        <i class="bi bi-person-circle me-2"></i>
-                        <strong>{{ user.get_full_name|default:user.username }}</strong>
-                    </span>
-                    <a href="{% url 'admin:logout' %}" class="btn btn-sm btn-outline-light">
-                        <i class="bi bi-box-arrow-right me-1"></i>
-                        Déconnexion
-                    </a>
-                </div>
+            <!-- Logo manyO.dev -->
+            <div style="height: 40px; display: flex; align-items: center;">
+                {% include 'frontendv3/components/manyo-logo.html' with custom_class='navbar-logo-right' %}
             </div>
         </div>
     </div>
-</div>
+</nav>
+
+

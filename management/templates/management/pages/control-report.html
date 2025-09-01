@@ -1,0 +1,541 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+.control-report-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.filter-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.roll-table {
+    font-size: 0.875rem;
+}
+
+.roll-table th {
+    background: linear-gradient(135deg, #e83e8c 0%, #c21760 100%);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 12px 8px;
+}
+
+.roll-table td {
+    vertical-align: middle;
+    padding: 10px 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.roll-table tbody tr:hover {
+    background-color: rgba(232, 62, 140, 0.05);
+}
+
+.selection-checkbox {
+    transform: scale(1.2);
+}
+
+.selected-row {
+    background-color: rgba(232, 62, 140, 0.1) !important;
+}
+
+.stats-card {
+    background: linear-gradient(135deg, #e83e8c 0%, #c21760 100%);
+    color: white;
+    border: none;
+}
+
+.btn-select-of {
+    background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+    border: none;
+    color: white;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+}
+
+.btn-select-of:hover {
+    background: linear-gradient(135deg, #1e7e34 0%, #155724 100%);
+    color: white;
+}
+
+.btn-generate-report {
+    background: linear-gradient(135deg, #e83e8c 0%, #c21760 100%);
+    border: none;
+    color: white;
+    padding: 12px 24px;
+    font-weight: 600;
+}
+
+.btn-generate-report:hover {
+    background: linear-gradient(135deg, #d91a72 0%, #a91548 100%);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(232, 62, 140, 0.3);
+}
+
+.btn-generate-report:disabled {
+    background: #6c757d;
+    opacity: 0.65;
+}
+
+.filter-input {
+    border: 1px solid #e83e8c;
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+
+.filter-input:focus {
+    border-color: #c21760;
+    box-shadow: 0 0 0 0.2rem rgba(232, 62, 140, 0.25);
+}
+
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border-radius: 0.375rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid control-report-container mt-4" x-data="controlReportApp()">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-1">Pré-Shipper</h1>
+                    <p class="text-muted mb-0">Sélection de rouleaux conformes pour génération du pré-shipper</p>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center">
+                        <label class="form-label mb-0 me-2 text-muted">Pré-shipper :</label>
+                        <input type="text" 
+                               class="form-control" 
+                               style="width: 200px; border: 1px solid #e83e8c;"
+                               x-model="reportName" 
+                               placeholder="S2212001"
+                               pattern="S[0-9]{7}"
+                               @input="validateReportName()">
+                        <span class="text-muted ms-1">.pdf</span>
+                    </div>
+                    <button class="btn btn-generate-report" 
+                            x-bind:disabled="selectedRolls.length === 0 || !reportName.trim()"
+                            @click="generateReport()">
+                        <i class="bi bi-file-earmark-pdf me-2"></i>
+                        <span x-text="selectedRolls.length > 0 && reportName.trim() ? `Générer pick-list (${selectedRolls.length} rouleaux)` : 'Sélectionner des rouleaux et nom'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card filter-card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-funnel me-2 text-primary"></i>Filtres de recherche
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Ordre de Fabrication</label>
+                            <input type="text" class="form-control filter-input" 
+                                   x-model="filters.of" 
+                                   @input="loadRolls()"
+                                   placeholder="Ex: 3249">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Opérateur</label>
+                            <select class="form-select filter-input" 
+                                    x-model="filters.operator"
+                                    @change="loadRolls()">
+                                <option value="">Tous les opérateurs</option>
+                                <option value="MartinDUPONT">Martin DUPONT</option>
+                                <option value="PierreMARTIN">Pierre MARTIN</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Date de production</label>
+                            <input type="date" class="form-control filter-input" 
+                                   x-model="filters.date"
+                                   @change="loadRolls()">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <div class="w-100">
+                                <button class="btn btn-outline-secondary w-100" @click="clearFilters()">
+                                    <i class="bi bi-x-circle me-1"></i>Effacer filtres
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques de sélection -->
+    <div class="row mb-4" x-show="selectedRolls.length > 0">
+        <div class="col-12">
+            <div class="card stats-card">
+                <div class="card-body py-3">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="fw-bold fs-4" x-text="selectedRolls.length"></div>
+                            <div class="small">Rouleaux sélectionnés</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="fw-bold fs-4" x-text="getTotalLength() + ' m'"></div>
+                            <div class="small">Longueur totale</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="fw-bold fs-4" x-text="getUniqueOFs().length"></div>
+                            <div class="small">OF différents</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau des rouleaux -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check me-2"></i>
+                        Rouleaux conformes disponibles
+                        <span class="badge bg-secondary ms-2" x-text="rolls.length"></span>
+                    </h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary me-2" 
+                                @click="selectAll()" 
+                                x-bind:disabled="rolls.length === 0">
+                            <i class="bi bi-check-all me-1"></i>Tout sélectionner
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" 
+                                @click="deselectAll()"
+                                x-bind:disabled="selectedRolls.length === 0">
+                            <i class="bi bi-x-square me-1"></i>Tout désélectionner
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0 position-relative">
+                    <!-- Loading overlay -->
+                    <div class="loading-overlay" x-show="loading">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Chargement...</span>
+                            </div>
+                            <div class="mt-2">Chargement des rouleaux...</div>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="table-responsive" x-show="!loading">
+                        <table class="table table-hover roll-table mb-0" x-show="rolls.length > 0">
+                            <thead>
+                                <tr>
+                                    <th width="50">
+                                        <input type="checkbox" class="form-check-input selection-checkbox"
+                                               x-bind:checked="selectedRolls.length === rolls.length && rolls.length > 0"
+                                               x-bind:indeterminate="selectedRolls.length > 0 && selectedRolls.length < rolls.length"
+                                               @change="toggleAllSelection()">
+                                    </th>
+                                    <th>Roll ID</th>
+                                    <th>OF</th>
+                                    <th width="120">Actions</th>
+                                    <th>Longueur (m)</th>
+                                    <th>Épaisseur Moy.</th>
+                                    <th>Grammage</th>
+                                    <th>Date Production</th>
+                                    <th>Opérateur</th>
+                                    <th>Défauts</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="roll in rolls" :key="roll.id">
+                                    <tr x-bind:class="selectedRolls.includes(roll.id) ? 'selected-row' : ''">
+                                        <td>
+                                            <input type="checkbox" class="form-check-input selection-checkbox"
+                                                   x-bind:checked="selectedRolls.includes(roll.id)"
+                                                   @change="toggleRollSelection(roll.id)">
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold text-primary" x-text="roll.roll_id"></span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info" x-text="roll.fabrication_order"></span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-select-of" 
+                                                    @click="selectEntireOF(roll.fabrication_order)"
+                                                    title="Sélectionner tout l'OF">
+                                                <i class="bi bi-check-square me-1"></i>OF entier
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <span x-text="parseFloat(roll.length).toFixed(2)"></span>
+                                        </td>
+                                        <td>
+                                            <div class="text-center">
+                                                <small class="d-block">G: <span x-text="roll.avg_thickness_left || '-'"></span></small>
+                                                <small class="d-block">D: <span x-text="roll.avg_thickness_right || '-'"></span></small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span x-text="roll.grammage_calc ? parseFloat(roll.grammage_calc).toFixed(2) + ' g/m' : '-'"></span>
+                                        </td>
+                                        <td>
+                                            <span x-text="formatDate(roll.created_at)"></span>
+                                        </td>
+                                        <td>
+                                            <span x-text="roll.operator || '-'"></span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success" x-show="roll.defects_count === 0">Aucun</span>
+                                            <span class="badge bg-warning" x-show="roll.defects_count > 0" 
+                                                  x-text="roll.defects_count + ' défaut' + (roll.defects_count > 1 ? 's' : '')"></span>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+
+                        <!-- Empty state -->
+                        <div class="empty-state" x-show="rolls.length === 0 && !loading">
+                            <i class="bi bi-inbox" style="font-size: 3rem; color: #dee2e6;"></i>
+                            <h5 class="mt-3">Aucun rouleau trouvé</h5>
+                            <p>Aucun rouleau conforme ne correspond aux critères de filtrage.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function controlReportApp() {
+    return {
+        // State
+        loading: false,
+        rolls: [],
+        selectedRolls: [],
+        reportName: '',
+        
+        // Filtres
+        filters: {
+            of: '',
+            operator: '',
+            date: ''
+        },
+        
+        // Initialisation
+        init() {
+            this.loadRolls();
+        },
+        
+        // Chargement des rouleaux
+        async loadRolls() {
+            this.loading = true;
+            try {
+                const params = new URLSearchParams();
+                if (this.filters.of) params.append('of', this.filters.of);
+                if (this.filters.operator) params.append('operator', this.filters.operator);
+                if (this.filters.date) params.append('date', this.filters.date);
+                
+                const response = await fetch(`/management/api/conforming-rolls/?${params}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                this.rolls = data.results || [];
+                
+                // Nettoyer les sélections qui ne sont plus valides
+                this.selectedRolls = this.selectedRolls.filter(id => 
+                    this.rolls.some(roll => roll.id === id)
+                );
+                
+            } catch (error) {
+                console.error('Erreur lors du chargement des rouleaux:', error);
+                this.rolls = [];
+                alert('Erreur lors du chargement des rouleaux conformes');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        
+        // Effacer filtres
+        clearFilters() {
+            this.filters = { of: '', operator: '', date: '' };
+            this.loadRolls();
+        },
+        
+        // Sélection
+        toggleRollSelection(rollId) {
+            if (this.selectedRolls.includes(rollId)) {
+                this.selectedRolls = this.selectedRolls.filter(id => id !== rollId);
+            } else {
+                this.selectedRolls.push(rollId);
+            }
+        },
+        
+        selectAll() {
+            this.selectedRolls = this.rolls.map(roll => roll.id);
+        },
+        
+        deselectAll() {
+            this.selectedRolls = [];
+        },
+        
+        toggleAllSelection() {
+            if (this.selectedRolls.length === this.rolls.length) {
+                this.deselectAll();
+            } else {
+                this.selectAll();
+            }
+        },
+        
+        selectEntireOF(ofNumber) {
+            const ofRolls = this.rolls.filter(roll => roll.fabrication_order === ofNumber);
+            ofRolls.forEach(roll => {
+                if (!this.selectedRolls.includes(roll.id)) {
+                    this.selectedRolls.push(roll.id);
+                }
+            });
+        },
+        
+        // Statistiques
+        getTotalLength() {
+            return this.selectedRolls.reduce((total, rollId) => {
+                const roll = this.rolls.find(r => r.id === rollId);
+                return total + (roll ? parseFloat(roll.length) : 0);
+            }, 0).toFixed(2);
+        },
+        
+        getUniqueOFs() {
+            const ofs = this.selectedRolls.map(rollId => {
+                const roll = this.rolls.find(r => r.id === rollId);
+                return roll ? roll.fabrication_order : null;
+            }).filter(of => of !== null);
+            
+            return [...new Set(ofs)];
+        },
+        
+        // Utilitaires
+        formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        },
+        
+        // Validation du nom de fichier
+        validateReportName() {
+            // Format S + 7 chiffres (ex: S2212001)
+            const pattern = /^S\d{7}$/;
+            const input = document.querySelector('input[x-model="reportName"]');
+            if (this.reportName && !pattern.test(this.reportName)) {
+                input.style.borderColor = '#dc3545';
+            } else {
+                input.style.borderColor = '#e83e8c';
+            }
+        },
+        
+        // Génération de la pick-list
+        async generateReport() {
+            if (this.selectedRolls.length === 0 || !this.reportName.trim()) return;
+            
+            // Valider le format
+            const pattern = /^S\d{7}$/;
+            if (!pattern.test(this.reportName)) {
+                alert('Le nom du fichier doit être au format S + 7 chiffres (ex: S2212001)');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/management/api/generate-control-report/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        roll_ids: this.selectedRolls,
+                        report_name: this.reportName
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+                
+                const reportData = await response.json();
+                
+                if (reportData.success) {
+                    // PDF généré avec succès, ouvrir le téléchargement
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = reportData.download_url;
+                    downloadLink.download = `${this.reportName}.pdf`;
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                    
+                    // Afficher confirmation
+                    alert(`Pré-shipper ${this.reportName}.pdf généré avec succès !\n\n` +
+                          `${reportData.rolls_count} rouleaux\n` +
+                          `${reportData.total_length.toFixed(2)} m de longueur totale\n` +
+                          `OF: ${reportData.unique_ofs.join(', ')}`);
+                    
+                    // Réinitialiser la sélection et le nom
+                    this.selectedRolls = [];
+                    this.reportName = '';
+                } else {
+                    throw new Error(reportData.error || 'Erreur inconnue lors de la génération');
+                }
+                
+            } catch (error) {
+                console.error('Erreur lors de la génération:', error);
+                alert('Erreur lors de la génération du pré-shipper: ' + error.message);
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

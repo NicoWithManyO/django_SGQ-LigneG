@@ -17,6 +17,8 @@ urlpatterns = [
     path('checklists/', views.checklist_review_list, name='checklists-list'),
     path('checklists/<int:checklist_id>/', views.checklist_detail, name='checklist-detail'),
     path('statistics/', views.production_statistics, name='statistics'),
+    path('exports/', views.exports_list, name='exports'),
+    path('control-report/', views.control_report, name='control-report'),
     
     # API endpoints
     path('api/', include(router.urls)),
@@ -32,4 +34,6 @@ urlpatterns = [
     path('api/recent-rolls/', api_views.recent_rolls, name='api-recent-rolls'),
     path('api/rolls/<int:pk>/', api_views.roll_details, name='api-roll-details'),
     path('api/shifts/<int:pk>/', api_views.shift_details, name='api-shift-details'),
+    path('api/conforming-rolls/', api_views.conforming_rolls_list, name='api-conforming-rolls'),
+    path('api/generate-control-report/', api_views.generate_control_report, name='api-generate-control-report'),
 ]

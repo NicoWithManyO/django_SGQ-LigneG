@@ -2,6 +2,9 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, action, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.db.models import Count, Q
+from django.http import JsonResponse
+from django.utils import timezone
 
 from production.models import Shift, Roll
 from wcm.models import ChecklistResponse
@@ -454,4 +457,242 @@ def shift_details(request, pk):
         return Response(
             {'error': 'Poste non trouvé'},
             status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def conforming_rolls_list(request):
+    """API pour récupérer la liste des rouleaux conformes avec filtres."""
+    try:
+        # Récupérer les paramètres de filtre
+        of_filter = request.GET.get('of', '').strip()
+        operator_filter = request.GET.get('operator', '').strip()
+        date_filter = request.GET.get('date', '').strip()
+        limit = int(request.GET.get('limit', 100))
+        
+        # Query de base : rouleaux conformes uniquement
+        queryset = Roll.objects.filter(
+            status='CONFORME'
+        ).select_related(
+            'shift__operator',
+            'fabrication_order'
+        ).prefetch_related(
+            'defects'
+        ).order_by('-created_at')
+        
+        # Appliquer les filtres
+        if of_filter:
+            queryset = queryset.filter(
+                fabrication_order__order_number__icontains=of_filter
+            )
+        
+        if operator_filter:
+            queryset = queryset.filter(
+                Q(shift__operator__first_name__icontains=operator_filter) |
+                Q(shift__operator__last_name__icontains=operator_filter) |
+                Q(shift_id_str__icontains=operator_filter)
+            )
+        
+        if date_filter:
+            queryset = queryset.filter(
+                created_at__date=date_filter
+            )
+        
+        # Limiter le nombre de résultats
+        rolls = queryset[:limit]
+        
+        # Construire la réponse
+        data = []
+        for roll in rolls:
+            # Déterminer l'opérateur
+            operator = None
+            if roll.shift and roll.shift.operator:
+                operator = f"{roll.shift.operator.first_name} {roll.shift.operator.last_name.upper()}"
+            elif roll.shift_id_str:
+                # Extraire le nom de l'opérateur depuis shift_id_str
+                parts = roll.shift_id_str.split('_')
+                operator = parts[1] if len(parts) > 1 else None
+            
+            # Données du rouleau
+            roll_data = {
+                'id': roll.id,
+                'roll_id': roll.roll_id,
+                'fabrication_order': roll.fabrication_order.order_number if roll.fabrication_order else None,
+                'length': str(roll.length) if roll.length else None,
+                'avg_thickness_left': str(roll.avg_thickness_left) if roll.avg_thickness_left else None,
+                'avg_thickness_right': str(roll.avg_thickness_right) if roll.avg_thickness_right else None,
+                'grammage_calc': str(roll.grammage_calc) if roll.grammage_calc else None,
+                'created_at': roll.created_at.isoformat(),
+                'operator': operator,
+                'defects_count': roll.defects.count(),
+                'status': roll.status,
+                'destination': roll.destination,
+                
+                # Informations détaillées pour le relevé
+                'tube_mass': str(roll.tube_mass) if roll.tube_mass else None,
+                'total_mass': str(roll.total_mass) if roll.total_mass else None,
+                'net_mass': str(roll.net_mass) if roll.net_mass else None,
+                'has_blocking_defects': roll.has_blocking_defects,
+                'has_thickness_issues': roll.has_thickness_issues,
+                'comment': roll.comment or ''
+            }
+            
+            data.append(roll_data)
+        
+        return Response({
+            'count': len(data),
+            'results': data,
+            'filters_applied': {
+                'of': of_filter,
+                'operator': operator_filter,
+                'date': date_filter
+            }
+        })
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Erreur lors de la récupération des rouleaux: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def generate_control_report(request):
+    """API pour générer le relevé de contrôles des rouleaux sélectionnés."""
+    try:
+        roll_ids = request.data.get('roll_ids', [])
+        report_name = request.data.get('report_name', '').strip()
+        
+        if not roll_ids:
+            return Response(
+                {'error': 'Aucun rouleau sélectionné'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not report_name:
+            return Response(
+                {'error': 'Nom du fichier requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Valider le format du nom
+        import re
+        if not re.match(r'^S\d{7}$', report_name):
+            return Response(
+                {'error': 'Format du nom invalide (requis: S + 7 chiffres)'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Récupérer les rouleaux sélectionnés
+        rolls = Roll.objects.filter(
+            id__in=roll_ids,
+            status='CONFORME'
+        ).select_related(
+            'shift__operator',
+            'fabrication_order'
+        ).prefetch_related(
+            'defects__defect_type',
+            'shift__quality_controls'
+        ).order_by('fabrication_order__order_number', 'roll_number')
+        
+        if not rolls.exists():
+            return Response(
+                {'error': 'Aucun rouleau conforme trouvé'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Préparer les données pour le service PDF
+        report_data = {
+            'title': 'Pick-list',
+            'generated_at': timezone.now().isoformat(),
+            'rolls_count': rolls.count(),
+            'total_length': sum(float(r.length or 0) for r in rolls),
+            'unique_ofs': list(set(r.fabrication_order.order_number for r in rolls if r.fabrication_order)),
+            'rolls': []
+        }
+        
+        for roll in rolls:
+            # Déterminer l'opérateur
+            operator = None
+            if roll.shift and roll.shift.operator:
+                operator = f"{roll.shift.operator.first_name} {roll.shift.operator.last_name.upper()}"
+            elif roll.shift_id_str:
+                parts = roll.shift_id_str.split('_')
+                operator = parts[1] if len(parts) > 1 else None
+            
+            # Récupérer les contrôles qualité du shift
+            quality_controls = None
+            if roll.shift and roll.shift.quality_controls.exists():
+                qc = roll.shift.quality_controls.first()
+                quality_controls = {
+                    'micrometer_left_avg': float(qc.micrometer_left_avg) if qc.micrometer_left_avg else None,
+                    'micrometer_right_avg': float(qc.micrometer_right_avg) if qc.micrometer_right_avg else None,
+                    'surface_mass_left_avg': float(qc.surface_mass_left_avg) if qc.surface_mass_left_avg else None,
+                    'surface_mass_right_avg': float(qc.surface_mass_right_avg) if qc.surface_mass_right_avg else None,
+                    'dry_extract': float(qc.dry_extract) if qc.dry_extract else None,
+                    'loi_given': qc.loi_given
+                }
+            
+            # Défauts
+            defects = []
+            for defect in roll.defects.all():
+                defects.append({
+                    'type': defect.defect_type.name,
+                    'position': defect.meter_position,
+                    'side': defect.get_side_position_display(),
+                    'severity': defect.defect_type.severity
+                })
+            
+            roll_data = {
+                'roll_id': roll.roll_id,
+                'fabrication_order': roll.fabrication_order.order_number if roll.fabrication_order else None,
+                'length': float(roll.length) if roll.length else None,
+                'operator': operator,
+                'production_date': roll.created_at.isoformat(),
+                'avg_thickness_left': float(roll.avg_thickness_left) if roll.avg_thickness_left else None,
+                'avg_thickness_right': float(roll.avg_thickness_right) if roll.avg_thickness_right else None,
+                'grammage_calc': float(roll.grammage_calc) if roll.grammage_calc else None,
+                'tube_mass': float(roll.tube_mass) if roll.tube_mass else None,
+                'total_mass': float(roll.total_mass) if roll.total_mass else None,
+                'net_mass': float(roll.net_mass) if roll.net_mass else None,
+                'defects': defects,
+                'quality_controls': quality_controls,
+                'comment': roll.comment or ''
+            }
+            
+            report_data['rolls'].append(roll_data)
+        
+        # Générer le PDF avec le PickListService
+        from .services.pick_list_service import PickListService
+        
+        pick_list_service = PickListService()
+        success, file_path, message = pick_list_service.generate_pick_list_pdf(
+            rolls_data=report_data,
+            report_name=report_name
+        )
+        
+        if success:
+            # Retourner l'URL de téléchargement
+            download_url = pick_list_service.get_export_url(f"{report_name}.pdf")
+            return Response({
+                'success': True,
+                'message': message,
+                'download_url': download_url,
+                'file_path': file_path,
+                'rolls_count': report_data['rolls_count'],
+                'total_length': report_data['total_length'],
+                'unique_ofs': report_data['unique_ofs']
+            })
+        else:
+            return Response(
+                {'error': message},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Erreur lors de la génération du PDF: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

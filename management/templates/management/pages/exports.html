@@ -1,0 +1,275 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+.exports-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.export-card {
+    transition: all 0.3s ease;
+    border: none;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.export-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.file-icon {
+    font-size: 2.5rem;
+    color: #198754;
+}
+
+.file-size {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.download-btn {
+    background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.download-btn:hover {
+    background: linear-gradient(135deg, #1e7e34 0%, #155724 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(25, 135, 84, 0.3);
+}
+
+.refresh-btn {
+    background: linear-gradient(135deg, #0d6efd 0%, #084298 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.refresh-btn:hover {
+    background: linear-gradient(135deg, #0b5ed7 0%, #052c65 100%);
+    transform: translateY(-1px);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+}
+
+.loading-spinner {
+    display: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid exports-container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-1">{{ title }}</h1>
+                    <p class="text-muted mb-0">Fichiers Excel générés automatiquement</p>
+                </div>
+                <button class="btn btn-primary refresh-btn" id="refreshBtn">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Actualiser
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Exports Rouleaux -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="bi bi-files me-2 text-primary"></i>Exports des Rouleaux
+            </h4>
+            <div class="row" id="rollsExports">
+                <div class="col-12">
+                    <div class="loading-spinner text-center p-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Exports Shifts -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="bi bi-clock-history me-2 text-success"></i>Exports des Postes
+            </h4>
+            <div class="row" id="shiftsExports">
+                <div class="col-12">
+                    <div class="loading-spinner text-center p-4">
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Variables globales
+    let rollsFiles = [];
+    let shiftsFiles = [];
+    
+    // Fonction pour formater la taille des fichiers
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Fonction pour formater les dates
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+    
+    // Fonction pour créer une carte d'export
+    function createExportCard(file, type) {
+        const iconClass = type === 'rolls' ? 'bi-file-earmark-spreadsheet' : 'bi-clock-history';
+        const colorClass = type === 'rolls' ? 'text-primary' : 'text-success';
+        
+        return `
+            <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
+                <div class="card export-card h-100">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="me-3">
+                                <i class="bi ${iconClass} file-icon ${colorClass}"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="card-title mb-1">${file.name}</h6>
+                                <div class="file-size">${formatFileSize(file.size)}</div>
+                                <div class="file-size">Modifié le ${formatDate(file.modified)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-auto">
+                            <button class="btn download-btn text-white w-100" 
+                                    onclick="downloadFile('${file.path}', '${file.name}')">
+                                <i class="bi bi-download me-2"></i>Télécharger
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Fonction pour afficher l'état vide
+    function showEmptyState(containerId, message) {
+        document.getElementById(containerId).innerHTML = `
+            <div class="col-12">
+                <div class="empty-state">
+                    <i class="bi bi-inbox" style="font-size: 3rem; color: #dee2e6;"></i>
+                    <h5 class="mt-3">Aucun fichier</h5>
+                    <p>${message}</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Fonction pour télécharger un fichier
+    window.downloadFile = function(filePath, fileName) {
+        window.open(filePath, '_blank');
+    }
+    
+    
+    // Fonction pour charger les exports
+    async function loadExports() {
+        try {
+            // Afficher les spinners
+            document.querySelectorAll('.loading-spinner').forEach(spinner => {
+                spinner.style.display = 'block';
+            });
+            
+            // Fichiers Excel réels
+            rollsFiles = [
+                {
+                    name: 'rolls_export.xlsx',
+                    size: 0,
+                    modified: new Date().toISOString(),
+                    path: '/media/exports/rolls_export.xlsx'
+                }
+            ];
+            
+            shiftsFiles = [
+                {
+                    name: 'shifts_export.xlsx',
+                    size: 0,
+                    modified: new Date().toISOString(),
+                    path: '/media/exports/shifts_export.xlsx'
+                }
+            ];
+            
+            // Masquer les spinners et afficher immédiatement
+            document.querySelectorAll('.loading-spinner').forEach(spinner => {
+                spinner.style.display = 'none';
+            });
+            
+            // Afficher les fichiers
+            updateExportsDisplay();
+            
+        } catch (error) {
+            console.error('Erreur lors du chargement des exports:', error);
+            document.querySelectorAll('.loading-spinner').forEach(spinner => {
+                spinner.style.display = 'none';
+            });
+            showEmptyState('rollsExports', 'Erreur lors du chargement des exports de rouleaux');
+            showEmptyState('shiftsExports', 'Erreur lors du chargement des exports de postes');
+        }
+    }
+    
+    // Fonction pour mettre à jour l'affichage
+    function updateExportsDisplay() {
+        // Exports rouleaux
+        if (rollsFiles.length > 0) {
+            const rollsHtml = rollsFiles.map(file => createExportCard(file, 'rolls')).join('');
+            document.getElementById('rollsExports').innerHTML = rollsHtml;
+        } else {
+            showEmptyState('rollsExports', 'Aucun export de rouleaux disponible');
+        }
+        
+        // Exports shifts
+        if (shiftsFiles.length > 0) {
+            const shiftsHtml = shiftsFiles.map(file => createExportCard(file, 'shifts')).join('');
+            document.getElementById('shiftsExports').innerHTML = shiftsHtml;
+        } else {
+            showEmptyState('shiftsExports', 'Aucun export de postes disponible');
+        }
+    }
+    
+    // Gestionnaire du bouton refresh
+    document.getElementById('refreshBtn').addEventListener('click', function() {
+        loadExports();
+    });
+    
+    // Chargement initial
+    loadExports();
+});
+</script>
+{% endblock %}
