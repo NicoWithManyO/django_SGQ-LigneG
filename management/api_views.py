@@ -715,3 +715,91 @@ def generate_control_report(request):
             {'error': f'Erreur lors de la génération du PDF: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def unassign_roll(request):
+    """API pour désassigner un rouleau de son pré-shipper."""
+    try:
+        roll_id = request.data.get('roll_id')
+        
+        if not roll_id:
+            return Response(
+                {'error': 'ID du rouleau requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Récupérer le rouleau
+        roll = Roll.objects.get(pk=roll_id)
+        
+        # Vérifier qu'il est assigné à un pré-shipper
+        if not roll.preshipper_assigned:
+            return Response(
+                {'error': 'Ce rouleau n\'est pas assigné à un pré-shipper'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Désassigner le rouleau
+        old_preshipper = roll.preshipper_assigned
+        roll.preshipper_assigned = None
+        roll.preshipper_assigned_at = None
+        roll.save()
+        
+        return Response({
+            'success': True,
+            'message': f'Rouleau {roll.roll_id} désassigné du pré-shipper {old_preshipper}',
+            'roll_id': roll.id
+        })
+        
+    except Roll.DoesNotExist:
+        return Response(
+            {'error': 'Rouleau non trouvé'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'error': f'Erreur lors de la désassignation: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def checklist_details(request, pk):
+    """Récupère les détails complets d'une checklist pour affichage dans la modale."""
+    try:
+        # Récupérer la checklist avec ses détails
+        checklist_data = ChecklistService.get_checklist_details(pk)
+        
+        if not checklist_data:
+            return Response(
+                {'error': 'Checklist non trouvée'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Construire la réponse avec les données formatées pour la modale
+        data = {
+            'checklist': {
+                'id': checklist_data['checklist'].id,
+                'shift_id': checklist_data['checklist'].shift.shift_id,
+                'operator_name': f"{checklist_data['checklist'].operator.first_name} {checklist_data['checklist'].operator.last_name}",
+                'shift_date': checklist_data['checklist'].shift.date.strftime('%d/%m/%Y'),
+                'shift_vacation': checklist_data['checklist'].shift.get_vacation_display(),
+                'operator_signature': checklist_data['checklist'].operator_signature,
+                'operator_signature_date': checklist_data['checklist'].operator_signature_date.strftime('%d/%m/%Y %H:%M') if checklist_data['checklist'].operator_signature_date else None,
+                'management_visa': checklist_data['checklist'].management_visa,
+                'management_visa_date': checklist_data['checklist'].management_visa_date.strftime('%d/%m/%Y %H:%M') if checklist_data['checklist'].management_visa_date else None,
+                'is_signed': bool(checklist_data['checklist'].management_visa),
+            },
+            'items_by_category': checklist_data['items_by_category'],
+            'statistics': checklist_data['statistics']
+        }
+        
+        return Response(data)
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Erreur lors de la récupération des détails: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

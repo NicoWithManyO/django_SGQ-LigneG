@@ -26,6 +26,11 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- Logo manyO.dev flottant en haut -->
+    <div class="manyo-floating-top">
+        {% include 'frontendv3/components/manyo-logo.html' with custom_class='floating-top-logo' %}
+    </div>
+    
     {% block content %}
     {% endblock %}
     

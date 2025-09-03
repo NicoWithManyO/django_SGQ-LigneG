@@ -230,21 +230,89 @@ h6 { font-size: 0.875rem; }  /* 14px */
 }
 
 /* =======================================
-   STYLES MODERNES POUR INTERFACE MANAGEMENT
+   STYLES MODERNES POUR INTERFACE MANAGEMENT - THEME SAINT-GOBAIN
    ======================================= */
 
-/* Navbar moderne */
-.modern-navbar {
-    background: linear-gradient(135deg, #0056b3 0%, #004494 50%, #003875 100%);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    z-index: 1030;
+/* Variables couleurs Saint-Gobain */
+:root {
+    --sg-gradient: linear-gradient(
+        to right,
+        #43B0B1 0%,
+        #43B0B1 10%,
+        #0096D5 30%,
+        #0E4E95 42%,
+        #EC1846 55%,
+        #F26F21 84%,
+        #F26F21 100%
+    );
+    --sg-primary: #0E4E95;
+    --sg-secondary: #43B0B1;
+    --sg-accent: #EC1846;
+    --sg-warning: #F26F21;
 }
 
-.modern-navbar .navbar-brand:hover {
-    transform: scale(1.02);
-    transition: transform 0.2s ease;
+/* Background de la page avec dégradé Saint-Gobain incliné */
+body {
+    background: linear-gradient(
+        45deg,
+        #43B0B1 0%,
+        #43B0B1 10%,
+        #0096D5 30%,
+        #0E4E95 42%,
+        #EC1846 55%,
+        #F26F21 84%,
+        #F26F21 100%
+    ) !important;
+    background-attachment: fixed !important;
 }
+
+/* Classe pour désactiver le dégradé Saint-Gobain */
+body.sg-gradient-disabled {
+    background: var(--bs-light) !important;
+    background-attachment: initial !important;
+}
+
+/* Classe pour appliquer le dégradé Saint-Gobain comme couleur de texte */
+.sg-gradient-text {
+    background: linear-gradient(
+        45deg,
+        #43B0B1 0%,
+        #43B0B1 10%,
+        #0096D5 30%,
+        #0E4E95 42%,
+        #EC1846 55%,
+        #F26F21 84%,
+        #F26F21 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% 200%;
+    animation: gradientShift 3s ease infinite;
+}
+
+/* Animation pour le dégradé de texte */
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Navbar avec thème Saint-Gobain */
+.modern-navbar {
+    background: rgba(14, 78, 149, 0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 2px solid rgba(67, 176, 177, 0.3);
+    z-index: 1030;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
 
 /* Navigation pills */
 .nav-pill {
@@ -268,45 +336,45 @@ h6 { font-size: 0.875rem; }  /* 14px */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Couleurs spécifiques pour chaque bouton */
+/* Couleurs spécifiques pour chaque bouton - Thème Saint-Gobain */
 .nav-pill-dashboard {
-    background: linear-gradient(135deg, #0d6efd 0%, #084298 100%) !important;
+    background: linear-gradient(135deg, var(--sg-primary) 0%, #0a3a75 100%) !important;
     color: white !important;
-    border: 1px solid #0d6efd !important;
-    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+    border: 1px solid var(--sg-primary) !important;
+    box-shadow: 0 2px 8px rgba(14, 78, 149, 0.4);
 }
 
 .nav-pill-dashboard:hover {
-    background: linear-gradient(135deg, #0b5ed7 0%, #052c65 100%) !important;
+    background: linear-gradient(135deg, #0a3a75 0%, #062b5a 100%) !important;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
+    box-shadow: 0 4px 12px rgba(14, 78, 149, 0.5);
 }
 
 .nav-pill-checklist {
-    background: linear-gradient(135deg, #198754 0%, #146c43 100%) !important;
+    background: linear-gradient(135deg, var(--sg-secondary) 0%, #2a8d8e 100%) !important;
     color: white !important;
-    border: 1px solid #198754 !important;
-    box-shadow: 0 2px 8px rgba(25, 135, 84, 0.3);
+    border: 1px solid var(--sg-secondary) !important;
+    box-shadow: 0 2px 8px rgba(67, 176, 177, 0.4);
     animation: subtle-pulse 2s infinite;
 }
 
 .nav-pill-checklist:hover {
-    background: linear-gradient(135deg, #1e7e34 0%, #155724 100%) !important;
+    background: linear-gradient(135deg, #2a8d8e 0%, #1f6d6e 100%) !important;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.4);
+    box-shadow: 0 4px 12px rgba(67, 176, 177, 0.5);
 }
 
 .nav-pill-reports {
-    background: linear-gradient(135deg, #fd7e14 0%, #d63384 100%) !important;
+    background: linear-gradient(135deg, var(--sg-warning) 0%, var(--sg-accent) 100%) !important;
     color: white !important;
-    border: 1px solid #fd7e14 !important;
-    box-shadow: 0 2px 8px rgba(253, 126, 20, 0.3);
+    border: 1px solid var(--sg-warning) !important;
+    box-shadow: 0 2px 8px rgba(242, 111, 33, 0.4);
 }
 
 .nav-pill-reports:hover {
-    background: linear-gradient(135deg, #e55a00 0%, #a02a5b 100%) !important;
+    background: linear-gradient(135deg, #d6651a 0%, #c7143e 100%) !important;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(253, 126, 20, 0.4);
+    box-shadow: 0 4px 12px rgba(242, 111, 33, 0.5);
 }
 
 .nav-pill-stats {
@@ -336,16 +404,16 @@ h6 { font-size: 0.875rem; }  /* 14px */
 }
 
 .nav-pill-control-report {
-    background: linear-gradient(135deg, #e83e8c 0%, #c21760 100%) !important;
+    background: linear-gradient(135deg, var(--sg-accent) 0%, #c7143e 100%) !important;
     color: white !important;
-    border: 1px solid #e83e8c !important;
-    box-shadow: 0 2px 8px rgba(232, 62, 140, 0.3);
+    border: 1px solid var(--sg-accent) !important;
+    box-shadow: 0 2px 8px rgba(236, 24, 70, 0.4);
 }
 
 .nav-pill-control-report:hover {
-    background: linear-gradient(135deg, #d91a72 0%, #a91548 100%) !important;
+    background: linear-gradient(135deg, #c7143e 0%, #a01235 100%) !important;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(232, 62, 140, 0.4);
+    box-shadow: 0 4px 12px rgba(236, 24, 70, 0.5);
 }
 
 /* Bouton accès rapide */
@@ -458,21 +526,29 @@ h6 { font-size: 0.875rem; }  /* 14px */
     border-left-color: rgba(0, 0, 0, 0.8);
 }
 
-/* Logo manyO.dev à droite dans la navbar */
-.navbar-logo-right .manyo-logo-container {
-    transform: scale(0.12) !important;
-    transform-origin: center !important;
-    display: flex !important;
-    align-items: center !important;
-    height: 40px !important;
-    margin: 0 !important;
-    position: relative !important;
-    top: 0 !important;
+/* Logo manyO.dev flottant en bas de page */
+.manyo-floating-top {
+    position: fixed;
+    bottom: 10px;
+    right: 20px;
+    z-index: 1040; /* Au-dessus de la navbar */
+    pointer-events: none; /* N'interfère pas avec les clics */
 }
 
-.navbar-logo-right .manyo-logo {
+.floating-top-logo .manyo-logo-container {
+    transform: scale(0.08) !important;
+    transform-origin: bottom right !important;
+    display: flex !important;
+    align-items: center !important;
     margin: 0 !important;
     position: relative !important;
+    pointer-events: all; /* Réactive les interactions sur le logo */
+}
+
+.floating-top-logo .manyo-logo {
+    margin: 0 !important;
+    position: relative !important;
+    padding: 16px 24px 10px 24px !important; /* Réduit le padding du container */
 }
 
 /* Fix hauteur navbar */
@@ -524,26 +600,39 @@ h6 { font-size: 0.875rem; }  /* 14px */
     animation: pulse 2s infinite;
 }
 
-/* Amélioration des cards KPI avec gradients */
+/* Cards avec thème Saint-Gobain */
+.card {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+}
+
+.card-header {
+    background: rgba(14, 78, 149, 0.1) !important;
+    border-bottom: 2px solid rgba(67, 176, 177, 0.3) !important;
+}
+
+/* Amélioration des cards KPI avec gradients Saint-Gobain */
 .management-kpi-card.bg-primary {
-    background: linear-gradient(135deg, #0d6efd 0%, #084298 100%) !important;
-    box-shadow: 0 4px 16px rgba(13, 110, 253, 0.3);
+    background: linear-gradient(135deg, var(--sg-primary) 0%, #0a3a75 100%) !important;
+    box-shadow: 0 4px 16px rgba(14, 78, 149, 0.4);
     transition: all 0.3s ease;
 }
 
 .management-kpi-card.bg-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(13, 110, 253, 0.4);
+    box-shadow: 0 8px 24px rgba(14, 78, 149, 0.5);
 }
 
 .management-kpi-card.bg-success {
-    background: linear-gradient(135deg, #198754 0%, #0d4a2b 100%) !important;
-    box-shadow: 0 4px 16px rgba(25, 135, 84, 0.3);
+    background: linear-gradient(135deg, var(--sg-secondary) 0%, #2a8d8e 100%) !important;
+    box-shadow: 0 4px 16px rgba(67, 176, 177, 0.4);
 }
 
 .management-kpi-card.bg-success:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(25, 135, 84, 0.4);
+    box-shadow: 0 8px 24px rgba(67, 176, 177, 0.5);
 }
 
 .management-kpi-card.bg-info {
@@ -557,13 +646,47 @@ h6 { font-size: 0.875rem; }  /* 14px */
 }
 
 .management-kpi-card.bg-warning {
-    background: linear-gradient(135deg, #ffc107 0%, #664d03 100%) !important;
-    box-shadow: 0 4px 16px rgba(255, 193, 7, 0.3);
+    background: linear-gradient(135deg, var(--sg-warning) 0%, #d6651a 100%) !important;
+    box-shadow: 0 4px 16px rgba(242, 111, 33, 0.4);
 }
 
 .management-kpi-card.bg-warning:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(255, 193, 7, 0.4);
+    box-shadow: 0 8px 24px rgba(242, 111, 33, 0.5);
+}
+
+/* Boutons avec thème Saint-Gobain */
+.btn-primary {
+    background: linear-gradient(135deg, var(--sg-primary) 0%, #0a3a75 100%) !important;
+    border: 1px solid var(--sg-primary) !important;
+    box-shadow: 0 2px 8px rgba(14, 78, 149, 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #0a3a75 0%, #062b5a 100%) !important;
+    box-shadow: 0 4px 12px rgba(14, 78, 149, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--sg-secondary) 0%, #2a8d8e 100%) !important;
+    border: 1px solid var(--sg-secondary) !important;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--sg-accent) 0%, #c7143e 100%) !important;
+    border: 1px solid var(--sg-accent) !important;
+}
+
+/* Tableaux avec thème Saint-Gobain */
+.table-striped > tbody > tr:nth-of-type(odd) {
+    background: rgba(67, 176, 177, 0.05) !important;
+}
+
+.table thead th {
+    background: linear-gradient(135deg, var(--sg-primary) 0%, #0a3a75 100%) !important;
+    color: white !important;
+    border: none !important;
 }
 
 /* Ajustement du contenu pour la nouvelle navbar */
@@ -591,6 +714,16 @@ body {
     .fab {
         width: 48px;
         height: 48px;
+    }
+    
+    /* Logo flottant responsive */
+    .manyo-floating-top {
+        bottom: 5px;
+        right: 10px;
+    }
+    
+    .floating-top-logo .manyo-logo-container {
+        transform: scale(0.06) !important;
     }
     
 }

@@ -10,11 +10,15 @@ function checklistReview() {
         visa: '',
         isSubmitting: false,
         visaModal: null,
+        checklistDetailsModal: null,
+        currentChecklistDetails: null,
+        isLoadingDetails: false,
         
         // Initialisation
         init() {
-            // Initialiser le modal Bootstrap
+            // Initialiser les modals Bootstrap
             this.visaModal = new bootstrap.Modal(this.$refs.visaModal);
+            this.checklistDetailsModal = new bootstrap.Modal(this.$refs.checklistDetailsModal);
             
             // Charger les statistiques
             this.loadStatistics();
@@ -96,6 +100,40 @@ function checklistReview() {
             } finally {
                 this.isSubmitting = false;
             }
+        },
+        
+        // Afficher les détails d'une checklist
+        async showChecklistDetails(checklistId) {
+            this.isLoadingDetails = true;
+            this.currentChecklistDetails = null;
+            this.checklistDetailsModal.show();
+            
+            try {
+                const response = await fetch(`/management/api/checklists/${checklistId}/details/`);
+                if (!response.ok) {
+                    throw new Error('Erreur lors du chargement des détails');
+                }
+                
+                const data = await response.json();
+                this.currentChecklistDetails = data;
+                
+            } catch (error) {
+                console.error('Erreur chargement détails checklist:', error);
+                alert('Erreur lors du chargement des détails de la checklist');
+                this.checklistDetailsModal.hide();
+            } finally {
+                this.isLoadingDetails = false;
+            }
+        },
+        
+        // Viser une checklist depuis la modale de détails
+        async visaChecklistFromModal(checklistId, shiftId) {
+            this.checklistDetailsModal.hide();
+            
+            // Attendre que la modale se ferme avant d'ouvrir la suivante
+            setTimeout(() => {
+                this.openVisaModal(checklistId, shiftId);
+            }, 300);
         },
         
         // Recharger la page

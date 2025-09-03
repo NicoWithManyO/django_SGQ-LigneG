@@ -13,6 +13,8 @@ function shiftReports() {
         currentPage: 1,
         itemsPerPage: 20,
         totalItems: 0,
+        shiftDetails: null,
+        isLoadingShiftDetails: false,
         
         // Propriétés calculées
         get totalPages() {
@@ -198,10 +200,42 @@ function shiftReports() {
             return 'bg-danger';
         },
         
+        // Afficher les détails d'un poste
+        async showShiftDetails(shiftId) {
+            this.isLoadingShiftDetails = true;
+            this.shiftDetails = null;
+            
+            // Ouvrir la modal immédiatement avec le spinner
+            const modalElement = document.getElementById('shiftDetailsModal');
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            
+            try {
+                const response = await fetch(`/management/api/shifts/${shiftId}/`);
+                
+                if (!response.ok) {
+                    throw new Error('Erreur lors du chargement des détails');
+                }
+                
+                const shiftDetails = await response.json();
+                
+                // Stocker les détails dans le contexte
+                this.shiftDetails = shiftDetails;
+                
+            } catch (error) {
+                console.error('Erreur détails poste:', error);
+                this.showError('Impossible de charger les détails du poste');
+                modal.hide();
+            } finally {
+                this.isLoadingShiftDetails = false;
+            }
+        },
+        
         // Afficher une erreur
         showError(message) {
             // TODO: Implémenter une notification toast
             console.error(message);
+            alert(message); // Temporaire
         }
     }
 }

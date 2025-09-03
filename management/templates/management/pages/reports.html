@@ -34,7 +34,7 @@
                             <select class="form-select" x-model="filters.operator">
                                 <option value="">Tous</option>
                                 <template x-for="operator in operators" :key="operator.id">
-                                    <option :value="operator.id" x-text="operator.full_name"></option>
+                                    <option :value="operator.id" x-text="operator.first_name + ' ' + operator.last_name.toUpperCase()"></option>
                                 </template>
                             </select>
                         </div>
@@ -94,9 +94,10 @@
                                 <template x-for="shift in shifts" :key="shift.id">
                                     <tr>
                                         <td>
-                                            <a :href="`/management/reports/${shift.id}/`" 
-                                               class="text-decoration-none fw-bold"
-                                               x-text="shift.shift_id"></a>
+                                            <button type="button" 
+                                                    class="btn btn-link text-decoration-none fw-bold p-0"
+                                                    @click="showShiftDetails(shift.id)"
+                                                    x-text="shift.shift_id"></button>
                                         </td>
                                         <td x-text="formatDate(shift.date)"></td>
                                         <td>
@@ -128,11 +129,12 @@
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <a :href="`/management/reports/${shift.id}/`" 
-                                                   class="btn btn-outline-primary"
-                                                   title="Voir le rapport">
+                                                <button type="button"
+                                                        class="btn btn-outline-primary"
+                                                        @click="showShiftDetails(shift.id)"
+                                                        title="Voir le rapport">
                                                     <i class="bi bi-eye"></i>
-                                                </a>
+                                                </button>
                                                 <button class="btn btn-outline-secondary"
                                                         @click="downloadPDF(shift.id)"
                                                         title="Télécharger PDF">
@@ -178,6 +180,217 @@
                             </li>
                         </ul>
                     </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal détails poste -->
+    <div class="modal fade" id="shiftDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-clipboard-data me-2"></i>
+                        Détails du poste <span x-text="shiftDetails?.shift_id" class="fw-bold"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Spinner de chargement -->
+                    <div x-show="isLoadingShiftDetails" class="text-center py-5">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        <div class="mt-3">Chargement des détails...</div>
+                    </div>
+                    
+                    <!-- Contenu du poste -->
+                    <div x-show="!isLoadingShiftDetails && shiftDetails">
+                        <!-- KPIs principaux -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card border text-center">
+                                    <div class="card-body p-2">
+                                        <h6 class="mb-1 text-muted">TRS</h6>
+                                        <h3 class="mb-0 sg-gradient-text fw-bold" x-text="shiftDetails?.kpis?.trs ? shiftDetails.kpis.trs + '%' : '--'">--</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border text-center">
+                                    <div class="card-body p-2">
+                                        <h6 class="mb-1 text-muted">Disponibilité</h6>
+                                        <h3 class="mb-0 sg-gradient-text fw-bold" x-text="shiftDetails?.kpis?.availability ? shiftDetails.kpis.availability + '%' : '--'">--</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border text-center">
+                                    <div class="card-body p-2">
+                                        <h6 class="mb-1 text-muted">Performance</h6>
+                                        <h3 class="mb-0 sg-gradient-text fw-bold" x-text="shiftDetails?.kpis?.performance ? shiftDetails.kpis.performance + '%' : '--'">--</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border text-center">
+                                    <div class="card-body p-2">
+                                        <h6 class="mb-1 text-muted">Qualité</h6>
+                                        <h3 class="mb-0 sg-gradient-text fw-bold" x-text="shiftDetails?.kpis?.quality ? shiftDetails.kpis.quality + '%' : '--'">--</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Informations générales et production -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-3">Informations générales</h6>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td class="text-muted">Date :</td>
+                                        <td x-text="shiftDetails?.date ? new Date(shiftDetails.date).toLocaleDateString('fr-FR') : '--'"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Vacation :</td>
+                                        <td x-text="shiftDetails?.vacation || '--'"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Opérateur :</td>
+                                        <td x-text="shiftDetails?.operator || '--'"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Machine :</td>
+                                        <td>
+                                            <span :class="shiftDetails?.started_at_beginning ? 'text-success' : 'text-danger'">
+                                                <i :class="shiftDetails?.started_at_beginning ? 'bi-play-circle-fill' : 'bi-stop-circle-fill'"></i>
+                                                Début
+                                            </span>
+                                            <span class="mx-2">→</span>
+                                            <span :class="shiftDetails?.started_at_end ? 'text-success' : 'text-danger'">
+                                                <i :class="shiftDetails?.started_at_end ? 'bi-play-circle-fill' : 'bi-stop-circle-fill'"></i>
+                                                Fin
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-3">Production</h6>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td class="text-muted">Longueur totale :</td>
+                                        <td><span x-text="shiftDetails?.total_length || '0'"></span> m</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Longueur OK :</td>
+                                        <td class="text-success"><span x-text="shiftDetails?.ok_length || '0'"></span> m</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Longueur NOK :</td>
+                                        <td class="text-danger"><span x-text="shiftDetails?.nok_length || '0'"></span> m</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Déchet :</td>
+                                        <td class="text-warning"><span x-text="shiftDetails?.waste_length || '0'"></span> m</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Nombre de rouleaux :</td>
+                                        <td><span x-text="shiftDetails?.rolls_count || '0'"></span></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Commentaires -->
+                        <div class="mb-4" x-show="shiftDetails?.operator_comments || shiftDetails?.manager_comments">
+                            <h6 class="text-muted mb-2">Commentaires</h6>
+                            <div x-show="shiftDetails?.operator_comments" class="mb-2">
+                                <strong>Opérateur :</strong>
+                                <p class="border rounded p-2 bg-light mb-2" x-text="shiftDetails.operator_comments"></p>
+                            </div>
+                            <div x-show="shiftDetails?.manager_comments">
+                                <strong>Management :</strong>
+                                <p class="border rounded p-2 bg-info bg-opacity-10" x-text="shiftDetails.manager_comments"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Rouleaux produits -->
+                        <div class="mb-4" x-show="shiftDetails?.rolls && shiftDetails.rolls.length > 0">
+                            <h6 class="text-muted mb-3">Rouleaux produits</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID Rouleau</th>
+                                            <th>Longueur</th>
+                                            <th>Grammage</th>
+                                            <th>Moy. EP G</th>
+                                            <th>Moy. EP D</th>
+                                            <th>Défauts</th>
+                                            <th>Statut</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template x-for="roll in shiftDetails.rolls" :key="roll.id">
+                                            <tr style="cursor: pointer;">
+                                                <td x-text="roll.roll_id" class="small"></td>
+                                                <td x-text="roll.length ? roll.length + ' m' : '--'" class="small"></td>
+                                                <td x-text="roll.grammage ? roll.grammage + ' g/m²' : '--'" class="small"></td>
+                                                <td x-text="roll.avg_thickness_left ? roll.avg_thickness_left.toFixed(2) : '--'" class="small"></td>
+                                                <td x-text="roll.avg_thickness_right ? roll.avg_thickness_right.toFixed(2) : '--'" class="small"></td>
+                                                <td class="text-center">
+                                                    <span x-show="roll.defects_count > 0" 
+                                                          class="badge bg-warning text-dark"
+                                                          x-text="roll.defects_count"></span>
+                                                    <span x-show="roll.defects_count === 0" class="text-muted">-</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge" 
+                                                          :class="roll.is_conform ? 'bg-success' : 'bg-danger'"
+                                                          x-text="roll.is_conform ? 'OK' : 'NOK'"></span>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Temps perdus -->
+                        <div class="mb-4" x-show="shiftDetails?.lost_times && shiftDetails.lost_times.length > 0">
+                            <h6 class="text-muted mb-3">
+                                Temps perdus
+                                <small class="ms-2">Total : <span x-text="shiftDetails?.total_lost_time || '0'"></span> minutes</small>
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Raison</th>
+                                            <th>Catégorie</th>
+                                            <th>Durée</th>
+                                            <th>Commentaire</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template x-for="entry in shiftDetails.lost_times" :key="entry">
+                                            <tr>
+                                                <td x-text="entry.reason" class="small"></td>
+                                                <td x-text="entry.category" class="small"></td>
+                                                <td x-text="entry.duration + ' min'" class="small"></td>
+                                                <td x-text="entry.comment || '-'" class="small"></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
                 </div>
             </div>
         </div>

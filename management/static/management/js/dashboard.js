@@ -60,6 +60,9 @@ function managementDashboard() {
         dateInput: '',  // Valeur du champ de saisie de date
         rollDetails: null,  // Détails du rouleau pour la modale
         shiftDetails: null,  // Détails du poste pour la modale
+        checklistDetailsModal: null,  // Modal des détails de checklist
+        currentChecklistDetails: null,  // Détails de la checklist courante
+        isLoadingChecklistDetails: false,  // État de chargement des détails
         
         // Propriétés calculées
         get displayedChecklists() {
@@ -77,6 +80,12 @@ function managementDashboard() {
         // Initialisation
         init() {
             console.log('Dashboard init called');
+            
+            // Initialiser le modal des détails de checklist
+            if (this.$refs.checklistDetailsModal) {
+                this.checklistDetailsModal = new bootstrap.Modal(this.$refs.checklistDetailsModal);
+            }
+            
             this.loadUserDefaultVisa();  // Charger le visa par défaut
             this.loadDashboardData();
             // Rafraîchissement automatique toutes les 30 secondes
@@ -954,6 +963,48 @@ function managementDashboard() {
                 console.error('Erreur détails poste:', error);
                 this.showError('Impossible de charger les détails du poste');
             }
+        },
+        
+        // ========== GESTION CHECKLISTS ==========
+        
+        // Afficher les détails d'une checklist
+        async showChecklistDetails(checklistId) {
+            this.isLoadingChecklistDetails = true;
+            this.currentChecklistDetails = null;
+            
+            if (this.checklistDetailsModal) {
+                this.checklistDetailsModal.show();
+            }
+            
+            try {
+                const response = await fetch(`/management/api/checklists/${checklistId}/details/`);
+                if (!response.ok) {
+                    throw new Error('Erreur lors du chargement des détails');
+                }
+                
+                const data = await response.json();
+                this.currentChecklistDetails = data;
+                
+            } catch (error) {
+                console.error('Erreur chargement détails checklist:', error);
+                this.showError('Erreur lors du chargement des détails de la checklist');
+                if (this.checklistDetailsModal) {
+                    this.checklistDetailsModal.hide();
+                }
+            } finally {
+                this.isLoadingChecklistDetails = false;
+            }
+        },
+        
+        // Viser une checklist depuis la modale de détails
+        async visaChecklistFromModal(checklistId, shiftId) {
+            if (this.checklistDetailsModal) {
+                this.checklistDetailsModal.hide();
+            }
+            
+            // Pour l'instant, rediriger vers la page checklists pour la fonction visa
+            // TODO: Implémenter la modal de visa directement dans le dashboard
+            window.location.href = `/management/checklists/`;
         }
     }
 }

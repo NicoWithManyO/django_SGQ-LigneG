@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/checklists/', api_views.all_checklists, name='api-all-checklists'),
     path('api/checklists/pending/', api_views.pending_checklists, name='api-pending-checklists'),
     path('api/checklists/<int:pk>/sign/', api_views.sign_checklist, name='api-sign-checklist'),
+    path('api/checklists/<int:pk>/details/', api_views.checklist_details, name='api-checklist-details'),
     path('api/trends/', api_views.production_trends, name='api-production-trends'),
     path('api/operator-performance/', api_views.operator_performance, name='api-operator-performance'),
     path('api/defects-analysis/', api_views.defects_analysis, name='api-defects-analysis'),
@@ -36,4 +37,5 @@ urlpatterns = [
     path('api/shifts/<int:pk>/', api_views.shift_details, name='api-shift-details'),
     path('api/conforming-rolls/', api_views.conforming_rolls_list, name='api-conforming-rolls'),
     path('api/generate-control-report/', api_views.generate_control_report, name='api-generate-control-report'),
+    path('api/unassign-roll/', api_views.unassign_roll, name='api-unassign-roll'),
 ]

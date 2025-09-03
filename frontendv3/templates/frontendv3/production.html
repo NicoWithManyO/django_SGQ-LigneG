@@ -28,7 +28,7 @@
                     <div x-data="shiftForm()">
                         <!-- Ligne 1: Opérateur seul -->
                         <div class="row mb-3">
-                            <div class="col-8">
+                            <div class="col-10">
                                 <label class="form-label">Opérateur</label>
                                 <div class="input-group">
                                     <select class="form-select" 
@@ -262,7 +262,7 @@
                         
                         <!-- Longueur cible -->
                         <div class="row mb-3">
-                            <div class="col-7">
+                            <div class="col-5">
                                 <label class="form-label text-nowrap">Longueur cible (m.)</label>
                                 <div class="input-group" @click.away="!targetLengthLocked && lockTargetLength()">
                                     <input type="number" 
@@ -281,12 +281,12 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="col-5"></div>
+                            <div class="col-7"></div>
                         </div>
                         
                         <!-- OF découpe -->
                         <div class="row mb-3">
-                            <div class="col-7">
+                            <div class="col-5">
                                 <label class="form-label">OF découpe</label>
                                 <div class="input-group" @click.away="!ofDecoupeLocked && lockOFDecoupe()">
                                     <select class="form-select" 
@@ -308,7 +308,7 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="col-5"></div>
+                            <div class="col-7"></div>
                         </div>
                     </div>
                 </div>
@@ -733,7 +733,7 @@
                         <div style="display: grid; grid-template-columns: 1fr auto 1fr; position: relative;">
                             <!-- Colonne gauche -->
                             <div>
-                                <div class="small text-muted mb-2 text-center">Micromaire G (<span x-text="micromaireUnit || 'mlAir/min'"></span>)</div>
+                                <div class="small text-muted mb-2 text-center">Micronaire G (<span x-text="micromaireUnit || 'mlAir/min'"></span>)</div>
                                 <div class="d-flex flex-column align-items-center">
                                     <div class="position-relative mb-1">
                                         <input type="text" class="form-control form-control-sm text-center" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireG[0]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateInQualityFields('micromaireG[0]', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateInQualityFields('micromaireG[0]', false)" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireG[0] = v">
@@ -783,7 +783,7 @@
                             
                             <!-- Colonne droite -->
                             <div>
-                                <div class="small text-muted mb-2 text-center">Micromaire D (<span x-text="micromaireUnit || 'mlAir/min'"></span>)</div>
+                                <div class="small text-muted mb-2 text-center">Micronaire D (<span x-text="micromaireUnit || 'mlAir/min'"></span>)</div>
                                 <div class="d-flex flex-column align-items-center">
                                     <div class="position-relative mb-1">
                                         <input type="text" class="form-control form-control-sm text-center" style="width: 80px; cursor: pointer; font-weight: bold; color: #0d6efd;" placeholder="--" x-model="micromaireD[0]" @focus="$event.target.select()" @keypress="($event.key === 'e' || (isNaN($event.key) && $event.key !== '.' && $event.key !== ',')) && $event.preventDefault()" @keydown.tab.prevent="window.rollGridInstance.navigateInQualityFields('micromaireD[0]', $event.shiftKey)" @keydown.enter.prevent="window.rollGridInstance.navigateInQualityFields('micromaireD[0]', false)" @blur="let v = $event.target.value.replace(',', '.'); if(v && v[0] === '.') v = '0' + v; micromaireD[0] = v">

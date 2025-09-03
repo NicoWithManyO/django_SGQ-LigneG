@@ -45,9 +45,31 @@
 }
 
 .stats-card {
-    background: linear-gradient(135deg, #e83e8c 0%, #c21760 100%);
-    color: white;
-    border: none;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #e83e8c;
+    box-shadow: 0 4px 6px rgba(232, 62, 140, 0.1);
+}
+
+.stats-card .fw-bold {
+    background: linear-gradient(
+        45deg,
+        #43B0B1 0%,
+        #43B0B1 10%,
+        #0096D5 30%,
+        #0E4E95 42%,
+        #EC1846 55%,
+        #F26F21 84%,
+        #F26F21 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% 200%;
+    animation: gradientShift 3s ease infinite;
+}
+
+.stats-card .small {
+    color: #6c757d;
 }
 
 .btn-select-of {
@@ -122,12 +144,12 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h1 class="h3 mb-1">Pré-Shipper</h1>
-                    <p class="text-muted mb-0">Sélection de rouleaux conformes pour génération du pré-shipper</p>
+                    <h1 class="h3 mb-1">Relevés de Contrôles</h1>
+                    <p class="text-muted mb-0">Sélection de rouleaux conformes pour génération du relevé de contrôles</p>
                 </div>
                 <div class="d-flex align-items-center gap-3">
                     <div class="d-flex align-items-center">
-                        <label class="form-label mb-0 me-2 text-muted">Pré-shipper :</label>
+                        <label class="form-label mb-0 me-2 text-muted">RC :</label>
                         <input type="text" 
                                class="form-control" 
                                style="width: 200px; border: 1px solid #e83e8c;"
@@ -141,7 +163,7 @@
                             x-bind:disabled="selectedRolls.length === 0 || !reportName.trim()"
                             @click="generateReport()">
                         <i class="bi bi-file-earmark-pdf me-2"></i>
-                        <span x-text="selectedRolls.length > 0 && reportName.trim() ? `Générer pick-list (${selectedRolls.length} rouleaux${getReassignedCount() > 0 ? ', ' + getReassignedCount() + ' réassignés' : ''})` : 'Sélectionner des rouleaux et nom'"></span>
+                        <span x-text="selectedRolls.length > 0 && reportName.trim() ? `Générer RC (${selectedRolls.length} rouleaux${getReassignedCount() > 0 ? ', ' + getReassignedCount() + ' réassignés' : ''})` : 'Sélectionner des rouleaux et nom'"></span>
                     </button>
                 </div>
             </div>
@@ -165,29 +187,19 @@
                                    placeholder="Ex: 3249">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Opérateur</label>
-                            <select class="form-select filter-input" 
-                                    x-model="filters.operator"
-                                    @change="loadRolls()">
-                                <option value="">Tous les opérateurs</option>
-                                <option value="MartinDUPONT">Martin DUPONT</option>
-                                <option value="PierreMARTIN">Pierre MARTIN</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
                             <label class="form-label">Date de production</label>
                             <input type="date" class="form-control filter-input" 
                                    x-model="filters.date"
                                    @change="loadRolls()">
                         </div>
-                        <div class="col-md-2 d-flex align-items-end">
+                        <div class="col-md-3 d-flex align-items-end">
                             <div class="w-100">
                                 <button class="btn btn-outline-secondary w-100" @click="clearFilters()">
                                     <i class="bi bi-x-circle me-1"></i>Effacer filtres
                                 </button>
                             </div>
                         </div>
-                        <div class="col-md-1 d-flex align-items-center">
+                        <div class="col-md-3 d-flex align-items-center">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" 
                                        type="checkbox" 
@@ -276,7 +288,6 @@
                                     </th>
                                     <th>Roll ID</th>
                                     <th>OF</th>
-                                    <th width="120">Actions</th>
                                     <th>Longueur (m)</th>
                                     <th>Épaisseur Moy.</th>
                                     <th>Grammage</th>
@@ -299,13 +310,11 @@
                                             <span class="fw-bold text-primary" x-text="roll.roll_id"></span>
                                         </td>
                                         <td>
-                                            <span class="badge bg-info" x-text="roll.fabrication_order"></span>
-                                        </td>
-                                        <td>
-                                            <button class="btn btn-select-of" 
+                                            <button class="btn btn-link p-0 fw-bold" 
+                                                    style="color: #0dcaf0;"
                                                     @click="selectEntireOF(roll.fabrication_order)"
-                                                    title="Sélectionner tout l'OF">
-                                                <i class="bi bi-check-square me-1"></i>OF entier
+                                                    title="Cliquer pour sélectionner tout l'OF"
+                                                    x-text="roll.fabrication_order">
                                             </button>
                                         </td>
                                         <td>
@@ -332,11 +341,19 @@
                                                   x-text="roll.defects_count + ' défaut' + (roll.defects_count > 1 ? 's' : '')"></span>
                                         </td>
                                         <td x-show="filters.showAssigned">
-                                            <span x-show="!roll.preshipper_assigned" class="badge bg-success">Disponible</span>
-                                            <div x-show="roll.preshipper_assigned">
-                                                <span class="badge bg-warning" x-text="roll.preshipper_assigned"></span>
-                                                <br><small class="text-muted">Sera réassigné</small>
-                                            </div>
+                                            <template x-if="!roll.preshipper_assigned || roll.preshipper_assigned === '' || roll.preshipper_assigned === null">
+                                                <span class="badge bg-success">Disponible</span>
+                                            </template>
+                                            <template x-if="roll.preshipper_assigned && roll.preshipper_assigned !== '' && roll.preshipper_assigned !== null">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="badge bg-warning" x-text="roll.preshipper_assigned"></span>
+                                                    <button class="btn btn-outline-danger btn-sm" 
+                                                            @click="unassignRoll(roll.id)"
+                                                            title="Désassigner de son pré-shipper">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                </div>
+                                            </template>
                                         </td>
                                     </tr>
                                 </template>
@@ -366,11 +383,9 @@ function controlReportApp() {
         rolls: [],
         selectedRolls: [],
         reportName: '',
-        
         // Filtres
         filters: {
             of: '',
-            operator: '',
             date: '',
             showAssigned: false
         },
@@ -386,7 +401,6 @@ function controlReportApp() {
             try {
                 const params = new URLSearchParams();
                 if (this.filters.of) params.append('of', this.filters.of);
-                if (this.filters.operator) params.append('operator', this.filters.operator);
                 if (this.filters.date) params.append('date', this.filters.date);
                 if (this.filters.showAssigned) params.append('show_assigned', 'true');
                 
@@ -422,7 +436,7 @@ function controlReportApp() {
         
         // Effacer filtres
         clearFilters() {
-            this.filters = { of: '', operator: '', date: '', showAssigned: false };
+            this.filters = { of: '', date: '', showAssigned: false };
             this.loadRolls();
         },
         
@@ -506,6 +520,43 @@ function controlReportApp() {
                 input.style.borderColor = '#dc3545';
             } else {
                 input.style.borderColor = '#e83e8c';
+            }
+        },
+        
+        // Désassigner un rouleau de son pré-shipper
+        async unassignRoll(rollId) {
+            try {
+                const response = await fetch('/management/api/unassign-roll/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        roll_id: rollId
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Rafraîchir la liste des rouleaux
+                    await this.loadRolls();
+                    
+                    // Retirer de la sélection si il était sélectionné
+                    this.selectedRolls = this.selectedRolls.filter(id => id !== rollId);
+                } else {
+                    throw new Error(result.error || 'Erreur lors de la désassignation');
+                }
+                
+            } catch (error) {
+                console.error('Erreur lors de la désassignation:', error);
+                alert('Erreur lors de la désassignation du rouleau: ' + error.message);
             }
         },
         

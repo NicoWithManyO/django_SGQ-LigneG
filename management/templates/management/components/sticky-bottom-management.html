@@ -5,8 +5,8 @@
         <!-- Logo SGQ et titre -->
         <a class="navbar-brand d-flex align-items-center" href="{% url 'management:dashboard' %}">
             <img src="{% static 'frontendv3/img/logo-white-text.svg' %}" alt="Logo SGQ" style="height: 35px;" class="me-3">
-            <div>
-                <div class="fw-bold">SGQ Management</div>
+            <div class="d-flex flex-column justify-content-center" style="line-height: 1.1;">
+                <div class="fw-bold" style="margin-bottom: -2px;">SGQ Management</div>
                 <small class="text-white-50">Ligne G</small>
             </div>
         </a>
@@ -29,25 +29,31 @@
                 <i class="bi bi-file-earmark-bar-graph me-1"></i>
                 <span class="d-none d-lg-inline">Rapports</span>
             </a>
-            <a class="nav-link px-3 rounded-pill me-2 nav-pill nav-pill-stats" href="{% url 'management:statistics' %}" 
-               title="Statistiques">
-                <i class="bi bi-graph-up me-1"></i>
-                <span class="d-none d-lg-inline">Stats</span>
-            </a>
             <a class="nav-link px-3 rounded-pill me-2 nav-pill nav-pill-exports" href="{% url 'management:exports' %}" 
                title="Exports Excel">
                 <i class="bi bi-file-earmark-excel me-1"></i>
                 <span class="d-none d-lg-inline">Exports</span>
             </a>
             <a class="nav-link px-3 rounded-pill nav-pill nav-pill-control-report" href="{% url 'management:control-report' %}" 
-               title="Pré-Shipper">
+               title="Relevés de Contrôles">
                 <i class="bi bi-clipboard2-check me-1"></i>
-                <span class="d-none d-lg-inline">Pré-Shipper</span>
+                <span class="d-none d-lg-inline">RC</span>
             </a>
         </div>
         
         <!-- Menu utilisateur et logo à droite -->
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center" x-data="sgToggle()">
+            <!-- Toggle dégradé Saint-Gobain -->
+            <div class="me-3">
+                <button class="btn btn-outline-light btn-sm rounded-pill px-3" 
+                        @click="toggleGradient()"
+                        :title="gradientEnabled ? 'Désactiver le dégradé Saint-Gobain' : 'Activer le dégradé Saint-Gobain'"
+                        type="button">
+                    <i class="bi me-1" :class="gradientEnabled ? 'bi-palette-fill' : 'bi-palette'"></i>
+                    <span class="d-none d-md-inline" x-text="gradientEnabled ? 'SG ON' : 'SG OFF'">SG ON</span>
+                </button>
+            </div>
+            
             <!-- Menu utilisateur -->
             <div class="dropdown me-3">
                 <button class="btn btn-outline-light btn-sm rounded-pill dropdown-toggle px-3 user-menu-btn" 
@@ -77,12 +83,44 @@
                 </ul>
             </div>
             
-            <!-- Logo manyO.dev -->
-            <div style="height: 40px; display: flex; align-items: center;">
-                {% include 'frontendv3/components/manyo-logo.html' with custom_class='navbar-logo-right' %}
-            </div>
         </div>
     </div>
 </nav>
 
+<!-- Logo manyO.dev flottant en haut -->
+<div class="manyo-floating-top">
+    {% include 'frontendv3/components/manyo-logo.html' with custom_class='floating-top-logo' %}
+</div>
+
+<script>
+// Fonction Alpine.js pour le toggle du dégradé Saint-Gobain
+function sgToggle() {
+    return {
+        gradientEnabled: true,
+        
+        init() {
+            // Récupérer l'état depuis localStorage
+            const saved = localStorage.getItem('sg-gradient-enabled');
+            this.gradientEnabled = saved !== null ? JSON.parse(saved) : true;
+            
+            // Appliquer l'état au démarrage
+            this.applyGradient();
+        },
+        
+        toggleGradient() {
+            this.gradientEnabled = !this.gradientEnabled;
+            
+            // Sauvegarder dans localStorage
+            localStorage.setItem('sg-gradient-enabled', JSON.stringify(this.gradientEnabled));
+            
+            // Appliquer le changement
+            this.applyGradient();
+        },
+        
+        applyGradient() {
+            document.body.classList.toggle('sg-gradient-disabled', !this.gradientEnabled);
+        }
+    }
+}
+</script>
 
