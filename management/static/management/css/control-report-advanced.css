@@ -1,0 +1,391 @@
+/**
+ * Styles pour l'interface RC Avancée
+ * Interface ergonomique de sélection de rouleaux
+ */
+
+/* === VARIABLES CSS === */
+:root {
+  --primary-color: #0d6efd;
+  --success-color: #198754;
+  --warning-color: #fd7e14;
+  --danger-color: #dc3545;
+  --info-color: #0dcaf0;
+  --light-color: #f8f9fa;
+  --dark-color: #212529;
+  --border-radius: 8px;
+  --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  --transition: all 0.15s ease-in-out;
+}
+
+/* === CONTENEUR PRINCIPAL === */
+.advanced-rc-container {
+  min-height: calc(100vh - 100px);
+  background: var(--light-color);
+  transition: var(--transition);
+}
+
+/* === ZONES PRINCIPALES === */
+.selected-zone {
+  border: 2px solid var(--success-color);
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+}
+
+.selected-zone .card-header {
+  background: linear-gradient(135deg, var(--success-color), #20c997);
+  color: white;
+  border-radius: calc(var(--border-radius) - 2px) calc(var(--border-radius) - 2px) 0 0;
+}
+
+.selector-zone {
+  border: 2px solid var(--info-color);
+  border-radius: var(--border-radius);
+}
+
+.selector-zone .card-header {
+  background: linear-gradient(135deg, var(--info-color), #0dcaf0);
+  color: white;
+  border-radius: calc(var(--border-radius) - 2px) calc(var(--border-radius) - 2px) 0 0;
+}
+
+/* === ROULEAUX SÉLECTIONNÉS === */
+.selected-rolls {
+  gap: 8px;
+}
+
+.selected-roll-card {
+  cursor: pointer;
+  transition: var(--transition);
+  animation: slideIn 0.2s ease-out;
+}
+
+.selected-roll-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.selected-roll-card .card {
+  min-width: 180px;
+  max-width: 220px;
+  border-width: 2px;
+}
+
+/* Zone vide avec animation */
+.empty-selection {
+  background: rgba(var(--info-color), 0.05);
+  transition: var(--transition);
+}
+
+.empty-selection:hover {
+  background: rgba(var(--info-color), 0.1);
+  border-color: var(--info-color) !important;
+}
+
+/* === GRILLE DE ROULEAUX === */
+.rolls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.roll-card {
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+}
+
+.roll-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.roll-card.selected {
+  transform: translateY(-3px);
+  box-shadow: 0 0.5rem 1rem rgba(var(--success-color), 0.3);
+}
+
+.roll-card .card {
+  height: 100%;
+  border-width: 2px;
+  transition: var(--transition);
+}
+
+.roll-card:hover .card {
+  border-color: var(--info-color);
+}
+
+.roll-card.selected .card {
+  border-color: var(--success-color) !important;
+  background: rgba(var(--success-color), 0.05);
+}
+
+/* === ANIMATIONS === */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.roll-card {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* === BADGES ET INDICATEURS === */
+.badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* === FORMULAIRES ET INPUTS === */
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--info-color);
+  box-shadow: 0 0 0 0.2rem rgba(var(--info-color), 0.25);
+}
+
+.input-group-text {
+  background: var(--light-color);
+  border-color: #ced4da;
+}
+
+/* === BOUTONS === */
+.btn {
+  border-radius: calc(var(--border-radius) / 2);
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, var(--success-color), #20c997);
+  border: none;
+}
+
+.btn-outline-danger:hover {
+  background: var(--danger-color);
+  border-color: var(--danger-color);
+}
+
+/* === PAGINATION === */
+.pagination .page-link {
+  color: var(--info-color);
+  border-color: #dee2e6;
+  transition: var(--transition);
+}
+
+.pagination .page-link:hover {
+  background-color: var(--info-color);
+  border-color: var(--info-color);
+  color: white;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: var(--info-color);
+  border-color: var(--info-color);
+}
+
+/* === MODE SOMBRE === */
+body.dark-mode {
+  background: var(--dark-color);
+  color: white;
+}
+
+body.dark-mode .advanced-rc-container {
+  background: #1a1a1a;
+}
+
+body.dark-mode .card {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: white;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: white;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+  background: #2d3748;
+  border-color: var(--info-color);
+  color: white;
+}
+
+body.dark-mode .input-group-text {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: white;
+}
+
+body.dark-mode .text-muted {
+  color: #a0a0a0 !important;
+}
+
+body.dark-mode .roll-card.dark-mode .card {
+  background: #2d3748;
+  border-color: #4a5568;
+}
+
+body.dark-mode .roll-card.selected .card {
+  background: rgba(var(--success-color), 0.2) !important;
+  border-color: var(--success-color) !important;
+}
+
+body.dark-mode .empty-selection {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #4a5568 !important;
+}
+
+/* === SCROLLBARS PERSONNALISÉES === */
+.card-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.card-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.card-body::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.card-body::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+body.dark-mode .card-body::-webkit-scrollbar-track {
+  background: #2d3748;
+}
+
+body.dark-mode .card-body::-webkit-scrollbar-thumb {
+  background: #4a5568;
+}
+
+body.dark-mode .card-body::-webkit-scrollbar-thumb:hover {
+  background: #606060;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  .rolls-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+  }
+  
+  .selected-roll-card .card {
+    min-width: 150px;
+    max-width: 180px;
+  }
+  
+  .advanced-rc-container {
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .rolls-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+  
+  .selected-rolls {
+    gap: 6px;
+  }
+}
+
+/* === ÉTATS DE CHARGEMENT === */
+.spinner-border {
+  color: var(--info-color);
+}
+
+/* === TOOLTIPS ET HINTS === */
+.form-label.small {
+  font-weight: 600;
+  color: var(--dark-color);
+  margin-bottom: 0.25rem;
+}
+
+body.dark-mode .form-label.small {
+  color: white;
+}
+
+/* === DRAG & DROP === */
+.roll-card[draggable="true"] {
+  cursor: grab;
+}
+
+.roll-card[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.roll-card[draggable="true"]:hover {
+  box-shadow: 0 0.5rem 1rem rgba(var(--info-color), 0.2);
+}
+
+/* Zone de drop */
+.selected-zone.drag-over {
+  border-color: var(--success-color) !important;
+  box-shadow: 0 0 0 3px rgba(var(--success-color), 0.2);
+}
+
+.selected-zone.drag-over .card-body {
+  background: rgba(var(--success-color), 0.05);
+}
+
+.empty-selection.drag-over {
+  border-color: var(--success-color) !important;
+  background: rgba(var(--success-color), 0.1) !important;
+  transform: scale(1.02);
+}
+
+/* === ACCESSIBILITÉ === */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible pour accessibilité */
+.roll-card:focus-visible {
+  outline: 2px solid var(--info-color);
+  outline-offset: 2px;
+}
+
+/* === PRINT STYLES === */
+@media print {
+  .advanced-rc-container {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .btn,
+  .pagination {
+    display: none !important;
+  }
+}

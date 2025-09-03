@@ -3,7 +3,7 @@
  */
 function splashScreen() {
     return {
-        isVisible: false,
+        isVisible: true,
         isAnimating: false,
         
         init() {

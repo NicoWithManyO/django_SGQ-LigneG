@@ -43,6 +43,15 @@ function stickyBar() {
         shiftDate: '',
         vacation: '',
         
+        // État de la validation WCM (réactif)
+        wcmValidationRefresh: 0,
+        canSaveRollWcmValidationValue: true,
+        wcmValidationMessageValue: '',
+        
+        // État complet du bouton de sauvegarde (calculé)
+        canSaveRollValue: false,
+        saveButtonTooltipValue: '',
+        
         // Initialisation
         init() {
             debug('Sticky bar initialized');
@@ -75,6 +84,10 @@ function stickyBar() {
                     grammage: this.grammage
                 });
                 
+                // Calculer la validation WCM initiale
+                this.updateWcmValidation();
+                this.updateSaveButtonState();
+                
                 // Forcer aussi un $nextTick pour s'assurer que Alpine met à jour le DOM
                 this.$nextTick(() => {
                     debug(`DOM should be updated with grammage color. Status: ${this.grammageStatus}`);
@@ -95,6 +108,21 @@ function stickyBar() {
                 // PAS de calculateValues() ici - seulement au blur
             });
             this.$watch('nextTubeMass', () => window.session.save('sticky_next_tube_mass', this.nextTubeMass));
+            
+            // Watcher pour recalculer la validation WCM quand la longueur change
+            this.$watch('length', () => {
+                this.updateWcmValidation();
+                this.updateSaveButtonState();
+            });
+            
+            // Watchers pour recalculer l'état du bouton
+            this.$watch('operatorId', () => this.updateSaveButtonState());
+            this.$watch('shiftDate', () => this.updateSaveButtonState());
+            this.$watch('vacation', () => this.updateSaveButtonState());
+            this.$watch('grammage', () => this.updateSaveButtonState());
+            this.$watch('rollConformityStatus', () => this.updateSaveButtonState());
+            this.$watch('allThicknessesFilled', () => this.updateSaveButtonState());
+            this.$watch('canSaveRollWcmValidationValue', () => this.updateSaveButtonState());
             
             // Cleanup se fera automatiquement quand le composant est détruit
         },
@@ -139,6 +167,7 @@ function stickyBar() {
                 window.stickyBarConfig.clock.locale, 
                 window.stickyBarConfig.clock.options
             );
+            
         },
         
         // Écouter les événements globaux
@@ -220,6 +249,18 @@ function stickyBar() {
                     this.currentQcStatus = event.detail.status;
                     debug('QC status updated:', this.currentQcStatus);
                 }
+            });
+            
+            // Écouter les changements de modes WCM pour mettre à jour la validation
+            window.eventBus.on('wcm:mode-toggled', (data) => {
+                debug('WCM mode toggled, forcing validation refresh:', data);
+                
+                // Attendre un petit délai pour que le cache soit mis à jour
+                setTimeout(() => {
+                    this.updateWcmValidation();
+                    this.updateSaveButtonState();
+                    debug('WCM validation and button state updated');
+                }, 50);
             });
         },
         
@@ -730,6 +771,125 @@ function stickyBar() {
         },
         
         
+        // Mettre à jour l'état complet du bouton de sauvegarde
+        updateSaveButtonState() {
+            // Toujours besoin des données du poste et du grammage
+            const hasRequiredData = this.operatorId && this.shiftDate && this.vacation;
+            const hasGrammage = this.grammage !== '--' && this.grammage !== '';
+            
+            if (!hasRequiredData || !hasGrammage) {
+                this.canSaveRollValue = false;
+                
+                // Calculer le message d'erreur
+                const missing = [];
+                if (!this.operatorId) missing.push('Opérateur requis');
+                if (!this.shiftDate) missing.push('Date requise');
+                if (!this.vacation) missing.push('Vacation requise');
+                if (!hasGrammage) missing.push('Grammage requis');
+                
+                this.saveButtonTooltipValue = missing.join(' • ');
+                return;
+            }
+            
+            // Si conforme, besoin de toutes les épaisseurs
+            if (this.rollConformityStatus === 'CONFORME') {
+                if (!this.allThicknessesFilled) {
+                    this.canSaveRollValue = false;
+                    this.saveButtonTooltipValue = 'Toutes les épaisseurs requises';
+                    return;
+                }
+                
+                // Validation WCM pour les rouleaux conformes
+                if (!this.canSaveRollWcmValidationValue) {
+                    this.canSaveRollValue = false;
+                    this.saveButtonTooltipValue = this.wcmValidationMessageValue;
+                    return;
+                }
+            }
+            
+            // Si on arrive ici, tout est OK
+            this.canSaveRollValue = true;
+            this.saveButtonTooltipValue = '';
+            
+            debug('Save button state updated:', {
+                canSave: this.canSaveRollValue,
+                tooltip: this.saveButtonTooltipValue,
+                wcmValid: this.canSaveRollWcmValidationValue
+            });
+        },
+        
+        // Mettre à jour la validation WCM
+        updateWcmValidation() {
+            // Récupérer la longueur cible depuis la session
+            const targetLength = window.sessionData?.of?.targetLength;
+            
+            // Si pas de longueur cible, pas de contrainte WCM
+            if (!targetLength || targetLength <= 0) {
+                this.canSaveRollWcmValidationValue = true;
+                this.wcmValidationMessageValue = '';
+                return;
+            }
+            
+            // Si pas de longueur de rouleau, pas de contrainte WCM
+            if (!this.length || this.length <= 0) {
+                this.canSaveRollWcmValidationValue = true;
+                this.wcmValidationMessageValue = '';
+                return;
+            }
+            
+            // Vérifier si le mode PERMISSIF est actif via le service WCM
+            if (!window.wcmValidationService || !window.wcmValidationService._modesCache) {
+                // En cas de service non disponible, autoriser (mode dégradé)
+                this.canSaveRollWcmValidationValue = true;
+                this.wcmValidationMessageValue = '';
+                return;
+            }
+            
+            const modes = window.wcmValidationService._modesCache || [];
+            const permissivMode = modes.find(mode => 
+                mode.name && mode.name.toUpperCase().includes('PERMISSIF')
+            );
+            
+            const isPermissivActive = permissivMode ? permissivMode.is_enabled : false;
+            
+            debug('WCM validation update:', {
+                targetLength,
+                rollLength: this.length,
+                isPermissivActive,
+                wcmRefresh: this.wcmValidationRefresh
+            });
+            
+            // Si mode PERMISSIF actif, pas de contrainte
+            if (isPermissivActive) {
+                this.canSaveRollWcmValidationValue = true;
+                this.wcmValidationMessageValue = '';
+                return;
+            }
+            
+            // En mode STRICT (PERMISSIF désactivé) : longueur rouleau DOIT être égale à la cible
+            const rollLength = parseFloat(this.length);
+            const target = parseFloat(targetLength);
+            
+            // Tolérance minimale pour les flottants
+            const tolerance = 0.01;
+            const lengthDifference = Math.abs(rollLength - target);
+            
+            // Retourner false si la différence dépasse la tolérance (bloque la sauvegarde)
+            const isValid = lengthDifference <= tolerance;
+            
+            this.canSaveRollWcmValidationValue = isValid;
+            this.wcmValidationMessageValue = isValid ? '' : `Mode STRICT actif : longueur doit être égale à ${targetLength}m`;
+            
+            debug('STRICT mode validation update:', {
+                rollLength,
+                target,
+                lengthDifference,
+                tolerance,
+                isValid,
+                message: this.wcmValidationMessageValue
+            });
+        },
+        
         // Vérifier le statut du grammage par rapport aux specs
         checkGrammageStatus() {
             debug(`checkGrammageStatus called: grammage="${this.grammage}", specs=`, this.profileSpecs);
@@ -778,47 +938,39 @@ function stickyBar() {
             return this.operatorId && this.shiftDate && this.vacation;
         },
         
+        // Validation WCM : utilise le store Alpine.js pour la réactivité
+        get canSaveRollWcmValidation() {
+            // Forcer la réactivité avec le store Alpine.js
+            const store = this.$store?.wcmValidation || Alpine.store('wcmValidation');
+            if (store) {
+                store.lastUpdate; // Force la réactivité
+            }
+            
+            return this.canSaveRollWcmValidationValue;
+        },
+        
+        // Message d'erreur pour la validation WCM : utilise la valeur réactive
+        get wcmValidationMessage() {
+            return this.wcmValidationMessageValue;
+        },
+        
+        
         get hasGrammage() {
             return this.grammage !== '--' && this.grammage !== '';
         },
         
         get canSaveRoll() {
-            // Toujours besoin des données du poste et du grammage
-            if (!this.hasRequiredShiftData || !this.hasGrammage) {
-                return false;
+            // Forcer la réactivité avec le store Alpine.js
+            const store = this.$store?.wcmValidation || Alpine.store('wcmValidation');
+            if (store) {
+                store.lastUpdate; // Force la réactivité
             }
             
-            // Si conforme, besoin de toutes les épaisseurs
-            if (this.rollConformityStatus === 'CONFORME') {
-                debug(`Checking canSaveRoll: allThicknessesFilled=${this.allThicknessesFilled}`);
-                return this.allThicknessesFilled;
-            }
-            
-            // Si non conforme, on peut sauver même sans toutes les épaisseurs
-            return true;
+            return this.canSaveRollValue;
         },
         
         get saveButtonTooltip() {
-            // Si le bouton est actif, pas de tooltip
-            if (this.canSaveRoll) {
-                return '';
-            }
-            
-            // Sinon, lister ce qui manque
-            const missing = [];
-            
-            if (!this.operatorId) missing.push(window.stickyBarConfig.validationMessages.operatorRequired);
-            if (!this.shiftDate) missing.push(window.stickyBarConfig.validationMessages.dateRequired);
-            if (!this.vacation) missing.push(window.stickyBarConfig.validationMessages.vacationRequired);
-            if (!this.hasGrammage) missing.push(window.stickyBarConfig.validationMessages.grammageRequired);
-            
-            if (this.rollConformityStatus === 'CONFORME' && !this.allThicknessesFilled) {
-                debug(`Tooltip check: conformityStatus=${this.rollConformityStatus}, allThicknessesFilled=${this.allThicknessesFilled}`);
-                missing.push(window.stickyBarConfig.validationMessages.thicknessRequired);
-            }
-            
-            debug(`SaveButtonTooltip: ${missing.join(' • ')}`);
-            return missing.join(' • ');
+            return this.saveButtonTooltipValue;
         }
     };
 }

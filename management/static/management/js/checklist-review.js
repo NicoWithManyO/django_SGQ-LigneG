@@ -36,13 +36,21 @@ function checklistReview() {
         // Charger les statistiques
         async loadStatistics() {
             try {
-                // TODO: Créer un endpoint pour les statistiques des checklists
-                // Pour l'instant, utiliser des valeurs par défaut
-                this.signedToday = 0;
-                this.avgSignatureTime = '2.5h';
-                this.conformityRate = 95;
+                const response = await fetch('/management/api/checklists/statistics/');
+                if (response.ok) {
+                    const stats = await response.json();
+                    this.signedToday = stats.signed_today || 0;
+                    this.avgSignatureTime = stats.avg_signature_time_formatted || '--';
+                    this.conformityRate = stats.signature_rate || 0;
+                } else {
+                    console.error('Erreur API statistiques:', response.status);
+                }
             } catch (error) {
                 console.error('Erreur chargement statistiques:', error);
+                // Valeurs par défaut en cas d'erreur
+                this.signedToday = 0;
+                this.avgSignatureTime = '--';
+                this.conformityRate = 0;
             }
         },
         
@@ -90,6 +98,9 @@ function checklistReview() {
                 // Succès
                 this.visaModal.hide();
                 this.showSuccess('Checklist visée avec succès');
+                
+                // Recharger les statistiques
+                await this.loadStatistics();
                 
                 // Émettre l'événement
                 window.dispatchEvent(new Event('checklist-signed'));

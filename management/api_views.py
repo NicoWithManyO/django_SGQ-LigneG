@@ -766,6 +766,40 @@ def unassign_roll(request):
 
 @api_view(['GET'])
 @permission_classes([IsSuperUser])
+def checklist_statistics(request):
+    """API pour récupérer les statistiques des checklists."""
+    days = int(request.query_params.get('days', 30))
+    
+    try:
+        stats = ChecklistService.get_checklist_statistics(days=days)
+        
+        # Calculer les checklists visées aujourd'hui
+        today = timezone.now().date()
+        signed_today = ChecklistResponse.objects.filter(
+            management_visa_date__date=today
+        ).exclude(
+            Q(management_visa='') | Q(management_visa__isnull=True)
+        ).count()
+        
+        # Ajouter à la réponse
+        stats['signed_today'] = signed_today
+        stats['avg_signature_time_formatted'] = (
+            f"{stats['avg_signature_time_hours']}h" 
+            if stats['avg_signature_time_hours'] 
+            else '--'
+        )
+        
+        return Response(stats)
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Erreur lors de la récupération des statistiques: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
 def checklist_details(request, pk):
     """Récupère les détails complets d'une checklist pour affichage dans la modale."""
     try:

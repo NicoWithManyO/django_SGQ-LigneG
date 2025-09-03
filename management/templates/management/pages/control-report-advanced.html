@@ -1,0 +1,267 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'management/css/control-report-advanced.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid advanced-rc-container mt-4" x-data="advancedRCApp()">
+    
+    <!-- Header avec navigation -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="bi bi-layers me-2 text-primary"></i>RC Avancé
+                        <span class="badge bg-secondary ms-2">Mode Pro</span>
+                    </h1>
+                    <p class="text-muted mb-0">Interface ergonomique pour la sélection de rouleaux</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{% url 'management:control-report' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i>Mode Simple
+                    </a>
+                    <button class="btn btn-outline-primary btn-sm" @click="toggleTheme()">
+                        <i class="bi me-1" :class="darkMode ? 'bi-sun' : 'bi-moon'"></i>
+                        <span x-text="darkMode ? 'Mode Clair' : 'Mode Sombre'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zone de sélection -->
+    <div class="row" style="height: calc(100vh - 200px);">
+        <!-- Zone haute : Rouleaux sélectionnés -->
+        <div class="col-12 mb-3">
+            <div class="selected-zone card shadow-sm" :class="{'bg-dark text-white': darkMode}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            <i class="bi bi-check-square me-2"></i>Rouleaux Sélectionnés
+                            <span class="badge ms-2" :class="darkMode ? 'bg-light text-dark' : 'bg-primary'" x-text="selectedRolls.length"></span>
+                        </h5>
+                        <small class="text-muted" x-show="selectedRolls.length > 0">
+                            <span x-text="getTotalLength()"></span> m • 
+                            <span x-text="getUniqueOFs().length"></span> OF différents
+                        </small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center me-3" x-show="selectedRolls.length > 0">
+                            <label class="form-label mb-0 me-2">RC :</label>
+                            <input type="text" 
+                                   class="form-control form-control-sm" 
+                                   style="width: 150px;"
+                                   x-model="reportName" 
+                                   placeholder="S2212001"
+                                   pattern="S[0-9]{7}">
+                            <span class="text-muted ms-1">.pdf</span>
+                        </div>
+                        <button class="btn btn-success btn-sm" 
+                                x-bind:disabled="selectedRolls.length === 0 || !reportName.trim()"
+                                @click="generateReport()">
+                            <i class="bi bi-file-earmark-pdf me-1"></i>
+                            <span x-text="selectedRolls.length > 0 && reportName.trim() ? `Générer (${selectedRolls.length})` : 'Générer RC'"></span>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" 
+                                x-bind:disabled="selectedRolls.length === 0"
+                                @click="clearSelection()">
+                            <i class="bi bi-trash me-1"></i>Vider
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-3" style="min-height: 120px; max-height: 200px; overflow-y: auto;">
+                    <!-- Zone de drop -->
+                    <div x-show="selectedRolls.length === 0" 
+                         class="empty-selection d-flex align-items-center justify-content-center h-100"
+                         style="border: 2px dashed #dee2e6; border-radius: 8px; min-height: 100px;">
+                        <div class="text-center text-muted">
+                            <i class="bi bi-arrow-down-circle display-6 mb-2"></i>
+                            <p class="mb-0">Cliquez sur les rouleaux ci-dessous pour les ajouter</p>
+                            <small>ou glissez-déposez-les ici</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Rouleaux sélectionnés -->
+                    <div class="selected-rolls d-flex flex-wrap gap-2" x-show="selectedRolls.length > 0">
+                        <template x-for="rollId in selectedRolls" :key="rollId">
+                            <div class="selected-roll-card" @click="removeFromSelection(rollId)">
+                                <div class="card card-sm border-success" :class="{'bg-dark border-light': darkMode}">
+                                    <div class="card-body p-2">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-grow-1">
+                                                <div class="fw-bold small text-success" x-text="getRollById(rollId)?.roll_id"></div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">
+                                                    OF <span x-text="getRollById(rollId)?.fabrication_order"></span> • 
+                                                    <span x-text="parseFloat(getRollById(rollId)?.length || 0).toFixed(1)"></span>m
+                                                </div>
+                                            </div>
+                                            <button class="btn btn-sm btn-outline-danger ms-2" style="padding: 2px 6px;">
+                                                <i class="bi bi-x" style="font-size: 0.75rem;"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone basse : Sélecteur de rouleaux -->
+        <div class="col-12">
+            <div class="selector-zone card shadow-sm" :class="{'bg-dark text-white': darkMode}">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-0">
+                                <i class="bi bi-funnel me-2"></i>Rouleaux Disponibles
+                                <span class="badge bg-info ms-2" x-text="availableRolls.length"></span>
+                            </h5>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" 
+                                       class="form-control" 
+                                       placeholder="Rechercher..." 
+                                       x-model="searchQuery"
+                                       @input="filterRolls()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Filtres -->
+                <div class="card-body pb-2">
+                    <div class="row g-2">
+                        <div class="col-md-2">
+                            <label class="form-label small">OF</label>
+                            <input type="text" class="form-control form-control-sm" 
+                                   x-model="filters.of" @input="filterRolls()" placeholder="Ex: 3249">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Date</label>
+                            <input type="date" class="form-control form-control-sm" 
+                                   x-model="filters.date" @change="filterRolls()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Longueur min</label>
+                            <input type="number" class="form-control form-control-sm" 
+                                   x-model="filters.minLength" @input="filterRolls()" placeholder="50">
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label small">Longueur max</label>
+                            <input type="number" class="form-control form-control-sm" 
+                                   x-model="filters.maxLength" @input="filterRolls()" placeholder="200">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Opérateur</label>
+                            <select class="form-select form-select-sm" x-model="filters.operator" @change="filterRolls()">
+                                <option value="">Tous</option>
+                                <template x-for="operator in operators" :key="operator.id">
+                                    <option :value="operator.id" x-text="operator.first_name + ' ' + operator.last_name.toUpperCase()"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label small">Par page</label>
+                            <select class="form-select form-select-sm" x-model="itemsPerPage" @change="currentPage = 1">
+                                <option value="8">8</option>
+                                <option value="12">12</option>
+                                <option value="16">16</option>
+                                <option value="24">24</option>
+                                <option value="48">48</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" x-model="showAssigned" @change="loadData()" id="showAssignedCheck">
+                                <label class="form-check-label small" for="showAssignedCheck" title="Afficher les rouleaux déjà assignés">
+                                    Assignés
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button class="btn btn-outline-secondary btn-sm w-100" @click="clearFilters()">
+                                <i class="bi bi-x-circle me-1"></i>Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grille de rouleaux -->
+                <div class="card-body pt-0" style="height: 400px; overflow-y: auto;">
+                    <div x-show="loading" class="text-center py-5">
+                        <div class="spinner-border" role="status"></div>
+                        <div class="mt-2">Chargement...</div>
+                    </div>
+                    
+                    <div x-show="!loading && filteredRolls.length === 0" class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox display-4"></i>
+                        <p class="mt-3">Aucun rouleau trouvé</p>
+                    </div>
+                    
+                    <div class="rolls-grid" x-show="!loading && filteredRolls.length > 0">
+                        <template x-for="roll in paginatedRolls" :key="roll.id">
+                            <div class="roll-card" 
+                                 :class="{'selected': selectedRolls.includes(roll.id), 'dark-mode': darkMode}"
+                                 @click="toggleRollSelection(roll.id)"
+                                 draggable="true"
+                                 @dragstart="dragStart($event, roll.id)">
+                                <div class="card h-100" :class="selectedRolls.includes(roll.id) ? 'border-success bg-success bg-opacity-10' : ''">
+                                    <div class="card-body p-2">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="form-check me-2">
+                                                <input type="checkbox" class="form-check-input" 
+                                                       :checked="selectedRolls.includes(roll.id)">
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="fw-bold text-primary small" x-text="roll.roll_id"></div>
+                                                <div class="text-muted" style="font-size: 0.7rem;" x-text="'OF ' + roll.fabrication_order"></div>
+                                            </div>
+                                        </div>
+                                        <div class="small">
+                                            <div><strong x-text="parseFloat(roll.length).toFixed(1)"></strong> m</div>
+                                            <div class="text-muted" x-text="roll.operator || 'Sans opérateur'"></div>
+                                            <div class="text-muted" x-text="formatDate(roll.created_at)"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav class="mt-3" x-show="totalPages > 1">
+                        <ul class="pagination pagination-sm justify-content-center">
+                            <li class="page-item" :class="{'disabled': currentPage === 1}">
+                                <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                            <template x-for="page in pageNumbers" :key="page">
+                                <li class="page-item" :class="{'active': page === currentPage}">
+                                    <a class="page-link" href="#" @click.prevent="changePage(page)" x-text="page"></a>
+                                </li>
+                            </template>
+                            <li class="page-item" :class="{'disabled': currentPage === totalPages}">
+                                <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'management/js/control-report-advanced.js' %}"></script>
+{% endblock %}

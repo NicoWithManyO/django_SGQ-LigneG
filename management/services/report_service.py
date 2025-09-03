@@ -39,7 +39,8 @@ class ReportService:
             'quality_stats': ReportService._get_quality_statistics(shift),
             'defects_summary': ReportService._get_defects_summary(shift),
             'lost_time_summary': ReportService._get_lost_time_summary(shift),
-            'rolls_details': ReportService._get_rolls_details(shift)
+            'rolls_details': ReportService._get_rolls_details(shift),
+            'operator_comments': shift.operator_comments
         }
     
     @staticmethod

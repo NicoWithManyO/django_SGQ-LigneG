@@ -238,7 +238,7 @@
                                             @blur="lockOFEnCours()"
                                             :class="{ 'filled': ofEnCours }"
                                             :disabled="ofEnCoursLocked">
-                                        <option value="">Sélectionner un OF</option>
+                                        <option value="">OF</option>
                                         <template x-for="of in fabricationOrders" :key="of.numero">
                                             <option :value="of.numero" x-text="of.numero"></option>
                                         </template>
@@ -295,7 +295,7 @@
                                             @blur="lockOFDecoupe()"
                                             :class="{ 'filled': ofDecoupe }"
                                             :disabled="ofDecoupeLocked">
-                                        <option value="">Sélectionner un OF découpe</option>
+                                        <option value="">Découpe</option>
                                         <template x-for="co in cuttingOrders" :key="co.numero">
                                             <option :value="co.numero" x-text="co.numero"></option>
                                         </template>
@@ -565,16 +565,31 @@
                                             </template>
                                         </select>
                                     </div>
-                                    <div class="col-md-8">
+                                    <div class="col-md-8" x-data="wcmModesManager()">
                                         <label class="form-label">Modes</label>
-                                        <div class="d-flex" style="gap: 2rem;">
-                                            <template x-for="mode in availableModes" :key="mode.id">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" :id="'mode-' + mode.id" x-model="modes[mode.id]">
-                                                    <label class="form-check-label" :for="'mode-' + mode.id" x-text="mode.name">
-                                                    </label>
+                                        <div class="d-flex flex-wrap" style="gap: 1.5rem;">
+                                            <template x-for="mode in wcmModes" :key="mode.id">
+                                                <div class="wcm-mode-item">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" 
+                                                               type="checkbox" 
+                                                               :id="'wcm-mode-' + mode.id" 
+                                                               :checked="mode.is_enabled"
+                                                               @change="toggleMode(mode.id)"
+                                                               :disabled="loadingToggle === mode.id">
+                                                        <label class="form-check-label" 
+                                                               :for="'wcm-mode-' + mode.id" 
+                                                               :class="{ 'text-success fw-bold': mode.is_enabled, 'text-muted': !mode.is_enabled }">
+                                                            <span x-text="mode.name"></span>
+                                                            <span x-show="mode.is_enabled" class="badge bg-success ms-1">ON</span>
+                                                            <span x-show="loadingToggle === mode.id" class="spinner-border spinner-border-sm ms-1"></span>
+                                                        </label>
+                                                    </div>
                                                 </div>
                                             </template>
+                                            <div x-show="wcmModes.length === 0" class="text-muted">
+                                                <i class="bi bi-info-circle me-1"></i>Aucun mode disponible
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1622,6 +1637,7 @@
 <script src="{% static 'frontendv3/js/services/conformity-service.js' %}"></script>
 <script src="{% static 'frontendv3/js/services/component-registry.js' %}"></script>
 <script src="{% static 'frontendv3/js/services/kpi-service.js' %}"></script>
+<script src="{% static 'frontendv3/js/services/wcm-validation-service.js' %}"></script>
 
 <!-- Composants Alpine.js -->
 <script src="{% static 'frontendv3/js/splash-screen.js' %}"></script>
@@ -1631,6 +1647,7 @@
 <script src="{% static 'frontendv3/js/components/create-operator-modal.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/create-of-modal.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/profile-selector.js' %}"></script>
+<script src="{% static 'frontendv3/js/components/wcm-modes.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/kpi-display.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/quality-control.js' %}"></script>
 <script src="{% static 'frontendv3/js/components/roll-grid.js' %}"></script>

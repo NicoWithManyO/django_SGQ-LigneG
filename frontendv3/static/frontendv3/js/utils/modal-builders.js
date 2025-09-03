@@ -54,11 +54,26 @@ function buildShiftSummaryHTML(data) {
     const idPoste = data.shiftId || '--';
     const duration = calculateDuration(data.startTime, data.endTime);
     
-    // Calculer les métriques (à adapter selon les données disponibles)
-    const rendement = data.rendement || '--';
-    const tauxOK = data.tauxOK || '--';
-    const longueurOK = data.longueurOK || '--';
-    const TO = data.TO || '--';
+    // Récupérer les KPI actuels du service
+    const kpiService = window.kpiService;
+    const disponibilite = kpiService?.disponibilitePercentage || 0;
+    const performance = kpiService?.performancePercentage || 0;
+    const qualite = kpiService?.qualitePercentage || 100;
+    const trs = kpiService?.trsGlobal || 0;
+    const TO = kpiService?.TO || 0;
+    const TD = kpiService?.TD || 0;
+    const longueurEnroulee = kpiService?.longueurEnroulee || 0;
+    const longueurEnroulable = kpiService?.longueurEnroulable || 0;
+    const longueurOK = kpiService?.longueurRouleauxOK || 0;
+    const longueurNOK = kpiService?.longueurRouleauxNOK || 0;
+    
+    // Fonction helper pour formater les minutes
+    const formatMinutes = (minutes) => {
+        if (!minutes || minutes === 0) return '0h00';
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${hours}h${mins.toString().padStart(2, '0')}`;
+    };
     
     return `
         <div class="container-fluid">
@@ -69,8 +84,38 @@ function buildShiftSummaryHTML(data) {
                     <p class="mb-0 text-primary fw-bold">${idPoste}</p>
                 </div>
             </div>
+            
+            <!-- KPI Résumé compact -->
+            <div class="row g-2 mb-3">
+                <div class="col-12">
+                    <div class="card border-0 bg-light">
+                        <div class="card-body p-2">
+                            <h6 class="card-title mb-2 text-center"><i class="bi bi-graph-up me-1"></i>KPI du poste</h6>
+                            <div class="row text-center">
+                                <div class="col-3">
+                                    <div class="small text-muted">Disponibilité</div>
+                                    <div class="fw-bold text-primary">${disponibilite}%</div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="small text-muted">Performance</div>
+                                    <div class="fw-bold text-info">${performance}%</div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="small text-muted">Qualité</div>
+                                    <div class="fw-bold text-success">${qualite}%</div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="small text-muted">TRS</div>
+                                    <div class="fw-bold text-warning">${trs}%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Humeur de fin de poste -->
-            <div class="mb-3 mt-5 pt-4">
+            <div class="mb-3">
                 <label class="form-label text-muted small">MoOoOOoOOooOOd de fin de poste :</label>
                 <div class="d-flex justify-content-center gap-3">
                     <button type="button" 
@@ -112,7 +157,7 @@ function buildRollSummaryHTML(data) {
     
     // Métriques principales
     fields.push(buildField('Longueur', `${data.length} m`, 'col-4'));
-    fields.push(buildField('Masse nette', `${data.netWeight} kg`, 'col-4'));
+    fields.push(buildField('Masse nette', `${data.netWeight} g`, 'col-4'));
     fields.push(buildField('Grammage', `${data.grammage} g/m²`, 'col-4'));
     
     // Contrôle qualité

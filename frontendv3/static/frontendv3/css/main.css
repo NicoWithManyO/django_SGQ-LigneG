@@ -798,9 +798,97 @@ textarea[disabled],
 }
 
 
+/* ===================================
+   STYLES MODES WCM
+   =================================== */
+
+/* Conteneur des modes WCM */
+.wcm-mode-item {
+    min-width: 120px;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: all 0.15s ease-in-out;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.wcm-mode-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Switch des modes WCM */
+.wcm-mode-item .form-check-input {
+    margin-top: 0.125rem;
+}
+
+.wcm-mode-item .form-check-input:checked {
+    background-color: var(--v3-success);
+    border-color: var(--v3-success);
+}
+
+.wcm-mode-item .form-check-input:focus {
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+/* Labels des modes */
+.wcm-mode-item .form-check-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    user-select: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.wcm-mode-item .badge {
+    font-size: 0.75rem;
+    padding: 0.25em 0.5em;
+}
+
+/* Animation pour le spinner */
+.wcm-mode-item .spinner-border-sm {
+    width: 0.875rem;
+    height: 0.875rem;
+    border-width: 0.125rem;
+}
+
+/* Messages d'erreur pour les modes WCM */
+.alert.alert-danger.position-fixed {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Messages de succès pour les modes WCM */
+.alert.alert-success.position-fixed {
+    animation: slideInRight 0.3s ease-out;
+}
+
+/* État désactivé des modes */
+.wcm-mode-item .form-check-input:disabled + .form-check-label {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* Responsive */
 @media (max-width: 991.98px) {
     .col-lg-4, .col-lg-8 {
         margin-bottom: 1rem;
+    }
+    
+    .wcm-mode-item {
+        min-width: 100px;
+        font-size: 0.8rem;
     }
 }

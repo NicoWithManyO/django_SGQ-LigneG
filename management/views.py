@@ -99,3 +99,12 @@ def control_report(request):
         'title': 'Relevé de Contrôles'
     }
     return render(request, 'management/pages/control-report.html', context)
+
+
+@superuser_required
+def control_report_advanced(request):
+    """Page avancée de génération de relevé de contrôles."""
+    context = {
+        'title': 'RC Avancé - Sélection ergonomique'
+    }
+    return render(request, 'management/pages/control-report-advanced.html', context)

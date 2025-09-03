@@ -19,12 +19,14 @@ urlpatterns = [
     path('statistics/', views.production_statistics, name='statistics'),
     path('exports/', views.exports_list, name='exports'),
     path('control-report/', views.control_report, name='control-report'),
+    path('control-report/advanced/', views.control_report_advanced, name='control-report-advanced'),
     
     # API endpoints
     path('api/', include(router.urls)),
     path('api/dashboard-stats/', api_views.dashboard_statistics, name='api-dashboard-stats'),
     path('api/checklists/', api_views.all_checklists, name='api-all-checklists'),
     path('api/checklists/pending/', api_views.pending_checklists, name='api-pending-checklists'),
+    path('api/checklists/statistics/', api_views.checklist_statistics, name='api-checklist-statistics'),
     path('api/checklists/<int:pk>/sign/', api_views.sign_checklist, name='api-sign-checklist'),
     path('api/checklists/<int:pk>/details/', api_views.checklist_details, name='api-checklist-details'),
     path('api/trends/', api_views.production_trends, name='api-production-trends'),
