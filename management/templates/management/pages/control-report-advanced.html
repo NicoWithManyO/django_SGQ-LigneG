@@ -209,6 +209,7 @@
                         <template x-for="roll in paginatedRolls" :key="roll.id">
                             <div class="roll-card" 
                                  :class="{'selected': selectedRolls.includes(roll.id), 'dark-mode': darkMode}"
+                                 :data-roll-id="roll.id"
                                  @click="toggleRollSelection(roll.id)"
                                  draggable="true"
                                  @dragstart="dragStart($event, roll.id)">

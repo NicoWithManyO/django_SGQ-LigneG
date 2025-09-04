@@ -16,6 +16,7 @@
   --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
   --transition: all 0.15s ease-in-out;
+  --fade-transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
 /* === CONTENEUR PRINCIPAL === */
@@ -375,6 +376,55 @@ body.dark-mode .form-label.small {
 .roll-card:focus-visible {
   outline: 2px solid var(--info-color);
   outline-offset: 2px;
+}
+
+/* === ANIMATIONS DE FONDU === */
+.roll-card {
+  transition: var(--fade-transition);
+  opacity: 1;
+  transform: scale(1);
+}
+
+.roll-card.fade-out {
+  opacity: 0;
+  transform: scale(0.95);
+  pointer-events: none;
+}
+
+.roll-card.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Animation pour les rouleaux qui disparaissent définitivement */
+.roll-card.removing {
+  animation: fadeOutRemove 0.3s ease-in-out forwards;
+}
+
+@keyframes fadeOutRemove {
+  from {
+    opacity: 1;
+    transform: scale(1);
+    max-height: 200px;
+    margin: 0.5rem;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.8);
+    max-height: 0;
+    margin: 0;
+    padding: 0;
+  }
 }
 
 /* === PRINT STYLES === */

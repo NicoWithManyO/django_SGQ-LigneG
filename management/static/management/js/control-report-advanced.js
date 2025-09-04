@@ -151,7 +151,10 @@ function advancedRCApp() {
                 return;
             }
             
-            let filtered = [...this.availableRolls];
+            // Commencer par exclure les rouleaux déjà sélectionnés
+            let filtered = this.availableRolls.filter(roll => 
+                !this.selectedRolls.includes(roll.id)
+            );
             
             // Filtre par recherche générale
             if (this.searchQuery) {
@@ -227,9 +230,17 @@ function advancedRCApp() {
         toggleRollSelection(rollId) {
             const index = this.selectedRolls.indexOf(rollId);
             if (index === -1) {
-                this.selectedRolls.push(rollId);
+                // Ajout : animer la disparition du rouleau puis l'ajouter
+                this.animateRollRemoval(rollId, () => {
+                    this.selectedRolls.push(rollId);
+                    this.filterRolls();
+                });
             } else {
+                // Retrait : retirer immédiatement et refiltrer avec animation d'apparition
                 this.selectedRolls.splice(index, 1);
+                this.filterRolls();
+                // Animer l'apparition du rouleau qui revient dans la liste
+                setTimeout(() => this.animateRollAppearance(rollId), 50);
             }
         },
         
@@ -240,6 +251,8 @@ function advancedRCApp() {
             const index = this.selectedRolls.indexOf(rollId);
             if (index !== -1) {
                 this.selectedRolls.splice(index, 1);
+                // Refiltrer pour que le rouleau réapparaisse dans la liste du bas
+                this.filterRolls();
             }
         },
         
@@ -248,6 +261,8 @@ function advancedRCApp() {
          */
         clearSelection() {
             this.selectedRolls = [];
+            // Refiltrer pour que tous les rouleaux réapparaissent dans la liste du bas
+            this.filterRolls();
         },
         
         /**
@@ -263,6 +278,8 @@ function advancedRCApp() {
                     this.selectedRolls.push(roll.id);
                 }
             });
+            // Refiltrer pour mettre à jour la liste du bas
+            this.filterRolls();
         },
         
         /**
@@ -405,6 +422,8 @@ function advancedRCApp() {
             // Ajouter le rouleau à la sélection s'il n'y est pas déjà
             if (rollId && !this.selectedRolls.includes(rollId)) {
                 this.selectedRolls.push(rollId);
+                // Refiltrer pour mettre à jour la liste du bas
+                this.filterRolls();
             }
         },
         
@@ -486,6 +505,39 @@ function advancedRCApp() {
         showSuccess(message) {
             console.log(message);
             alert(message);
+        },
+
+        /**
+         * Anime la disparition d'un rouleau de la liste
+         */
+        animateRollRemoval(rollId, callback) {
+            const rollElement = document.querySelector(`[data-roll-id="${rollId}"]`);
+            if (rollElement) {
+                rollElement.classList.add('fade-out');
+                setTimeout(() => {
+                    if (callback) callback();
+                }, 300); // Durée de l'animation CSS
+            } else {
+                // Si l'élément n'est pas trouvé, exécuter le callback immédiatement
+                if (callback) callback();
+            }
+        },
+
+        /**
+         * Anime l'apparition d'un rouleau dans la liste
+         */
+        animateRollAppearance(rollId) {
+            // Attendre que le DOM soit mis à jour
+            this.$nextTick(() => {
+                const rollElement = document.querySelector(`[data-roll-id="${rollId}"]`);
+                if (rollElement) {
+                    rollElement.classList.add('fade-in');
+                    // Retirer la classe après l'animation
+                    setTimeout(() => {
+                        rollElement.classList.remove('fade-in');
+                    }, 300);
+                }
+            });
         }
     };
 }
