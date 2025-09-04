@@ -114,10 +114,15 @@ function rollGrid() {
             
             // Écouter l'événement de reset après sauvegarde d'un rouleau
             window.addEventListener('roll:reset', () => {
-                debug('Roll reset received - clearing thickness grid');
+                debug('Roll reset received - clearing thickness grid and defects');
                 this.clearAllThickness();
                 // Reset aussi les mètres de rattrapage
                 this.catchupCells = new Set();
+                // Reset aussi tous les défauts
+                this.defects = {};
+                this.watchAndSave('defects');
+                // Émettre l'événement pour mettre à jour le compteur
+                window.dispatchEvent(new CustomEvent('defects-updated'));
             });
             
             // Exposer les fonctions globalement pour les tests
