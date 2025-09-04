@@ -20,10 +20,16 @@
 }
 
 /* === CONTENEUR PRINCIPAL === */
-.advanced-rc-container {
+.control-report-container {
+  max-width: 1400px;
+  margin: 0 auto;
   min-height: calc(100vh - 100px);
-  background: var(--light-color);
-  transition: var(--transition);
+}
+
+.filter-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* === ZONES PRINCIPALES === */
@@ -34,9 +40,11 @@
 }
 
 .selected-zone .card-header {
-  background: linear-gradient(135deg, var(--success-color), #20c997);
-  color: white;
-  border-radius: calc(var(--border-radius) - 2px) calc(var(--border-radius) - 2px) 0 0;
+  background: linear-gradient(135deg, #e83e8c 0%, #c21760 100%);
+  color: #212529;
+  font-weight: 600;
+  border: none;
+  padding: 12px 16px;
 }
 
 .selector-zone {
@@ -45,9 +53,11 @@
 }
 
 .selector-zone .card-header {
-  background: linear-gradient(135deg, var(--info-color), #0dcaf0);
-  color: white;
-  border-radius: calc(var(--border-radius) - 2px) calc(var(--border-radius) - 2px) 0 0;
+  background: linear-gradient(135deg, #e83e8c 0%, #c21760 100%);
+  color: #212529;
+  font-weight: 600;
+  border: none;
+  padding: 12px 16px;
 }
 
 /* === ROULEAUX SÉLECTIONNÉS === */

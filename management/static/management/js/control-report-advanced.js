@@ -26,7 +26,7 @@ function advancedRCApp() {
         
         // Pagination
         currentPage: 1,
-        itemsPerPage: 12,
+        itemsPerPage: 100,
         
         // Options d'affichage
         showAssigned: false,
@@ -169,7 +169,7 @@ function advancedRCApp() {
             // Filtre par OF
             if (this.filters.of) {
                 filtered = filtered.filter(roll => 
-                    roll.fabrication_order.toString().includes(this.filters.of)
+                    roll.fabrication_order.toString() === this.filters.of
                 );
             }
             
