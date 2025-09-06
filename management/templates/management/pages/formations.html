@@ -75,8 +75,8 @@
                     </div>
 
                     <div x-show="!loading && formations.length > 0">
-                        <template x-for="traineeData in formations" :key="traineeData.trainee.id">
-                            <div class="card mb-3">
+                        <template x-for="(traineeData, index) in formations" :key="traineeData.trainee.id">
+                            <div class="card mb-4">
                                 <div class="card-header">
                                     <div class="row align-items-center">
                                         <div class="col">
@@ -106,33 +106,166 @@
                                     </div>
                                 </div>
                                 <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th>Date</th>
-                                                    <th>Vacation</th>
-                                                    <th>Formateur</th>
-                                                    <th>ID Poste</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <template x-for="formation in traineeData.formations" :key="formation.id">
-                                                    <tr>
-                                                        <td x-text="formatDate(formation.date)"></td>
-                                                        <td>
-                                                            <span class="badge bg-secondary" x-text="formation.vacation"></span>
-                                                        </td>
-                                                        <td x-text="formation.formateur.full_name"></td>
-                                                        <td>
-                                                            <a href="#" @click.prevent="viewShiftDetails(formation.id)" 
-                                                               x-text="formation.shift_id" 
-                                                               class="text-decoration-none fw-bold"></a>
-                                                        </td>
-                                                    </tr>
-                                                </template>
-                                            </tbody>
-                                        </table>
+                                    <!-- Onglets pour chaque opérateur formé -->
+                                    <ul class="nav nav-tabs" role="tablist" :id="'tabs-trainee-' + traineeData.trainee.id">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active" 
+                                                    :id="'tab-stats-' + traineeData.trainee.id" 
+                                                    data-bs-toggle="tab" 
+                                                    :data-bs-target="'#stats-' + traineeData.trainee.id" 
+                                                    type="button" role="tab">
+                                                <i class="bi bi-graph-up me-1"></i>Moyennes
+                                            </button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link" 
+                                                    :id="'tab-sessions-' + traineeData.trainee.id" 
+                                                    data-bs-toggle="tab" 
+                                                    :data-bs-target="'#sessions-' + traineeData.trainee.id" 
+                                                    type="button" role="tab">
+                                                <i class="bi bi-list-ul me-1"></i>Sessions
+                                                <span class="badge bg-primary ms-1" x-text="traineeData.total_sessions"></span>
+                                            </button>
+                                        </li>
+                                    </ul>
+
+                                    <div class="tab-content mt-3">
+                                        <!-- Onglet Statistiques -->
+                                        <div class="tab-pane fade show active" 
+                                             :id="'stats-' + traineeData.trainee.id" 
+                                             role="tabpanel">
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <div class="card text-center bg-light">
+                                                        <div class="card-body py-3">
+                                                            <h6 class="card-title">TRS Moyen</h6>
+                                                            <h4 class="text-primary mb-0" 
+                                                                x-text="traineeData.statistics?.avg_trs ? traineeData.statistics.avg_trs + '%' : 'N/A'">
+                                                            </h4>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="card text-center bg-light">
+                                                        <div class="card-body py-3">
+                                                            <h6 class="card-title">Défauts par poste</h6>
+                                                            <h4 class="text-warning mb-0" 
+                                                                x-text="traineeData.statistics?.avg_defects_per_shift || '0'">
+                                                            </h4>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="card text-center bg-light">
+                                                        <div class="card-body py-3">
+                                                            <h6 class="card-title">Production moy.</h6>
+                                                            <h4 class="text-info mb-0" 
+                                                                x-text="traineeData.statistics?.avg_production_per_shift ? Math.round(traineeData.statistics.avg_production_per_shift) + ' m' : 'N/A'">
+                                                            </h4>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="card text-center bg-light">
+                                                        <div class="card-body py-3">
+                                                            <h6 class="card-title">Qualité moy.</h6>
+                                                            <h4 class="text-success mb-0" 
+                                                                x-text="traineeData.statistics?.avg_quality_rate ? traineeData.statistics.avg_quality_rate + '%' : 'N/A'">
+                                                            </h4>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Statistiques détaillées -->
+                                            <div class="row mt-3">
+                                                <div class="col-md-6">
+                                                    <h6>Totaux cumulés</h6>
+                                                    <ul class="list-group list-group-flush">
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Production totale</span>
+                                                            <strong x-text="Math.round(traineeData.statistics?.total_production || 0) + ' m'"></strong>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Rouleaux produits</span>
+                                                            <strong x-text="traineeData.statistics?.total_rolls || 0"></strong>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Défauts totaux</span>
+                                                            <strong x-text="traineeData.statistics?.total_defects || 0"></strong>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>Moyennes par poste</h6>
+                                                    <ul class="list-group list-group-flush">
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Rouleaux par poste</span>
+                                                            <strong x-text="traineeData.statistics?.avg_rolls_per_shift || 0"></strong>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Sessions de formation</span>
+                                                            <strong x-text="traineeData.total_sessions"></strong>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span>Formateurs différents</span>
+                                                            <strong x-text="traineeData.formateurs.length"></strong>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Onglet Sessions -->
+                                        <div class="tab-pane fade" 
+                                             :id="'sessions-' + traineeData.trainee.id" 
+                                             role="tabpanel">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Date</th>
+                                                            <th>Vacation</th>
+                                                            <th>Formateur</th>
+                                                            <th>TRS</th>
+                                                            <th>Défauts</th>
+                                                            <th>Production</th>
+                                                            <th>ID Poste</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <template x-for="formation in traineeData.formations" :key="formation.id">
+                                                            <tr>
+                                                                <td x-text="formatDate(formation.date)"></td>
+                                                                <td>
+                                                                    <span class="badge bg-secondary" x-text="formation.vacation"></span>
+                                                                </td>
+                                                                <td x-text="formation.formateur.full_name"></td>
+                                                                <td>
+                                                                    <span x-show="formation.trs" 
+                                                                          class="badge"
+                                                                          :class="getTRSClass(formation.trs)"
+                                                                          x-text="formation.trs + '%'">
+                                                                    </span>
+                                                                    <span x-show="!formation.trs" class="text-muted">N/A</span>
+                                                                </td>
+                                                                <td>
+                                                                    <span x-text="formation.defects_count" 
+                                                                          :class="formation.defects_count > 0 ? 'text-warning' : 'text-success'">
+                                                                    </span>
+                                                                </td>
+                                                                <td x-text="Math.round(formation.total_length) + ' m'"></td>
+                                                                <td>
+                                                                    <a href="#" @click.prevent="viewShiftDetails(formation.id)" 
+                                                                       x-text="formation.shift_id" 
+                                                                       class="text-decoration-none fw-bold"></a>
+                                                                </td>
+                                                            </tr>
+                                                        </template>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -183,6 +316,13 @@ function formationsPage() {
         viewShiftDetails(shiftId) {
             // Rediriger vers le détail du poste
             window.location.href = `/management/reports/${shiftId}/`;
+        },
+        
+        getTRSClass(trs) {
+            if (!trs) return 'bg-secondary';
+            if (trs >= 85) return 'bg-success';
+            if (trs >= 70) return 'bg-warning';
+            return 'bg-danger';
         }
     };
 }

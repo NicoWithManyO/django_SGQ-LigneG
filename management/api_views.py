@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, action, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Avg, Sum
 from django.http import JsonResponse
 from django.utils import timezone
 from datetime import datetime, timedelta
@@ -849,11 +849,15 @@ def formations_recap(request):
         # Calculer la date limite (6 mois en arrière)
         six_months_ago = timezone.now().date() - timedelta(days=180)
         
-        # Récupérer tous les postes de formation des 6 derniers mois
+        # Récupérer tous les postes de formation des 6 derniers mois avec leurs relations
         training_shifts = Shift.objects.filter(
             is_training_shift=True,
             date__gte=six_months_ago
-        ).select_related('operator', 'trainee').order_by('-date')
+        ).select_related(
+            'operator', 'trainee', 'trs'
+        ).prefetch_related(
+            'rolls__defects'
+        ).order_by('-date')
         
         # Grouper par opérateur formé (trainee)
         formations_by_trainee = {}
@@ -875,7 +879,26 @@ def formations_recap(request):
                         'last_formation': None
                     }
                 
-                # Ajouter cette session de formation
+                # Calculer les statistiques de ce poste de formation
+                trs_value = None
+                if hasattr(shift, 'trs') and shift.trs:
+                    trs_value = float(shift.trs.trs_percentage)
+                
+                # Compter les défauts dans les rouleaux du poste
+                defects_count = 0
+                total_length = 0
+                conforming_length = 0
+                rolls_count = 0
+                
+                for roll in shift.rolls.all():
+                    rolls_count += 1
+                    defects_count += roll.defects.count()
+                    if roll.length:
+                        total_length += float(roll.length)
+                        if roll.status == 'CONFORME':
+                            conforming_length += float(roll.length)
+                
+                # Ajouter cette session de formation avec statistiques
                 formation_data = {
                     'id': shift.id,
                     'shift_id': shift.shift_id,
@@ -885,7 +908,14 @@ def formations_recap(request):
                         'id': shift.operator.id,
                         'full_name': shift.operator.full_name,
                         'employee_id': shift.operator.employee_id
-                    }
+                    },
+                    # Statistiques du poste
+                    'trs': trs_value,
+                    'defects_count': defects_count,
+                    'rolls_count': rolls_count,
+                    'total_length': total_length,
+                    'conforming_length': conforming_length,
+                    'quality_rate': round((conforming_length / total_length * 100), 1) if total_length > 0 else None
                 }
                 
                 formations_by_trainee[trainee_id]['formations'].append(formation_data)
@@ -899,10 +929,45 @@ def formations_recap(request):
                 if formations_by_trainee[trainee_id]['last_formation'] is None or shift.date > datetime.strptime(formations_by_trainee[trainee_id]['last_formation'], '%Y-%m-%d').date():
                     formations_by_trainee[trainee_id]['last_formation'] = shift.date.strftime('%Y-%m-%d')
         
-        # Convertir les sets en listes pour la sérialisation JSON
+        # Convertir les sets en listes et calculer les moyennes par formé
         for trainee_data in formations_by_trainee.values():
             trainee_data['formateurs'] = list(trainee_data['formateurs'])
             trainee_data['formations'].sort(key=lambda x: x['date'], reverse=True)
+            
+            # Calculer les statistiques moyennes pour ce formé
+            formations = trainee_data['formations']
+            
+            # TRS moyen (exclure les valeurs None)
+            trs_values = [f['trs'] for f in formations if f['trs'] is not None]
+            avg_trs = round(sum(trs_values) / len(trs_values), 1) if trs_values else None
+            
+            # Défauts par poste
+            defects_per_shift = [f['defects_count'] for f in formations]
+            avg_defects = round(sum(defects_per_shift) / len(defects_per_shift), 1) if defects_per_shift else 0
+            
+            # Production moyenne
+            total_lengths = [f['total_length'] for f in formations if f['total_length'] > 0]
+            avg_production = round(sum(total_lengths) / len(total_lengths), 0) if total_lengths else 0
+            
+            # Qualité moyenne
+            quality_rates = [f['quality_rate'] for f in formations if f['quality_rate'] is not None]
+            avg_quality = round(sum(quality_rates) / len(quality_rates), 1) if quality_rates else None
+            
+            # Rouleaux par poste
+            rolls_per_shift = [f['rolls_count'] for f in formations]
+            avg_rolls = round(sum(rolls_per_shift) / len(rolls_per_shift), 1) if rolls_per_shift else 0
+            
+            # Ajouter les statistiques moyennes
+            trainee_data['statistics'] = {
+                'avg_trs': avg_trs,
+                'avg_defects_per_shift': avg_defects,
+                'avg_production_per_shift': avg_production,
+                'avg_quality_rate': avg_quality,
+                'avg_rolls_per_shift': avg_rolls,
+                'total_defects': sum(defects_per_shift),
+                'total_production': sum(total_lengths),
+                'total_rolls': sum(rolls_per_shift)
+            }
         
         # Convertir en liste triée par nombre de sessions (décroissant)
         result = list(formations_by_trainee.values())
