@@ -24,6 +24,7 @@ class ReportService:
         """
         shift = Shift.objects.select_related(
             'operator',
+            'trainee',
             'checklist_response'
         ).prefetch_related(
             'rolls',

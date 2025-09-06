@@ -83,6 +83,7 @@
                                     <th>Date</th>
                                     <th>Vacation</th>
                                     <th>Opérateur</th>
+                                    <th>Formation</th>
                                     <th>Production</th>
                                     <th>TRS</th>
                                     <th>Qualité</th>
@@ -104,6 +105,12 @@
                                             <span class="badge bg-secondary" x-text="shift.vacation"></span>
                                         </td>
                                         <td x-text="shift.operator?.full_name || 'N/A'"></td>
+                                        <td>
+                                            <span x-show="shift.is_training_shift" class="badge bg-primary">
+                                                <i class="bi bi-people me-1"></i>
+                                                <span x-text="shift.trainee?.full_name || 'Formation'"></span>
+                                            </span>
+                                        </td>
                                         <td>
                                             <div class="small">
                                                 <div x-text="formatNumber(shift.total_length) + ' m'"></div>

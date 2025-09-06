@@ -228,15 +228,30 @@ function checklist() {
                 return;
             }
             
-            // Extraire les initiales de l'employee_id (ex: "MartinDUPONT" -> "MD")
-            const match = operatorId.match(/^([A-Z])[a-z]*([A-Z])/);
-            if (!match) {
-                showNotification('error', 'Format opérateur invalide');
-                this.signature = '';
-                return;
-            }
+            // Extraire les initiales de l'employee_id
+            // Format attendu: PrenomNOM (ex: "StéphaneMALLET" -> "SM")
+            let expectedInitials = '';
             
-            const expectedInitials = match[1] + match[2]; // Ex: "MD"
+            // Trouver la transition prénom -> nom (minuscule vers majuscule)
+            let match = operatorId.match(/^([A-Za-z])[a-z]*([A-Z])/);
+            if (match) {
+                // Première lettre du prénom + première lettre du nom
+                expectedInitials = match[1].toUpperCase() + match[2];
+            } else {
+                // Fallback: chercher les lettres majuscules
+                const majuscules = operatorId.match(/[A-Z]/g);
+                if (majuscules && majuscules.length >= 2) {
+                    // Prendre première et deuxième majuscule
+                    expectedInitials = majuscules[0] + majuscules[1];
+                } else if (operatorId.length >= 2) {
+                    // Dernier recours: deux premières lettres
+                    expectedInitials = operatorId.substring(0, 2).toUpperCase();
+                } else {
+                    showNotification('error', 'Format opérateur invalide pour la signature');
+                    this.signature = '';
+                    return;
+                }
+            }
             
             // Vérifier que la signature correspond aux initiales
             if (this.signature.toUpperCase() !== expectedInitials) {

@@ -1,0 +1,190 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'management/css/reports.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" x-data="formationsPage()" x-init="init()">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-0">{{ title }}</h1>
+            <p class="text-muted">Récapitulatif des formations des 6 derniers mois</p>
+        </div>
+    </div>
+
+    <!-- Statistiques globales -->
+    <div class="row mb-4" x-show="statistics">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Opérateurs formés</h5>
+                    <h2 class="text-primary" x-text="statistics?.total_trainees || 0"></h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Sessions totales</h5>
+                    <h2 class="text-info" x-text="statistics?.total_sessions || 0"></h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Période</h5>
+                    <div class="small">
+                        <div x-text="formatDate(statistics?.period_start)"></div>
+                        <div x-text="formatDate(statistics?.period_end)"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Moyenne par formé</h5>
+                    <h2 class="text-warning" x-text="Math.round((statistics?.total_sessions || 0) / (statistics?.total_trainees || 1)) + ' sessions'"></h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des formations par opérateur -->
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Formations par opérateur</h5>
+                </div>
+                <div class="card-body">
+                    <div x-show="loading" class="text-center py-4">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                    
+                    <div x-show="!loading && formations.length === 0" class="text-center py-4 text-muted">
+                        <i class="bi bi-people-fill display-4 mb-3"></i>
+                        <p>Aucune formation trouvée sur les 6 derniers mois.</p>
+                    </div>
+
+                    <div x-show="!loading && formations.length > 0">
+                        <template x-for="traineeData in formations" :key="traineeData.trainee.id">
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <div class="row align-items-center">
+                                        <div class="col">
+                                            <h6 class="mb-0">
+                                                <i class="bi bi-person-fill me-2"></i>
+                                                <span x-text="traineeData.trainee.full_name"></span>
+                                                <small class="text-muted" x-text="'(' + traineeData.trainee.employee_id + ')'"></small>
+                                            </h6>
+                                        </div>
+                                        <div class="col-auto">
+                                            <span class="badge bg-primary" x-text="traineeData.total_sessions + ' sessions'"></span>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col">
+                                            <small class="text-muted">
+                                                <strong>Formateurs :</strong> <span x-text="traineeData.formateurs.join(', ')"></span>
+                                            </small>
+                                        </div>
+                                        <div class="col-auto">
+                                            <small class="text-muted">
+                                                <strong>Période :</strong> 
+                                                <span x-text="formatDate(traineeData.first_formation)"></span> → 
+                                                <span x-text="formatDate(traineeData.last_formation)"></span>
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Vacation</th>
+                                                    <th>Formateur</th>
+                                                    <th>ID Poste</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template x-for="formation in traineeData.formations" :key="formation.id">
+                                                    <tr>
+                                                        <td x-text="formatDate(formation.date)"></td>
+                                                        <td>
+                                                            <span class="badge bg-secondary" x-text="formation.vacation"></span>
+                                                        </td>
+                                                        <td x-text="formation.formateur.full_name"></td>
+                                                        <td>
+                                                            <a href="#" @click.prevent="viewShiftDetails(formation.id)" 
+                                                               x-text="formation.shift_id" 
+                                                               class="text-decoration-none fw-bold"></a>
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function formationsPage() {
+    return {
+        formations: [],
+        statistics: null,
+        loading: true,
+        
+        async init() {
+            await this.loadFormations();
+        },
+        
+        async loadFormations() {
+            this.loading = true;
+            try {
+                const response = await fetch('/management/api/formations-recap/');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    this.formations = data.formations;
+                    this.statistics = data.statistics;
+                } else {
+                    console.error('Erreur API:', data.error);
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement des formations:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('fr-FR');
+        },
+        
+        viewShiftDetails(shiftId) {
+            // Rediriger vers le détail du poste
+            window.location.href = `/management/reports/${shiftId}/`;
+        }
+    };
+}
+</script>
+{% endblock %}

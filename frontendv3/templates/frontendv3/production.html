@@ -28,7 +28,7 @@
                     <div x-data="shiftForm()">
                         <!-- Ligne 1: Opérateur seul -->
                         <div class="row mb-3">
-                            <div class="col-10">
+                            <div class="col-9">
                                 <label class="form-label">Opérateur</label>
                                 <div class="input-group">
                                     <select class="form-select" 
@@ -48,7 +48,37 @@
                                     </button>
                                 </div>
                             </div>
+                            <!-- Toggle Formation -->
+                            <div class="col-3 d-flex align-items-end justify-content-center">
+                                <i class="bi bi-people me-2 text-muted" style="font-size: 1.2rem;"></i>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" 
+                                           type="checkbox" 
+                                           id="trainingToggle"
+                                           x-model="isTraining"
+                                           @change="handleTrainingToggle()">
+                                    <label class="form-check-label" for="trainingToggle" title="Poste de formation">
+                                    </label>
+                                </div>
+                            </div>
                         </div>
+                        
+                        <!-- Section Formation (conditionnelle) -->
+                        <div class="row mb-3" x-show="isTraining" x-transition>
+                            <div class="col-12">
+                                <label class="form-label">Personne formée</label>
+                                <select class="form-select" 
+                                        x-model="traineeId"
+                                        @change="handleTraineeChange($event)"
+                                        :class="{ 'filled': traineeId }">
+                                    <option value="">Sélectionner la personne formée</option>
+                                    <template x-for="operator in operators" :key="operator.employee_id">
+                                        <option :value="operator.employee_id" x-text="operator.display_name"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
+                        
                         
                         <!-- Ligne 2: Date et Vacation -->
                         <div class="row mb-3">

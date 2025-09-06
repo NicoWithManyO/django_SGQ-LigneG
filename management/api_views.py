@@ -5,9 +5,11 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.utils import timezone
+from datetime import datetime, timedelta
 
 from production.models import Shift, Roll
 from wcm.models import ChecklistResponse
+from planification.models import Operator
 from .models import UserProfile
 from .services import StatisticsService, ChecklistService
 from .services.report_service import ReportService
@@ -43,7 +45,7 @@ class ShiftReportViewSet(viewsets.ReadOnlyModelViewSet):
         if operator_id:
             queryset = queryset.filter(operator_id=operator_id)
         
-        return queryset.select_related('operator', 'trs').order_by('-date', '-created_at')
+        return queryset.select_related('operator', 'trainee', 'trs').order_by('-date', '-created_at')
     
     @action(detail=True, methods=['get'])
     def comprehensive_report(self, request, pk=None):
@@ -835,5 +837,92 @@ def checklist_details(request, pk):
     except Exception as e:
         return Response(
             {'error': f'Erreur lors de la récupération des détails: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def formations_recap(request):
+    """API pour récupérer le récapitulatif des formations des 6 derniers mois."""
+    try:
+        # Calculer la date limite (6 mois en arrière)
+        six_months_ago = timezone.now().date() - timedelta(days=180)
+        
+        # Récupérer tous les postes de formation des 6 derniers mois
+        training_shifts = Shift.objects.filter(
+            is_training_shift=True,
+            date__gte=six_months_ago
+        ).select_related('operator', 'trainee').order_by('-date')
+        
+        # Grouper par opérateur formé (trainee)
+        formations_by_trainee = {}
+        
+        for shift in training_shifts:
+            if shift.trainee:
+                trainee_id = shift.trainee.id
+                if trainee_id not in formations_by_trainee:
+                    formations_by_trainee[trainee_id] = {
+                        'trainee': {
+                            'id': shift.trainee.id,
+                            'full_name': shift.trainee.full_name,
+                            'employee_id': shift.trainee.employee_id
+                        },
+                        'formations': [],
+                        'total_sessions': 0,
+                        'formateurs': set(),
+                        'first_formation': None,
+                        'last_formation': None
+                    }
+                
+                # Ajouter cette session de formation
+                formation_data = {
+                    'id': shift.id,
+                    'shift_id': shift.shift_id,
+                    'date': shift.date.strftime('%Y-%m-%d'),
+                    'vacation': shift.vacation,
+                    'formateur': {
+                        'id': shift.operator.id,
+                        'full_name': shift.operator.full_name,
+                        'employee_id': shift.operator.employee_id
+                    }
+                }
+                
+                formations_by_trainee[trainee_id]['formations'].append(formation_data)
+                formations_by_trainee[trainee_id]['formateurs'].add(shift.operator.full_name)
+                formations_by_trainee[trainee_id]['total_sessions'] += 1
+                
+                # Mettre à jour les dates
+                if formations_by_trainee[trainee_id]['first_formation'] is None or shift.date < datetime.strptime(formations_by_trainee[trainee_id]['first_formation'], '%Y-%m-%d').date():
+                    formations_by_trainee[trainee_id]['first_formation'] = shift.date.strftime('%Y-%m-%d')
+                    
+                if formations_by_trainee[trainee_id]['last_formation'] is None or shift.date > datetime.strptime(formations_by_trainee[trainee_id]['last_formation'], '%Y-%m-%d').date():
+                    formations_by_trainee[trainee_id]['last_formation'] = shift.date.strftime('%Y-%m-%d')
+        
+        # Convertir les sets en listes pour la sérialisation JSON
+        for trainee_data in formations_by_trainee.values():
+            trainee_data['formateurs'] = list(trainee_data['formateurs'])
+            trainee_data['formations'].sort(key=lambda x: x['date'], reverse=True)
+        
+        # Convertir en liste triée par nombre de sessions (décroissant)
+        result = list(formations_by_trainee.values())
+        result.sort(key=lambda x: x['total_sessions'], reverse=True)
+        
+        # Statistiques globales
+        stats = {
+            'total_trainees': len(result),
+            'total_sessions': sum(data['total_sessions'] for data in result),
+            'period_start': six_months_ago.strftime('%Y-%m-%d'),
+            'period_end': timezone.now().date().strftime('%Y-%m-%d')
+        }
+        
+        return Response({
+            'formations': result,
+            'statistics': stats
+        })
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Erreur lors de la récupération des formations: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

@@ -23,8 +23,8 @@ class ShiftAdmin(admin.ModelAdmin):
     """Administration des postes de production."""
     
     list_display = ['shift_id', 'date', 'vacation', 'operator', 
-                    'get_total_length', 'availability_time', 'checklist_signed']
-    list_filter = ['vacation', 'date', 'checklist_signed', 'started_at_beginning', 'started_at_end']
+                    'get_total_length', 'availability_time', 'checklist_signed', 'is_training_display']
+    list_filter = ['vacation', 'date', 'checklist_signed', 'started_at_beginning', 'started_at_end', 'is_training_shift']
     search_fields = ['shift_id', 'operator__first_name', 'operator__last_name']
     date_hierarchy = 'date'
     ordering = ['-date', 'vacation']
@@ -53,6 +53,10 @@ class ShiftAdmin(admin.ModelAdmin):
         }),
         ('Check-list', {
             'fields': ('checklist_signed', 'checklist_signed_time')
+        }),
+        ('Formation', {
+            'fields': ('is_training_shift', 'trainee'),
+            'classes': ('collapse',)
         }),
         ('Commentaires', {
             'fields': ('operator_comments',),
@@ -85,6 +89,16 @@ class ShiftAdmin(admin.ModelAdmin):
         """Déchet brut depuis TRS."""
         return f"{obj.raw_waste_length} m"
     get_raw_waste_length.short_description = "Déchet brut"
+    
+    def is_training_display(self, obj):
+        """Affiche si c'est un poste de formation."""
+        if obj.is_training_shift and obj.trainee:
+            return format_html('<span style="color: #007bff; font-weight: bold;">👥 {}</span>', 
+                              obj.trainee.full_name)
+        elif obj.is_training_shift:
+            return format_html('<span style="color: #ffc107;">👥 Formation</span>')
+        return ""
+    is_training_display.short_description = "Formation"
 
 
 class RollThicknessInline(admin.TabularInline):

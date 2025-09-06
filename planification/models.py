@@ -55,6 +55,11 @@ class Operator(models.Model):
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
     
+    @property
+    def full_name(self):
+        """Retourne le nom complet de l'opérateur."""
+        return f"{self.first_name} {self.last_name}"
+    
     def save(self, *args, **kwargs):
         """Génère automatiquement l'employee_id si non fourni."""
         # Générer l'employee_id si non fourni

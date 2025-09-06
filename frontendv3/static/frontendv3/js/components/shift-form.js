@@ -42,6 +42,10 @@ function shiftForm() {
         // Commentaires - on ne charge que si non vide
         comments: (savedData.comments && savedData.comments.trim()) ? savedData.comments : undefined,
         
+        // Champs formation
+        isTraining: savedData.isTraining || false,
+        traineeId: savedData.traineeId || '',
+        
         // Options de vacation
         vacationOptions: [
             { value: 'Matin', label: 'Matin' },
@@ -239,7 +243,10 @@ function shiftForm() {
                 endTime: this.endTime,
                 machineStartedEnd: this.machineStartedEnd,
                 lengthEnd: this.lengthEnd,
-                comments: this.comments
+                comments: this.comments,
+                // Champs formation
+                isTraining: this.isTraining,
+                traineeId: this.traineeId
             }), () => {
                 this.saveShiftData();
             }, { deep: true });
@@ -401,7 +408,10 @@ function shiftForm() {
                 endTime: this.endTime,
                 machineStartedEnd: this.machineStartedEnd,
                 lengthEnd: this.lengthEnd,
-                comments: this.comments
+                comments: this.comments,
+                // Champs formation
+                isTraining: this.isTraining,
+                traineeId: this.traineeId
             };
             
             // Utiliser la sauvegarde du mixin
@@ -429,6 +439,24 @@ function shiftForm() {
             window.dispatchEvent(new CustomEvent('operator-changed', {
                 detail: { operatorId: this.operatorId }
             }));
+            
+            this.saveShiftData();
+        },
+        
+        handleTrainingToggle() {
+            // Si on désactive la formation, nettoyer les champs
+            if (!this.isTraining) {
+                this.traineeId = '';
+            }
+            this.saveShiftData();
+        },
+        
+        handleTraineeChange(event) {
+            this.traineeId = event.target.value;
+            if (event.target.classList) {
+                event.target.classList.toggle('filled', !!this.traineeId);
+            }
+            this.saveShiftData();
             
             // Émettre immédiatement shift-data-changed
             this.emitShiftDataChanged();
@@ -564,6 +592,15 @@ function shiftForm() {
                 operatorId = operator.id;
             }
             
+            // Préparer l'ID numérique du trainee si formation activée
+            let traineeNumericId = null;
+            if (this.isTraining && this.traineeId) {
+                const trainee = this.operators.find(op => op.employee_id === this.traineeId);
+                if (trainee && trainee.id) {
+                    traineeNumericId = trainee.id;
+                }
+            }
+
             const data = {
                 shift_id: this.shiftId,
                 operator: operatorId, // Le backend attend un ID numérique
@@ -575,7 +612,10 @@ function shiftForm() {
                 meter_reading_start: this.lengthStart ? parseFloat(this.lengthStart) : null,
                 started_at_end: this.machineStartedEnd,
                 meter_reading_end: this.lengthEnd ? parseFloat(this.lengthEnd) : null,
-                operator_comments: this.comments || ''
+                operator_comments: this.comments || '',
+                // Champs formation
+                is_training_shift: this.isTraining,
+                trainee: traineeNumericId
             };
             
             // Ajouter les données de signature checklist depuis la session

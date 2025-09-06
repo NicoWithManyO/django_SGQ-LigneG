@@ -187,6 +187,7 @@ class ShiftSerializer(serializers.ModelSerializer):
     
     checklist_response = ChecklistResponseSerializer(read_only=True)
     operator_name = serializers.CharField(source='operator.full_name', read_only=True)
+    trainee_name = serializers.CharField(source='trainee.full_name', read_only=True)
     
     # Statistiques calculées
     roll_count = serializers.IntegerField(read_only=True)
@@ -223,7 +224,11 @@ class ShiftSerializer(serializers.ModelSerializer):
             'roll_count',
             'total_lost_time_minutes',
             'created_at',
-            'updated_at'
+            'updated_at',
+            # Champs formation
+            'is_training_shift',
+            'trainee',
+            'trainee_name'
         ]
         read_only_fields = [
             'shift_id',  # Généré automatiquement
@@ -270,6 +275,15 @@ class ShiftSerializer(serializers.ModelSerializer):
         if started_at_end and meter_reading_end is None:
             raise serializers.ValidationError({
                 'meter_reading_end': 'Le métrage de fin est requis si la machine était démarrée.'
+            })
+        
+        # Validation des champs formation
+        is_training_shift = attrs.get('is_training_shift')
+        trainee = attrs.get('trainee')
+        
+        if is_training_shift and not trainee:
+            raise serializers.ValidationError({
+                'trainee': 'La personne formée est requise si le poste est de formation.'
             })
         
         return attrs

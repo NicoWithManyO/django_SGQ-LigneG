@@ -76,6 +76,25 @@
                         <dt class="col-sm-4">Opérateur</dt>
                         <dd class="col-sm-8">{{ report.shift.operator.first_name }} {{ report.shift.operator.last_name|default:"N/A" }}</dd>
                         
+                        {% if report.shift.is_training_shift %}
+                        <dt class="col-sm-4">Formation</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-primary">
+                                <i class="bi bi-people me-1"></i>
+                                {% if report.shift.trainee %}
+                                    <strong>Formateur:</strong> {{ report.shift.operator.first_name }} {{ report.shift.operator.last_name }}<br>
+                                    <strong>Formé:</strong> {{ report.shift.trainee.first_name }} {{ report.shift.trainee.last_name }}
+                                {% else %}
+                                    <strong>Poste de formation</strong> (personne formée non renseignée)
+                                {% endif %}
+                            </span>
+                        </dd>
+                        {% endif %}
+                        
+                        <!-- DEBUG - À supprimer après test -->
+                        <!-- is_training_shift: {{ report.shift.is_training_shift }} -->
+                        <!-- trainee: {{ report.shift.trainee }} -->
+                        
                         <dt class="col-sm-4">Horaires</dt>
                         <dd class="col-sm-8">{{ report.shift.start_time|default:"--" }} - {{ report.shift.end_time|default:"--" }}</dd>
                     </dl>

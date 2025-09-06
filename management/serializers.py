@@ -6,7 +6,7 @@ from planification.models import Operator
 
 class OperatorSerializer(serializers.ModelSerializer):
     """Serializer pour les opérateurs."""
-    full_name = serializers.CharField(source='get_full_name', read_only=True)
+    full_name = serializers.ReadOnlyField()
     
     class Meta:
         model = Operator
@@ -16,6 +16,7 @@ class OperatorSerializer(serializers.ModelSerializer):
 class ShiftReportSerializer(serializers.ModelSerializer):
     """Serializer pour les rapports de shift."""
     operator = OperatorSerializer(read_only=True)
+    trainee = OperatorSerializer(read_only=True)
     has_checklist_visa = serializers.SerializerMethodField()
     rolls_count = serializers.IntegerField(source='rolls.count', read_only=True)
     trs = serializers.SerializerMethodField()
@@ -27,7 +28,9 @@ class ShiftReportSerializer(serializers.ModelSerializer):
             'operator', 'start_time', 'end_time',
             'total_length', 'ok_length', 'nok_length',
             'avg_thickness_left_shift', 'avg_thickness_right_shift',
-            'avg_grammage_shift', 'has_checklist_visa', 'rolls_count', 'trs'
+            'avg_grammage_shift', 'has_checklist_visa', 'rolls_count', 'trs',
+            # Champs formation
+            'is_training_shift', 'trainee'
         ]
     
     def get_has_checklist_visa(self, obj):

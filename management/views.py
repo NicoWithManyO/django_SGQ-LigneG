@@ -29,7 +29,7 @@ def shift_reports_list(request):
 @superuser_required
 def shift_report_detail(request, shift_id):
     """Détail d'un rapport de poste."""
-    shift = get_object_or_404(Shift, pk=shift_id)
+    shift = get_object_or_404(Shift.objects.select_related('operator', 'trainee'), pk=shift_id)
     report_data = ReportService.get_shift_comprehensive_data(shift_id)
     
     context = {
@@ -37,6 +37,15 @@ def shift_report_detail(request, shift_id):
         'report': report_data
     }
     return render(request, 'management/pages/shift_report.html', context)
+
+
+@superuser_required  
+def formations_list(request):
+    """Page de récapitulatif des formations."""
+    context = {
+        'title': 'Récapitulatif Formations'
+    }
+    return render(request, 'management/pages/formations.html', context)
 
 
 @superuser_required

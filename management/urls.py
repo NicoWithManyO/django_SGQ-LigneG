@@ -14,6 +14,7 @@ urlpatterns = [
     path('', views.management_dashboard, name='dashboard'),
     path('reports/', views.shift_reports_list, name='reports-list'),
     path('reports/<int:shift_id>/', views.shift_report_detail, name='report-detail'),
+    path('formations/', views.formations_list, name='formations-list'),
     path('checklists/', views.checklist_review_list, name='checklists-list'),
     path('checklists/<int:checklist_id>/', views.checklist_detail, name='checklist-detail'),
     path('statistics/', views.production_statistics, name='statistics'),
@@ -40,4 +41,5 @@ urlpatterns = [
     path('api/conforming-rolls/', api_views.conforming_rolls_list, name='api-conforming-rolls'),
     path('api/generate-control-report/', api_views.generate_control_report, name='api-generate-control-report'),
     path('api/unassign-roll/', api_views.unassign_roll, name='api-unassign-roll'),
+    path('api/formations-recap/', api_views.formations_recap, name='api-formations-recap'),
 ]

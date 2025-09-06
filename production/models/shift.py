@@ -34,6 +34,24 @@ class Shift(models.Model):
         help_text="Opérateur responsable du poste"
     )
     
+    # Champs formation
+    is_training_shift = models.BooleanField(
+        default=False,
+        verbose_name="Poste de formation",
+        help_text="Indique si ce poste inclut de la formation"
+    )
+    
+    trainee = models.ForeignKey(
+        'planification.Operator',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='trainee_shifts',
+        verbose_name="Personne formée",
+        help_text="Opérateur en formation"
+    )
+    
+    
     vacation = models.CharField(
         max_length=20,
         choices=VACATION_CHOICES,
