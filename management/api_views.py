@@ -355,18 +355,31 @@ def roll_details(request, pk):
 @permission_classes([IsSuperUser])
 def shift_details(request, pk):
     """Récupère les détails complets d'un poste pour affichage dans la modale."""
+    print(f"=== DEBUT shift_details API pour shift ID: {pk} ===")
     try:
         # Récupérer le poste avec toutes ses relations
         shift = Shift.objects.select_related(
-            'operator'
+            'operator',
+            'trainee'
         ).prefetch_related(
             'rolls__defects',
             'lost_time_entries__reason',
             'quality_controls'
         ).get(pk=pk)
         
-        # Calculer les KPIs
-        kpis = ReportService._calculate_kpis(shift)
+        print(f"Shift trouvé: {shift.shift_id}")
+        
+        # Calculer les KPIs avec gestion d'erreur
+        try:
+            kpis = ReportService._calculate_kpis(shift)
+        except Exception as e:
+            print(f"Erreur calcul KPIs pour shift {shift.id}: {e}")
+            kpis = {
+                'trs': None,
+                'availability': None,
+                'performance': None,
+                'quality': None
+            }
         
         # Préparer la liste des rouleaux
         rolls = []
@@ -415,6 +428,10 @@ def shift_details(request, pk):
             # Opérateur
             'operator': f"{shift.operator.first_name} {shift.operator.last_name}" if shift.operator else None,
             
+            # Formation
+            'is_training_shift': shift.is_training_shift,
+            'trainee': f"{shift.trainee.first_name} {shift.trainee.last_name}" if shift.trainee else None,
+            
             # État machine
             'started_at_beginning': shift.started_at_beginning,
             'started_at_end': shift.started_at_end,
@@ -452,9 +469,11 @@ def shift_details(request, pk):
             'manager_comments': None  # TODO: implémenter les commentaires manager
         }
         
+        print(f"=== FIN shift_details API, envoi de la réponse ===")
         return Response(data)
         
     except Shift.DoesNotExist:
+        print(f"ERREUR: Shift {pk} non trouvé")
         return Response(
             {'error': 'Poste non trouvé'},
             status=status.HTTP_404_NOT_FOUND

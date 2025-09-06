@@ -25,7 +25,9 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background-color: var(--v3-body-bg);
+    background: var(--sg-gradient);
+    background-attachment: fixed;
+    min-height: 100vh;
     color: #212529;
     padding-bottom: 80px; /* Pour la sticky bar */
     overflow-y: scroll !important; /* Force la scrollbar à toujours être visible */
@@ -40,7 +42,7 @@ body.modal-open {
 /* Variables dégradé Saint-Gobain */
 :root {
     --sg-gradient: linear-gradient(
-        to right,
+        10deg,
         #43B0B1 0%,
         #43B0B1 10%,
         #0096D5 30%,

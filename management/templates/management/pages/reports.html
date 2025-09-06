@@ -267,6 +267,13 @@
                                         <td class="text-muted">Opérateur :</td>
                                         <td x-text="shiftDetails?.operator || '--'"></td>
                                     </tr>
+                                    <tr x-show="shiftDetails?.is_training_shift">
+                                        <td class="text-muted">Formé :</td>
+                                        <td>
+                                            <span class="badge bg-primary me-2">Formation</span>
+                                            <span x-text="shiftDetails?.trainee || 'N/A'"></span>
+                                        </td>
+                                    </tr>
                                     <tr>
                                         <td class="text-muted">Machine :</td>
                                         <td>

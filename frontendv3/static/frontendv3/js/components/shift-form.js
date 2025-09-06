@@ -336,6 +336,8 @@ function shiftForm() {
             const operatorSelect = this.$el.querySelector('select[x-model="operatorId"]');
             const dateInput = this.$el.querySelector('input[x-model="date"]');
             const vacationSelect = this.$el.querySelector('select[x-model="vacation"]');
+            const traineeSelect = this.$el.querySelector('select[x-model="traineeId"]');
+            const trainingCheckbox = this.$el.querySelector('input[x-model="isTraining"]');
             
             if (operatorSelect) {
                 operatorSelect.classList.toggle('filled', !!this.operatorId);
@@ -348,6 +350,13 @@ function shiftForm() {
             if (vacationSelect) {
                 vacationSelect.classList.toggle('filled', !!this.vacation);
                 if (this.vacation) vacationSelect.value = this.vacation;
+            }
+            if (traineeSelect) {
+                traineeSelect.classList.toggle('filled', !!this.traineeId);
+                if (this.traineeId) traineeSelect.value = this.traineeId;
+            }
+            if (trainingCheckbox) {
+                trainingCheckbox.checked = this.isTraining;
             }
         },
         
@@ -720,6 +729,10 @@ function shiftForm() {
             this.comments = '';
             this.shiftId = ''; // IMPORTANT: réinitialiser le shiftId aussi !
             
+            // Réinitialiser les champs formation
+            this.isTraining = false;
+            this.traineeId = '';
+            
             // Réinitialiser les états de validation
             this.shiftIdExists = null;
             this.checkingShiftId = false;
@@ -733,7 +746,9 @@ function shiftForm() {
                     'vacation': this.vacation,
                     'startTime': this.startTime,
                     'endTime': this.endTime,
-                    'lengthStart': this.lengthStart
+                    'lengthStart': this.lengthStart,
+                    'isTraining': this.isTraining,
+                    'traineeId': this.traineeId
                 };
                 
                 Object.entries(fieldsToUpdate).forEach(([model, value]) => {

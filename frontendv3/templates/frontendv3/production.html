@@ -1240,6 +1240,21 @@
                          @click="$dispatch('show-splash')"
                          title="Cliquez pour voir l'écran de démarrage">
                     <img src="{% static 'frontendv3/img/last_wcm.png' %}" alt="WCM" height="40" style="height: 40px; width: auto;">
+                    
+                    <!-- Toggle gradient background -->
+                    <div class="d-flex flex-column align-items-center" x-data="{ gradientEnabled: localStorage.getItem('gradientEnabled') !== 'false' }" x-init="applyGradient()">
+                        <div class="d-flex align-items-center gap-1 text-white-50 small" style="margin-bottom: 2px;">
+                            BG 🎨
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="gradientToggle"
+                                   x-model="gradientEnabled"
+                                   @change="toggleGradient()"
+                                   title="Activer/Désactiver le dégradé de fond">
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -1639,6 +1654,32 @@
             window.kpiService.calculateAll();
         }
     }, 1000);
+    
+    // Fonctions globales pour le toggle gradient
+    window.toggleGradient = function() {
+        const checkbox = document.querySelector('#gradientToggle');
+        const isEnabled = checkbox ? checkbox.checked : false;
+        localStorage.setItem('gradientEnabled', isEnabled);
+        applyGradient();
+    };
+    
+    window.applyGradient = function() {
+        const isEnabled = localStorage.getItem('gradientEnabled') !== 'false';
+        if (isEnabled) {
+            document.body.style.background = 'var(--sg-gradient)';
+            document.body.style.backgroundAttachment = 'fixed';
+            document.body.style.minHeight = '100vh';
+        } else {
+            document.body.style.background = '#9da1a8';
+            document.body.style.backgroundAttachment = 'scroll';
+            document.body.style.minHeight = '100vh';
+        }
+    };
+    
+    // Appliquer le gradient au chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        applyGradient();
+    });
 </script>
 
 
