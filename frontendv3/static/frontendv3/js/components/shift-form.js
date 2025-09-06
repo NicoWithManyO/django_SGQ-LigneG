@@ -63,13 +63,13 @@ function shiftForm() {
                 return false;
             }
             
-            // Si machine démarrée en début, il faut une longueur > 0
-            if (this.machineStartedStart && (!this.lengthStart || parseFloat(this.lengthStart) <= 0)) {
+            // Si machine démarrée en début, il faut une longueur >= 0
+            if (this.machineStartedStart && (!this.lengthStart || parseFloat(this.lengthStart) < 0)) {
                 return false;
             }
             
-            // Si machine démarrée en fin, il faut une longueur > 0
-            if (this.machineStartedEnd && (!this.lengthEnd || parseFloat(this.lengthEnd) <= 0)) {
+            // Si machine démarrée en fin, il faut une longueur >= 0
+            if (this.machineStartedEnd && (!this.lengthEnd || parseFloat(this.lengthEnd) < 0)) {
                 return false;
             }
             
@@ -115,12 +115,12 @@ function shiftForm() {
                 reasons.push("Déclarer un temps de démarrage (machine non démarrée)");
             }
             
-            if (this.machineStartedStart && (!this.lengthStart || parseFloat(this.lengthStart) <= 0)) {
-                reasons.push("Indiquer une longueur de début > 0 (machine démarrée)");
+            if (this.machineStartedStart && (!this.lengthStart || parseFloat(this.lengthStart) < 0)) {
+                reasons.push("Indiquer une longueur de début >= 0 (machine démarrée)");
             }
             
-            if (this.machineStartedEnd && (!this.lengthEnd || parseFloat(this.lengthEnd) <= 0)) {
-                reasons.push("Indiquer une longueur de fin > 0 (machine démarrée)");
+            if (this.machineStartedEnd && (!this.lengthEnd || parseFloat(this.lengthEnd) < 0)) {
+                reasons.push("Indiquer une longueur de fin >= 0 (machine démarrée)");
             }
             
             // Construire le message final

@@ -259,7 +259,7 @@ class ShiftSerializer(serializers.ModelSerializer):
         started_at_beginning = attrs.get('started_at_beginning')
         meter_reading_start = attrs.get('meter_reading_start')
         
-        if started_at_beginning and not meter_reading_start:
+        if started_at_beginning and meter_reading_start is None:
             raise serializers.ValidationError({
                 'meter_reading_start': 'Le métrage de début est requis si la machine était démarrée.'
             })
@@ -267,7 +267,7 @@ class ShiftSerializer(serializers.ModelSerializer):
         started_at_end = attrs.get('started_at_end')
         meter_reading_end = attrs.get('meter_reading_end')
         
-        if started_at_end and not meter_reading_end:
+        if started_at_end and meter_reading_end is None:
             raise serializers.ValidationError({
                 'meter_reading_end': 'Le métrage de fin est requis si la machine était démarrée.'
             })
